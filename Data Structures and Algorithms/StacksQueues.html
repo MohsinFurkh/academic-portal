@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Data Structures Guide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutrals (Alabaster, Taupe) with Muted Accents (Teal, Slate, Coral) -->
+    <!-- Application Structure Plan: A multi-section SPA with main navigation for 'Overview', 'Stack', 'Queue', and 'Priority Queue'. This structure lets users focus on one concept at a time, preventing cognitive overload from a single, long page. The core of each section is an interactive visual simulator, turning passive reading into active learning. Tabs within each section further organize detailed content (Concept, Implementation, Use Cases), enhancing clarity. This user-centric, task-oriented design is more intuitive for learning than a linear report format. -->
+    <!-- Visualization & Content Choices: 
+    - Report Info: LIFO/FIFO/Priority Principles -> Goal: Inform/Engage -> Viz/Method: Interactive HTML/CSS/JS Visual Simulator -> Interaction: User-driven addition/removal of elements -> Justification: Active learning is superior for dynamic concepts. Library: Vanilla JS.
+    - Report Info: Time/Space Complexity Table -> Goal: Compare -> Viz/Method: Bar Chart -> Interaction: Hover tooltips -> Justification: Visual comparison is faster to process than a text table. Library: Chart.js.
+    - Report Info: Implementation Details (Array vs. Linked List) -> Goal: Compare/Organize -> Viz/Method: Side-by-side text blocks with icons -> Interaction: Toggle to highlight details -> Justification: Direct comparison aids understanding. Library: Vanilla JS.
+    - Report Info: List of Use Cases -> Goal: Inform -> Viz/Method: Grid of clickable cards -> Interaction: Click to expand for details -> Justification: Breaks down a long list into a manageable, visually appealing format. Library: Vanilla JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4; /* Alabaster */
+            color: #4a4a4a;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #3b82f6; /* Blue-500 */
+            border-bottom-color: #3b82f6;
+        }
+        .tab-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-link.active, .tab-link:hover {
+            color: #10b981; /* Emerald-500 */
+            border-bottom-color: #10b981;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .data-element {
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            transform-origin: bottom;
+        }
+        .data-element-enter {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.8);
+        }
+        .data-element-exit {
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+        }
+        .use-case-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .use-case-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 450px; }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <nav>
+        <div class="nav-container">
+            <a href="../index.html" class="logo">
+                <img src="../images/icon.jpg" alt="Mohsin Furkh Dar Logo" style="height: 40px;">
+                <div class="logo-text">
+                    <span class="logo-main">Mohsin Furkh Dar</span>
+                    <span class="logo-sub">PhD Candidate</span>
+                </div>
+            </a>
+            <button class="menu-toggle" aria-label="Toggle navigation" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul id="mainNav">
+                <li><a href="../index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="../index.html#courses"><i class="fas fa-book"></i> Courses</a></li>
+                <li><a href="../index.html#lecture-notes"><i class="fas fa-file-alt"></i> Lecture Notes</a></li>
+                <li><a href="../index.html#presentations"><i class="fas fa-chalkboard-teacher"></i> Presentations</a></li>
+                <li><a href="../index.html#mcqs"><i class="fas fa-question-circle"></i> MCQs</a></li>
+                <li><a href="../index.html#research"><i class="fas fa-flask"></i> Research</a></li>
+                <li><a href="../index.html#contact"><i class="fas fa-envelope"></i> Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-20 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">                
+                <div class="hidden sm:flex items-center space-x-8">
+                    <a href="#overview" class="nav-link text-gray-600 font-medium pb-1">Overview</a>
+                    <a href="#stacks" class="nav-link text-gray-600 font-medium pb-1">Stacks</a>
+                    <a href="#queues" class="nav-link text-gray-600 font-medium pb-1">Queues</a>
+                    <a href="#priority-queues" class="nav-link text-gray-600 font-medium pb-1">Priority Queues</a>
+                </div>
+                <button id="mobile-menu-button" class="sm:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none">
+                    <span class="block w-6 h-0.5 bg-gray-600"></span>
+                    <span class="block w-6 h-0.5 bg-gray-600 mt-1.5"></span>
+                    <span class="block w-6 h-0.5 bg-gray-600 mt-1.5"></span>
+                </button>
+            </div>
+             <div id="mobile-menu" class="hidden sm:hidden py-4">
+                <a href="#overview" class="block nav-link text-gray-600 font-medium py-2">Overview</a>
+                <a href="#stacks" class="block nav-link text-gray-600 font-medium py-2">Stacks</a>
+                <a href="#queues" class="block nav-link text-gray-600 font-medium py-2">Queues</a>
+                <a href="#priority-queues" class="block nav-link text-gray-600 font-medium py-2">Priority Queues</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Overview Section -->
+        <section id="overview" class="content-section">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">A Visual Guide to Data Structures</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                    Stacks, Queues, and Priority Queues are fundamental tools for managing data. This guide provides an interactive way to understand their core principles, performance, and real-world applications. Choose a structure from the navigation to begin a deep dive, or explore the comparison chart below.
+                </p>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-2xl font-semibold text-gray-700 mb-4 text-center">Performance at a Glance (Big O Complexity)</h3>
+                <div class="chart-container">
+                    <canvas id="complexityChart"></canvas>
+                </div>
+                 <p class="text-center text-sm text-gray-500 mt-4">This chart shows the worst-case time complexity for core operations on typical implementations (e.g., dynamic arrays for Stacks, circular arrays for Queues, and binary heaps for Priority Queues). Hover over the bars for more details.</p>
+            </div>
+        </section>
+
+        <!-- Stacks Section -->
+        <section id="stacks" class="content-section">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Stacks: Last-In, First-Out (LIFO)</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">A stack operates like a pile of plates. The last plate you add is the first one you take. This "Last-In, First-Out" principle is perfect for managing tasks that need to be undone or processes that are nested.</p>
+            </div>
+            
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="flex justify-center -mb-px space-x-6">
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="stack-simulator">Simulator</button>
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="stack-implementation">Implementation</button>
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="stack-use-cases">Use Cases</button>
+                </nav>
+            </div>
+            
+            <div id="stack-simulator" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="md:col-span-1 bg-white rounded-xl shadow p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Controls</h3>
+                        <div class="space-y-4">
+                            <input type="text" id="stack-input" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter a value...">
+                            <button id="stack-push-btn" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">Push</button>
+                            <button id="stack-pop-btn" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded-md hover:bg-red-600 transition-colors">Pop</button>
+                        </div>
+                        <div id="stack-message" class="mt-4 text-sm font-medium text-center"></div>
+                    </div>
+                    <div class="md:col-span-2 bg-white rounded-xl shadow p-6 min-h-[300px]">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Visualization</h3>
+                        <div class="relative w-full h-72 bg-gray-50 rounded-lg p-2" id="stack-container-wrapper">
+                             <div id="stack-container" class="flex flex-col-reverse items-center h-full"></div>
+                             <div class="absolute top-2 right-2 text-xs font-semibold text-gray-500">Top &rarr;</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="stack-implementation" class="tab-content">
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Implementation Approaches</h3>
+                    <p class="text-gray-600 mb-6">Stacks can be built using arrays or linked lists. Arrays offer speed due to better CPU cache performance but have a fixed size (unless dynamically resized, which can be slow). Linked lists are flexible in size but use more memory and can be slightly slower due to scattered memory locations.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-bold text-lg text-gray-800">Array-based</h4>
+                            <ul class="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                                <li><span class="font-semibold text-green-600">Pro:</span> Fast access (O(1)) and cache-friendly.</li>
+                                <li><span class="font-semibold text-red-600">Con:</span> Fixed size can lead to overflow.</li>
+                            </ul>
+                        </div>
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-bold text-lg text-gray-800">Linked List-based</h4>
+                            <ul class="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                                <li><span class="font-semibold text-green-600">Pro:</span> Dynamic size, no overflow issues.</li>
+                                <li><span class="font-semibold text-red-600">Con:</span> Higher memory overhead per element.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="stack-use-cases" class="tab-content">
+                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Function Call Management</h4>
+                        <p class="text-gray-600 mt-2">Programming languages use a "call stack" to keep track of active functions. When a function is called, it's pushed onto the stack; when it returns, it's popped off.</p>
+                    </div>
+                    <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Undo/Redo Features</h4>
+                        <p class="text-gray-600 mt-2">Text editors use a stack to store user actions. "Undo" pops the last action, and "Redo" pushes it back.</p>
+                    </div>
+                     <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Expression Evaluation</h4>
+                        <p class="text-gray-600 mt-2">Compilers use stacks to parse and evaluate mathematical expressions, especially for converting from infix to postfix notation.</p>
+                    </div>
+                 </div>
+            </div>
+        </section>
+
+        <!-- Queues Section -->
+        <section id="queues" class="content-section">
+             <div class="text-center mb-8">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Queues: First-In, First-Out (FIFO)</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">A queue works like a checkout line. The first person to arrive is the first to be served. This "First-In, First-Out" method ensures fairness and order in processing tasks.</p>
+            </div>
+            
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="flex justify-center -mb-px space-x-6">
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="queue-simulator">Simulator</button>
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="queue-implementation">Implementation</button>
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="queue-use-cases">Use Cases</button>
+                </nav>
+            </div>
+            
+            <div id="queue-simulator" class="tab-content">
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="md:col-span-1 bg-white rounded-xl shadow p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Controls</h3>
+                        <div class="space-y-4">
+                            <input type="text" id="queue-input" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter a value...">
+                            <button id="queue-enqueue-btn" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">Enqueue</button>
+                            <button id="queue-dequeue-btn" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded-md hover:bg-red-600 transition-colors">Dequeue</button>
+                        </div>
+                        <div id="queue-message" class="mt-4 text-sm font-medium text-center"></div>
+                    </div>
+                    <div class="md:col-span-2 bg-white rounded-xl shadow p-6 min-h-[300px]">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Visualization</h3>
+                        <div class="relative w-full h-16 bg-gray-50 rounded-lg flex items-center p-2">
+                             <div class="absolute top-1/2 -translate-y-1/2 left-2 text-xs font-semibold text-gray-500">&larr; Front</div>
+                             <div id="queue-container" class="flex items-center h-full space-x-1"></div>
+                             <div class="absolute top-1/2 -translate-y-1/2 right-2 text-xs font-semibold text-gray-500">Rear &rarr;</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="queue-implementation" class="tab-content">
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Implementation Approaches</h3>
+                    <p class="text-gray-600 mb-6">Queues implemented with a simple array are inefficient because removing an element from the front (dequeue) requires shifting all other elements, an O(n) operation. A **circular array** solves this by letting pointers wrap around, making both enqueue and dequeue O(1). Linked lists are also naturally efficient for queues.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="border border-green-300 bg-green-50 rounded-lg p-4">
+                            <h4 class="font-bold text-lg text-gray-800">Circular Array-based</h4>
+                            <ul class="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                                <li><span class="font-semibold text-green-600">Pro:</span> Highly efficient (O(1) for all ops).</li>
+                                <li><span class="font-semibold text-red-600">Con:</span> Fixed size, can be complex to implement.</li>
+                            </ul>
+                        </div>
+                        <div class="border border-blue-300 bg-blue-50 rounded-lg p-4">
+                            <h4 class="font-bold text-lg text-gray-800">Linked List-based</h4>
+                             <ul class="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                                <li><span class="font-semibold text-green-600">Pro:</span> Dynamic size and simple O(1) logic.</li>
+                                <li><span class="font-semibold text-red-600">Con:</span> Higher memory overhead.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="queue-use-cases" class="tab-content">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Operating System Schedulers</h4>
+                        <p class="text-gray-600 mt-2">Processes waiting for the CPU are placed in a queue to ensure they are executed in the order they arrived.</p>
+                    </div>
+                    <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Print Job Spooling</h4>
+                        <p class="text-gray-600 mt-2">Print requests are added to a queue so the printer can process them one by one in a fair, sequential manner.</p>
+                    </div>
+                     <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Breadth-First Search (BFS)</h4>
+                        <p class="text-gray-600 mt-2">The BFS algorithm for traversing graphs uses a queue to explore all neighbors at the present depth before moving on to the next level.</p>
+                    </div>
+                 </div>
+            </div>
+        </section>
+
+        <!-- Priority Queues Section -->
+        <section id="priority-queues" class="content-section">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Priority Queues: Importance First</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">A priority queue acts like a hospital ER. Patients are treated based on the urgency of their condition, not their arrival time. Elements are processed based on an assigned priority.</p>
+            </div>
+            
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="flex justify-center -mb-px space-x-6">
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="pq-simulator">Simulator</button>
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="pq-implementation">Implementation</button>
+                    <button class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base text-gray-500" data-target="pq-use-cases">Use Cases</button>
+                </nav>
+            </div>
+            
+            <div id="pq-simulator" class="tab-content">
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="md:col-span-1 bg-white rounded-xl shadow p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Controls (Min-Heap)</h3>
+                        <div class="space-y-4">
+                            <input type="number" id="pq-input" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter a numeric priority...">
+                            <button id="pq-insert-btn" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">Insert</button>
+                            <button id="pq-extract-btn" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded-md hover:bg-red-600 transition-colors">Extract-Min</button>
+                        </div>
+                        <p class="text-xs text-center text-gray-500 mt-2">Lower numbers have higher priority.</p>
+                        <div id="pq-message" class="mt-4 text-sm font-medium text-center"></div>
+                    </div>
+                    <div class="md:col-span-2 bg-white rounded-xl shadow p-6 min-h-[300px]">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">Visualization</h3>
+                        <div class="w-full h-72 bg-gray-50 rounded-lg flex items-center justify-center p-2">
+                             <div id="pq-container" class="flex flex-wrap items-start justify-center gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="pq-implementation" class="tab-content">
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Implementation: The Binary Heap</h3>
+                    <p class="text-gray-600 mb-6">While a priority queue could be built on a sorted array or list, it would be slow (O(n) for insert or delete). The standard, efficient implementation is a **Binary Heap**. A heap is a tree-like structure, stored in an array, that keeps the highest-priority element at the top. This allows for very fast O(1) peeks and efficient O(log n) insertions and deletions.</p>
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <h4 class="font-bold text-lg text-gray-800">Binary Heap</h4>
+                        <ul class="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                            <li><span class="font-semibold">Peek Highest Priority:</span> O(1)</li>
+                            <li><span class="font-semibold">Insert / Delete:</span> O(log n)</li>
+                            <li><span class="font-semibold">Underlying Structure:</span> A complete binary tree stored in an array.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div id="pq-use-cases" class="tab-content">
+                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Dijkstra's Shortest Path Algorithm</h4>
+                        <p class="text-gray-600 mt-2">Uses a priority queue to efficiently track and select the unvisited node with the smallest distance from the source.</p>
+                    </div>
+                    <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Network Traffic Shaping</h4>
+                        <p class="text-gray-600 mt-2">Routers use priority queues to send critical data packets (like video calls) before less-urgent data (like emails).</p>
+                    </div>
+                     <div class="use-case-card bg-white rounded-xl shadow p-6">
+                        <h4 class="font-bold text-lg text-gray-800">Huffman Coding Compression</h4>
+                        <p class="text-gray-600 mt-2">This compression algorithm uses a priority queue to build an optimal encoding tree by repeatedly combining the two least frequent characters.</p>
+                    </div>
+                 </div>
+            </div>
+        </section>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Main Navigation
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            const setActiveLink = (hash) => {
+                navLinks.forEach(link => {
+                    if (link.hash === hash) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+            };
+
+            const showSection = (hash) => {
+                contentSections.forEach(section => {
+                    if (`#${section.id}` === hash) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+                setActiveLink(hash);
+            };
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const hash = e.currentTarget.hash;
+                    window.location.hash = hash;
+                });
+            });
+
+            window.addEventListener('hashchange', () => {
+                const hash = window.location.hash || '#overview';
+                showSection(hash);
+                // Also activate the first tab in the newly visible section
+                const activeSection = document.querySelector(hash);
+                if(activeSection) {
+                    const firstTabLink = activeSection.querySelector('.tab-link');
+                    if (firstTabLink) {
+                        activateTab(firstTabLink, activeSection);
+                    }
+                }
+            });
+
+
+            
+            // Tab Navigation
+            const tabLinks = document.querySelectorAll('.tab-link');
+            
+            function activateTab(tabLink, section) {
+                const targetId = tabLink.dataset.target;
+                
+                section.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
+                tabLink.classList.add('active');
+
+                section.querySelectorAll('.tab-content').forEach(content => {
+                    if (content.id === targetId) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+            }
+
+            tabLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const section = e.target.closest('.content-section');
+                    activateTab(e.target, section);
+                });
+            });
+
+            // Initial Load
+            const initialHash = window.location.hash || '#overview';
+            showSection(initialHash);
+            const initialSection = document.querySelector(initialHash);
+            if (initialSection) {
+                const firstTab = initialSection.querySelector('.tab-link');
+                if (firstTab) {
+                    activateTab(firstTab, initialSection);
+                }
+            }
+            
+            // Simulators Logic
+            
+            // Stack Simulator
+            const stackContainer = document.getElementById('stack-container');
+            const stackInput = document.getElementById('stack-input');
+            const stackPushBtn = document.getElementById('stack-push-btn');
+            const stackPopBtn = document.getElementById('stack-pop-btn');
+            const stackMessage = document.getElementById('stack-message');
+            let stackData = [];
+            const MAX_STACK_SIZE = 8;
+            
+            function renderStack() {
+                stackContainer.innerHTML = '';
+                stackData.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'data-element w-24 h-8 bg-blue-400 text-white flex items-center justify-center font-semibold rounded-md shadow';
+                    el.textContent = item;
+                    stackContainer.appendChild(el);
+                });
+            }
+
+            stackPushBtn.addEventListener('click', () => {
+                const value = stackInput.value.trim();
+                if (value) {
+                    if (stackData.length < MAX_STACK_SIZE) {
+                        stackData.push(value);
+                        renderStack();
+                        stackInput.value = '';
+                        stackMessage.textContent = `Pushed "${value}" onto the stack.`;
+                        stackMessage.className = 'mt-4 text-sm font-medium text-center text-green-600';
+                    } else {
+                        stackMessage.textContent = 'Stack overflow! Cannot push.';
+                        stackMessage.className = 'mt-4 text-sm font-medium text-center text-red-600';
+                    }
+                }
+            });
+
+            stackPopBtn.addEventListener('click', () => {
+                if (stackData.length > 0) {
+                    const poppedValue = stackData.pop();
+                    renderStack();
+                    stackMessage.textContent = `Popped "${poppedValue}" from the stack.`;
+                    stackMessage.className = 'mt-4 text-sm font-medium text-center text-green-600';
+
+                } else {
+                    stackMessage.textContent = 'Stack underflow! Cannot pop.';
+                    stackMessage.className = 'mt-4 text-sm font-medium text-center text-red-600';
+                }
+            });
+            
+            // Queue Simulator
+            const queueContainer = document.getElementById('queue-container');
+            const queueInput = document.getElementById('queue-input');
+            const queueEnqueueBtn = document.getElementById('queue-enqueue-btn');
+            const queueDequeueBtn = document.getElementById('queue-dequeue-btn');
+            const queueMessage = document.getElementById('queue-message');
+            let queueData = [];
+            const MAX_QUEUE_SIZE = 10;
+            
+            function renderQueue() {
+                queueContainer.innerHTML = '';
+                queueData.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'data-element w-12 h-12 bg-emerald-400 text-white flex items-center justify-center font-semibold rounded-md shadow flex-shrink-0';
+                    el.textContent = item;
+                    queueContainer.appendChild(el);
+                });
+            }
+
+            queueEnqueueBtn.addEventListener('click', () => {
+                 const value = queueInput.value.trim();
+                 if (value) {
+                     if(queueData.length < MAX_QUEUE_SIZE) {
+                        queueData.push(value);
+                        renderQueue();
+                        queueInput.value = '';
+                        queueMessage.textContent = `Enqueued "${value}".`;
+                        queueMessage.className = 'mt-4 text-sm font-medium text-center text-green-600';
+                     } else {
+                        queueMessage.textContent = 'Queue is full!';
+                        queueMessage.className = 'mt-4 text-sm font-medium text-center text-red-600';
+                     }
+                 }
+            });
+
+            queueDequeueBtn.addEventListener('click', () => {
+                if (queueData.length > 0) {
+                    const dequeuedValue = queueData.shift();
+                    renderQueue();
+                    queueMessage.textContent = `Dequeued "${dequeuedValue}".`;
+                    queueMessage.className = 'mt-4 text-sm font-medium text-center text-green-600';
+                } else {
+                    queueMessage.textContent = 'Queue is empty!';
+                    queueMessage.className = 'mt-4 text-sm font-medium text-center text-red-600';
+                }
+            });
+
+            // Priority Queue Simulator (Min-Heap)
+            const pqContainer = document.getElementById('pq-container');
+            const pqInput = document.getElementById('pq-input');
+            const pqInsertBtn = document.getElementById('pq-insert-btn');
+            const pqExtractBtn = document.getElementById('pq-extract-btn');
+            const pqMessage = document.getElementById('pq-message');
+            let pqData = [];
+            const MAX_PQ_SIZE = 15;
+
+            function renderPQ() {
+                pqData.sort((a,b) => a - b);
+                pqContainer.innerHTML = '';
+                pqData.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'data-element w-16 h-16 bg-rose-400 text-white flex items-center justify-center font-bold rounded-full shadow text-lg';
+                    el.textContent = item;
+                    pqContainer.appendChild(el);
+                });
+            }
+
+            pqInsertBtn.addEventListener('click', () => {
+                const value = pqInput.value.trim();
+                if (value && !isNaN(value)) {
+                    if (pqData.length < MAX_PQ_SIZE) {
+                        pqData.push(Number(value));
+                        renderPQ();
+                        pqInput.value = '';
+                        pqMessage.textContent = `Inserted priority "${value}".`;
+                        pqMessage.className = 'mt-4 text-sm font-medium text-center text-green-600';
+                    } else {
+                        pqMessage.textContent = 'Priority Queue is full!';
+                        pqMessage.className = 'mt-4 text-sm font-medium text-center text-red-600';
+                    }
+                }
+            });
+            
+            pqExtractBtn.addEventListener('click', () => {
+                if (pqData.length > 0) {
+                    const extractedValue = pqData.shift();
+                    renderPQ();
+                    pqMessage.textContent = `Extracted min priority "${extractedValue}".`;
+                    pqMessage.className = 'mt-4 text-sm font-medium text-center text-green-600';
+                } else {
+                    pqMessage.textContent = 'Priority Queue is empty!';
+                    pqMessage.className = 'mt-4 text-sm font-medium text-center text-red-600';
+                }
+            });
+            
+            // Chart.js - Complexity Comparison
+            const ctx = document.getElementById('complexityChart').getContext('2d');
+            const complexityData = {
+                labels: ['Access', 'Search', 'Insertion', 'Deletion'],
+                datasets: [
+                    {
+                        label: 'Stack',
+                        data: [1, 10, 1, 1],
+                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Queue',
+                        data: [10, 10, 1, 1],
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Priority Queue (Heap)',
+                        data: [1, 7, 7, 7],
+                        backgroundColor: 'rgba(244, 63, 94, 0.6)',
+                        borderColor: 'rgba(244, 63, 94, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            };
+            const complexityLabels = {
+                1: 'O(1)',
+                7: 'O(log n)',
+                10: 'O(n)'
+            };
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: complexityData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return complexityLabels[value] || '';
+                                },
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time Complexity'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed.y;
+                                    label += complexityLabels[value] || '';
+                                    return label;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                           display: false
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+
+    <button class="scroll-to-top" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="../index.html#courses">Courses</a></li>
+                    <li><a href="../index.html#lecture-notes">Lecture Notes</a></li>
+                    <li><a href="../index.html#presentations">Presentations</a></li>
+                    <li><a href="../index.html#mcqs">MCQs</a></li>
+                    <li><a href="../index.html#research">Research</a></li>
+                    <li><a href="../index.html#contact">Contact</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>University Links</h4>
+                <ul>
+                    <li><a href="https://uohyd.ac.in" target="_blank">University of Hyderabad</a></li>
+                    <li><a href="https://scis.uohyd.ac.in" target="_blank">SCIS Department</a></li>
+                    <li><a href="#">Academic Calendar</a></li>
+                    <li><a href="#">Library Resources</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <div class="social-links">
+                    <a href="https://scholar.google.com" target="_blank" aria-label="Google Scholar"><i class="fab fa-google scholar-icon"></i></a>
+                    <a href="https://linkedin.com" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="https://github.com" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                    <a href="https://twitter.com" target="_blank" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="https://orcid.org" target="_blank" aria-label="ORCID"><i class="fab fa-orcid"></i></a>
+                </div>
+                <div class="newsletter">
+                    <p>Subscribe to my newsletter for updates</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="Your email address" required>
+                        <button type="submit" class="btn-subscribe">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div class="footer-container">
+                <p>&copy; 2025 Dr. Mohsin Furkh Dar. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">Privacy Policy</a>
+                    <span>|</span>
+                    <a href="#">Terms of Use</a>
+                    <span>|</span>
+                    <a href="#">Accessibility</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/script.js"></script>
+</body>
+</html>

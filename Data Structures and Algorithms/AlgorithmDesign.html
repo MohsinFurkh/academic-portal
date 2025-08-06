@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to Algorithm Design Techniques</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Slate & Sky Neutrals with Categorical Accents" -->
+    <!-- Application Structure Plan: The SPA uses a single-page, vertical scrolling layout with a sticky top navigation bar. This design allows users to either get a full overview by scrolling or jump directly to a specific paradigm. Each paradigm is presented as a self-contained, interactive module. This structure was chosen to break down the dense report into digestible, visually distinct sections, promoting non-linear exploration. The key interaction is the "Paradigm Comparison" tool at the end, which encourages synthesis by allowing users to actively compare techniques, fulfilling a core objective of moving beyond passive reading. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Core principles, methodology, examples, complexity, pros/cons for 5 paradigms.
+        - Goal: Inform, Organize, Compare, Synthesize.
+        - Viz/Presentation Method:
+            - Paradigm Sections: Two-column grid layout. Left for text (principles, pros/cons), right for interaction (clickable examples, complexity chart).
+            - Methodology: Simple diagrams using HTML/CSS (divs and borders) to visualize flows like D&C's 'Divide, Conquer, Combine' or Backtracking's decision tree exploration.
+            - Complexity: Horizontal bar charts (Chart.js/Canvas) to visually represent the typical time complexity of each paradigm's example algorithms. This is more intuitive than a static table.
+            - Comparison: A dynamic, multi-select feature that generates a side-by-side comparison table from user input.
+        - Justification: This interactive, component-based approach makes complex information more accessible. Visual charts are better for comparing growth rates than text. The dynamic example explorer and comparison tool encourage active engagement and deeper understanding of trade-offs. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #334155; /* slate-700 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #0284c7; /* sky-600 */
+            border-bottom-color: #0284c7;
+        }
+        .paradigm-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #e2e8f0; /* slate-200 */
+        }
+        .paradigm-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .interactive-list-item {
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .interactive-list-item.selected {
+            background-color: #0ea5e9; /* sky-500 */
+            color: white;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <nav>
+        <div class="nav-container">
+            <a href="../index.html" class="logo">
+                <img src="../images/icon.jpg" alt="Mohsin Furkh Dar Logo" style="height: 40px;">
+                <div class="logo-text">
+                    <span class="logo-main">Mohsin Furkh Dar</span>
+                    <span class="logo-sub">PhD Candidate</span>
+                </div>
+            </a>
+            <button class="menu-toggle" aria-label="Toggle navigation" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul id="mainNav">
+                <li><a href="../index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="../index.html#courses"><i class="fas fa-book"></i> Courses</a></li>
+                <li><a href="../index.html#lecture-notes"><i class="fas fa-file-alt"></i> Lecture Notes</a></li>
+                <li><a href="../index.html#presentations"><i class="fas fa-chalkboard-teacher"></i> Presentations</a></li>
+                <li><a href="../index.html#mcqs"><i class="fas fa-question-circle"></i> MCQs</a></li>
+                <li><a href="../index.html#research"><i class="fas fa-flask"></i> Research</a></li>
+                <li><a href="../index.html#contact"><i class="fas fa-envelope"></i> Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg shadow-sm">
+        <nav class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-xl md:text-2xl font-bold text-slate-800">Algorithm Explorer</h1>
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#intro" class="nav-link">Introduction</a>
+                    <a href="#dnc" class="nav-link">Divide & Conquer</a>
+                    <a href="#dp" class="nav-link">Dynamic Programming</a>
+                    <a href="#greedy" class="nav-link">Greedy</a>
+                    <a href="#backtracking" class="nav-link">Backtracking</a>
+                    <a href="#bnb" class="nav-link">Branch & Bound</a>
+                    <a href="#compare" class="nav-link">Compare</a>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500">
+                        <option value="#intro">Introduction</option>
+                        <option value="#dnc">Divide & Conquer</option>
+                        <option value="#dp">Dynamic Programming</option>
+                        <option value="#greedy">Greedy</option>
+                        <option value="#backtracking">Backtracking</option>
+                        <option value="#bnb">Branch & Bound</option>
+                        <option value="#compare">Compare</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <section id="intro" class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">A Journey into Algorithm Design</h2>
+            <p class="max-w-3xl mx-auto text-lg text-slate-600">
+                This interactive guide explores the foundational paradigms of algorithm design. Move beyond static text and discover the core principles, trade-offs, and applications of these powerful problem-solving techniques.
+            </p>
+        </section>
+
+        <!-- Dynamic content sections will be injected here by JavaScript -->
+        <div id="content-container" class="space-y-16"></div>
+        
+        <!-- Comparison Section -->
+        <section id="compare" class="pt-16">
+            <div class="paradigm-card p-6 md:p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800">Paradigm Comparison</h2>
+                    <p class="text-slate-500 mt-2">Select up to 3 paradigms to compare their characteristics side-by-side.</p>
+                </div>
+                <div id="comparison-selector" class="flex flex-wrap justify-center gap-4 mb-8">
+                    <!-- Checkboxes will be injected here -->
+                </div>
+                <div id="comparison-table-container" class="overflow-x-auto">
+                    <!-- Comparison table will be rendered here -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+
+
+    <script>
+        const ALGO_DATA = {
+            dnc: {
+                id: 'dnc',
+                name: 'Divide & Conquer',
+                color: '#ef4444', // red-500
+                tagline: 'Break it down, solve, and put it back together.',
+                introduction: 'Divide and Conquer is a powerful problem-solving technique that operates by breaking down a given problem into smaller, more manageable subproblems. Its fundamental idea is to decompose a problem into two or more similar, but simpler, subproblems, solve them recursively, and then compose their solutions to solve the original problem.',
+                principles: [
+                    { name: 'Divide', description: 'The problem is broken down into smaller, non-overlapping subproblems.' },
+                    { name: 'Conquer', description: 'Each subproblem is solved recursively. Base cases are solved directly.' },
+                    { name: 'Combine', description: 'Solutions from subproblems are merged to form the final solution.' }
+                ],
+                methodologyDiagram: `
+                    <div class="text-center font-semibold text-slate-700">Methodology Flow</div>
+                    <div class="mt-4 flex flex-col items-center space-y-2">
+                        <div class="p-3 bg-red-100 text-red-800 rounded-lg shadow w-48 text-center">Initial Problem</div>
+                        <div class="text-red-500 text-2xl font-light">&darr;</div>
+                        <div class="p-3 bg-red-100 text-red-800 rounded-lg shadow w-48 text-center">Divide</div>
+                        <div class="text-red-500 text-2xl font-light">&darr;</div>
+                        <div class="flex space-x-4">
+                            <div class="p-3 bg-red-50 text-red-700 rounded-md w-36 text-center">Subproblem 1</div>
+                            <div class="p-3 bg-red-50 text-red-700 rounded-md w-36 text-center">Subproblem 2</div>
+                        </div>
+                        <div class="text-red-500 text-2xl font-light">&darr;</div>
+                        <div class="p-3 bg-red-100 text-red-800 rounded-lg shadow w-48 text-center">Conquer (Solve)</div>
+                        <div class="text-red-500 text-2xl font-light">&darr;</div>
+                         <div class="p-3 bg-red-100 text-red-800 rounded-lg shadow w-48 text-center">Combine</div>
+                         <div class="text-red-500 text-2xl font-light">&darr;</div>
+                        <div class="p-3 bg-red-200 text-red-900 rounded-lg shadow font-bold w-48 text-center">Final Solution</div>
+                    </div>
+                `,
+                examples: [
+                    { name: 'Merge Sort', description: 'Divides an array into two halves, recursively sorts them, and then merges the sorted halves. A classic D&C application for sorting.', complexity: 'O(n log n)' },
+                    { name: 'Binary Search', description: 'Efficiently finds a target in a sorted array by repeatedly dividing the search interval in half. The "combine" step is trivial.', complexity: 'O(log n)' },
+                    { name: 'Quick Sort', description: 'Picks a pivot element and partitions the array around the pivot. It then recursively sorts the sub-arrays.', complexity: 'O(n log n) average' },
+                    { name: 'Strassen\'s Algorithm', description: 'An efficient algorithm for matrix multiplication that reduces the number of recursive multiplications from 8 to 7.', complexity: 'O(n^2.81)' },
+                ],
+                advantages: ['Highly efficient (often O(n log n))', 'Solves difficult problems conceptually', 'Well-suited for parallel computing'],
+                limitations: ['Recursion overhead can be high', 'Can be complex to implement', 'Memory usage can be high (e.g., Merge Sort)'],
+                summary: {
+                    problemType: 'Recursive, Decomposable Problems',
+                    timeComplexity: 'Varies, often O(n log n) or O(log n)',
+                    optimality: 'Guaranteed if implemented correctly',
+                }
+            },
+            dp: {
+                id: 'dp',
+                name: 'Dynamic Programming',
+                color: '#3b82f6', // blue-500
+                tagline: 'Remember your past to solve the future efficiently.',
+                introduction: 'Dynamic Programming is an optimization technique that solves complex problems by breaking them into simpler subproblems. It is applicable to problems exhibiting overlapping subproblems and optimal substructure, where it stores the results of subproblems to avoid redundant calculations.',
+                principles: [
+                    { name: 'Overlapping Subproblems', description: 'Solutions to the same subproblems are needed multiple times.' },
+                    { name: 'Optimal Substructure', description: 'The optimal solution can be constructed from optimal solutions of its subproblems.' }
+                ],
+                methodologyDiagram: `
+                    <div class="text-center font-semibold text-slate-700">Methodology Approaches</div>
+                    <div class="mt-4 grid md:grid-cols-2 gap-4">
+                        <div class="p-4 border border-blue-200 rounded-lg">
+                            <h4 class="font-bold text-blue-800">Top-Down (Memoization)</h4>
+                            <p class="text-sm text-slate-600 mt-1">Solve recursively, but store each solution. If you need a solution again, just look it up.</p>
+                        </div>
+                        <div class="p-4 border border-blue-200 rounded-lg">
+                            <h4 class="font-bold text-blue-800">Bottom-Up (Tabulation)</h4>
+                            <p class="text-sm text-slate-600 mt-1">Solve all the small subproblems first, iteratively, and use their results to build up solutions to bigger problems.</p>
+                        </div>
+                    </div>
+                `,
+                examples: [
+                    { name: 'Fibonacci Sequence', description: 'Calculates Fibonacci numbers in linear time by storing previously computed values, avoiding exponential recursion.', complexity: 'O(n)' },
+                    { name: '0/1 Knapsack Problem', description: 'Determines the maximum value that can be carried in a knapsack of a given capacity by building up a table of optimal solutions for smaller capacities.', complexity: 'O(nW)' },
+                    { name: 'Longest Common Subsequence', description: 'Finds the longest subsequence common to two sequences by building a 2D table representing solutions for all prefixes.', complexity: 'O(mn)' },
+                    { name: 'Floyd-Warshall Algorithm', description: 'Finds all-pairs shortest paths in a graph. A clear application of DP that iteratively considers all possible intermediate vertices.', complexity: 'O(V^3)' },
+                ],
+                advantages: ['Guarantees an optimal solution', 'Turns many exponential problems into polynomial ones', 'Systematic approach to optimization'],
+                limitations: ['Can use a lot of memory for the storage table', 'Defining the state and recurrence can be difficult', 'Not applicable to all optimization problems'],
+                 summary: {
+                    problemType: 'Optimization Problems with Overlapping Subproblems',
+                    timeComplexity: 'Typically Polynomial (e.g., O(n^2), O(nW))',
+                    optimality: 'Guaranteed',
+                }
+            },
+            greedy: {
+                id: 'greedy',
+                name: 'Greedy Algorithms',
+                color: '#16a34a', // green-600
+                tagline: 'Take the best you can get right now.',
+                introduction: 'Greedy algorithms make the locally optimal choice at each step with the hope of finding a global optimum. They are simple and fast, but do not guarantee an optimal solution for all problems. Their success depends on the problem having the "greedy choice property."',
+                principles: [
+                    { name: 'Greedy Choice Property', description: 'A globally optimal solution can be arrived at by making a locally optimal choice.' },
+                    { name: 'Optimal Substructure', description: 'An optimal solution to the problem contains optimal solutions to its subproblems.' }
+                ],
+                methodologyDiagram: `
+                    <div class="text-center font-semibold text-slate-700">Decision Process</div>
+                    <div class="mt-4 flex flex-col items-center space-y-2">
+                        <div class="p-3 bg-green-100 text-green-800 rounded-lg shadow w-48 text-center">Start</div>
+                        <div class="text-green-500 text-2xl font-light">&darr;</div>
+                        <div class="p-3 bg-green-100 text-green-800 rounded-lg shadow w-48 text-center">Make Local Optimal Choice</div>
+                         <div class="w-px h-8 bg-green-300"></div>
+                        <div class="relative w-48 text-center">
+                            <div class="p-3 bg-green-100 text-green-800 rounded-lg shadow">Add to Solution</div>
+                            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-green-500 text-2xl font-light transform rotate-90 origin-bottom-left">&#8634;</div>
+                        </div>
+                        <div class="w-px h-8 bg-green-300"></div>
+                        <div class="p-3 bg-green-100 text-green-800 rounded-lg shadow w-48 text-center">Any choices left?</div>
+                        <div class="text-green-500 text-2xl font-light">&darr; No</div>
+                        <div class="p-3 bg-green-200 text-green-900 rounded-lg shadow font-bold w-48 text-center">Final Solution</div>
+                    </div>
+                `,
+                examples: [
+                    { name: 'Activity Selection', description: 'To maximize activities, always greedily select the next activity that finishes earliest among those that don\'t conflict.', complexity: 'O(n log n)' },
+                    { name: 'Huffman Coding', description: 'Builds an optimal data compression tree by greedily merging the two least frequent characters at each step.', complexity: 'O(n log n)' },
+                    { name: 'Fractional Knapsack', description: 'Achieves maximum value by greedily taking fractions of items with the highest value-to-weight ratio first.', complexity: 'O(n log n)' },
+                    { name: 'Prim\'s/Kruskal\'s MST', description: 'Both find a Minimum Spanning Tree by greedily adding the cheapest edge that doesn\'t form a cycle.', complexity: 'O(E log V)' },
+                ],
+                advantages: ['Simple to implement', 'Usually very fast and efficient', 'Can provide good approximations for complex problems'],
+                limitations: ['Does NOT always yield a global optimum', 'Requires a proof of correctness for optimality', 'Choices are final and cannot be reconsidered'],
+                 summary: {
+                    problemType: 'Optimization Problems (when greedy choice holds)',
+                    timeComplexity: 'Typically O(n) or O(n log n)',
+                    optimality: 'Not Guaranteed (problem-dependent)',
+                }
+            },
+            backtracking: {
+                id: 'backtracking',
+                name: 'Backtracking',
+                color: '#f97316', // orange-500
+                tagline: 'Explore one path, and if you hit a wall, go back and try another.',
+                introduction: 'Backtracking is a general algorithm for finding all (or some) solutions to computational problems, notably constraint satisfaction problems. It incrementally builds candidates to the solutions, and abandons a candidate ("backtracks") as soon as it determines that the candidate cannot possibly be completed to a valid solution.',
+                principles: [
+                    { name: 'Systematic Search', description: 'Explores the complete solution space in a depth-first search manner.' },
+                    { name: 'Pruning', description: 'Abandons paths that violate constraints, making it "smarter" than brute-force.' },
+                    { name: 'State Reversal', description: 'When a path fails, the algorithm undoes the last choice and tries another.' }
+                ],
+                methodologyDiagram: `
+                    <div class="text-center font-semibold text-slate-700">State-Space Tree Search</div>
+                    <div class="mt-4 flex flex-col items-center space-y-2">
+                        <div class="p-3 bg-orange-100 text-orange-800 rounded-lg shadow w-48 text-center">Root (Start)</div>
+                        <div class="text-orange-500 text-2xl font-light">&darr;</div>
+                        <div class="p-3 bg-orange-100 text-orange-800 rounded-lg shadow w-48 text-center">Explore Path A</div>
+                        <div class="text-orange-500 text-2xl font-light">&darr;</div>
+                        <div class="p-3 bg-orange-50 text-orange-700 rounded-md w-48 text-center">Path A -> B</div>
+                        <div class="text-orange-500 text-2xl font-light">&darr;</div>
+                        <div class="p-3 bg-red-100 text-red-800 rounded-lg shadow w-48 text-center">Invalid! Backtrack.</div>
+                        <div class="text-orange-500 text-2xl font-light transform -scale-y-100">&uarr;</div>
+                         <div class="p-3 bg-orange-100 text-orange-800 rounded-lg shadow w-48 text-center">Explore Path A -> C</div>
+                        <div class="text-orange-500 text-2xl font-light">&darr;</div>
+                        <div class="p-3 bg-green-100 text-green-800 rounded-lg shadow w-48 text-center">Solution Found!</div>
+                    </div>
+                `,
+                examples: [
+                    { name: 'N-Queens Problem', description: 'Places N queens on a board so none attack each other, backtracking whenever a placement creates a conflict.', complexity: 'O(N!)' },
+                    { name: 'Sudoku Solver', description: 'Tries filling digits in empty cells one by one. If a digit leads to a rule violation, it backtracks and tries the next digit.', complexity: 'O(9^m)' },
+                    { name: 'Generating Permutations', description: 'Generates all possible orderings of a set by recursively picking an element and finding permutations for the rest.', complexity: 'O(n!)' },
+                    { name: 'Rat in a Maze', description: 'Finds a path from a start to an end point in a maze by exploring paths and backtracking from dead ends.', complexity: 'O(2^(n^2))' },
+                ],
+                advantages: ['Can find all possible solutions', 'Effective for constraint satisfaction problems', 'Conceptually simple for many problems'],
+                limitations: ['Worst-case time complexity is often exponential/factorial', 'Can be slow for large inputs', 'Recursion stack can cause memory issues'],
+                 summary: {
+                    problemType: 'Constraint Satisfaction, Combinatorial Search',
+                    timeComplexity: 'Often Exponential (e.g., O(2^n), O(n!))',
+                    optimality: 'Guaranteed to find a solution if one exists',
+                }
+            },
+            bnb: {
+                id: 'bnb',
+                name: 'Branch & Bound',
+                color: '#8b5cf6', // violet-500
+                tagline: 'Explore promising paths and cut off the rest.',
+                introduction: 'Branch and Bound is an algorithm design paradigm for discrete and combinatorial optimization problems. It systematically enumerates all candidate solutions, but prunes large subsets of fruitless candidates by using upper and lower estimated bounds of the quantity being optimized.',
+                principles: [
+                    { name: 'Branching', description: 'The problem is divided into subproblems (branches of a tree).' },
+                    { name: 'Bounding', description: 'For each subproblem, calculate a bound on the best possible solution.' },
+                    { name: 'Pruning', description: 'Discard branches where the bound proves it cannot contain a better solution than one already found.' }
+                ],
+                methodologyDiagram: `
+                     <div class="text-center font-semibold text-slate-700">Search with Pruning</div>
+                    <div class="mt-4 flex flex-col items-center space-y-2">
+                        <div class="p-3 bg-violet-100 text-violet-800 rounded-lg shadow w-56 text-center">Original Problem (Root Node)</div>
+                        <div class="text-violet-500 text-2xl font-light">&darr; Branch</div>
+                        <div class="flex space-x-4">
+                            <div class="p-3 bg-violet-50 text-violet-700 rounded-md w-40 text-center">Subproblem 1<br><span class="text-xs">(Bound: 10)</span></div>
+                            <div class="p-3 bg-red-100 text-red-700 rounded-md w-40 text-center">Subproblem 2<br><span class="text-xs">(Bound: 25 - Pruned)</span></div>
+                        </div>
+                        <div class="text-violet-500 text-2xl font-light">&darr; Explore Promising</div>
+                        <div class="p-3 bg-violet-100 text-violet-800 rounded-lg shadow w-56 text-center">Find Solution (Cost: 15)</div>
+                        <div class="text-violet-500 text-2xl font-light">&darr; Update Best</div>
+                        <div class="p-3 bg-violet-200 text-violet-900 rounded-lg shadow font-bold w-56 text-center">New Best Solution: 15</div>
+                    </div>
+                `,
+                examples: [
+                    { name: 'Traveling Salesperson (TSP)', description: 'Finds the shortest tour by exploring partial tours, calculating a lower bound for each, and pruning tours guaranteed to be longer than the current best.', complexity: 'Exponential' },
+                    { name: '0/1 Knapsack Problem', description: 'Solves the knapsack problem by branching on whether to include an item and pruning branches that cannot possibly exceed the current best value.', complexity: 'Exponential' },
+                    { name: 'Integer Programming', description: 'A standard method for solving optimization problems where variables must be integers. It branches on variable assignments and uses linear relaxations for bounds.', complexity: 'Exponential' },
+                    { name: 'Job Scheduling', description: 'Optimizes job assignments to machines by exploring schedules, bounding the minimum completion time, and pruning inefficient schedules.', complexity: 'Exponential' },
+                ],
+                advantages: ['Guarantees a global optimal solution', 'More efficient than brute-force for many NP-hard problems', 'Flexible search strategy (BFS, DFS, best-first)'],
+                limitations: ['Worst-case time complexity is still exponential', 'Designing a good bounding function is critical and can be hard', 'Can require significant memory'],
+                 summary: {
+                    problemType: 'Combinatorial Optimization (NP-Hard)',
+                    timeComplexity: 'Exponential in worst case',
+                    optimality: 'Guaranteed',
+                }
+            },
+        };
+
+        function createParadigmCard(data) {
+            const pros = data.advantages.map(pro => `<li class="flex items-start"><span class="text-green-500 mr-2 mt-1">&#10003;</span><span>${pro}</span></li>`).join('');
+            const cons = data.limitations.map(con => `<li class="flex items-start"><span class="text-red-500 mr-2 mt-1">&#10007;</span><span>${con}</span></li>`).join('');
+            
+            const principles = data.principles.map(p => `
+                <div class="bg-slate-50 p-3 rounded-md">
+                    <h4 class="font-semibold text-slate-800">${p.name}</h4>
+                    <p class="text-sm text-slate-600">${p.description}</p>
+                </div>
+            `).join('');
+
+            return `
+                <section id="${data.id}" class="pt-16 -mt-16">
+                    <div class="paradigm-card overflow-hidden">
+                        <div class="p-6 md:p-8" style="border-top: 4px solid ${data.color};">
+                            <h2 class="text-2xl md:text-3xl font-bold text-slate-800">${data.name}</h2>
+                            <p class="text-slate-500 mt-1 italic">"${data.tagline}"</p>
+                            <p class="mt-4 text-slate-600">${data.introduction}</p>
+                        </div>
+                        <div class="bg-slate-50/50 p-6 md:p-8 border-t border-slate-200">
+                           <div class="grid md:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-700 mb-4">Core Principles</h3>
+                                    <div class="space-y-3">${principles}</div>
+
+                                    <h3 class="text-xl font-bold text-slate-700 mt-8 mb-4">Pros & Cons</h3>
+                                    <div class="grid sm:grid-cols-2 gap-6 text-sm">
+                                        <div><ul class="space-y-2">${pros}</ul></div>
+                                        <div><ul class="space-y-2">${cons}</ul></div>
+                                    </div>
+                                    
+                                    <div class="mt-8">
+                                        <h3 class="text-xl font-bold text-slate-700 mb-4">Methodology</h3>
+                                        ${data.methodologyDiagram}
+                                    </div>
+
+                                </div>
+                                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                                    <h3 class="text-xl font-bold text-slate-700 mb-4">Illustrative Examples</h3>
+                                    <div id="examples-list-${data.id}" class="flex flex-wrap gap-2 mb-4">
+                                        ${data.examples.map((ex, index) => `<button class="interactive-list-item text-sm px-3 py-1 rounded-full border border-slate-300 ${index === 0 ? 'selected' : ''}" data-paradigm="${data.id}" data-index="${index}">${ex.name}</button>`).join('')}
+                                    </div>
+                                    <div id="example-details-${data.id}" class="bg-slate-50 p-4 rounded-md text-sm min-h-[80px]">
+                                        <p class="text-slate-700"></p>
+                                        <p class="font-mono text-xs mt-2 p-2 bg-slate-200 text-slate-800 rounded inline-block"></p>
+                                    </div>
+                                    
+                                    <h3 class="text-xl font-bold text-slate-700 mt-8 mb-4">Typical Time Complexities</h3>
+                                    <div class="chart-container">
+                                        <canvas id="chart-${data.id}"></canvas>
+                                    </div>
+                                </div>
+                           </div>
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
+        
+        function renderContent() {
+            const container = document.getElementById('content-container');
+            let html = '';
+            for (const key in ALGO_DATA) {
+                html += createParadigmCard(ALGO_DATA[key]);
+            }
+            container.innerHTML = html;
+        }
+        
+        function setupInteractiveExamples() {
+            document.querySelectorAll('[id^="examples-list-"]').forEach(list => {
+                list.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        const paradigmId = e.target.dataset.paradigm;
+                        const exampleIndex = e.target.dataset.index;
+                        const exampleData = ALGO_DATA[paradigmId].examples[exampleIndex];
+                        
+                        // Update details
+                        const detailsContainer = document.getElementById(`example-details-${paradigmId}`);
+                        detailsContainer.querySelector('p:first-child').textContent = exampleData.description;
+                        detailsContainer.querySelector('p:last-child').textContent = `Complexity: ${exampleData.complexity}`;
+                        
+                        // Update selected button
+                        list.querySelectorAll('button').forEach(btn => btn.classList.remove('selected'));
+                        e.target.classList.add('selected');
+                    }
+                });
+                
+                // Trigger click on first item to load initial details
+                list.querySelector('button').click();
+            });
+        }
+
+        function createCharts() {
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            const complexityOrder = {
+                'O(1)': 1,
+                'O(log n)': 2,
+                'O(n)': 3,
+                'O(n log n)': 4,
+                'O(E log V)': 4.5,
+                'O(n^2)': 5,
+                'O(mn)': 5.5,
+                'O(n^2.81)': 6,
+                'O(V^3)': 7,
+                'O(nW)': 8,
+                'O(2^(n^2))': 9,
+                'O(2^n)': 10,
+                'O(9^m)': 11,
+                'O(n!)': 12,
+                'O(N!)': 12,
+                'Exponential': 11.5
+            };
+
+
+            for (const key in ALGO_DATA) {
+                const data = ALGO_DATA[key];
+                const ctx = document.getElementById(`chart-${data.id}`).getContext('2d');
+                
+                const chartData = data.examples.map(ex => ({
+                    label: ex.name,
+                    complexity: ex.complexity.replace(' average', ''),
+                    value: complexityOrder[ex.complexity.replace(' average', '')] || 0
+                })).sort((a,b) => a.value - b.value);
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.map(d => d.label),
+                        datasets: [{
+                            label: 'Computational Complexity Growth (Conceptual)',
+                            data: chartData.map(d => d.value),
+                            backgroundColor: data.color + '80', // with transparency
+                            borderColor: data.color,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const originalLabel = chartData[context.dataIndex].label;
+                                        const complexity = chartData[context.dataIndex].complexity;
+                                        return `${originalLabel}: ${complexity}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Lower <--- Conceptual Complexity ---> Higher',
+                                    font: { size: 10 }
+                                },
+                                ticks: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                   font: { size: 12 }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function setupComparisonTool() {
+            const selectorContainer = document.getElementById('comparison-selector');
+            const tableContainer = document.getElementById('comparison-table-container');
+
+            selectorContainer.innerHTML = Object.values(ALGO_DATA).map(data => `
+                <div>
+                    <input type="checkbox" id="compare-${data.id}" name="comparison" value="${data.id}" class="hidden peer">
+                    <label for="compare-${data.id}" 
+                        style="--checked-bg-color: ${data.color}; --checked-border-color: ${data.color};"
+                        class="px-4 py-2 rounded-full border border-slate-300 cursor-pointer transition-all duration-200 
+                               peer-checked:text-white peer-checked:bg-[var(--checked-bg-color)] peer-checked:border-[var(--checked-border-color)]
+                               hover:border-slate-500">
+                        ${data.name}
+                    </label>
+                </div>
+            `).join('');
+
+            selectorContainer.addEventListener('change', (e) => {
+                const checkedBoxes = selectorContainer.querySelectorAll('input[type="checkbox"]:checked');
+                
+                if (checkedBoxes.length > 3) {
+                    e.target.checked = false;
+                    alert('Please select a maximum of 3 paradigms to compare.');
+                    return;
+                }
+                
+                renderComparisonTable(Array.from(checkedBoxes).map(cb => cb.value));
+            });
+
+            function renderComparisonTable(selectedIds) {
+                if (selectedIds.length === 0) {
+                    tableContainer.innerHTML = '<p class="text-center text-slate-500">Select one or more paradigms to begin comparison.</p>';
+                    return;
+                }
+
+                const selectedData = selectedIds.map(id => ALGO_DATA[id]);
+                
+                const headers = selectedData.map(data => `<th class="p-3 text-left font-bold" style="color: ${data.color};">${data.name}</th>`).join('');
+                
+                const rows = [
+                    { title: 'Key Principle', key: 'tagline' },
+                    { title: 'Problem Type', key: 'problemType' },
+                    { title: 'Typical Complexity', key: 'timeComplexity' },
+                    { title: 'Optimality Guarantee', key: 'optimality' },
+                ];
+                
+                let body = '';
+                rows.forEach(row => {
+                    let cells = '';
+                    selectedData.forEach(data => {
+                        const value = data.summary[row.key];
+                        const displayValue = typeof value === 'boolean' ? (value ? 'Guaranteed' : 'Not Guaranteed') : value;
+                        cells += `<td class="p-3 border-t border-slate-200">${displayValue}</td>`;
+                    });
+                    body += `<tr><td class="p-3 border-t border-slate-200 font-semibold text-slate-600">${row.title}</td>${cells}</tr>`;
+                });
+
+                tableContainer.innerHTML = `
+                    <table class="w-full text-sm text-left table-fixed">
+                        <thead>
+                            <tr>
+                                <th class="p-3 w-1/4">Characteristic</th>
+                                ${headers}
+                            </tr>
+                        </thead>
+                        <tbody>
+                           ${body}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            renderComparisonTable([]);
+        }
+
+        function setupNavigation() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section[id]');
+            const mobileNav = document.getElementById('mobile-nav');
+
+            function changeActiveLink(id) {
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.hash === `#${id}`);
+                });
+            }
+            
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 100) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                changeActiveLink(current);
+            });
+            
+            mobileNav.addEventListener('change', () => {
+                window.location.hash = mobileNav.value;
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            renderContent();
+            setupInteractiveExamples();
+            createCharts();
+            setupComparisonTool();
+            setupNavigation();
+        });
+    </script>
+
+<button class="scroll-to-top" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="../index.html#courses">Courses</a></li>
+                    <li><a href="../index.html#lecture-notes">Lecture Notes</a></li>
+                    <li><a href="../index.html#presentations">Presentations</a></li>
+                    <li><a href="../index.html#mcqs">MCQs</a></li>
+                    <li><a href="../index.html#research">Research</a></li>
+                    <li><a href="../index.html#contact">Contact</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>University Links</h4>
+                <ul>
+                    <li><a href="https://uohyd.ac.in" target="_blank">University of Hyderabad</a></li>
+                    <li><a href="https://scis.uohyd.ac.in" target="_blank">SCIS Department</a></li>
+                    <li><a href="#">Academic Calendar</a></li>
+                    <li><a href="#">Library Resources</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <div class="social-links">
+                    <a href="https://scholar.google.com" target="_blank" aria-label="Google Scholar"><i class="fab fa-google scholar-icon"></i></a>
+                    <a href="https://linkedin.com" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="https://github.com" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                    <a href="https://twitter.com" target="_blank" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="https://orcid.org" target="_blank" aria-label="ORCID"><i class="fab fa-orcid"></i></a>
+                </div>
+                <div class="newsletter">
+                    <p>Subscribe to my newsletter for updates</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="Your email address" required>
+                        <button type="submit" class="btn-subscribe">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div class="footer-container">
+                <p>&copy; 2025 Dr. Mohsin Furkh Dar. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">Privacy Policy</a>
+                    <span>|</span>
+                    <a href="#">Terms of Use</a>
+                    <span>|</span>
+                    <a href="#">Accessibility</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/script.js"></script>
+</body>
+</html>

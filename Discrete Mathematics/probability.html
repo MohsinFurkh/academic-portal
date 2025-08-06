@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Probability & Statistics Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: The application is designed as a single-page interactive dashboard with a fixed sidebar for navigation. This structure was chosen over a linear document format to promote non-linear exploration and active learning. Users can jump directly to any concept. The core of the app is the "Probability Distributions" section, where users can manipulate sliders for distribution parameters (e.g., mean, standard deviation) and see the corresponding chart update in real-time. This provides immediate visual feedback, which is crucial for building an intuitive understanding of how these parameters work. Interactive calculators are included for Measures of Tendency and Bayes' Theorem to make abstract formulas tangible. This user-centric, task-oriented design transforms passive reading into an engaging, hands-on educational experience. -->
+    <!-- Visualization & Content Choices: 
+        - Random Variables: Goal: Compare. Method: Side-by-side text cards for clear distinction. Justification: Simple, effective presentation for foundational concepts.
+        - Measures of Tendency: Goal: Interact/Calculate. Method: Interactive calculator with an input field and dynamic display cards. Justification: Allows users to experiment with their own data to understand Mean, Median, Mode, and Std Dev.
+        - Probability Distributions (Normal, Binomial, etc.): Goal: Visualize/Interact. Method: Chart.js canvas charts paired with sliders to control parameters. Justification: The most effective way to demonstrate the relationship between a distribution's parameters and its shape. Updates are real-time, providing instant feedback. Library: Chart.js.
+        - Bayes' Theorem: Goal: Interact/Calculate. Method: Interactive calculator based on a classic medical diagnosis problem. Justification: Demystifies a complex theorem by grounding it in a practical example and showing how probabilities update with new evidence.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All visualizations are rendered on HTML <canvas> elements by Chart.js. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b;}
+        .active-nav { background-color: #e0f2fe; color: #0c4a6e; font-weight: 600; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 40vh; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #0ea5e9; cursor: pointer; border-radius: 50%; }
+        input[type=range]::-moz-range-thumb { width: 20px; height: 20px; background: #0ea5e9; cursor: pointer; border-radius: 50%; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="../index.html" class="logo">
+                <img src="../images/icon.jpg" alt="Mohsin Furkh Dar Logo" style="height: 40px;">
+                <div class="logo-text">
+                    <span class="logo-main">Mohsin Furkh Dar</span>
+                    <span class="logo-sub">PhD Candidate</span>
+                </div>
+            </a>
+            <button class="menu-toggle" aria-label="Toggle navigation" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul id="mainNav">
+                <li><a href="../index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="../index.html#courses"><i class="fas fa-book"></i> Courses</a></li>
+                <li><a href="../index.html#lecture-notes"><i class="fas fa-file-alt"></i> Lecture Notes</a></li>
+                <li><a href="../index.html#presentations"><i class="fas fa-chalkboard-teacher"></i> Presentations</a></li>
+                <li><a href="../index.html#mcqs"><i class="fas fa-question-circle"></i> MCQs</a></li>
+                <li><a href="../index.html#research"><i class="fas fa-flask"></i> Research</a></li>
+                <li><a href="../index.html#contact"><i class="fas fa-envelope"></i> Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="flex-1 p-4 sm:p-6 md:p-10">
+        <div id="content" class="max-w-4xl mx-auto space-y-12">
+            
+            <section id="welcome" class="bg-white p-8 rounded-2xl shadow-sm">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Welcome to the Interactive Statistics Explorer</h2>
+                <p class="text-slate-600 mb-4">This application brings the core concepts of probability and statistics to life. Instead of just reading definitions, you can actively explore them. Use the navigation to jump between topics. In the distributions section, adjust parameters with sliders to see how they shape the data, or use the calculators to see statistical measures computed instantly. </p>
+                <p class="text-slate-600">The goal is to build a strong, intuitive understanding of these fundamental tools for data analysis and decision-making.</p>
+            </section>
+            
+            <section id="variables" class="bg-white p-8 rounded-2xl shadow-sm">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Random Variables</h2>
+                <p class="text-slate-600 mb-6">A random variable assigns a numerical value to each outcome of a random event. This is the foundation for statistical analysis, turning chance into numbers we can measure and model. Here, we explore the two main types: Discrete and Continuous.</p>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="border border-slate-200 p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="text-2xl mr-3">🔢</span>Discrete Variables</h3>
+                        <p class="text-slate-600">These variables take on a finite or countable number of distinct values. Think of things you can count in whole numbers.</p>
+                        <ul class="mt-4 list-disc list-inside text-slate-600 space-y-1">
+                            <li>Number of heads in 3 coin flips (0, 1, 2, 3)</li>
+                            <li>The result of a standard dice roll (1, 2, 3, 4, 5, 6)</li>
+                            <li>Number of defective items in a batch</li>
+                        </ul>
+                    </div>
+                    <div class="border border-slate-200 p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="text-2xl mr-3">📏</span>Continuous Variables</h3>
+                        <p class="text-slate-600">These variables can take any value within a given range. Think of things you measure.</p>
+                        <ul class="mt-4 list-disc list-inside text-slate-600 space-y-1">
+                            <li>A person's height (e.g., 175.3 cm)</li>
+                            <li>The temperature of a room</li>
+                            <li>The exact time it takes to run a race</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="measures" class="bg-white p-8 rounded-2xl shadow-sm">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Interactive Descriptive Statistics</h2>
+                <p class="text-slate-600 mb-6">Descriptive statistics summarize the main features of a dataset. Measures of central tendency (mean, median, mode) describe the center of the data, while measures of dispersion (like standard deviation) describe its spread. Enter a list of comma-separated numbers below to see these calculated instantly.</p>
+                <div class="mb-4">
+                    <label for="data-input" class="block text-sm font-medium text-slate-700 mb-1">Enter numbers (comma-separated):</label>
+                    <input type="text" id="data-input" class="w-full p-2 border border-slate-300 rounded-lg" placeholder="e.g., 21.6, 15, 18.8, 6.5, 16.4">
+                </div>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+                    <div class="bg-sky-50 p-4 rounded-lg">
+                        <p class="text-sm text-sky-800">Mean</p>
+                        <p id="mean-output" class="text-2xl font-bold text-sky-900">-</p>
+                    </div>
+                    <div class="bg-sky-50 p-4 rounded-lg">
+                        <p class="text-sm text-sky-800">Median</p>
+                        <p id="median-output" class="text-2xl font-bold text-sky-900">-</p>
+                    </div>
+                    <div class="bg-sky-50 p-4 rounded-lg">
+                        <p class="text-sm text-sky-800">Mode</p>
+                        <p id="mode-output" class="text-2xl font-bold text-sky-900">-</p>
+                    </div>
+                    <div class="bg-sky-50 p-4 rounded-lg">
+                        <p class="text-sm text-sky-800">Standard Deviation</p>
+                        <p id="stddev-output" class="text-2xl font-bold text-sky-900">-</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="distributions" class="bg-white p-8 rounded-2xl shadow-sm">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Exploring Probability Distributions</h2>
+                <p class="text-slate-600 mb-6">Probability distributions are mathematical functions that describe the likelihood of different outcomes for a random variable. Use the tabs and sliders below to visualize how different distributions behave and how their parameters influence their shape. This interactive approach helps build intuition for these critical statistical models.</p>
+                
+                <div class="border-b border-slate-200 mb-6">
+                    <nav id="dist-nav" class="-mb-px flex space-x-6" aria-label="Tabs">
+                    </nav>
+                </div>
+                <div id="dist-content">
+                </div>
+            </section>
+
+            <section id="bayes" class="bg-white p-8 rounded-2xl shadow-sm">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Bayes' Theorem in Action</h2>
+                <p class="text-slate-600 mb-6">Bayes' Theorem is a powerful formula for updating our beliefs in light of new evidence. It allows us to calculate the probability of a hypothesis (A) given some evidence (B). This is crucial in fields like medical diagnostics to avoid common errors like the base-rate fallacy. Let's explore it with a classic example.</p>
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="font-semibold text-lg mb-2">Scenario: Medical Test</h3>
+                        <p class="text-slate-600 mb-4">A patient takes a test for a rare disease. We want to know the probability they actually have the disease given a positive test result. Adjust the probabilities below to see how the final outcome changes.</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="prior" class="block text-sm font-medium text-slate-700">P(Disease): Prior Probability</label>
+                                <p class="text-xs text-slate-500 mb-1">Prevalence of the disease in the population.</p>
+                                <input type="range" id="prior" min="0.001" max="0.5" step="0.001" value="0.01" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                                <span class="text-sm font-mono" id="prior-val"></span>
+                            </div>
+                             <div>
+                                <label for="likelihood" class="block text-sm font-medium text-slate-700">P(Positive Test | Disease): Sensitivity</label>
+                                <p class="text-xs text-slate-500 mb-1">Probability of a positive test if the person has the disease.</p>
+                                <input type="range" id="likelihood" min="0.5" max="1" step="0.01" value="0.99" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                                <span class="text-sm font-mono" id="likelihood-val"></span>
+                            </div>
+                            <div>
+                                <label for="false-positive" class="block text-sm font-medium text-slate-700">P(Positive Test | No Disease): False Positive Rate</label>
+                                <p class="text-xs text-slate-500 mb-1">Probability of a positive test if the person does NOT have the disease.</p>
+                                <input type="range" id="false-positive" min="0.01" max="0.5" step="0.01" value="0.05" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                                <span class="text-sm font-mono" id="false-positive-val"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-sky-50 border border-sky-200 p-6 rounded-xl text-center">
+                        <p class="text-base text-sky-800 mb-2">Posterior Probability:<br>P(Disease | Positive Test)</p>
+                        <p id="bayes-output" class="text-4xl font-bold text-sky-900">-</p>
+                        <p class="text-sm text-slate-500 mt-4">This is the probability you have the disease, given you tested positive. Notice how it can be surprisingly low even with a very accurate test if the disease is rare!</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const chartConfig = {
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                enabled: true,
+                mode: 'index',
+                intersect: false,
+                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                titleFont: { size: 14, weight: 'bold' },
+                bodyFont: { size: 12 },
+                padding: 10,
+                cornerRadius: 8
+            }
+        },
+        scales: {
+            y: { 
+                beginAtZero: true, 
+                grid: { color: '#e2e8f0' },
+                ticks: { color: '#64748b' }
+            },
+            x: { 
+                grid: { display: false },
+                ticks: { color: '#64748b' }
+            }
+        },
+        maintainAspectRatio: false,
+        responsive: true
+    };
+    
+    let activeChart = null;
+
+    const distributions = {
+        'Normal': {
+            type: 'line',
+            description: "The normal distribution is a continuous, symmetric, bell-shaped distribution. It's defined by its mean (μ), which is the center, and its standard deviation (σ), which determines the spread.",
+            params: {
+                mu: { label: 'Mean (μ)', min: -5, max: 5, step: 0.1, value: 0 },
+                sigma: { label: 'Std Dev (σ)', min: 0.1, max: 5, step: 0.1, value: 1 }
+            },
+            updateFn: function(params) {
+                const { mu, sigma } = params;
+                const labels = [];
+                const data = [];
+                const normalPDF = (x, mu, sigma) => (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+                for (let x = mu - 4 * sigma; x <= mu + 4 * sigma; x += (8 * sigma) / 100) {
+                    labels.push(x.toFixed(2));
+                    data.push(normalPDF(x, mu, sigma));
+                }
+                return { labels, datasets: [{ data, borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, 0.1)', fill: true, tension: 0.4 }] };
+            }
+        },
+        'Binomial': {
+            type: 'bar',
+            description: "The binomial distribution models the number of successes in a fixed number of independent trials (n), each with the same probability of success (p). It is a discrete distribution.",
+            params: {
+                n: { label: 'Trials (n)', min: 1, max: 50, step: 1, value: 20 },
+                p: { label: 'Probability (p)', min: 0.01, max: 0.99, step: 0.01, value: 0.5 }
+            },
+            updateFn: function(params) {
+                const { n, p } = params;
+                const labels = [];
+                const data = [];
+                const factorial = (num) => (num <= 1 ? 1 : num * factorial(num - 1));
+                const combinations = (n, k) => factorial(n) / (factorial(k) * factorial(n - k));
+                for (let k = 0; k <= n; k++) {
+                    labels.push(k);
+                    const prob = combinations(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+                    data.push(prob);
+                }
+                return { labels, datasets: [{ data, backgroundColor: '#14b8a6', borderColor: '#0f766e', borderWidth: 1 }] };
+            }
+        },
+        'Poisson': {
+            type: 'bar',
+            description: "The Poisson distribution models the number of events occurring in a fixed interval of time or space, given a constant average rate of occurrence (λ). It's used for counting rare events.",
+            params: {
+                lambda: { label: 'Rate (λ)', min: 0.1, max: 20, step: 0.1, value: 5 }
+            },
+            updateFn: function(params) {
+                const { lambda } = params;
+                const labels = [];
+                const data = [];
+                const factorial = (num) => (num <= 1 ? 1 : num * factorial(num - 1));
+                const limit = Math.floor(lambda + 5 * Math.sqrt(lambda));
+                for (let k = 0; k <= limit; k++) {
+                    labels.push(k);
+                    const prob = (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
+                    data.push(prob);
+                }
+                return { labels, datasets: [{ data, backgroundColor: '#f97316', borderColor: '#c2410c', borderWidth: 1 }] };
+            }
+        },
+        'Exponential': {
+            type: 'line',
+            description: "The exponential distribution models the time between events in a Poisson process. It's defined by a rate parameter (λ) and has the unique 'memoryless' property.",
+            params: {
+                lambda: { label: 'Rate (λ)', min: 0.1, max: 5, step: 0.1, value: 1 }
+            },
+            updateFn: function(params) {
+                const { lambda } = params;
+                const labels = [];
+                const data = [];
+                const limit = 5 / lambda; 
+                for (let x = 0; x <= limit; x += limit / 100) {
+                    labels.push(x.toFixed(2));
+                    data.push(lambda * Math.exp(-lambda * x));
+                }
+                return { labels, datasets: [{ data, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, tension: 0.1 }] };
+            }
+        },
+        'Uniform': {
+            type: 'line',
+            description: "The uniform distribution has a constant probability for all outcomes between a minimum (a) and maximum (b) value. It looks like a rectangle.",
+            params: {
+                a: { label: 'Min (a)', min: -10, max: 10, step: 1, value: 0 },
+                b: { label: 'Max (b)', min: -10, max: 10, step: 1, value: 5 }
+            },
+            updateFn: function(params) {
+                let { a, b } = params;
+                if (a >= b) b = a + 1;
+                const prob = 1 / (b - a);
+                const labels = [a - 1, a, b, b + 1];
+                const data = [0, prob, prob, 0];
+                return {
+                    labels: labels.map(l => l.toFixed(0)),
+                    datasets: [{ data, borderColor: '#ec4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', fill: true, steppped: true }]
+                };
+            }
+        },
+    };
+
+    function setupDistributionExplorer() {
+        const distNav = document.getElementById('dist-nav');
+        const distContent = document.getElementById('dist-content');
+        const distNames = Object.keys(distributions);
+
+        distNames.forEach((name, index) => {
+            const button = document.createElement('button');
+            button.textContent = name;
+            button.className = `dist-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${index === 0 ? 'border-sky-500 text-sky-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`;
+            button.dataset.dist = name;
+            distNav.appendChild(button);
+        });
+
+        distNav.addEventListener('click', e => {
+            if (e.target.classList.contains('dist-tab')) {
+                const distName = e.target.dataset.dist;
+                renderDist(distName);
+                document.querySelectorAll('.dist-tab').forEach(tab => {
+                    tab.className = tab.className.replace('border-sky-500 text-sky-600', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300');
+                });
+                e.target.className = e.target.className.replace('border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300', 'border-sky-500 text-sky-600');
+            }
+        });
+
+        function renderDist(name) {
+            const dist = distributions[name];
+            let controlsHTML = '';
+            for (const param in dist.params) {
+                const p = dist.params[param];
+                controlsHTML += `
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="${param}-slider" class="text-sm font-medium text-slate-700">${p.label}: <span id="${param}-val" class="font-mono">${p.value}</span></label>
+                        <input type="range" id="${param}-slider" data-param="${param}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.value}" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    </div>`;
+            }
+
+            distContent.innerHTML = `
+                <div id="dist-pane-${name}">
+                    <p class="text-slate-600 mb-6">${dist.description}</p>
+                    <div class="bg-slate-50 p-4 rounded-xl mb-6">
+                        <div class="flex flex-wrap gap-x-6 gap-y-4">
+                            ${controlsHTML}
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="dist-chart"></canvas>
+                    </div>
+                </div>
+            `;
+            updateChart(name);
+
+            document.querySelectorAll(`#dist-pane-${name} input[type=range]`).forEach(slider => {
+                slider.addEventListener('input', () => {
+                    document.getElementById(`${slider.dataset.param}-val`).textContent = slider.value;
+                    updateChart(name);
+                });
+            });
+        }
+
+        function updateChart(name) {
+            const dist = distributions[name];
+            const params = {};
+            for (const param in dist.params) {
+                const slider = document.getElementById(`${param}-slider`);
+                params[param] = parseFloat(slider.value);
+            }
+            
+            const chartData = dist.updateFn(params);
+            const ctx = document.getElementById('dist-chart').getContext('2d');
+
+            if (activeChart) {
+                activeChart.destroy();
+            }
+            activeChart = new Chart(ctx, {
+                type: dist.type,
+                data: chartData,
+                options: chartConfig
+            });
+        }
+        
+        renderDist(distNames[0]);
+    }
+
+    function setupStatsCalculator() {
+        const input = document.getElementById('data-input');
+        input.addEventListener('input', calculateStats);
+        calculateStats(); 
+    }
+
+    function calculateStats() {
+        const input = document.getElementById('data-input');
+        const meanOut = document.getElementById('mean-output');
+        const medianOut = document.getElementById('median-output');
+        const modeOut = document.getElementById('mode-output');
+        const stddevOut = document.getElementById('stddev-output');
+
+        const rawData = input.value.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+        
+        if (rawData.length === 0) {
+            meanOut.textContent = medianOut.textContent = modeOut.textContent = stddevOut.textContent = '-';
+            return;
+        }
+
+        const n = rawData.length;
+        const sum = rawData.reduce((a, b) => a + b, 0);
+        const mean = sum / n;
+        meanOut.textContent = mean.toFixed(2);
+
+        const sorted = [...rawData].sort((a, b) => a - b);
+        let median;
+        if (n % 2 === 0) {
+            median = (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+        } else {
+            median = sorted[Math.floor(n / 2)];
+        }
+        medianOut.textContent = median.toFixed(2);
+
+        const counts = {};
+        rawData.forEach(val => { counts[val] = (counts[val] || 0) + 1; });
+        let mode = [];
+        let maxCount = 0;
+        for (const val in counts) {
+            if (counts[val] > maxCount) {
+                mode = [val];
+                maxCount = counts[val];
+            } else if (counts[val] === maxCount) {
+                mode.push(val);
+            }
+        }
+        if (maxCount <= 1 || mode.length === n) {
+            modeOut.textContent = 'None';
+        } else {
+            modeOut.textContent = mode.join(', ');
+        }
+        
+        const variance = rawData.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / (n > 1 ? n - 1 : 1);
+        const stddev = Math.sqrt(variance);
+        stddevOut.textContent = stddev.toFixed(2);
+    }
+
+    function setupBayesCalculator() {
+        const sliders = ['prior', 'likelihood', 'false-positive'];
+        sliders.forEach(id => {
+            const slider = document.getElementById(id);
+            slider.addEventListener('input', calculateBayes);
+        });
+        calculateBayes();
+    }
+    
+    function calculateBayes() {
+        const pA = parseFloat(document.getElementById('prior').value);
+        const pB_given_A = parseFloat(document.getElementById('likelihood').value);
+        const pB_given_notA = parseFloat(document.getElementById('false-positive').value);
+
+        document.getElementById('prior-val').textContent = pA.toFixed(3);
+        document.getElementById('likelihood-val').textContent = pB_given_A.toFixed(2);
+        document.getElementById('false-positive-val').textContent = pB_given_notA.toFixed(2);
+        
+        const p_notA = 1 - pA;
+        const pB = (pB_given_A * pA) + (pB_given_notA * p_notA);
+        const pA_given_B = (pB_given_A * pA) / pB;
+        
+        document.getElementById('bayes-output').textContent = (pA_given_B * 100).toFixed(1) + '%';
+    }
+    
+    function setupNavObserver() {
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('#desktop-nav a');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active-nav');
+                        if (link.getAttribute('href').substring(1) === entry.target.id) {
+                            link.classList.add('active-nav');
+                        }
+                    });
+                }
+            });
+        }, { rootMargin: "-50% 0px -50% 0px" });
+
+        sections.forEach(section => observer.observe(section));
+    }
+
+    setupDistributionExplorer();
+    setupStatsCalculator();
+    setupBayesCalculator();
+    setupNavObserver();
+});
+</script>
+    <!-- Scroll to top button -->
+    <button class="scroll-to-top" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="../index.html#courses">Courses</a></li>
+                    <li><a href="../index.html#lecture-notes">Lecture Notes</a></li>
+                    <li><a href="../index.html#presentations">Presentations</a></li>
+                    <li><a href="../index.html#mcqs">MCQs</a></li>
+                    <li><a href="../index.html#research">Research</a></li>
+                    <li><a href="../index.html#contact">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>University Links</h4>
+                <ul>
+                    <li><a href="https://uohyd.ac.in" target="_blank">University of Hyderabad</a></li>
+                    <li><a href="https://scis.uohyd.ac.in" target="_blank">SCIS Department</a></li>
+                    <li><a href="#">Academic Calendar</a></li>
+                    <li><a href="#">Library Resources</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <div class="social-links">
+                    <a href="https://scholar.google.com" target="_blank" aria-label="Google Scholar"><i class="fab fa-google scholar-icon"></i></a>
+                    <a href="https://www.linkedin.com" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://github.com" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                    <a href="mailto:mohsin.dar@uohyd.ac.in" aria-label="Email"><i class="fas fa-envelope"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <div class="footer-bottom">
+        <div class="footer-container">
+            <p>&copy; 2025 Mohsin Furkh Dar. All rights reserved.</p>
+            <div class="footer-legal">
+                <a href="#">Privacy Policy</a>
+                <span>|</span>
+                <a href="#">Terms of Service</a>
+            </div>
+        </div>
+    </div>
+    <script src="../js/main.js"></script>
+</body>
+</html>
