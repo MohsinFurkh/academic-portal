@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to Array Data Structures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: A thematic, single-page application with a sticky navigation bar. The structure prioritizes user interaction over the linear format of the source report. It includes: 1) A 'Core Concepts' section for foundational knowledge with visual toggles. 2) An 'Operations Playground' for hands-on learning, where users can trigger animations of array manipulations (insert, delete, access) and see the direct impact, reinforcing the understanding of time complexities. 3) A 'Performance' section with a comparative chart and a pros/cons list for quick analysis. 4) An 'Applications' section using interactive cards to showcase real-world use cases. This interactive, task-oriented structure is chosen to make abstract concepts tangible and to cater to different learning styles, allowing users to either follow a guided path or jump directly to topics of interest. -->
+    <!-- Visualization & Content Choices: 1) Report Info: Time complexities. Goal: Visually compare operation efficiencies. Viz: Bar Chart. Interaction: Static chart displaying worst-case complexities for clarity. Justification: A chart provides a much faster and more intuitive understanding of performance trade-offs (O(1) vs. O(N)) than a text table. Library: Chart.js. 2) Report Info: Array structure and operations. Goal: Explain how arrays work physically. Viz: HTML/CSS boxes. Interaction: JS-driven animations triggered by buttons to show element shifting for insert/delete. Justification: Makes abstract concepts like 'shifting' concrete and memorable. Library/Method: Vanilla JS + Tailwind. 3) Report Info: Advantages & Disadvantages. Goal: Provide a quick-reference summary. Viz: Two-column card layout with icons. Interaction: Static display. Justification: Easy to scan and digest the key trade-offs. Library/Method: HTML/CSS. 4) Report Info: Applications. Goal: Showcase the versatility of arrays. Viz: Grid of interactive cards. Interaction: Hover/click to reveal more information. Justification: More engaging than a simple list and encourages exploration. Library/Method: HTML/CSS/JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        :root {
+            --bg-main: #f5f5f4; /* stone-100 */
+            --bg-card: #ffffff; /* white */
+            --text-primary: #292524; /* stone-800 */
+            --text-secondary: #78716c; /* stone-500 */
+            --accent: #44403c; /* stone-700 */
+            --accent-hover: #1c1917; /* stone-900 */
+            --highlight: #f59e0b; /* amber-500 */
+        }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent);
+            border-bottom-color: var(--highlight);
+        }
+        .btn {
+            background-color: var(--accent);
+            color: var(--bg-main);
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+        .btn-secondary {
+            background-color: var(--bg-card);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+        .btn-secondary:hover {
+            background-color: var(--bg-main);
+        }
+        .array-cell {
+            transition: all 0.5s ease-in-out;
+            transform-origin: center;
+        }
+        .array-cell.new {
+            animation: fadeInScale 0.5s ease-in-out forwards;
+        }
+        .array-cell.removed {
+            animation: fadeOutScale 0.5s ease-in-out forwards;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOutScale {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.5); }
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <nav>
+        <div class="nav-container">
+            <a href="../../index.html" class="logo">
+                <img src="../images/icon.jpg" alt="Mohsin Furkh Dar Logo" style="height: 40px;">
+                <div class="logo-text">
+                    <span class="logo-main">Mohsin Furkh Dar</span>
+                    <span class="logo-sub">PhD Candidate</span>
+                </div>
+            </a>
+            <button class="menu-toggle" aria-label="Toggle navigation" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul id="mainNav">
+                <li><a href="../../index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="../../index.html#courses"><i class="fas fa-book"></i> Courses</a></li>
+                <li><a href="../../index.html#lecture-notes"><i class="fas fa-file-alt"></i> Lecture Notes</a></li>
+                <li><a href="../../index.html#presentations"><i class="fas fa-chalkboard-teacher"></i> Presentations</a></li>
+                <li><a href="../../index.html#mcqs"><i class="fas fa-question-circle"></i> MCQs</a></li>
+                <li><a href="../../index.html#research"><i class="fas fa-flask"></i> Research</a></li>
+                <li><a href="../../index.html#contact"><i class="fas fa-envelope"></i> Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="flex min-h-screen">
+        <header class="bg-card shadow-md sticky top-0 h-screen w-64 flex-shrink-0 overflow-y-auto">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-8">Arrays Explained</h1>
+                <nav class="space-y-4">
+                    <a href="#concepts" class="block nav-link font-medium py-2 hover:text-gray-900 transition-colors">Core Concepts</a>
+                    <a href="#operations" class="block nav-link font-medium py-2 hover:text-gray-900 transition-colors">Operations</a>
+                    <a href="#performance" class="block nav-link font-medium py-2 hover:text-gray-900 transition-colors">Performance</a>
+                    <a href="#applications" class="block nav-link font-medium py-2 hover:text-gray-900 transition-colors">Applications</a>
+                </nav>
+            </div>
+        </header>
+        <main class="flex-1 overflow-auto">
+
+    <main class="container mx-auto px-6 py-12">
+        <section id="intro" class="text-center mb-20">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4">The Fundamental Building Block</h2>
+            <p class="max-w-3xl mx-auto text-lg text-text-secondary">
+                An array is the simplest data structure, yet it's the foundation for countless complex programs. It's a collection of items stored in contiguous memory locations, which allows for incredibly fast access to any element. Let's explore how they work.
+            </p>
+        </section>
+
+        <section id="concepts" class="mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold">Core Concepts</h3>
+                <p class="text-lg text-text-secondary mt-2">What makes an array an array? It comes down to a few key properties.</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <span class="text-2xl mr-3">🏠</span>
+                        <h4 class="text-xl font-bold">Contiguous Memory</h4>
+                    </div>
+                    <p class="text-text-secondary">Elements are stored side-by-side in memory, like houses on a street. This physical layout is why arrays are so cache-friendly and fast for sequential access.</p>
+                </div>
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <span class="text-2xl mr-3">🔢</span>
+                        <h4 class="text-xl font-bold">Indexed Access</h4>
+                    </div>
+                    <p class="text-text-secondary">Each element has a unique numerical index, usually starting from 0. The computer can instantly calculate an element's address using this index, giving us O(1) random access.</p>
+                </div>
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <span class="text-2xl mr-3">🧊</span>
+                        <h4 class="text-xl font-bold">Homogeneous Elements</h4>
+                    </div>
+                    <p class="text-text-secondary">All elements in an array must be of the same data type (e.g., all integers or all strings). This uniformity ensures each element occupies the same amount of memory space.</p>
+                </div>
+                 <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <span class="text-2xl mr-3">📏</span>
+                        <h4 class="text-xl font-bold">Fixed Size (Static)</h4>
+                    </div>
+                    <p class="text-text-secondary">For basic, static arrays, the size is determined when it's created and cannot be changed later. This rigidity is a key trade-off for their speed and efficiency.</p>
+                </div>
+                 <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <span class="text-2xl mr-3">🚀</span>
+                        <h4 class="text-xl font-bold">Cache Friendly</h4>
+                    </div>
+                    <p class="text-text-secondary">When you access one element, the CPU often loads nearby elements into its high-speed cache. Because array elements are contiguous, sequential access becomes extremely fast.</p>
+                </div>
+                 <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <span class="text-2xl mr-3">✨</span>
+                        <h4 class="text-xl font-bold">Dynamic Arrays</h4>
+                    </div>
+                    <p class="text-text-secondary">To overcome the fixed-size limit, structures like `ArrayList` or `vector` use arrays under the hood, but automatically create a bigger array and copy elements over when space runs out.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="operations" class="mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold">Operations Playground</h3>
+                <p class="text-lg text-text-secondary mt-2">See how basic array operations work and understand their performance implications.</p>
+            </div>
+
+            <div class="bg-card p-6 md:p-8 rounded-lg shadow-lg">
+                <div class="flex items-center justify-center flex-wrap gap-2 mb-8">
+                    <button id="accessBtn" class="btn px-4 py-2 rounded-md">Access (Index 2)</button>
+                    <button id="insertStartBtn" class="btn px-4 py-2 rounded-md">Insert at Start</button>
+                    <button id="insertMidBtn" class="btn px-4 py-2 rounded-md">Insert at Middle</button>
+                    <button id="deleteEndBtn" class="btn px-4 py-2 rounded-md">Delete at End</button>
+                    <button id="deleteStartBtn" class="btn px-4 py-2 rounded-md">Delete at Start</button>
+                    <button id="resetBtn" class="btn-secondary px-4 py-2 rounded-md">Reset</button>
+                </div>
+
+                <div id="array-container" class="flex flex-wrap items-center justify-center gap-2 mb-6 min-h-[80px]"></div>
+
+                <div id="op-explanation" class="mt-6 p-4 bg-stone-100 rounded-md text-center min-h-[100px] flex items-center justify-center">
+                    <p class="text-lg text-text-secondary">Select an operation to begin.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="performance" class="mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold">Performance & Trade-offs</h3>
+                <p class="text-lg text-text-secondary mt-2">No data structure is perfect. Arrays excel at some tasks and struggle with others.</p>
+            </div>
+            
+            <div class="grid lg:grid-cols-5 gap-8">
+                <div class="lg:col-span-3 bg-card p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-bold text-center mb-4">Time Complexity (Worst Case)</h4>
+                    <div class="chart-container">
+                        <canvas id="complexityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-card p-6 rounded-lg shadow-sm">
+                        <h4 class="text-xl font-bold mb-3 text-green-600">Advantages 👍</h4>
+                        <ul class="space-y-2 list-inside">
+                            <li><span class="font-semibold">Fast Access:</span> O(1) retrieval by index.</li>
+                            <li><span class="font-semibold">Cache Friendly:</span> Contiguous memory boosts performance.</li>
+                            <li><span class="font-semibold">Memory Efficient:</span> Low overhead, no extra pointers.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-card p-6 rounded-lg shadow-sm">
+                        <h4 class="text-xl font-bold mb-3 text-red-600">Disadvantages 👎</h4>
+                        <ul class="space-y-2 list-inside">
+                            <li><span class="font-semibold">Fixed Size:</span> Static arrays can't be resized.</li>
+                            <li><span class="font-semibold">Slow Modifications:</span> O(N) for insertions/deletions in the middle due to element shifting.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="applications" class="scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold">Real-World Applications</h3>
+                <p class="text-lg text-text-secondary mt-2">Arrays are everywhere, often forming the backbone of more complex systems.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-bold mb-2">Implementing Other Data Structures</h4>
+                    <p class="text-text-secondary">Arrays are the building blocks for Stacks (undo function), Queues (print jobs), and Hash Tables.</p>
+                </div>
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-bold mb-2">Image Processing</h4>
+                    <p class="text-text-secondary">A 2D array can represent an image, where each element is a pixel with color values (RGB). Filters and transformations are just array manipulations.</p>
+                </div>
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-bold mb-2">Game Boards</h4>
+                    <p class="text-text-secondary">Games like Chess, Sudoku, or Tic-Tac-Toe use 2D arrays to represent the board state, making it easy to check for valid moves or win conditions.</p>
+                </div>
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-bold mb-2">Sorting & Searching</h4>
+                    <p class="text-text-secondary">Fundamental algorithms like Bubble Sort, Quick Sort, and Binary Search all operate directly on arrays.</p>
+                </div>
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-bold mb-2">Scientific Computing</h4>
+                    <p class="text-text-secondary">Matrices and vectors, crucial for physics simulations and mathematical modeling, are implemented with multi-dimensional arrays.</p>
+                </div>
+                <div class="bg-card p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-bold mb-2">Database Indexing</h4>
+                    <p class="text-text-secondary">Arrays can be used to store indices for database records, mapping keys to memory locations to speed up data retrieval.</p>
+                </div>
+            </div>
+        </section>
+        </main>
+    </div>
+    
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="../../index.html">Home</a></li>
+                    <li><a href="../../index.html#courses">Courses</a></li>
+                    <li><a href="../../index.html#lecture-notes">Lecture Notes</a></li>
+                    <li><a href="../../index.html#presentations">Presentations</a></li>
+                    <li><a href="../../index.html#mcqs">MCQs</a></li>
+                    <li><a href="../../index.html#research">Research</a></li>
+                    <li><a href="../../index.html#contact">Contact</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>University Links</h4>
+                <ul>
+                    <li><a href="https://uohyd.ac.in" target="_blank">University of Hyderabad</a></li>
+                    <li><a href="https://scis.uohyd.ac.in" target="_blank">SCIS Department</a></li>
+                    <li><a href="#">Academic Calendar</a></li>
+                    <li><a href="#">Library Resources</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <div class="social-links">
+                    <a href="https://scholar.google.com" target="_blank" aria-label="Google Scholar"><i class="fab fa-google scholar-icon"></i></a>
+                    <a href="https://linkedin.com" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="https://github.com" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                    <a href="https://twitter.com" target="_blank" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="https://orcid.org" target="_blank" aria-label="ORCID"><i class="fab fa-orcid"></i></a>
+                </div>
+                <div class="newsletter">
+                    <p>Subscribe to my newsletter for updates</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="Your email address" required>
+                        <button type="submit" class="btn-subscribe">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div class="footer-container">
+                <p>&copy; 2025 Dr. Mohsin Furkh Dar. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const arrayContainer = document.getElementById('array-container');
+            const opExplanation = document.getElementById('op-explanation');
+            let currentArray = [];
+
+            const initialArray = [10, 20, 30, 40, 50];
+
+            function renderArray(highlightIndex = -1) {
+                arrayContainer.innerHTML = '';
+                currentArray.forEach((val, i) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell flex items-center justify-center w-16 h-16 rounded-lg shadow-md font-mono text-xl font-bold';
+                    cell.style.backgroundColor = 'var(--bg-main)';
+                    cell.style.color = 'var(--text-primary)';
+                    if (i === highlightIndex) {
+                        cell.style.backgroundColor = 'var(--highlight)';
+                        cell.style.transform = 'scale(1.1)';
+                    }
+                    
+                    const valueEl = document.createElement('span');
+                    valueEl.textContent = val;
+
+                    const indexEl = document.createElement('span');
+                    indexEl.textContent = i;
+                    indexEl.className = 'absolute -bottom-5 text-sm font-sans font-medium text-text-secondary';
+                    
+                    cell.appendChild(valueEl);
+                    cell.appendChild(indexEl);
+                    arrayContainer.appendChild(cell);
+                });
+            }
+
+            function setExplanation(title, complexity, text) {
+                opExplanation.innerHTML = `
+                    <div class="w-full">
+                        <h4 class="font-bold text-lg">${title}</h4>
+                        <p class="font-mono text-lg my-1" style="color: var(--highlight);">${complexity}</p>
+                        <p class="text-text-secondary text-base">${text}</p>
+                    </div>
+                `;
+            }
+
+            function resetPlayground() {
+                currentArray = [...initialArray];
+                opExplanation.innerHTML = '<p class="text-lg text-text-secondary">Select an operation to begin.</p>';
+                renderArray();
+            }
+
+            document.getElementById('accessBtn').addEventListener('click', () => {
+                resetPlayground();
+                setTimeout(() => {
+                    renderArray(2);
+                    setExplanation(
+                        'Access by Index',
+                        'Time Complexity: O(1)',
+                        'Accessing an element by its index is extremely fast. The memory address is calculated directly, so it takes constant time regardless of array size.'
+                    );
+                }, 100);
+            });
+            
+            document.getElementById('insertStartBtn').addEventListener('click', () => {
+                resetPlayground();
+                setTimeout(() => {
+                    currentArray.unshift(99);
+                    renderArray();
+                    const firstChild = arrayContainer.firstChild;
+                    if(firstChild) firstChild.classList.add('new');
+                    setExplanation(
+                        'Insert at Beginning',
+                        'Time Complexity: O(N)',
+                        'To insert at the start, every existing element must be shifted one position to the right. This is a slow operation for large arrays.'
+                    );
+                }, 100);
+            });
+
+            document.getElementById('insertMidBtn').addEventListener('click', () => {
+                resetPlayground();
+                 setTimeout(() => {
+                    currentArray.splice(2, 0, 99);
+                    renderArray();
+                    const midChild = arrayContainer.children[2];
+                     if(midChild) midChild.classList.add('new');
+                    setExplanation(
+                        'Insert in Middle',
+                        'Time Complexity: O(N)',
+                        'Similar to inserting at the start, all elements after the insertion point must be shifted right. The cost depends on the position.'
+                    );
+                }, 100);
+            });
+
+            document.getElementById('deleteEndBtn').addEventListener('click', () => {
+                resetPlayground();
+                 setTimeout(() => {
+                    const lastChild = arrayContainer.lastChild;
+                    if(lastChild) {
+                       lastChild.classList.add('removed');
+                    }
+                    setTimeout(() => {
+                        currentArray.pop();
+                        renderArray();
+                        setExplanation(
+                        'Delete at End',
+                        'Time Complexity: O(1)',
+                        'Removing the last element is very efficient. No other elements need to be shifted, so it takes constant time.'
+                        );
+                    }, 500);
+                }, 100);
+            });
+
+            document.getElementById('deleteStartBtn').addEventListener('click', () => {
+                resetPlayground();
+                setTimeout(() => {
+                    const firstChild = arrayContainer.firstChild;
+                    if(firstChild) {
+                       firstChild.classList.add('removed');
+                    }
+                    setTimeout(() => {
+                        currentArray.shift();
+                        renderArray();
+                        setExplanation(
+                            'Delete at Beginning',
+                            'Time Complexity: O(N)',
+                            'To remove the first element, all remaining elements must be shifted one position to the left to fill the gap. This is slow for large arrays.'
+                        );
+                    }, 500);
+                }, 100);
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', resetPlayground);
+
+            const ctx = document.getElementById('complexityChart').getContext('2d');
+            const complexityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Access', 'Search (Linear)', 'Insert (Start/Mid)', 'Delete (Start/Mid)', 'Insert/Delete (End)'],
+                    datasets: [{
+                        label: 'Relative Cost (Worst Case)',
+                        data: [1, 100, 100, 100, 1],
+                        backgroundColor: [
+                            '#4ade80', // green-400
+                            '#facc15', // yellow-400
+                            '#f87171', // red-400
+                            '#f87171', // red-400
+                            '#4ade80'  // green-400
+                        ],
+                        borderColor: [
+                             '#22c55e', // green-500
+                             '#eab308', // yellow-500
+                             '#ef4444', // red-500
+                             '#ef4444', // red-500
+                             '#22c55e'  // green-500
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            display: false,
+                            beginAtZero: true
+                        },
+                        y: {
+                           ticks: {
+                             font: {
+                                size: 14
+                             }
+                           }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw;
+                                    if (val === 1) return 'O(1) - Constant Time';
+                                    if (val === 100) return 'O(N) - Linear Time';
+                                    return context.label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            resetPlayground();
+        });
+    </script>
+</body>
+</html>
