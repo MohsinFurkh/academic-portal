@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive C Memory Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Calm Neutrals -->
+    <!-- Application Structure Plan: A side-navigation driven SPA. This thematic structure breaks the dense technical report into four manageable, interactive sections: 'Data Primitives', 'Memory Layout', 'Complex Structures', and 'Low-Level Operations'. This approach is chosen over a linear format to reduce cognitive load, allowing users to focus on a specific topic. The user flow is non-linear, encouraging exploration of concepts through interactive tools like data type converters and memory layout visualizers, which is more effective for learning and retention than passive reading. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Fundamental Data Types & Sizes -> Goal: Compare magnitudes -> Viz: Bar Chart -> Interaction: Hover for details -> Justification: Visual comparison is faster than reading a table. -> Library: Chart.js.
+        - Report Info: Integer/Float Representation (Two's Comp/IEEE 754) -> Goal: Demystify binary formats -> Viz: Interactive Converters -> Interaction: User input updates binary breakdown in real-time -> Justification: Active participation solidifies understanding of complex encoding. -> Library: Vanilla JS.
+        - Report Info: Program Memory Segments -> Goal: Visualize memory organization -> Viz: Interactive Diagram -> Interaction: Click a segment to see details -> Justification: A spatial, interactive layout is more intuitive for understanding memory maps than text. -> Library: HTML/CSS + JS.
+        - Report Info: Struct Padding -> Goal: Demonstrate memory alignment -> Viz: Visual Struct Layout Simulator -> Interaction: User reorders members to see padding change -> Justification: Makes an abstract compiler optimization tangible and its impact clear. -> Library: HTML/CSS + JS.
+        - Report Info: Endianness -> Goal: Explain byte order -> Viz: Visual byte layout comparison + system detector -> Interaction: Dynamic detection of user's system -> Justification: Clearly illustrates a key concept in data portability. -> Library: Vanilla JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 450px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 400px;
+            }
+        }
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-link.active {
+            background-color: #4338ca;
+            color: white;
+            transform: translateX(4px);
+        }
+        .bit-rep {
+            font-family: 'Courier New', Courier, monospace;
+            letter-spacing: 1px;
+            word-break: break-all;
+        }
+        .bit-sign { color: #ef4444; }
+        .bit-exponent { color: #3b82f6; }
+        .bit-mantissa { color: #22c55e; }
+        .struct-member {
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        .struct-padding {
+            background-color: #fecaca;
+            border: 1px dashed #f87171;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <aside class="w-full md:w-64 bg-white border-r border-slate-200 p-4 md:p-6 shrink-0">
+            <h1 class="text-xl font-bold text-indigo-700 mb-6">C Memory Explorer</h1>
+            <nav id="main-nav" class="flex flex-row md:flex-col gap-2">
+                <a href="#layout" class="nav-link active text-left w-full px-4 py-2 rounded-lg text-slate-600 hover:bg-indigo-100">Memory Layout</a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-4 md:p-8 lg:p-12">
+
+            <section id="layout" class="hidden space-y-12">
+                <div>
+                    <h2 class="text-3xl font-bold mb-2">Program Memory Layout</h2>
+                    <p class="text-slate-600 max-w-3xl">This section provides a visual model of how a C program's memory is organized into segments. Each segment has a specific purpose, from storing executable code to managing function calls. Click on any segment in the diagram to learn more about its role and characteristics. This layout is a simplified model, but it illustrates the key concepts of memory management in C.</p>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-8 items-start">
+                    <div class="w-full md:w-1/3 lg:w-1/4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm">
+                            <div class="text-center mb-2 text-sm font-semibold text-slate-500">High Memory</div>
+                            <div id="mem-stack" class="cursor-pointer p-4 h-24 flex items-center justify-center text-center bg-red-200 border-2 border-red-400 rounded-lg mb-2 hover:border-red-600 transition">Stack<br>⬇</div>
+                            <div class="text-center text-2xl text-slate-400 my-2">↓<br>...<br>↑</div>
+                            <div id="mem-heap" class="cursor-pointer p-4 h-24 flex items-center justify-center text-center bg-green-200 border-2 border-green-400 rounded-lg mt-2 hover:border-green-600 transition">Heap<br>⬆</div>
+                            <div id="mem-bss" class="cursor-pointer p-4 flex items-center justify-center text-center bg-yellow-200 border-2 border-yellow-400 rounded-lg mt-2 hover:border-yellow-600 transition">BSS</div>
+                            <div id="mem-data" class="cursor-pointer p-4 flex items-center justify-center text-center bg-blue-200 border-2 border-blue-400 rounded-lg mt-2 hover:border-blue-600 transition">Data</div>
+                            <div id="mem-text" class="cursor-pointer p-4 flex items-center justify-center text-center bg-purple-200 border-2 border-purple-400 rounded-lg mt-2 hover:border-purple-600 transition">Text</div>
+                            <div class="text-center mt-2 text-sm font-semibold text-slate-500">Low Memory</div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-2/3 lg:w-3/4">
+                        <div id="mem-details" class="bg-white p-6 rounded-xl shadow-sm min-h-[300px]">
+                            <h3 id="mem-title" class="text-xl font-bold mb-4">Select a segment</h3>
+                            <p id="mem-desc" class="text-slate-600">Click on a colored block to the left to see details about that memory segment.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    
+    const navLinks = document.querySelectorAll('#main-nav a');
+    const sections = document.querySelectorAll('main section');
+
+    const memoryDetails = {
+        'mem-stack': {
+            title: 'Stack Segment',
+            desc: 'The stack stores local variables, function parameters, and return addresses for function calls. It operates in a Last-In, First-Out (LIFO) manner. Memory is allocated automatically when a function is called and deallocated when it returns. It has a fixed size, and exceeding it causes a "stack overflow". It typically grows downwards from high memory addresses.'
+        },
+        'mem-heap': {
+            title: 'Heap Segment',
+            desc: 'The heap is used for dynamic memory allocation, managed by the programmer using functions like malloc(), calloc(), and free(). It is flexible in size and persists until explicitly deallocated. Improper management can lead to memory leaks or fragmentation. It typically grows upwards from the end of the BSS segment.'
+        },
+        'mem-bss': {
+            title: 'BSS (Uninitialized Data)',
+            desc: 'The BSS segment stores global and static variables that are not explicitly initialized in the code. The operating system automatically initializes these variables to zero before the program starts. This segment does not take up space in the executable file on disk.'
+        },
+        'mem-data': {
+            title: 'Data Segment (Initialized Data)',
+            desc: 'This segment stores global and static variables that are initialized with a specific value by the programmer. These initial values are stored in the executable file and loaded into memory when the program runs.'
+        },
+        'mem-text': {
+            title: 'Text Segment (Code)',
+            desc: 'The text segment contains the compiled machine code of the program. It is typically marked as read-only to prevent the program from accidentally modifying its own instructions. This is the lowest part of the program\'s memory space.'
+        }
+    };
+
+    const memDetailTitle = document.getElementById('mem-title');
+    const memDetailDesc = document.getElementById('mem-desc');
+
+    function showSection(hash) {
+        sections.forEach(section => {
+            if ('#' + section.id === hash) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        });
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === hash) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetHash = e.target.getAttribute('href');
+            history.pushState(null, null, targetHash);
+            showSection(targetHash);
+        });
+    });
+
+    window.addEventListener('popstate', () => {
+        showSection(location.hash || '#primitives');
+    });
+
+    showSection(location.hash || '#primitives');
+
+    Object.keys(memoryDetails).forEach(id => {
+        document.getElementById(id).addEventListener('click', () => {
+            memDetailTitle.textContent = memoryDetails[id].title;
+            memDetailDesc.textContent = memoryDetails[id].desc;
+        });
+    });
+
+    const dataTypeCtx = document.getElementById('dataTypeChart').getContext('2d');
+    const dataTypeChart = new Chart(dataTypeCtx, {
+        type: 'bar',
+        data: {
+            labels: ['char', '_Bool', 'short', 'int', 'float', 'long', 'double'],
+            datasets: [{
+                label: 'Size in Bytes',
+                data: [1, 1, 2, 4, 4, 8, 8],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(255, 159, 64, 0.5)',
+                    'rgba(255, 205, 86, 0.5)',
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(153, 102, 255, 0.5)',
+                    'rgba(201, 203, 207, 0.5)'
+                ],
+                borderColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(255, 159, 64)',
+                    'rgb(255, 205, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(54, 162, 235)',
+                    'rgb(153, 102, 255)',
+                    'rgb(201, 203, 207)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: 'Typical Data Type Sizes on a 64-bit System' }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Bytes' }
+                }
+            }
+        }
+    });
+
+    const intInput = document.getElementById('intInput');
+    const intOutput = document.getElementById('intOutput');
+    function updateInt() {
+        const num = parseInt(intInput.value, 10);
+        if (isNaN(num)) {
+            intOutput.textContent = 'Invalid input';
+            return;
+        }
+        let binary = (num >>> 0).toString(2).padStart(32, '0');
+        let sign = `<span class="bit-sign">${binary.substring(0,1)}</span>`;
+        let rest = binary.substring(1);
+        intOutput.innerHTML = `${sign}${rest.replace(/(.{4})/g, ' $1').trim()}`;
+    }
+    intInput.addEventListener('input', updateInt);
+    updateInt();
+
+    const floatInput = document.getElementById('floatInput');
+    const floatOutput = document.getElementById('floatOutput');
+    function updateFloat() {
+        const num = parseFloat(floatInput.value);
+        if (isNaN(num)) {
+            floatOutput.textContent = 'Invalid input';
+            return;
+        }
+        const buffer = new ArrayBuffer(4);
+        new DataView(buffer).setFloat32(0, num, false);
+        let binary = '';
+        for (let i = 0; i < 4; i++) {
+            binary += new DataView(buffer).getUint8(i).toString(2).padStart(8, '0');
+        }
+        const sign = `<span class="bit-sign">${binary.substring(0, 1)}</span>`;
+        const exponent = `<span class="bit-exponent">${binary.substring(1, 9)}</span>`;
+        const mantissa = `<span class="bit-mantissa">${binary.substring(9)}</span>`;
+        floatOutput.innerHTML = `${sign} ${exponent} ${mantissa.replace(/(.{4})/g, '$1 ').trim()}`;
+    }
+    floatInput.addEventListener('input', updateFloat);
+    updateFloat();
+
+    const endianResult = document.getElementById('endian-result');
+    const isLittleEndian = (() => {
+        const buffer = new ArrayBuffer(2);
+        new DataView(buffer).setInt16(0, 256, true);
+        return new Int16Array(buffer)[0] === 256;
+    })();
+    endianResult.textContent = `Your system appears to be: ${isLittleEndian ? 'Little-Endian' : 'Big-Endian'}`;
+
+    const structVis = document.getElementById('struct-vis');
+    const structInfo = document.getElementById('struct-info');
+    const orderBtn1 = document.getElementById('order-btn-1');
+    const orderBtn2 = document.getElementById('order-btn-2');
+
+    const structOrder1 = [ { name: 'char a', size: 1 }, { name: 'int b', size: 4 }, { name: 'char c', size: 1 }, { name: 'short d', size: 2 } ];
+    const structOrder2 = [ { name: 'int b', size: 4 }, { name: 'short d', size: 2 }, { name: 'char a', size: 1 }, { name: 'char c', size: 1 } ];
+
+    function renderStruct(members) {
+        structVis.innerHTML = '';
+        let totalSize = 0;
+        let currentOffset = 0;
+        
+        members.forEach(member => {
+            const alignment = member.size;
+            const padding = (alignment - (currentOffset % alignment)) % alignment;
+
+            if (padding > 0) {
+                const padEl = document.createElement('div');
+                padEl.className = 'struct-member struct-padding';
+                padEl.textContent = `padding (${padding} byte${padding > 1 ? 's' : ''})`;
+                padEl.style.height = `${padding * 1.5}rem`;
+                structVis.appendChild(padEl);
+                currentOffset += padding;
+                totalSize += padding;
+            }
+
+            const memEl = document.createElement('div');
+            memEl.className = 'struct-member bg-green-200';
+            memEl.textContent = `${member.name} (${member.size} byte${member.size > 1 ? 's' : ''})`;
+            memEl.style.height = `${member.size * 1.5}rem`;
+            structVis.appendChild(memEl);
+            currentOffset += member.size;
+            totalSize += member.size;
+        });
+
+        const finalPadding = (4 - (totalSize % 4)) % 4;
+        if (finalPadding > 0) {
+            const padEl = document.createElement('div');
+            padEl.className = 'struct-member struct-padding';
+            padEl.textContent = `final padding (${finalPadding} byte${finalPadding > 1 ? 's' : ''})`;
+            padEl.style.height = `${finalPadding * 1.5}rem`;
+            structVis.appendChild(padEl);
+            totalSize += finalPadding;
+        }
+
+        structInfo.textContent = `Total Struct Size: ${totalSize} bytes`;
+    }
+
+    orderBtn1.addEventListener('click', () => {
+        renderStruct(structOrder1);
+        orderBtn1.classList.add('bg-indigo-600', 'text-white');
+        orderBtn1.classList.remove('bg-slate-200', 'text-slate-700');
+        orderBtn2.classList.add('bg-slate-200', 'text-slate-700');
+        orderBtn2.classList.remove('bg-indigo-600', 'text-white');
+    });
+    orderBtn2.addEventListener('click', () => {
+        renderStruct(structOrder2);
+        orderBtn2.classList.add('bg-indigo-600', 'text-white');
+        orderBtn2.classList.remove('bg-slate-200', 'text-slate-700');
+        orderBtn1.classList.add('bg-slate-200', 'text-slate-700');
+        orderBtn1.classList.remove('bg-indigo-600', 'text-white');
+    });
+
+    renderStruct(structOrder1);
+
+    const bitA = document.getElementById('bit-a');
+    const bitB = document.getElementById('bit-b');
+    const bitOp = document.getElementById('bit-op');
+    const bitResult = document.getElementById('bit-result');
+
+    function updateBitwise() {
+        const a = parseInt(bitA.value) || 0;
+        const b = parseInt(bitB.value) || 0;
+        const op = bitOp.value;
+        let result;
+
+        if (op === '&') result = a & b;
+        else if (op === '|') result = a | b;
+        else if (op === '^') result = a ^ b;
+        
+        const binA = a.toString(2).padStart(8, '0');
+        const binB = b.toString(2).padStart(8, '0');
+        const binRes = result.toString(2).padStart(8, '0');
+
+        bitResult.innerHTML = `
+            <div>  ${binA.replace(/(.{4})/g, '$1 ').trim()} (${a})</div>
+            <div class="font-bold">${op}</div>
+            <div>  ${binB.replace(/(.{4})/g, '$1 ').trim()} (${b})</div>
+            <hr class="my-2 border-slate-400">
+            <div class="font-bold">${binRes.replace(/(.{4})/g, '$1 ').trim()} (${result})</div>
+        `;
+    }
+    [bitA, bitB, bitOp].forEach(el => el.addEventListener('input', updateBitwise));
+    updateBitwise();
+});
+</script>
+</body>
+</html>
