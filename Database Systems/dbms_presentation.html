@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBMS: Schemas, Architecture & Data Independence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .instructor-info {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 1.1rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-title {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+
+        .diagram-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .schema-box {
+            display: inline-block;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 10px;
+            min-width: 200px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .schema-box:hover {
+            transform: scale(1.05);
+        }
+
+        .instance-box {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+            color: #333;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            display: inline-block;
+            min-width: 150px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .instance-box:hover {
+            transform: scale(1.05);
+        }
+
+        .architecture-layer {
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .architecture-layer:hover {
+            transform: translateX(10px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .layer-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .independence-demo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .demo-box {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .interactive-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .interactive-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .example-container {
+            background: #e8f4fd;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 15px 15px 0;
+        }
+
+        .example-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #ffd89b, #19547b);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .quiz-section {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .quiz-question {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .quiz-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .quiz-option {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .correct-answer {
+            background: #4caf50 !important;
+        }
+
+        .wrong-answer {
+            background: #f44336 !important;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .independence-demo {
+                grid-template-columns: 1fr;
+            }
+            
+            .quiz-options {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .arrow-down {
+            font-size: 2rem;
+            color: #667eea;
+            text-align: center;
+            margin: 20px 0;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Database Management Systems</h1>
+            <h2>Schemas, Architecture & Data Independence</h2>
+            <div class="instructor-info">
+                <strong>Prepared by:</strong> Dr. Mohsin F. Dar<br>
+                <strong>Designation:</strong> Assistant Professor, School of Computer Science<br>
+                <strong>Institution:</strong> UPES, Dehradun<br>
+                <strong>Target Audience:</strong> MT-CSE-I Database Systems
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('schemas')">Schemas, Instances & States</button>
+            <button class="tab-btn" onclick="showTab('architecture')">Three-Schema Architecture</button>
+            <button class="tab-btn" onclick="showTab('independence')">Data Independence</button>
+            <button class="tab-btn" onclick="showTab('quiz')">Interactive Quiz</button>
+        </div>
+
+        <!-- Schemas, Instances, and States Tab -->
+        <div id="schemas" class="tab-content active">
+            <h2 class="section-title">Schemas, Instances, and States</h2>
+            
+            <div class="example-container">
+                <div class="example-title">📚 Key Definitions</div>
+                <p><strong>Schema:</strong> The logical structure and design of the database - it's like a blueprint that defines tables, columns, data types, and relationships.</p>
+                <p><strong>Instance:</strong> The actual data stored in the database at any particular moment in time.</p>
+                <p><strong>Database State:</strong> The collection of all instances of all relations in a database at a particular point in time.</p>
+                
+                <div class="highlight" style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #e3f2fd, #f3e5f5); border-left: 4px solid #2196f3; color: #2c3e50;">
+                    <h4 style="color: #1976d2; margin-bottom: 10px;">🔍 Additional Important Concepts</h4>
+                    <p style="color: #2c3e50;"><strong>Schema Construct:</strong> A component of the schema or an object within the schema, e.g., STUDENT, COURSE.</p>
+                    <p style="color: #2c3e50;"><strong>Initial Database State:</strong> Refers to the database state when it is initially loaded into the system.</p>
+                    <p style="color: #2c3e50;"><strong>Valid State:</strong> A state that satisfies the structure and constraints of the database.</p>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 8px; color: #2c3e50;">
+                        <p style="color: #2c3e50;"><strong>Alternative Terminology:</strong></p>
+                        <p style="color: #2c3e50;">• <strong>Schema</strong> is also called <em>intension</em></p>
+                        <p style="color: #2c3e50;">• <strong>State</strong> is also called <em>extension</em></p>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Visual Illustrations -->
+            <div class="example-container">
+                <div class="example-title">📊 Visual Comparison: Schema vs Database State</div>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin: 20px 0;">
+                    <div style="flex: 1; min-width: 300px; text-align: center;">
+                        <h3 style="color: #2c3e50; margin-bottom: 10px;">🏗️ Database Schema</h3>
+                        <img src="schema.png" alt="Database Schema Illustration" style="max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        <p style="margin-top: 10px; font-style: italic; color: #666;">Structure and organization - remains stable</p>
+                    </div>
+                    <div style="flex: 1; min-width: 300px; text-align: center;">
+                        <h3 style="color: #2c3e50; margin-bottom: 10px;">📊 Database State</h3>
+                        <img src="Database state.png" alt="Database State Illustration" style="max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        <p style="margin-top: 10px; font-style: italic; color: #666;">Actual data content - changes frequently</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block" id="schema-code">
+                <pre>
+-- Schema Definition (DDL)
+CREATE TABLE Student (
+    StudentID INT PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL,
+    Age INT CHECK (Age > 0),
+    Grade DECIMAL(3,2)
+);
+</pre>
+            </div>
+
+            <button class="interactive-btn" onclick="demonstrateStateChange()">Demonstrate State Change</button>
+            
+            <div id="state-demo" class="example-container" style="display: none;">
+                <div class="example-title">🔄 Database State Changes</div>
+                <p><strong>Initial State:</strong> 3 records</p>
+                <p><strong>After INSERT:</strong> 4 records (state changed)</p>
+                <p><strong>After UPDATE:</strong> Same count but different data (state changed)</p>
+                <p><strong>After DELETE:</strong> 3 records again (state changed)</p>
+                <div class="highlight">Note: Schema remains constant, but instance/state changes with each operation!</div>
+            </div>
+
+            <div class="quiz-section">
+                <div class="quiz-question">Quick Check: What changes more frequently - Schema or Instance?</div>
+                <div class="quiz-options">
+                    <div class="quiz-option" onclick="checkAnswer(this, false)">Schema</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true)">Instance</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Three-Schema Architecture Tab -->
+        <div id="architecture" class="tab-content">
+            <h2 class="section-title">Three-Schema Architecture</h2>
+            
+            <div class="example-container">
+                <div class="example-title">🏗️ ANSI/SPARC Three-Schema Architecture</div>
+                <p>A framework that separates the user applications from the physical database through three levels of abstraction.</p>
+            </div>
+
+            <div class="diagram-container">
+                <div class="architecture-layer" onclick="explainLevel('external')">
+                    <div class="layer-title">📱 EXTERNAL LEVEL (View Level)</div>
+                    <p><strong>Purpose:</strong> Individual user views</p>
+                    <p><strong>Components:</strong> User-specific schemas, customized views</p>
+                    <p><strong>Example:</strong> Student Portal View, Faculty Dashboard</p>
+                </div>
+                
+                <div class="arrow-down">↓ Mapping ↓</div>
+                
+                <div class="architecture-layer" onclick="explainLevel('conceptual')">
+                    <div class="layer-title">🧠 CONCEPTUAL LEVEL (Logical Level)</div>
+                    <p><strong>Purpose:</strong> Community view of entire database</p>
+                    <p><strong>Components:</strong> All entities, relationships, constraints</p>
+                    <p><strong>Example:</strong> Complete university database schema</p>
+                </div>
+                
+                <div class="arrow-down">↓ Mapping ↓</div>
+                
+                <div class="architecture-layer" onclick="explainLevel('internal')">
+                    <div class="layer-title">💾 INTERNAL LEVEL (Physical Level)</div>
+                    <p><strong>Purpose:</strong> Physical storage and access methods</p>
+                    <p><strong>Components:</strong> Storage structures, indexes, access paths</p>
+                    <p><strong>Example:</strong> B+ tree indexes, file organization</p>
+                </div>
+            </div>
+
+            <div class="example-container">
+                <div class="example-title">🎯 Real-World Example: University Database</div>
+                
+                <div class="code-block">
+                    <pre>
+-- External Schema (Student View)
+CREATE VIEW StudentGrades AS 
+SELECT Name, CourseName, Grade 
+FROM Student S, Enrollment E, Course C 
+WHERE S.StudentID = E.StudentID 
+AND E.CourseID = C.CourseID;
+
+-- Conceptual Schema (Complete Logical Design)
+CREATE TABLE Student (...);
+CREATE TABLE Course (...);
+CREATE TABLE Enrollment (...);
+-- All relationships and constraints
+
+-- Internal Schema (Physical Implementation)
+-- Index on StudentID for faster lookups
+CREATE INDEX idx_student_id ON Student(StudentID);
+-- Clustered storage for related records
+</pre>
+                </div>
+            </div>
+
+            <button class="interactive-btn" onclick="showArchitectureDemo()">Interactive Architecture Demo</button>
+            
+            <div id="arch-demo" class="example-container" style="display: none;">
+                <div class="example-title">🏗️ Three Level Schema Architecture Diagram</div>
+                <div style="text-align: center; margin: 20px 0;">
+                    <img src="Three Level Schema Architecture.png" alt="Three Level Schema Architecture Diagram" style="max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                </div>
+                <p style="text-align: center; font-style: italic; color: #666; margin-top: 10px;">
+                    Visual representation of the ANSI/SPARC Three-Schema Architecture showing the separation between external, conceptual, and internal levels.
+                </p>
+            </div>
+        </div>
+
+        <!-- Data Independence Tab -->
+        <div id="independence" class="tab-content">
+            <h2 class="section-title">Data Independence</h2>
+            
+            <div class="example-container">
+                <div class="example-title">🔓 Freedom from Data Structure Changes</div>
+                <p>Data Independence is the ability to change the schema at one level without affecting the schema at the next higher level.</p>
+            </div>
+
+            <div class="independence-demo">
+                <div class="demo-box">
+                    <h3>🎯 Logical Data Independence</h3>
+                    <p><strong>Definition:</strong> Ability to change conceptual schema without affecting external schemas</p>
+                    <p><strong>Examples:</strong></p>
+                    <ul style="text-align: left;">
+                        <li>Adding new tables</li>
+                        <li>Adding new attributes</li>
+                        <li>Changing relationships</li>
+                    </ul>
+                    <button class="interactive-btn" onclick="demonstrateLogicalIndependence()">Show Example</button>
+                </div>
+                
+                <div class="demo-box">
+                    <h3>💾 Physical Data Independence</h3>
+                    <p><strong>Definition:</strong> Ability to change internal schema without affecting conceptual schema</p>
+                    <p><strong>Examples:</strong></p>
+                    <ul style="text-align: left;">
+                        <li>Changing storage structures</li>
+                        <li>Adding/removing indexes</li>
+                        <li>Changing file organization</li>
+                    </ul>
+                    <button class="interactive-btn" onclick="demonstratePhysicalIndependence()">Show Example</button>
+                </div>
+            </div>
+
+            <div id="logical-demo" class="example-container" style="display: none;">
+                <div class="example-title">🎯 Logical Independence Example</div>
+                <div class="code-block">
+                    <pre>
+-- BEFORE: Simple Student table
+CREATE TABLE Student (
+    StudentID INT,
+    Name VARCHAR(50),
+    Grade DECIMAL(3,2)
+);
+
+-- User View remains the same
+SELECT Name, Grade FROM StudentView;
+
+-- AFTER: Enhanced with new attributes
+CREATE TABLE Student (
+    StudentID INT,
+    Name VARCHAR(50),
+    Grade DECIMAL(3,2),
+    Email VARCHAR(100),    -- NEW COLUMN
+    Department VARCHAR(30) -- NEW COLUMN
+);
+
+-- User View STILL WORKS unchanged!
+SELECT Name, Grade FROM StudentView;
+</pre>
+                </div>
+                <div class="highlight">User applications continue to work without modification!</div>
+            </div>
+
+            <div id="physical-demo" class="example-container" style="display: none;">
+                <div class="example-title">💾 Physical Independence Example</div>
+                <div class="code-block">
+                    <pre>
+-- Logical Query stays the same
+SELECT * FROM Student WHERE StudentID = 101;
+
+-- PHYSICAL CHANGES (invisible to logical level):
+-- Change 1: Add index for faster access
+CREATE INDEX idx_student ON Student(StudentID);
+
+-- Change 2: Change storage from heap to clustered
+ALTER TABLE Student REBUILD CLUSTERED;
+
+-- Change 3: Partition large table
+CREATE PARTITION SCHEME ps_student ...
+
+-- The logical query STILL works exactly the same!
+-- Only performance improves, no code changes needed
+</pre>
+                </div>
+                <div class="highlight">Logical operations remain unchanged regardless of physical optimizations!</div>
+            </div>
+
+            <div class="quiz-section">
+                <div class="quiz-question">Which type of data independence is easier to achieve?</div>
+                <div class="quiz-options">
+                    <div class="quiz-option" onclick="checkIndependenceAnswer(this, false)">Logical Independence</div>
+                    <div class="quiz-option" onclick="checkIndependenceAnswer(this, true)">Physical Independence</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Quiz Tab -->
+        <div id="quiz" class="tab-content">
+            <h2 class="section-title">Interactive Knowledge Check</h2>
+            
+            <div class="quiz-section">
+                <div class="quiz-question">1. What defines the structure of a database?</div>
+                <div class="quiz-options">
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'Instance stores actual data')">Instance</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, true, 'Correct! Schema defines the structure')">Schema</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'State is data at a point in time')">State</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'View is external schema')">View</div>
+                </div>
+            </div>
+
+            <div class="quiz-section">
+                <div class="quiz-question">2. In Three-Schema Architecture, which level deals with storage details?</div>
+                <div class="quiz-options">
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'External is user views')">External Level</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'Conceptual is logical design')">Conceptual Level</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, true, 'Correct! Internal level handles physical storage')">Internal Level</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'Not a valid level')">Application Level</div>
+                </div>
+            </div>
+
+            <div class="quiz-section">
+                <div class="quiz-question">3. Adding an index to improve query performance is an example of?</div>
+                <div class="quiz-options">
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'This affects logical structure')">Logical Independence</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, true, 'Correct! Index changes are physical modifications')">Physical Independence</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'Schema change affects structure')">Schema Modification</div>
+                    <div class="quiz-option" onclick="checkQuizAnswer(this, false, 'View change affects presentation')">View Update</div>
+                </div>
+            </div>
+
+            <button class="interactive-btn" onclick="resetQuiz()">Reset Quiz</button>
+            <button class="interactive-btn" onclick="showSummary()">Show Summary</button>
+            
+            <div id="quiz-summary" class="example-container" style="display: none;">
+                <div class="example-title">📋 Quick Summary</div>
+                <div class="highlight">
+                    <strong>Schema:</strong> Blueprint/Structure | 
+                    <strong>Instance:</strong> Actual Data | 
+                    <strong>State:</strong> Data at specific time
+                </div>
+                <div class="highlight">
+                    <strong>External:</strong> User Views | 
+                    <strong>Conceptual:</strong> Complete Logic | 
+                    <strong>Internal:</strong> Physical Storage
+                </div>
+                <div class="highlight">
+                    <strong>Logical Independence:</strong> Change logic, keep views | 
+                    <strong>Physical Independence:</strong> Change storage, keep logic
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Update button states
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function showSchemaDetails() {
+            alert('Schema Definition:\n\n' +
+                  '• Defines the structure and organization\n' +
+                  '• Specifies data types and constraints\n' +
+                  '• Remains relatively stable over time\n' +
+                  '• Created using DDL (Data Definition Language)');
+        }
+
+        function showInstanceDetails() {
+            alert('Instance Details:\n\n' +
+                  '• Contains actual data records\n' +
+                  '• Changes frequently with operations\n' +
+                  '• Represents current state of database\n' +
+                  '• Modified using DML (Data Manipulation Language)');
+        }
+
+        function demonstrateStateChange() {
+            const demo = document.getElementById('state-demo');
+            demo.style.display = demo.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function explainLevel(level) {
+            const explanations = {
+                'external': 'External Level:\n\n• Closest to users\n• Customized views for different user groups\n• Hides complexity from end users\n• Multiple external schemas possible',
+                'conceptual': 'Conceptual Level:\n\n• Single, complete logical view\n• Describes entire database structure\n• Independent of physical considerations\n• Focus on what data is stored',
+                'internal': 'Internal Level:\n\n• Closest to physical storage\n• Describes how data is stored\n• Deals with storage structures and access methods\n• Focus on storage efficiency and performance'
+            };
+            alert(explanations[level]);
+        }
+
+        function showArchitectureDemo() {
+            const demo = document.getElementById('arch-demo');
+            demo.style.display = demo.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function demonstrateLogicalIndependence() {
+            const demo = document.getElementById('logical-demo');
+            demo.style.display = demo.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function demonstratePhysicalIndependence() {
+            const demo = document.getElementById('physical-demo');
+            demo.style.display = demo.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function checkAnswer(element, isCorrect) {
+            if (isCorrect) {
+                element.classList.add('correct-answer');
+                element.innerHTML += ' ✓ Correct! Instances change frequently with data operations.';
+            } else {
+                element.classList.add('wrong-answer');
+                element.innerHTML += ' ✗ Incorrect. Schema is the structure, which changes rarely.';
+            }
+            
+            // Disable all options
+            const options = element.parentNode.querySelectorAll('.quiz-option');
+            options.forEach(opt => opt.style.pointerEvents = 'none');
+        }
+
+        function checkIndependenceAnswer(element, isCorrect) {
+            if (isCorrect) {
+                element.classList.add('correct-answer');
+                element.innerHTML += ' ✓ Correct! Physical independence is easier to achieve.';
+            } else {
+                element.classList.add('wrong-answer');
+                element.innerHTML += ' ✗ Incorrect. Logical changes often affect existing views.';
+            }
+            
+            // Disable all options
+            const options = element.parentNode.querySelectorAll('.quiz-option');
+            options.forEach(opt => opt.style.pointerEvents = 'none');
+        }
+
+        function checkQuizAnswer(element, isCorrect, explanation) {
+            if (isCorrect) {
+                element.classList.add('correct-answer');
+            } else {
+                element.classList.add('wrong-answer');
+            }
+            
+            element.innerHTML += isCorrect ? ' ✓' : ' ✗';
+            
+            // Show explanation
+            setTimeout(() => {
+                alert(explanation);
+            }, 500);
+            
+            // Disable all options in this question
+            const options = element.parentNode.querySelectorAll('.quiz-option');
+            options.forEach(opt => opt.style.pointerEvents = 'none');
+        }
+
+        function resetQuiz() {
+            const options = document.querySelectorAll('.quiz-option');
+            options.forEach(opt => {
+                opt.classList.remove('correct-answer', 'wrong-answer');
+                opt.style.pointerEvents = 'auto';
+                // Reset text by removing checkmarks and explanations
+                const text = opt.innerHTML.split(' ✓')[0].split(' ✗')[0];
+                opt.innerHTML = text;
+            });
+        }
+
+        function showSummary() {
+            const summary = document.getElementById('quiz-summary');
+            summary.style.display = summary.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Add some interactivity on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add hover effects to schema boxes
+            const schemaBoxes = document.querySelectorAll('.schema-box, .instance-box');
+            schemaBoxes.forEach(box => {
+                box.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.05) rotate(1deg)';
+                });
+                box.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1) rotate(0deg)';
+                });
+            });
+            
+            // Add progressive disclosure for examples
+            const codeBlocks = document.querySelectorAll('.code-block');
+            codeBlocks.forEach(block => {
+                block.style.maxHeight = '200px';
+                block.style.overflow = 'hidden';
+                block.style.cursor = 'pointer';
+                block.title = 'Click to expand';
+                
+                block.addEventListener('click', function() {
+                    if (this.style.maxHeight === '200px') {
+                        this.style.maxHeight = 'none';
+                        this.title = 'Click to collapse';
+                    } else {
+                        this.style.maxHeight = '200px';
+                        this.title = 'Click to expand';
+                    }
+                });
+            });
+        });
+
+        // Enhanced animations for architecture layers
+        function animateArchitecture() {
+            const layers = document.querySelectorAll('.architecture-layer');
+            layers.forEach((layer, index) => {
+                setTimeout(() => {
+                    layer.style.transform = 'translateX(0)';
+                    layer.style.opacity = '1';
+                }, index * 300);
+            });
+        }
+
+        // Interactive database operations simulator
+        let currentStudentCount = 3;
+        
+        function simulateOperation(operation) {
+            const operations = {
+                'INSERT': () => {
+                    currentStudentCount++;
+                    return `Added new student. Total records: ${currentStudentCount}`;
+                },
+                'UPDATE': () => {
+                    return `Updated student grades. Total records: ${currentStudentCount}`;
+                },
+                'DELETE': () => {
+                    currentStudentCount = Math.max(0, currentStudentCount - 1);
+                    return `Deleted student. Total records: ${currentStudentCount}`;
+                }
+            };
+            
+            return operations[operation] ? operations[operation]() : 'Unknown operation';
+        }
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            const tabs = ['schemas', 'architecture', 'independence', 'quiz'];
+            const activeTab = document.querySelector('.tab-content.active');
+            const currentIndex = tabs.indexOf(activeTab.id);
+            
+            if (e.key === 'ArrowRight' && currentIndex < tabs.length - 1) {
+                const nextTab = tabs[currentIndex + 1];
+                showTabProgrammatically(nextTab);
+            } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                const prevTab = tabs[currentIndex - 1];
+                showTabProgrammatically(prevTab);
+            }
+        });
+
+        function showTabProgrammatically(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Update button states
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Find and activate corresponding button
+            buttons.forEach(btn => {
+                if (btn.textContent.toLowerCase().includes(tabName) || 
+                    (tabName === 'schemas' && btn.textContent.includes('Schemas')) ||
+                    (tabName === 'architecture' && btn.textContent.includes('Architecture')) ||
+                    (tabName === 'independence' && btn.textContent.includes('Independence')) ||
+                    (tabName === 'quiz' && btn.textContent.includes('Quiz'))) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Progress tracking
+        let completedSections = new Set();
+        
+        function markSectionComplete(section) {
+            completedSections.add(section);
+            updateProgressIndicator();
+        }
+
+        function updateProgressIndicator() {
+            const totalSections = 4;
+            const completed = completedSections.size;
+            const percentage = (completed / totalSections) * 100;
+            
+            // You can add a progress bar here if needed
+            console.log(`Progress: ${completed}/${totalSections} sections completed (${percentage.toFixed(0)}%)`);
+        }
+
+        // Auto-save learning progress (simulated - in real app would use localStorage)
+        function saveProgress() {
+            // In a real implementation, this would save to browser storage
+            console.log('Progress saved:', Array.from(completedSections));
+        }
+
+        // Interactive examples with real-time feedback
+        function createInteractiveExample(containerId, title, content) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                    <div class="example-title">${title}</div>
+                    <div class="interactive-content">${content}</div>
+                    <button class="interactive-btn" onclick="markSectionComplete('${containerId}')">
+                        Mark as Understood ✓
+                    </button>
+                `;
+            }
+        }
+
+        // Enhanced error handling and user feedback
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'error' ? '#f44336' : '#4caf50'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Initialize presentation
+        function initializePresentation() {
+            showNotification('Interactive DBMS Presentation Loaded! Use arrow keys to navigate.', 'success');
+            animateArchitecture();
+        }
+
+        // Call initialization when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePresentation);
+        } else {
+            initializePresentation();
+        }
+    </script>
+</body>
+</html>
