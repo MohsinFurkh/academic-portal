@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrity Constraints in DBMS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .presentation-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 30px rgba(0,0,0,0.2);
+        }
+        
+        .slide {
+            padding: 60px;
+            min-height: 100vh;
+            display: none;
+            position: relative;
+            overflow-y: auto;
+        }
+        
+        .slide.active {
+            display: block;
+        }
+        
+        .slide-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+        
+        .slide-header h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .slide-header h2 {
+            font-size: 2em;
+            color: #764ba2;
+            margin-bottom: 10px;
+        }
+        
+        .slide-header p {
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .content {
+            font-size: 1.1em;
+        }
+        
+        .constraint-section {
+            margin: 30px 0;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .domain-constraint {
+            background: linear-gradient(135deg, #8BC34A, #689F38);
+            color: white;
+        }
+        
+        .entity-constraint {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+        
+        .key-constraint {
+            background: linear-gradient(135deg, #F44336, #C62828);
+            color: white;
+        }
+        
+        .referential-constraint {
+            background: linear-gradient(135deg, #2196F3, #1565C0);
+            color: white;
+        }
+        
+        .example-box {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid rgba(255,255,255,0.5);
+        }
+        
+        .sql-code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .mcq-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .mcq-question {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .mcq-options {
+            list-style: none;
+            margin: 10px 0;
+        }
+        
+        .mcq-options li {
+            margin: 8px 0;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .mcq-options li:hover {
+            background-color: #e3f2fd;
+        }
+        
+        .mcq-options li.selected {
+            background-color: #bbdefb;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .mcq-options li.correct {
+            background-color: #c8e6c9;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .mcq-options li.incorrect {
+            background-color: #ffcdd2;
+            border-left: 4px solid #f44336;
+        }
+        
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+        
+        .nav-btn {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .diagram {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .constraint-circle {
+            display: inline-block;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            position: relative;
+            margin: 20px;
+            background: conic-gradient(
+                #8BC34A 0deg 90deg,
+                #FF9800 90deg 180deg,
+                #F44336 180deg 270deg,
+                #2196F3 270deg 360deg
+            );
+        }
+        
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="slide-counter">
+            <span id="current-slide">1</span> / <span id="total-slides">8</span>
+        </div>
+
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="slide-header">
+                <h1>Integrity Constraints in DBMS</h1>
+                <p>Ensuring Data Accuracy, Consistency, and Reliability</p>
+            </div>
+            <div class="content">
+                <div class="diagram">
+                    <img src="dbms-integrity-constraints.png" alt="DBMS Integrity Constraints Diagram" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+                </div>
+                <div class="highlight">
+                    <h3>What are Integrity Constraints?</h3>
+                    <p>Integrity constraints are rules and conditions applied to database tables to ensure the accuracy, consistency, and reliability of data stored in a DBMS. They prevent invalid data entry and maintain relationships between data.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Domain Constraints -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>1. Domain Constraints</h2>
+                <p>Defining Valid Range of Values for Attributes</p>
+            </div>
+            <div class="content">
+                <div class="constraint-section domain-constraint">
+                    <h3>Domain Constraints Include:</h3>
+                    <ul>
+                        <li><strong>Data Type Constraints:</strong> Specify the type of data (INT, VARCHAR, DATE, etc.)</li>
+                        <li><strong>NOT NULL Constraints:</strong> Ensure mandatory fields are not empty</li>
+                        <li><strong>CHECK Constraints:</strong> Define specific value ranges or conditions</li>
+                        <li><strong>Default Values:</strong> Provide default values when none specified</li>
+                    </ul>
+                    
+                    <div class="example-box">
+                        <h4>Example: Student Registration System</h4>
+                        <div class="sql-code">
+                            <pre>
+CREATE TABLE Students (
+    StudentID INT PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL,
+    Age INT CHECK (Age >= 18 AND Age <= 65),
+    Email VARCHAR(100) CHECK (Email LIKE '%@%.%'),
+    Gender CHAR(1) CHECK (Gender IN ('M', 'F', 'O')),
+    GPA DECIMAL(3,2) CHECK (GPA >= 0.0 AND GPA <= 4.0),
+    RegistrationDate DATE DEFAULT (CURDATE())
+);
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Entity Integrity Constraints -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>2. Entity Integrity Constraints</h2>
+                <p>Ensuring Unique Identity for Each Record</p>
+            </div>
+            <div class="content">
+                <div class="constraint-section entity-constraint">
+                    <h3>Entity Integrity Rules:</h3>
+                    <ul>
+                        <li><strong>Primary Key Uniqueness:</strong> No two rows can have the same primary key value</li>
+                        <li><strong>Primary Key Non-null:</strong> Primary key values cannot be NULL</li>
+                        <li><strong>Immutability:</strong> Primary key values should not change once assigned</li>
+                        <li><strong>Single Primary Key:</strong> Each table can have only one primary key</li>
+                    </ul>
+                    
+                    <div class="example-box">
+                        <h4>Example: Employee Database</h4>
+                        <table>
+                            <tr>
+                                <th>EmployeeID (PK)</th>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Salary</th>
+                            </tr>
+                            <tr>
+                                <td>E001</td>
+                                <td>John Smith</td>
+                                <td>IT</td>
+                                <td>65000</td>
+                            </tr>
+                            <tr>
+                                <td>E002</td>
+                                <td>Mary Johnson</td>
+                                <td>HR</td>
+                                <td>58000</td>
+                            </tr>
+                            <tr>
+                                <td style="color: red;">NULL</td>
+                                <td>Invalid Entry</td>
+                                <td>Finance</td>
+                                <td>62000</td>
+                            </tr>
+                        </table>
+                        <p><strong>Violation:</strong> The third row violates entity integrity because EmployeeID is NULL.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Key Constraints -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>3. Key Constraints</h2>
+                <p>Managing Uniqueness and Relationships</p>
+            </div>
+            <div class="content">
+                <div class="constraint-section key-constraint">
+                    <h3>Types of Key Constraints:</h3>
+                    <ul>
+                        <li><strong>Primary Key:</strong> Uniquely identifies each record, cannot be NULL</li>
+                        <li><strong>Unique Key:</strong> Ensures uniqueness, allows one NULL value</li>
+                        <li><strong>Candidate Key:</strong> Any attribute that could serve as primary key</li>
+                        <li><strong>Composite Key:</strong> Primary key made of multiple columns</li>
+                    </ul>
+                    
+                    <div class="example-box">
+                        <h4>Example: Product Catalog</h4>
+                        <div class="sql-code">
+                            <pre>
+CREATE TABLE Products (
+    ProductID INT PRIMARY KEY,           -- Primary Key
+    ProductCode VARCHAR(20) UNIQUE,     -- Unique Key
+    Barcode VARCHAR(50) UNIQUE,         -- Another Unique Key
+    ProductName VARCHAR(100) NOT NULL,
+    Price DECIMAL(10,2) CHECK (Price > 0),
+    CategoryID INT,
+    
+    -- Composite unique constraint
+    UNIQUE (ProductName, CategoryID)
+);
+
+-- Example of Composite Primary Key
+CREATE TABLE OrderItems (
+    OrderID INT,
+    ProductID INT,
+    Quantity INT NOT NULL,
+    UnitPrice DECIMAL(10,2),
+    
+    PRIMARY KEY (OrderID, ProductID)    -- Composite Primary Key
+);
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Referential Integrity Constraints -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>4. Referential Integrity Constraints</h2>
+                <p>Maintaining Consistency Between Related Tables</p>
+            </div>
+            <div class="content">
+                <div class="constraint-section referential-constraint">
+                    <h3>Referential Integrity Rules:</h3>
+                    <ul>
+                        <li><strong>Foreign Key Rule:</strong> FK value must exist in referenced table or be NULL</li>
+                        <li><strong>CASCADE:</strong> Automatically propagate changes to dependent records</li>
+                        <li><strong>SET NULL:</strong> Set FK to NULL when referenced record is deleted</li>
+                        <li><strong>RESTRICT:</strong> Prevent deletion if dependent records exist</li>
+                    </ul>
+                    
+                    <div class="example-box">
+                        <h4>Example: Order Management System</h4>
+                        <div class="sql-code">
+                            <pre>
+-- Parent Table
+CREATE TABLE Customers (
+    CustomerID INT PRIMARY KEY,
+    CustomerName VARCHAR(100) NOT NULL,
+    Email VARCHAR(100) UNIQUE
+);
+
+-- Child Table with Foreign Key
+CREATE TABLE Orders (
+    OrderID INT PRIMARY KEY,
+    CustomerID INT,
+    OrderDate DATE,
+    TotalAmount DECIMAL(10,2),
+    
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+        ON DELETE CASCADE
+        ON UPDATE RESTRICT
+);
+
+-- Another level of relationship
+CREATE TABLE OrderDetails (
+    OrderDetailID INT PRIMARY KEY,
+    OrderID INT,
+    ProductID INT,
+    Quantity INT,
+    
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
+        ON DELETE CASCADE,
+    FOREIGN KEY (ProductID) REFERENCES Products(ProductID)
+        ON DELETE RESTRICT
+);
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Constraint Violations and Handling -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Constraint Violations and Handling</h2>
+                <p>What Happens When Constraints Are Violated</p>
+            </div>
+            <div class="content">
+                <table>
+                    <tr>
+                        <th>Constraint Type</th>
+                        <th>Violation Example</th>
+                        <th>System Response</th>
+                        <th>How to Handle</th>
+                    </tr>
+                    <tr>
+                        <td>Domain</td>
+                        <td>Age = -5 (negative age)</td>
+                        <td>INSERT/UPDATE rejected</td>
+                        <td>Validate data before insertion</td>
+                    </tr>
+                    <tr>
+                        <td>Entity Integrity</td>
+                        <td>Primary Key = NULL</td>
+                        <td>INSERT rejected</td>
+                        <td>Ensure PK values are generated</td>
+                    </tr>
+                    <tr>
+                        <td>Key</td>
+                        <td>Duplicate primary key</td>
+                        <td>INSERT rejected</td>
+                        <td>Use auto-increment or check existence</td>
+                    </tr>
+                    <tr>
+                        <td>Referential</td>
+                        <td>FK references non-existent PK</td>
+                        <td>INSERT/UPDATE rejected</td>
+                        <td>Ensure referenced record exists first</td>
+                    </tr>
+                </table>
+                
+                <div class="highlight">
+                    <h3>Best Practices:</h3>
+                    <ul>
+                        <li>Design constraints during database schema design phase</li>
+                        <li>Use appropriate referential actions (CASCADE, SET NULL, RESTRICT)</li>
+                        <li>Implement application-level validation as first line of defense</li>
+                        <li>Monitor constraint violations for data quality assessment</li>
+                        <li>Document all constraints for maintenance teams</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Advanced Concepts -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Advanced Integrity Concepts</h2>
+                <p>Complex Constraints and Real-world Scenarios</p>
+            </div>
+            <div class="content">
+                <div class="example-box">
+                    <h4>Complex CHECK Constraints</h4>
+                    <div class="sql-code">
+                        <pre>
+-- Multi-column check constraint
+CREATE TABLE Employees (
+    EmployeeID INT PRIMARY KEY,
+    HireDate DATE,
+    RetireDate DATE,
+    Salary DECIMAL(10,2),
+    Department VARCHAR(50),
+    
+    -- Complex constraints
+    CHECK (RetireDate IS NULL OR RetireDate > HireDate),
+    CHECK (Salary > 0),
+    CHECK (Department IN ('IT', 'HR', 'Finance', 'Marketing', 'Operations'))
+);
+
+-- Conditional constraints
+CREATE TABLE Students (
+    StudentID INT PRIMARY KEY,
+    Age INT,
+    Grade VARCHAR(2),
+    
+    -- Grade must be appropriate for age
+    CHECK (
+        (Age >= 18 AND Grade IN ('A', 'B', 'C', 'D', 'F')) OR
+        (Age < 18 AND Grade IN ('1', '2', '3', '4', '5'))
+    )
+);
+                        </pre>
+                    </div>
+                </div>
+
+                <div class="example-box">
+                    <h4>Assertion-like Constraints (Database Level)</h4>
+                    <div class="sql-code">
+                        <pre>
+-- Trigger-based constraint: Ensure total enrollment doesn't exceed capacity
+DELIMITER //
+CREATE TRIGGER check_enrollment_capacity
+BEFORE INSERT ON Enrollments
+FOR EACH ROW
+BEGIN
+    DECLARE current_count INT;
+    DECLARE max_capacity INT;
+    
+    SELECT COUNT(*) INTO current_count 
+    FROM Enrollments 
+    WHERE CourseID = NEW.CourseID;
+    
+    SELECT Capacity INTO max_capacity 
+    FROM Courses 
+    WHERE CourseID = NEW.CourseID;
+    
+    IF current_count >= max_capacity THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Course capacity exceeded';
+    END IF;
+END//
+DELIMITER ;
+                        </pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: MCQs -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>GATE Level Practice Questions</h2>
+                <p>Test Your Understanding</p>
+            </div>
+            <div class="content">
+                <div class="mcq-container">
+                    <div class="mcq-question">1. Which of the following statements about referential integrity is FALSE?</div>
+                    <ul class="mcq-options" data-correct="2">
+                        <li data-option="0">A foreign key value must either be NULL or match an existing primary key value in the referenced table</li>
+                        <li data-option="1">CASCADE action automatically updates/deletes dependent records when referenced record changes</li>
+                        <li data-option="2">A table can have multiple foreign keys but only one can have CASCADE action</li>
+                        <li data-option="3">RESTRICT action prevents deletion of referenced record if dependent records exist</li>
+                    </ul>
+                    <div class="explanation" style="display:none; margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px;">
+                        <strong>Explanation:</strong> A table can have multiple foreign keys and each can have its own referential action, including multiple CASCADE actions.
+                    </div>
+                </div>
+
+                <div class="mcq-container">
+                    <div class="mcq-question">2. In the context of entity integrity, which statement is correct?</div>
+                    <ul class="mcq-options" data-correct="1">
+                        <li data-option="0">A table can have multiple primary keys to ensure better uniqueness</li>
+                        <li data-option="1">Primary key attributes cannot contain NULL values and must be unique</li>
+                        <li data-option="2">Entity integrity only applies to tables with foreign key relationships</li>
+                        <li data-option="3">Primary key values can be modified frequently without affecting integrity</li>
+                    </ul>
+                    <div class="explanation" style="display:none; margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px;">
+                        <strong>Explanation:</strong> Entity integrity requires that primary key values be unique and non-null to ensure each entity can be uniquely identified.
+                    </div>
+                </div>
+
+                <div class="mcq-container">
+                    <div class="mcq-question">3. Consider the following schema:<br>
+                    STUDENT(SID, Name, Age)<br>
+                    COURSE(CID, Title, Credits)<br>
+                    ENROLLMENT(SID, CID, Grade)<br><br>
+                    Which constraint would prevent a student from enrolling in a non-existent course?</div>
+                    <ul class="mcq-options" data-correct="2">
+                        <li data-option="0">Domain constraint on CID in ENROLLMENT</li>
+                        <li data-option="1">Entity integrity constraint on COURSE table</li>
+                        <li data-option="2">Referential integrity constraint: ENROLLMENT.CID references COURSE.CID</li>
+                        <li data-option="3">Key constraint on ENROLLMENT table</li>
+                    </ul>
+                    <div class="explanation" style="display:none; margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px;">
+                        <strong>Explanation:</strong> Referential integrity ensures that foreign key values (CID in ENROLLMENT) must exist as primary key values in the referenced table (COURSE).
+                    </div>
+                </div>
+
+                <div class="mcq-container">
+                    <div class="mcq-question">4. Which of the following is NOT a characteristic of domain constraints?</div>
+                    <ul class="mcq-options" data-correct="3">
+                        <li data-option="0">They specify the data type of an attribute</li>
+                        <li data-option="1">They can include CHECK constraints for value validation</li>
+                        <li data-option="2">They can enforce NOT NULL requirements</li>
+                        <li data-option="3">They ensure uniqueness across multiple tables</li>
+                    </ul>
+                    <div class="explanation" style="display:none; margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px;">
+                        <strong>Explanation:</strong> Domain constraints operate on individual attributes within a table, not across multiple tables. Uniqueness across tables is handled by referential integrity.
+                    </div>
+                </div>
+
+                <div class="mcq-container">
+                    <div class="mcq-question">5. In a relation R(A, B, C, D) with functional dependencies: A → B, C → D, and (A, C) is the primary key. If we try to insert a tuple with A=1, B=2, C=3, D=4 when a tuple (1, 5, 6, 7) already exists, what type of constraint violation occurs?</div>
+                    <ul class="mcq-options" data-correct="0">
+                        <li data-option="0">Key constraint violation due to duplicate key value</li>
+                        <li data-option="1">Domain constraint violation</li>
+                        <li data-option="2">Referential integrity violation</li>
+                        <li data-option="3">No violation occurs</li>
+                    </ul>
+                    <div class="explanation" style="display:none; margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px;">
+                        <strong>Explanation:</strong> Since (A,C) is the primary key and we're trying to insert (1,3) when (1,6) exists, there's no primary key violation. However, A→B means if A=1, then B must be the same in both tuples, causing a functional dependency violation which is a form of key constraint violation.
+                    </div>
+                </div>
+
+                <div class="mcq-container">
+                    <div class="mcq-question">6. Let R(a,b,c) and S(d,e,f) be two relations in which d is the foreign key of S that refers to the primary key of R. Consider the following four operations on R and S:
+                        <br>I. Insert into R
+                        <br>II. Insert into S
+                        <br>III. Delete from R
+                        <br>IV. Delete from S
+                        <br><br>Which of the following can cause violation of the referential integrity constraint above?</div>
+                    <ul class="mcq-options" data-correct="1">
+                        <li data-option="0">Both I and IV</li>
+                        <li data-option="1">Both II and III</li>
+                        <li data-option="2">All of these</li>
+                        <li data-option="3">None of these</li>
+                    </ul>
+                    <div class="explanation" style="display:none; margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px;">
+                        <strong>Explanation:</strong> 
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li>II. Insert into S: Can violate referential integrity if the foreign key value in S doesn't exist in R's primary key.</li>
+                            <li>III. Delete from R: Can violate referential integrity if there are records in S that reference the record being deleted from R (unless CASCADE is specified).</li>
+                            <li>I and IV operations don't violate referential integrity in this context.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button onclick="showAllAnswers()" style="margin-top: 20px; padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Show All Answers</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">Previous</button>
+        <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('total-slides').textContent = totalSlides;
+        
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+        
+        function changeSlide(direction) {
+            if (direction === 1 && currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            } else if (direction === -1 && currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+        
+        // Initialize
+        showSlide(0);
+        
+        // MCQ functionality
+        document.querySelectorAll('.mcq-options').forEach(container => {
+            const options = container.querySelectorAll('li');
+            const correctAnswer = parseInt(container.dataset.correct);
+            
+            options.forEach((option, index) => {
+                option.addEventListener('click', () => {
+                    // Remove previous selections
+                    options.forEach(opt => {
+                        opt.classList.remove('selected', 'correct', 'incorrect');
+                    });
+                    
+                    // Mark selected option
+                    option.classList.add('selected');
+                    
+                    // Show correct/incorrect
+                    if (index === correctAnswer) {
+                        option.classList.add('correct');
+                    } else {
+                        option.classList.add('incorrect');
+                        options[correctAnswer].classList.add('correct');
+                    }
+                    
+                    // Show explanation
+                    const explanation = container.parentElement.querySelector('.explanation');
+                    if (explanation) {
+                        explanation.style.display = 'block';
+                    }
+                });
+            });
+        });
+        
+        function showAllAnswers() {
+            document.querySelectorAll('.mcq-options').forEach(container => {
+                const correctAnswer = parseInt(container.dataset.correct);
+                const options = container.querySelectorAll('li');
+                
+                options[correctAnswer].classList.add('correct');
+                
+                const explanation = container.parentElement.querySelector('.explanation');
+                if (explanation) {
+                    explanation.style.display = 'block';
+                }
+            });
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+        });
+    </script>
+</body>
+</html>
