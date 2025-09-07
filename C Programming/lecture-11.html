@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 11: Arrays and Multi-dimensional Arrays in C</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .presentation-container {
+            width: 95%;
+            max-width: 1200px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h2 {
+            font-size: 1.4em;
+            font-weight: 300;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .course-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .instructor, .course-details {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px 25px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .slide {
+            display: none;
+            animation: slideIn 0.5s ease-in-out;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide h3 {
+            color: #2a5298;
+            font-size: 2em;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .slide h4 {
+            color: #1e3c72;
+            font-size: 1.4em;
+            margin: 25px 0 15px 0;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 20px 0;
+            position: relative;
+            overflow-x: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .code-block::before {
+            content: 'C';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .example-box {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 2px solid #f093fb;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 30px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .slide-counter {
+            background: #2a5298;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .memory-diagram {
+            display: flex;
+            gap: 5px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .memory-cell {
+            width: 60px;
+            height: 50px;
+            border: 2px solid #2a5298;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            font-weight: bold;
+            color: #1565c0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .memory-cell:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(42, 82, 152, 0.3);
+        }
+
+        .index-label {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .matrix {
+            display: inline-block;
+            border: 2px solid #2a5298;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 15px;
+            background: white;
+        }
+
+        .matrix-row {
+            display: flex;
+        }
+
+        .matrix-cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #90caf9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+            font-weight: bold;
+            color: #7b1fa2;
+            transition: all 0.3s ease;
+        }
+
+        .matrix-cell:hover {
+            background: linear-gradient(135deg, #ce93d8 0%, #ba68c8 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        ul {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .important {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .syntax-box {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+            border: 2px solid #4caf50;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .course-info {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .memory-cell {
+                width: 45px;
+                height: 40px;
+                font-size: 12px;
+            }
+            
+            .matrix-cell {
+                width: 40px;
+                height: 40px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="header">
+            <h1>Arrays and Multi-dimensional Arrays</h1>
+            <h2>Unit III: Array and Function | Lecture 11</h2>
+            <div class="course-info">
+                <div class="instructor">
+                    <strong>Dr. Mohsin Dar</strong><br>
+                    Assistant Professor, SOCS | UPES
+                </div>
+                <div class="course-details">
+                    <strong>C Programming</strong><br>
+                    BTech First Semester
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Slide 1: Learning Objectives -->
+            <div class="slide active">
+                <h3>🎯 Learning Objectives</h3>
+                <div class="highlight">
+                    <h4>By the end of this lecture, you will be able to:</h4>
+                    <ul>
+                        <li>Understand the concept and need for arrays in programming</li>
+                        <li>Declare, initialize, and access elements of one-dimensional arrays</li>
+                        <li>Perform operations on arrays (input, output, searching, sorting)</li>
+                        <li>Understand multi-dimensional arrays, especially 2D arrays</li>
+                        <li>Work with matrices using 2D arrays</li>
+                        <li>Apply array concepts to solve real-world problems</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Slide 2: What is an Array? -->
+            <div class="slide">
+                <h3>📊 What is an Array?</h3>
+                <div class="highlight">
+                    <p>An <strong>array</strong> is a collection of elements of the same data type, stored in contiguous memory locations and accessed using a common name and index.</p>
+                </div>
+                
+                <h4>Key Characteristics:</h4>
+                <ul>
+                    <li><strong>Homogeneous:</strong> All elements must be of the same data type</li>
+                    <li><strong>Indexed:</strong> Elements are accessed using indices (starting from 0)</li>
+                    <li><strong>Fixed Size:</strong> Size is determined at declaration time</li>
+                    <li><strong>Contiguous Memory:</strong> Elements are stored in consecutive memory locations</li>
+                </ul>
+
+                <div class="example-box">
+                    <strong>Real-world Example:</strong> Think of an array like a row of lockers in a school - each locker has a number (index) and can store items of the same type.
+                </div>
+            </div>
+
+            <!-- Slide 3: Array Declaration and Initialization -->
+            <div class="slide">
+                <h3>🔧 Array Declaration and Initialization</h3>
+                
+                <div class="syntax-box">
+                    <strong>Syntax:</strong> data_type array_name[size];
+                </div>
+
+                <h4>Declaration Examples:</h4>
+                <div class="code-block">
+                    <pre>
+int numbers[5];        // Array of 5 integers
+float grades[10];      // Array of 10 floating-point numbers
+char name[20];         // Array of 20 characters (string)
+                    </pre>
+                </div>
+
+                <h4>Initialization Methods:</h4>
+                <div class="code-block">
+                    <pre>
+// Method 1: Initialize during declaration
+int arr1[5] = {10, 20, 30, 40, 50};
+
+// Method 2: Partial initialization (remaining elements = 0)
+int arr2[5] = {10, 20};  // {10, 20, 0, 0, 0}
+
+// Method 3: Size determined by initializer
+int arr3[] = {1, 2, 3, 4, 5};  // Size = 5
+
+// Method 4: Initialize all elements to 0
+int arr4[5] = {0};
+                    </pre>
+                </div>
+            </div>
+
+            <!-- Slide 4: Array Memory Representation -->
+            <div class="slide">
+                <h3>💾 Array Memory Representation</h3>
+                <p>Let's visualize how array <code><pre>int arr[5] = {10, 20, 30, 40, 50}</pre></code> is stored in memory:</p>
+                
+                <div class="memory-diagram">
+                    <div>
+                        <div class="memory-cell">10</div>
+                        <div class="index-label">arr[0]</div>
+                    </div>
+                    <div>
+                        <div class="memory-cell">20</div>
+                        <div class="index-label">arr[1]</div>
+                    </div>
+                    <div>
+                        <div class="memory-cell">30</div>
+                        <div class="index-label">arr[2]</div>
+                    </div>
+                    <div>
+                        <div class="memory-cell">40</div>
+                        <div class="index-label">arr[3]</div>
+                    </div>
+                    <div>
+                        <div class="memory-cell">50</div>
+                        <div class="index-label">arr[4]</div>
+                    </div>
+                </div>
+
+                <div class="important">
+                    <strong>Important:</strong> Array indices start from 0. For an array of size n, valid indices are 0 to n-1.
+                </div>
+
+                <h4>Memory Address Calculation:</h4>
+                <p>If base address = 1000 and each integer takes 4 bytes:</p>
+                <ul>
+                    <li>arr[0] → 1000</li>
+                    <li>arr[1] → 1004</li>
+                    <li>arr[2] → 1008</li>
+                    <li>arr[3] → 1012</li>
+                    <li>arr[4] → 1016</li>
+                </ul>
+            </div>
+
+            <!-- Slide 5: Array Operations -->
+            <div class="slide">
+                <h3>⚡ Basic Array Operations</h3>
+                
+                <h4>1. Input and Output:</h4>
+                <div class="code-block">
+                    <pre>
+#include &lt;stdio.h&gt;
+
+int main() {
+    int arr[5];
+    int i;
+    
+    // Input elements
+    printf("Enter 5 integers: ");
+    for(i = 0; i &lt; 5; i++) {
+        scanf("%d", &amp;arr[i]);
+    }
+    
+    // Output elements
+    printf("Array elements: ");
+    for(i = 0; i &lt; 5; i++) {
+        printf("%d ", arr[i]);
+    }
+    
+    return 0;
+}
+                    </pre>
+                </div>
+
+                <h4>2. Finding Maximum Element:</h4>
+                <div class="code-block">
+                    <pre>
+int findMax(int arr[], int size) {
+    int max = arr[0];
+    for(int i = 1; i &lt; size; i++) {
+        if(arr[i] &gt; max) {
+            max = arr[i];
+        }
+    }
+    return max;
+}
+                    </pre>
+                </div>
+            </div>
+
+            <!-- Slide 6: Multi-dimensional Arrays Introduction -->
+            <div class="slide">
+                <h3>🔢 Multi-dimensional Arrays</h3>
+                
+                <div class="highlight">
+                    <p>A <strong>multi-dimensional array</strong> is an array of arrays. The most common is the 2D array, which can be thought of as a table with rows and columns.</p>
+                </div>
+
+                <h4>2D Array Declaration:</h4>
+                <div class="syntax-box">
+                    data_type array_name[rows][columns];
+                </div>
+
+                <div class="code-block">
+                    <pre>
+// Examples of 2D array declaration
+int matrix[3][4];        // 3 rows, 4 columns
+float grades[5][3];      // 5 students, 3 subjects
+char board[3][3];        // 3x3 tic-tac-toe board
+                    </pre>
+                </div>
+
+                <h4>2D Array Initialization:</h4>
+                <div class="code-block">
+                    <pre>
+            // Method 1: Row-wise initialization
+int matrix[2][3] = {{1, 2, 3}, {4, 5, 6}};
+
+// Method 2: Linear initialization
+int matrix[2][3] = {1, 2, 3, 4, 5, 6};
+
+// Method 3: Partial initialization
+int matrix[2][3] = {{1, 2}, {4}};  // Remaining elements = 0
+                    </pre>
+                </div>
+            </div>
+
+            <!-- Slide 7: 2D Array Visualization -->
+            <div class="slide">
+                <h3>🎨 2D Array Visualization</h3>
+                <p>Let's visualize a 2D array: <code>int matrix[3][4] = {{1,2,3,4}, {5,6,7,8}, {9,10,11,12}}</code></p>
+                
+                <div style="text-align: center;">
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <div class="matrix-cell">1</div>
+                            <div class="matrix-cell">2</div>
+                            <div class="matrix-cell">3</div>
+                            <div class="matrix-cell">4</div>
+                        </div>
+                        <div class="matrix-row">
+                            <div class="matrix-cell">5</div>
+                            <div class="matrix-cell">6</div>
+                            <div class="matrix-cell">7</div>
+                            <div class="matrix-cell">8</div>
+                        </div>
+                        <div class="matrix-row">
+                            <div class="matrix-cell">9</div>
+                            <div class="matrix-cell">10</div>
+                            <div class="matrix-cell">11</div>
+                            <div class="matrix-cell">12</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h4>Accessing Elements:</h4>
+                <ul>
+                    <li><code>matrix[0][0] = 1</code> (first row, first column)</li>
+                    <li><code>matrix[1][2] = 7</code> (second row, third column)</li>
+                    <li><code>matrix[2][3] = 12</code> (third row, fourth column)</li>
+                </ul>
+
+                <div class="important">
+                    <strong>Remember:</strong> Both row and column indices start from 0!
+                </div>
+            </div>
+
+            <!-- Slide 8: 2D Array Operations -->
+            <div class="slide">
+                <h3>🔄 2D Array Operations</h3>
+                
+                <h4>1. Input and Output:</h4>
+                <div class="code-block">
+                    <pre>
+#include &lt;stdio.h&gt;
+
+int main() {
+    int matrix[3][3];
+    int i, j;
+    
+    // Input elements
+    printf("Enter elements of 3x3 matrix:\n");
+    for(i = 0; i &lt; 3; i++) {
+        for(j = 0; j &lt; 3; j++) {
+            printf("Enter element [%d][%d]: ", i, j);
+            scanf("%d", &amp;matrix[i][j]);
+        }
+    }
+    
+    // Output elements
+    printf("\nMatrix:\n");
+    for(i = 0; i &lt; 3; i++) {
+        for(j = 0; j &lt; 3; j++) {
+            printf("%d\t", matrix[i][j]);
+        }
+        printf("\n");
+    }
+    
+    return 0;
+}
+                    </pre>                </div>
+            </div>
+
+            <!-- Slide 9: Matrix Operations -->
+            <div class="slide">
+                <h3>➕ Matrix Operations</h3>
+                
+                <h4>Matrix Addition:</h4>
+                <div class="code-block">
+                    <pre>   
+// Function to add two matrices
+void addMatrices(int a[][3], int b[][3], int result[][3], int rows, int cols) {
+    for(int i = 0; i &lt; rows; i++) {
+        for(int j = 0; j &lt; cols; j++) {
+            result[i][j] = a[i][j] + b[i][j];
+        }
+    }
+}
+                    </pre>                </div>
+
+                <h4>Matrix Multiplication:</h4>
+                <div class="code-block">
+                    <pre>
+// Function to multiply two matrices
+void multiplyMatrices(int a[][3], int b[][3], int result[][3], int r1, int c1, int c2) {
+    for(int i = 0; i &lt; r1; i++) {
+        for(int j = 0; j &lt; c2; j++) {
+            result[i][j] = 0;
+            for(int k = 0; k &lt; c1; k++) {
+                result[i][j] += a[i][k] * b[k][j];
+            }
+        }
+}
+}
+                    </pre>                </div>
+
+                <div class="important">
+                    <strong>Note:</strong> For matrix multiplication A×B, the number of columns in A must equal the number of rows in B.
+                </div>
+            </div>
+
+            <!-- Slide 10: Practical Applications -->
+            <div class="slide">
+                <h3>🌟 Practical Applications</h3>
+                
+                <h4>Arrays are used in:</h4>
+                <ul>
+                    <li><strong>Student Management:</strong> Storing grades, roll numbers</li>
+                    <li><strong>Image Processing:</strong> 2D arrays represent pixel values</li>
+                    <li><strong>Game Development:</strong> Game boards, maps, inventories</li>
+                    <li><strong>Mathematical Computing:</strong> Vectors, matrices, statistics</li>
+                    <li><strong>Data Analysis:</strong> Storing and processing large datasets</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>Real Example: Student Grade Management</h4>
+                    <div class="code-block">
+                        <pre>
+// 2D array: 5 students, 3 subjects
+float grades[5][3] = {
+    {85.5, 92.0, 78.5},  // Student 1
+    {90.0, 87.5, 95.0},  // Student 2
+    {78.0, 82.5, 88.0},  // Student 3
+    {92.5, 89.0, 91.5},  // Student 4
+    {87.0, 85.5, 90.0}   // Student 5
+};
+
+// Calculate average for each student
+for(int i = 0; i &lt; 5; i++) {
+    float sum = 0;
+    for(int j = 0; j &lt; 3; j++) {
+        sum += grades[i][j];
+    }
+    printf("Student %d average: %.2f\n", i+1, sum/3);
+}
+                        </pre>                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 11: Common Pitfalls and Best Practices -->
+            <div class="slide">
+                <h3>⚠️ Common Pitfalls & Best Practices</h3>
+                
+                <h4>Common Mistakes:</h4>
+                <div class="important">
+                    <ul>
+                        <li><strong>Array Bounds:</strong> Accessing arr[5] in an array of size 5</li>
+                        <li><strong>Uninitialized Arrays:</strong> Using array elements without initialization</li>
+                        <li><strong>Wrong Index:</strong> Starting loops from 1 instead of 0</li>
+                        <li><strong>Size Confusion:</strong> Forgetting array size in function parameters</li>
+                    </ul>
+                </div>
+
+                <h4>Best Practices:</h4>
+                <ul>
+                    <li>Always initialize arrays before use</li>
+                    <li>Use meaningful variable names</li>
+                    <li>Check array bounds in loops</li>
+                    <li>Use constants for array sizes</li>
+                    <li>Document your array usage</li>
+                </ul>
+
+                <div class="code-block">
+                    <pre>
+// Good practice: Use constants
+#define MAX_STUDENTS 50
+#define MAX_SUBJECTS 5
+
+int grades[MAX_STUDENTS][MAX_SUBJECTS];
+
+// Good practice: Bounds checking
+if(index >= 0 && index < MAX_STUDENTS) {
+    // Safe to access grades[index]
+}
+                    </pre>                </div>
+            </div>
+
+            <!-- Slide 12: Summary -->
+            <div class="slide">
+                <h3>📋 Summary</h3>
+                
+                <div class="highlight">
+                    <h4>Key Concepts Covered:</h4>
+                    <ul>
+                        <li><strong>Arrays:</strong> Collections of similar data types</li>
+                        <li><strong>Indexing:</strong> Zero-based indexing for element access</li>
+                        <li><strong>1D Arrays:</strong> Linear collections with single dimension</li>
+                        <li><strong>2D Arrays:</strong> Matrix-like structures with rows and columns</li>
+                        <li><strong>Operations:</strong> Input/output, searching, mathematical operations</li>
+                        <li><strong>Applications:</strong> Data management, mathematical computing, games</li>
+                    </ul>
+                </div>
+
+                <h4>Next Lecture Preview:</h4>
+                <div class="example-box">
+                    <p><strong>Lecture 12:</strong> Functions in C Programming</p>
+                    <ul>
+                        <li>Function declaration and definition</li>
+                        <li>Parameter passing (call by value, call by reference)</li>
+                        <li>Arrays as function parameters</li>
+                        <li>Recursive functions</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <h4>Thank you for your attention! 🎓</h4>
+                    <p><em>Questions and discussions are welcome!</em></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">❮ Previous</button>
+            <span class="slide-counter">
+                <span id="currentSlide">1</span> / <span id="totalSlides">12</span>
+            </span>
+            <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next ❯</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('totalSlides').textContent = totalSlides;
+
+        function showSlide(index) {
+            // Hide all slides
+            slides.forEach(slide => slide.classList.remove('active'));
+            
+            // Show current slide
+            slides[index].classList.add('active');
+            
+            // Update slide counter
+            document.getElementById('currentSlide').textContent = index + 1;
+            
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = index === 0;
+            document.getElementById('nextBtn').disabled = index === totalSlides - 1;
+        }
+
+        function changeSlide(direction) {
+            const newIndex = currentSlideIndex + direction;
+            
+            if (newIndex >= 0 && newIndex < totalSlides) {
+                currentSlideIndex = newIndex;
+                showSlide(currentSlideIndex);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowLeft') {
+                changeSlide(-1);
+            } else if (event.key === 'ArrowRight') {
+                changeSlide(1);
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+
+        // Add hover effects to memory cells and matrix cells
+        document.addEventListener('DOMContentLoaded', function() {
+            const memoryCells = document.querySelectorAll('.memory-cell');
+            const matrixCells = document.querySelectorAll('.matrix-cell');
+            
+            memoryCells.forEach(cell => {
+                cell.addEventListener('click', function() {
+                    this.style.background = 'linear-gradient(135deg, #ffcdd2 0%, #f8bbd9 100%)';
+                    setTimeout(() => {
+                        this.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)';
+                    }, 500);
+                });
+            });
+            
+            matrixCells.forEach(cell => {
+                cell.addEventListener('click', function() {
+                    this.style.background = 'linear-gradient(135deg, #ffcdd2 0%, #f8bbd9 100%)';
+                    this.style.color = '#d32f2f';
+                    setTimeout(() => {
+                        this.style.background = 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)';
+                        this.style.color = '#7b1fa2';
+                    }, 500);
+                });
+            });
+        });
+
+        // Add smooth transitions for code blocks
+        const codeBlocks = document.querySelectorAll('.code-block');
+        codeBlocks.forEach(block => {
+            block.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.02)';
+                this.style.transition = 'transform 0.3s ease';
+            });
+            
+            block.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+        // Add animation to highlight boxes
+        const highlights = document.querySelectorAll('.highlight');
+        highlights.forEach(highlight => {
+            highlight.addEventListener('mouseenter', function() {
+                this.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.3)';
+                this.style.transform = 'translateY(-2px)';
+                this.style.transition = 'all 0.3s ease';
+            });
+            
+            highlight.addEventListener('mouseleave', function() {
+                this.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Add fullscreen toggle functionality
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Add keyboard shortcut for fullscreen (F11)
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F11') {
+                event.preventDefault();
+                toggleFullscreen();
+            }
+            // Home key - go to first slide
+            else if (event.key === 'Home') {
+                currentSlideIndex = 0;
+                showSlide(currentSlideIndex);
+            }
+            // End key - go to last slide
+            else if (event.key === 'End') {
+                currentSlideIndex = totalSlides - 1;
+                showSlide(currentSlideIndex);
+            }
+        });
+
+        // Add slide progress indication
+        function updateProgress() {
+            const progressPercent = ((currentSlideIndex + 1) / totalSlides) * 100;
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.width = progressPercent + '%';
+            }
+        }
+
+        // Update the showSlide function to include progress update
+        const originalShowSlide = showSlide;
+        showSlide = function(index) {
+            originalShowSlide(index);
+            updateProgress();
+        };
+    </script>
+    
+    <!-- Add a subtle progress bar -->
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: rgba(255,255,255,0.3); z-index: 1000;">
+        <div class="progress-bar" style="height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 8.33%; transition: width 0.3s ease;"></div>
+    </div>
+</body>
+</html>
