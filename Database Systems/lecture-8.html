@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 8: Relational Algebra & Relational Calculus</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .presentation-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .slide {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 40px;
+            margin: 20px 0;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .slide:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .slide-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .slide-number {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #34495e;
+            font-size: 2em;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+            padding-left: 15px;
+        }
+
+        h3 {
+            color: #2980b9;
+            font-size: 1.5em;
+            margin: 20px 0 15px 0;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+
+        .course-info {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .professor-info {
+            text-align: center;
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .content-box {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .content-box:hover {
+            background: linear-gradient(135deg, #e9ecef, #dee2e6);
+            transform: translateX(10px);
+        }
+
+        .formula {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            text-align: center;
+            position: relative;
+        }
+
+        .formula::before {
+            content: '📐';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            background: white;
+            padding: 5px;
+            border-radius: 50%;
+        }
+
+        .example-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .example-table th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .example-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .example-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .example-table tr:hover {
+            background: #e3f2fd;
+            transform: scale(1.02);
+            transition: all 0.2s ease;
+        }
+
+        .operation-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #3498db;
+            transition: all 0.3s ease;
+        }
+
+        .operation-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .operation-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .operation-title::before {
+            content: '⚡';
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .syntax-box {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .syntax-box::before {
+            content: 'Syntax';
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .comparison-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+
+        .highlight-box {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .navigation {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .interactive-demo {
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .demo-button {
+            background: linear-gradient(45deg, #11998e, #38ef7d);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .slide {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .navigation {
+                position: relative;
+                margin: 20px 0;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="navigation">
+        <button class="nav-button" onclick="scrollToSlide(1)">Start</button>
+        <button class="nav-button" onclick="scrollToSlide(5)">RA</button>
+        <button class="nav-button" onclick="scrollToSlide(12)">TRC</button>
+        <button class="nav-button" onclick="scrollToSlide(14)">DRC</button>
+        <button class="nav-button" onclick="scrollToSlide(16)">Compare</button>
+    </div>
+
+    <div class="presentation-container">
+        <!-- Slide 1: Title Slide -->
+        <div class="slide fade-in" id="slide-1">
+            <div class="slide-header">
+                <div class="slide-number">Lecture 8</div>
+                <h1>Relational Algebra & Relational Calculus</h1>
+                <div class="course-info">MTech Database Systems | Unit I: Introduction & Relational Databases</div>
+            </div>
+            <div class="professor-info">
+                <h3>Dr. Mohsin Dar</h3>
+                <p>Assistant Professor | Cloud & Software Operations Cluster | SOCS | UPES</p>
+            </div>
+            <div class="highlight-box">
+                Query Languages for the Relational Model
+            </div>
+        </div>
+
+        <!-- Slide 2: Learning Objectives -->
+        <div class="slide fade-in" id="slide-2">
+            <div class="slide-header">
+                <div class="slide-number">Slide 2</div>
+                <h2>Learning Objectives</h2>
+            </div>
+            <div class="content-grid">
+                <div class="content-box">
+                    <h3>By the end of this lecture, you will:</h3>
+                    <ul style="line-height: 1.8;">
+                        <li>Understand the fundamentals of Relational Algebra</li>
+                        <li>Master basic and extended operations</li>
+                        <li>Learn Tuple Relational Calculus (TRC)</li>
+                        <li>Comprehend Domain Relational Calculus (DRC)</li>
+                        <li>Compare procedural vs declarative approaches</li>
+                    </ul>
+                </div>
+                <div class="content-box">
+                    <h3>Key Concepts:</h3>
+                    <ul style="line-height: 1.8;">
+                        <li>Set-based operations</li>
+                        <li>Query optimization foundations</li>
+                        <li>Logical query formulation</li>
+                        <li>Mathematical foundations of databases</li>
+                        <li>SQL theoretical underpinnings</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Overview -->
+        <div class="slide fade-in" id="slide-3">
+            <div class="slide-header">
+                <div class="slide-number">Slide 3</div>
+                <h2>Query Languages Overview</h2>
+            </div>
+            <div class="operation-card">
+                <div class="operation-title">Procedural Languages</div>
+                <p><strong>Relational Algebra:</strong> User specifies <em>what</em> data is required and <em>how</em> to get it step by step.</p>
+                <div class="formula">How: σ(condition)(R) → π(attributes)(result)</div>
+            </div>
+            <div class="operation-card">
+                <div class="operation-title">Declarative Languages</div>
+                <p><strong>Relational Calculus:</strong> User specifies <em>what</em> data is required without specifying how to retrieve it.</p>
+                <div class="formula">What: {t | condition(t)}</div>
+            </div>
+            <div class="highlight-box">
+                Both are mathematically equivalent in expressive power!
+            </div>
+        </div>
+
+        <!-- Slide 4: Sample Database -->
+        <div class="slide fade-in" id="slide-4">
+            <div class="slide-header">
+                <div class="slide-number">Slide 4</div>
+                <h2>Sample Database Schema</h2>
+            </div>
+            <h3>Students Relation</h3>
+            <table class="example-table">
+                <tr><th>SID</th><th>Name</th><th>Age</th><th>GPA</th></tr>
+                <tr><td>101</td><td>Alice</td><td>20</td><td>3.8</td></tr>
+                <tr><td>102</td><td>Bob</td><td>21</td><td>3.2</td></tr>
+                <tr><td>103</td><td>Carol</td><td>19</td><td>3.9</td></tr>
+                <tr><td>104</td><td>Dave</td><td>22</td><td>3.1</td></tr>
+            </table>
+            
+            <h3>Enrollment Relation</h3>
+            <table class="example-table">
+                <tr><th>SID</th><th>CID</th><th>Grade</th></tr>
+                <tr><td>101</td><td>CS101</td><td>A</td></tr>
+                <tr><td>102</td><td>CS101</td><td>B</td></tr>
+                <tr><td>103</td><td>CS102</td><td>A+</td></tr>
+                <tr><td>101</td><td>CS102</td><td>A</td></tr>
+            </table>
+        </div>
+
+        <!-- Slide 5: Relational Algebra Introduction -->
+        <div class="slide fade-in" id="slide-5">
+            <div class="slide-header">
+                <div class="slide-number">Slide 5</div>
+                <h2>Relational Algebra</h2>
+            </div>
+            <div class="content-box">
+                <h3>Definition</h3>
+                <p>A procedural query language that consists of a set of operations that take one or two relations as input and produce a new relation as output.</p>
+            </div>
+            
+            <div class="content-grid">
+                <div class="content-box">
+                    <h3>Basic Operations</h3>
+                    <ul>
+                        <li>Select (σ)</li>
+                        <li>Project (π)</li>
+                        <li>Union (∪)</li>
+                        <li>Set Difference (−)</li>
+                        <li>Cartesian Product (×)</li>
+                        <li>Rename (ρ)</li>
+                    </ul>
+                </div>
+                <div class="content-box">
+                    <h3>Extended Operations</h3>
+                    <ul>
+                        <li>Natural Join (⋈)</li>
+                        <li>Outer Joins</li>
+                        <li>Intersection (∩)</li>
+                        <li>Division (÷)</li>
+                        <li>Assignment (←)</li>
+                        <li>Aggregate Functions</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Select Operation -->
+        <div class="slide fade-in" id="slide-6">
+            <div class="slide-header">
+                <div class="slide-number">Slide 6</div>
+                <h2>Select Operation (σ)</h2>
+            </div>
+            <div class="operation-card">
+                <div class="operation-title">Selection</div>
+                <p>Selects tuples (rows) that satisfy a given predicate condition.</p>
+                <div class="syntax-box">σ<sub>condition</sub>(R)</div>
+            </div>
+            
+            <h3>Examples:</h3>
+            <div class="formula">σ<sub>Age > 20</sub>(Students)</div>
+            <p>Result: Students with age greater than 20</p>
+            
+            <table class="example-table">
+                <tr><th>SID</th><th>Name</th><th>Age</th><th>GPA</th></tr>
+                <tr><td>102</td><td>Bob</td><td>21</td><td>3.2</td></tr>
+                <tr><td>104</td><td>Dave</td><td>22</td><td>3.1</td></tr>
+            </table>
+            
+            <div class="formula">σ<sub>GPA ≥ 3.5 AND Age < 21</sub>(Students)</div>
+            <p>Result: High-performing young students</p>
+        </div>
+
+        <!-- Slide 7: Project Operation -->
+        <div class="slide fade-in" id="slide-7">
+            <div class="slide-header">
+                <div class="slide-number">Slide 7</div>
+                <h2>Project Operation (π)</h2>
+            </div>
+            <div class="operation-card">
+                <div class="operation-title">Projection</div>
+                <p>Selects specified columns from a relation and eliminates duplicates.</p>
+                <div class="syntax-box">π<sub>attribute_list</sub>(R)</div>
+            </div>
+            
+            <h3>Examples:</h3>
+            <div class="formula">π<sub>Name, GPA</sub>(Students)</div>
+            <p>Result: Only Name and GPA columns</p>
+            
+            <table class="example-table">
+                <tr><th>Name</th><th>GPA</th></tr>
+                <tr><td>Alice</td><td>3.8</td></tr>
+                <tr><td>Bob</td><td>3.2</td></tr>
+                <tr><td>Carol</td><td>3.9</td></tr>
+                <tr><td>Dave</td><td>3.1</td></tr>
+            </table>
+            
+            <div class="highlight-box">
+                Projection automatically removes duplicate rows!
+            </div>
+        </div>
+
+        <!-- Slide 8: Set Operations -->
+        <div class="slide fade-in" id="slide-8">
+            <div class="slide-header">
+                <div class="slide-number">Slide 8</div>
+                <h2>Set Operations</h2>
+            </div>
+            <div class="content-grid">
+                <div class="operation-card">
+                    <div class="operation-title">Union (∪)</div>
+                    <p>Combines tuples from two compatible relations.</p>
+                    <div class="syntax-box">R ∪ S</div>
+                    <p><em>Requirements:</em> Same arity and compatible domains</p>
+                </div>
+                <div class="operation-card">
+                    <div class="operation-title">Intersection (∩)</div>
+                    <p>Returns tuples present in both relations.</p>
+                    <div class="syntax-box">R ∩ S</div>
+                    <p><em>Derived:</em> R ∩ S = R − (R − S)</p>
+                </div>
+            </div>
+            <div class="content-grid">
+                <div class="operation-card">
+                    <div class="operation-title">Set Difference (−)</div>
+                    <p>Returns tuples in first relation but not in second.</p>
+                    <div class="syntax-box">R − S</div>
+                    <p><em>Note:</em> Not commutative (R − S ≠ S − R)</p>
+                </div>
+                <div class="operation-card">
+                    <div class="operation-title">Cartesian Product (×)</div>
+                    <p>Combines every tuple from first relation with every tuple from second.</p>
+                    <div class="syntax-box">R × S</div>
+                    <p><em>Result size:</em> |R| × |S| tuples</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Join Operations -->
+        <div class="slide fade-in" id="slide-9">
+            <div class="slide-header">
+                <div class="slide-number">Slide 9</div>
+                <h2>Join Operations</h2>
+            </div>
+            <div class="operation-card">
+                <div class="operation-title">Natural Join (⋈)</div>
+                <p>Combines relations based on common attributes with same names.</p>
+                <div class="syntax-box">R ⋈ S</div>
+                <p>Equivalent to: π<sub>R.attrs, S.attrs</sub>(σ<sub>R.common = S.common</sub>(R × S))</p>
+            </div>
+            
+            <h3>Example: Students ⋈ Enrollment</h3>
+            <table class="example-table">
+                <tr><th>SID</th><th>Name</th><th>Age</th><th>GPA</th><th>CID</th><th>Grade</th></tr>
+                <tr><td>101</td><td>Alice</td><td>20</td><td>3.8</td><td>CS101</td><td>A</td></tr>
+                <tr><td>101</td><td>Alice</td><td>20</td><td>3.8</td><td>CS102</td><td>A</td></tr>
+                <tr><td>102</td><td>Bob</td><td>21</td><td>3.2</td><td>CS101</td><td>B</td></tr>
+                <tr><td>103</td><td>Carol</td><td>19</td><td>3.9</td><td>CS102</td><td>A+</td></tr>
+            </table>
+        </div>
+
+        <!-- Slide 10: Complex Query Example -->
+        <div class="slide fade-in" id="slide-10">
+            <div class="slide-header">
+                <div class="slide-number">Slide 10</div>
+                <h2>Complex Query Example</h2>
+            </div>
+            <div class="highlight-box">
+                Query: Find names of students with GPA > 3.5 who are enrolled in CS101
+            </div>
+            
+            <h3>Step-by-step Solution:</h3>
+            <div class="formula">
+                Step 1: R1 ← σ<sub>GPA > 3.5</sub>(Students)
+            </div>
+            <div class="formula">
+                Step 2: R2 ← σ<sub>CID = 'CS101'</sub>(Enrollment)
+            </div>
+            <div class="formula">
+                Step 3: R3 ← R1 ⋈ R2
+            </div>
+            <div class="formula">
+                Step 4: Result ← π<sub>Name</sub>(R3)
+            </div>
+            
+            <h3>Single Expression:</h3>
+            <div class="syntax-box">
+                π<sub>Name</sub>(σ<sub>GPA > 3.5</sub>(Students) ⋈ σ<sub>CID = 'CS101'</sub>(Enrollment))
+            </div>
+            
+            <div class="interactive-demo">
+                <button class="demo-button" onclick="showQuerySteps()">Show Execution Steps</button>
+                <div id="querySteps" style="display:none; margin-top: 20px; text-align: left;">
+                    <p><strong>Step 1:</strong> Filter high-performing students (Alice, Carol)</p>
+                    <p><strong>Step 2:</strong> Filter CS101 enrollments (Alice, Bob)</p>
+                    <p><strong>Step 3:</strong> Join results (Alice)</p>
+                    <p><strong>Step 4:</strong> Project name (Alice)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Division Operation -->
+        <div class="slide fade-in" id="slide-11">
+            <div class="slide-header">
+                <div class="slide-number">Slide 11</div>
+                <h2>Division Operation (÷)</h2>
+            </div>
+            <div class="operation-card">
+                <div class="operation-title">Division</div>
+                <p>Finds tuples in R that are associated with ALL tuples in S.</p>
+                <div class="syntax-box">R ÷ S</div>
+                <p><strong>Use case:</strong> "Find students enrolled in ALL courses"</p>
+            </div>
+            
+            <h3>Division Algorithm:</h3>
+            <div class="formula">
+                R ÷ S = π<sub>R-S</sub>(R) − π<sub>R-S</sub>((π<sub>R-S</sub>(R) × S) − R)
+            </div>
+            
+            <div class="content-box">
+                <h3>Interpretation:</h3>
+                <p>If R(A, B) and S(B), then R ÷ S returns all A values that appear with every B value in S.</p>
+            </div>
+            
+            <div class="highlight-box">
+                Division is the most complex operation but very powerful for "for all" queries!
+            </div>
+        </div>
+
+        <!-- Slide 12: Tuple Relational Calculus -->
+        <div class="slide fade-in" id="slide-12">
+            <div class="slide-header">
+                <div class="slide-number">Slide 12</div>
+                <h2>Tuple Relational Calculus (TRC)</h2>
+            </div>
+            <div class="content-box">
+                <h3>Definition</h3>
+                <p>A non-procedural query language where each query is of the form:</p>
+                <div class="formula">{t | P(t)}</div>
+                <p>Where t is a tuple variable and P(t) is a predicate</p>
+            </div>
+            
+            <div class="content-grid">
+                <div class="content-box">
+                    <h3>Components</h3>
+                    <ul>
+                        <li><strong>Tuple variables:</strong> Range over relations</li>
+                        <li><strong>Predicates:</strong> Logical conditions</li>
+                        <li><strong>Quantifiers:</strong> ∃ (exists), ∀ (for all)</li>
+                        <li><strong>Connectives:</strong> ∧ (and), ∨ (or), ¬ (not)</li>
+                    </ul>
+                </div>
+                <div class="content-box">
+                    <h3>Atomic Formulas</h3>
+                    <ul>
+                        <li>t ∈ R (t is in relation R)</li>
+                        <li>t.A op s.B (attribute comparison)</li>
+                        <li>t.A op constant</li>
+                    </ul>
+                    <p>Where op ∈ {=, ≠, <, ≤, >, ≥}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: TRC Examples -->
+        <div class="slide fade-in" id="slide-13">
+            <div class="slide-header">
+                <div class="slide-number">Slide 13</div>
+                <h2>TRC Examples</h2>
+            </div>
+            <h3>Example 1: Students with GPA > 3.5</h3>
+            <div class="syntax-box">
+                {t | t ∈ Students ∧ t.GPA > 3.5}
+            </div>
+            
+            <h3>Example 2: Names of students enrolled in CS101</h3>
+            <div class="syntax-box">
+                {t | ∃s (s ∈ Students ∧ t.Name = s.Name ∧ 
+                     ∃e (e ∈ Enrollment ∧ e.SID = s.SID ∧ e.CID = 'CS101'))}
+            </div>
+            
+            <h3>Example 3: Students enrolled in ALL courses</h3>
+            <div class="syntax-box">
+                {t | t ∈ Students ∧ ∀c (c ∈ Courses → 
+                     ∃e (e ∈ Enrollment ∧ e.SID = t.SID ∧ e.CID = c.CID))}
+            </div>
+            
+            <div class="interactive-demo">
+                <h3>TRC Query Builder</h3>
+                <button class="demo-button" onclick="showTRCExample()">Show Step-by-Step TRC</button>
+                <div id="trcExample" style="display:none; margin-top: 15px; text-align: left;">
+                    <p><strong>Query:</strong> Find students with high GPA in CS courses</p>
+                    <p><strong>TRC:</strong> {t | t ∈ Students ∧ t.GPA > 3.5 ∧ ∃e (e ∈ Enrollment ∧ e.SID = t.SID ∧ e.CID LIKE 'CS%')}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Domain Relational Calculus -->
+        <div class="slide fade-in" id="slide-14">
+            <div class="slide-header">
+                <div class="slide-number">Slide 14</div>
+                <h2>Domain Relational Calculus (DRC)</h2>
+            </div>
+            <div class="content-box">
+                <h3>Definition</h3>
+                <p>A non-procedural query language where queries are expressed in terms of domain variables:</p>
+                <div class="formula">{⟨x₁, x₂, ..., xₙ⟩ | P(x₁, x₂, ..., xₙ)}</div>
+                <p>Where x₁, x₂, ..., xₙ are domain variables and P is a predicate</p>
+            </div>
+            
+            <div class="content-grid">
+                <div class="content-box">
+                    <h3>Key Differences from TRC</h3>
+                    <ul>
+                        <li>Uses <strong>domain variables</strong> instead of tuple variables</li>
+                        <li>Variables range over <strong>attribute domains</strong></li>
+                        <li>More <strong>granular control</strong> over individual attributes</li>
+                        <li>Basis for <strong>QBE (Query By Example)</strong></li>
+                    </ul>
+                </div>
+                <div class="content-box">
+                    <h3>Atomic Formulas</h3>
+                    <ul>
+                        <li>⟨x₁, x₂, ..., xₙ⟩ ∈ R</li>
+                        <li>x op y (domain variable comparison)</li>
+                        <li>x op constant</li>
+                    </ul>
+                    <p>Where op ∈ {=, ≠, <, ≤, >, ≥}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: DRC Examples -->
+        <div class="slide fade-in" id="slide-15">
+            <div class="slide-header">
+                <div class="slide-number">Slide 15</div>
+                <h2>DRC Examples</h2>
+            </div>
+            <h3>Example 1: Students with GPA > 3.5</h3>
+            <div class="syntax-box">
+                {⟨s, n, a, g⟩ | ⟨s, n, a, g⟩ ∈ Students ∧ g > 3.5}
+            </div>
+            <p>Returns: SID, Name, Age, GPA for qualifying students</p>
+            
+            <h3>Example 2: Names of students with high GPA</h3>
+            <div class="syntax-box">
+                {⟨n⟩ | ∃s, a, g (⟨s, n, a, g⟩ ∈ Students ∧ g > 3.5)}
+            </div>
+            <p>Returns: Only names of high-performing students</p>
+            
+            <h3>Example 3: Students enrolled in CS101</h3>
+            <div class="syntax-box">
+                {⟨s, n, a, g⟩ | ⟨s, n, a, g⟩ ∈ Students ∧ 
+                 ∃c, gr (⟨s, c, gr⟩ ∈ Enrollment ∧ c = 'CS101')}
+            </div>
+            
+            <div class="highlight-box">
+                DRC provides fine-grained control over output format!
+            </div>
+        </div>
+
+        <!-- Slide 16: Comparison Table -->
+        <div class="slide fade-in" id="slide-16">
+            <div class="slide-header">
+                <div class="slide-number">Slide 16</div>
+                <h2>Relational Algebra vs. Relational Calculus</h2>
+            </div>
+            <table class="comparison-table">
+                <tr>
+                    <th>Aspect</th>
+                    <th>Relational Algebra</th>
+                    <th>Tuple Relational Calculus</th>
+                    <th>Domain Relational Calculus</th>
+                </tr>
+                <tr>
+                    <td><strong>Nature</strong></td>
+                    <td>Procedural</td>
+                    <td>Declarative</td>
+                    <td>Declarative</td>
+                </tr>
+                <tr>
+                    <td><strong>Approach</strong></td>
+                    <td>Specifies HOW</td>
+                    <td>Specifies WHAT</td>
+                    <td>Specifies WHAT</td>
+                </tr>
+                <tr>
+                    <td><strong>Variables</strong></td>
+                    <td>Relations</td>
+                    <td>Tuple variables</td>
+                    <td>Domain variables</td>
+                </tr>
+                <tr>
+                    <td><strong>Syntax</strong></td>
+                    <td>σ, π, ⋈, etc.</td>
+                    <td>{t | P(t)}</td>
+                    <td>{⟨x₁,...,xₙ⟩ | P(x₁,...,xₙ)}</td>
+                </tr>
+                <tr>
+                    <td><strong>Query Optimization</strong></td>
+                    <td>Direct</td>
+                    <td>Requires transformation</td>
+                    <td>Requires transformation</td>
+                </tr>
+                <tr>
+                    <td><strong>Expressive Power</strong></td>
+                    <td>Equivalent</td>
+                    <td>Equivalent</td>
+                    <td>Equivalent</td>
+                </tr>
+                <tr>
+                    <td><strong>Real-world Use</strong></td>
+                    <td>Query optimization</td>
+                    <td>SQL foundation</td>
+                    <td>QBE systems</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Slide 17: Safety in Calculus -->
+        <div class="slide fade-in" id="slide-17">
+            <div class="slide-header">
+                <div class="slide-number">Slide 17</div>
+                <h2>Safety in Relational Calculus</h2>
+            </div>
+            <div class="operation-card">
+                <div class="operation-title">Safety Problem</div>
+                <p>Some calculus expressions can produce infinite results!</p>
+                <div class="syntax-box">
+                    Unsafe: {t | ¬(t ∈ Students)}
+                </div>
+                <p>This would return all tuples NOT in Students - potentially infinite!</p>
+            </div>
+            
+            <div class="content-grid">
+                <div class="content-box">
+                    <h3>Safety Conditions</h3>
+                    <ul>
+                        <li>All variables must be <strong>domain-independent</strong></li>
+                        <li>Every variable must appear in a <strong>positive relational atom</strong></li>
+                        <li>Variables in negated subformulas must be <strong>limited</strong></li>
+                        <li>Result must be from a <strong>finite active domain</strong></li>
+                    </ul>
+                </div>
+                <div class="content-box">
+                    <h3>Safe Equivalent</h3>
+                    <div class="syntax-box">
+                        {t | t ∈ SomeRelation ∧ ¬(t ∈ Students)}
+                    </div>
+                    <p>This limits the domain to a specific relation</p>
+                </div>
+            </div>
+            
+            <div class="highlight-box">
+                Only safe expressions are meaningful in practical database systems!
+            </div>
+        </div>
+
+        <!-- Slide 18: Transformation Examples -->
+        <div class="slide fade-in" id="slide-18">
+            <div class="slide-header">
+                <div class="slide-number">Slide 18</div>
+                <h2>Query Transformation Examples</h2>
+            </div>
+            <h3>From Relational Algebra to TRC</h3>
+            <div class="content-grid">
+                <div class="content-box">
+                    <h4>Relational Algebra:</h4>
+                    <div class="syntax-box">
+                        π<sub>Name</sub>(σ<sub>GPA > 3.5</sub>(Students))
+                    </div>
+                </div>
+                <div class="content-box">
+                    <h4>Tuple Relational Calculus:</h4>
+                    <div class="syntax-box">
+                        {t | ∃s (s ∈ Students ∧ s.GPA > 3.5 ∧ t.Name = s.Name)}
+                    </div>
+                </div>
+            </div>
+            
+            <h3>From TRC to DRC</h3>
+            <div class="content-grid">
+                <div class="content-box">
+                    <h4>Tuple Relational Calculus:</h4>
+                    <div class="syntax-box">
+                        {t | t ∈ Students ∧ t.GPA > 3.5}
+                    </div>
+                </div>
+                <div class="content-box">
+                    <h4>Domain Relational Calculus:</h4>
+                    <div class="syntax-box">
+                        {⟨s, n, a, g⟩ | ⟨s, n, a, g⟩ ∈ Students ∧ g > 3.5}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="interactive-demo">
+                <button class="demo-button" onclick="showTransformation()">Show Interactive Transformation</button>
+                <div id="transformation" style="display:none; margin-top: 20px;">
+                    <p><strong>Step 1:</strong> Identify the selection condition</p>
+                    <p><strong>Step 2:</strong> Express using appropriate variables</p>
+                    <p><strong>Step 3:</strong> Apply quantifiers where needed</p>
+                    <p><strong>Step 4:</strong> Ensure safety conditions are met</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 19: Practical Applications -->
+        <div class="slide fade-in" id="slide-19">
+            <div class="slide-header">
+                <div class="slide-number">Slide 19</div>
+                <h2>Practical Applications</h2>
+            </div>
+            <div class="content-grid">
+                <div class="operation-card">
+                    <div class="operation-title">Query Optimization</div>
+                    <p>Relational algebra provides a foundation for query optimization in modern DBMS.</p>
+                    <ul>
+                        <li>Selection pushdown</li>
+                        <li>Join reordering</li>
+                        <li>Index usage strategies</li>
+                    </ul>
+                </div>
+                <div class="operation-card">
+                    <div class="operation-title">SQL Translation</div>
+                    <p>Understanding calculus helps in writing complex SQL queries.</p>
+                    <ul>
+                        <li>Nested queries ↔ Existential quantification</li>
+                        <li>NOT EXISTS ↔ Universal quantification</li>
+                        <li>Complex JOINs ↔ Multiple relations</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h3>SQL to TRC Example</h3>
+            <div class="content-grid">
+                <div class="content-box">
+                    <h4>SQL:</h4>
+                    <div class="syntax-box">
+                        SELECT Name FROM Students<br>
+                        WHERE GPA > 3.5 AND<br>
+                        EXISTS (SELECT * FROM Enrollment<br>
+                                WHERE SID = Students.SID)
+                    </div>
+                </div>
+                <div class="content-box">
+                    <h4>TRC:</h4>
+                    <div class="syntax-box">
+                        {t | ∃s (s ∈ Students ∧ s.GPA > 3.5 ∧<br>
+                             ∃e (e ∈ Enrollment ∧ e.SID = s.SID) ∧<br>
+                             t.Name = s.Name)}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: Summary -->
+        <div class="slide fade-in" id="slide-20">
+            <div class="slide-header">
+                <div class="slide-number">Slide 20</div>
+                <h2>Summary</h2>
+            </div>
+            <div class="content-grid">
+                <div class="content-box">
+                    <h3>Key Takeaways</h3>
+                    <ul style="line-height: 1.8;">
+                        <li><strong>Relational Algebra:</strong> Procedural, step-by-step query specification</li>
+                        <li><strong>TRC:</strong> Declarative using tuple variables</li>
+                        <li><strong>DRC:</strong> Declarative using domain variables</li>
+                        <li><strong>Equivalence:</strong> All three have same expressive power</li>
+                        <li><strong>Safety:</strong> Critical for practical implementations</li>
+                    </ul>
+                </div>
+                <div class="content-box">
+                    <h3>Real-world Impact</h3>
+                    <ul style="line-height: 1.8;">
+                        <li>Foundation of SQL query processing</li>
+                        <li>Basis for query optimization algorithms</li>
+                        <li>Theoretical framework for new query languages</li>
+                        <li>Essential for database research and development</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>Next Lecture Preview</h3>
+                <p>SQL: Structured Query Language - Putting theory into practice!</p>
+            </div>
+        </div>
+
+        <!-- Slide 21: Practice Questions -->
+        <div class="slide fade-in" id="slide-21">
+            <div class="slide-header">
+                <div class="slide-number">Slide 21</div>
+                <h2>Practice Questions</h2>
+            </div>
+            <div class="operation-card">
+                <div class="operation-title">Question 1</div>
+                <p>Write a relational algebra expression to find students who are enrolled in both CS101 and CS102.</p>
+            </div>
+            
+            <div class="operation-card">
+                <div class="operation-title">Question 2</div>
+                <p>Express in TRC: "Find names of students who have never enrolled in any course."</p>
+            </div>
+            
+            <div class="operation-card">
+                <div class="operation-title">Question 3</div>
+                <p>Convert the following SQL to DRC: SELECT DISTINCT Age FROM Students WHERE GPA > 3.0;</p>
+            </div>
+            
+            <div class="interactive-demo">
+                <h3>Try It Yourself!</h3>
+                <button class="demo-button" onclick="showSolutions()">Show Solutions</button>
+                <div id="solutions" style="display:none; margin-top: 20px; text-align: left;">
+                    <p><strong>Solution 1:</strong> π<sub>SID</sub>(σ<sub>CID='CS101'</sub>(Enrollment)) ∩ π<sub>SID</sub>(σ<sub>CID='CS102'</sub>(Enrollment))</p>
+                    <p><strong>Solution 2:</strong> {t | ∃s (s ∈ Students ∧ t.Name = s.Name ∧ ¬∃e (e ∈ Enrollment ∧ e.SID = s.SID))}</p>
+                    <p><strong>Solution 3:</strong> {⟨a⟩ | ∃s, n, g (⟨s, n, a, g⟩ ∈ Students ∧ g > 3.0)}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 22: References and Further Reading -->
+        <div class="slide fade-in" id="slide-22">
+            <div class="slide-header">
+                <div class="slide-number">Slide 22</div>
+                <h2>References & Further Reading</h2>
+            </div>
+            <div class="content-grid">
+                <div class="content-box">
+                    <h3>Textbooks</h3>
+                    <ul style="line-height: 1.8;">
+                        <li>Database System Concepts - Silberschatz, Korth, Sudarshan</li>
+                        <li>Fundamentals of Database Systems - Elmasri & Navathe</li>
+                        <li>Database Management Systems - Raghu Ramakrishnan</li>
+                    </ul>
+                </div>
+                <div class="content-box">
+                    <h3>Online Resources</h3>
+                    <ul style="line-height: 1.8;">
+                        <li>Stanford CS145 Database Systems</li>
+                        <li>MIT 6.830 Database Systems</li>
+                        <li>GeeksforGeeks Database Tutorials</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="professor-info">
+                <h3>Contact Information</h3>
+                <p>Dr. Mohsin Dar | mohsin.dar@ddn.upes.ac.in</p>
+                <p>Office Hours: By appointment | SOCS Department, UPES</p>
+            </div>
+            
+            <div class="highlight-box">
+                Thank you for your attention! Questions?
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Smooth scrolling to slides
+        function scrollToSlide(slideNumber) {
+            const slide = document.getElementById(`slide-${slideNumber}`);
+            if (slide) {
+                slide.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Interactive demonstrations
+        function showQuerySteps() {
+            const steps = document.getElementById('querySteps');
+            steps.style.display = steps.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showTRCExample() {
+            const example = document.getElementById('trcExample');
+            example.style.display = example.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showTransformation() {
+            const transformation = document.getElementById('transformation');
+            transformation.style.display = transformation.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showSolutions() {
+            const solutions = document.getElementById('solutions');
+            solutions.style.display = solutions.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Add fade-in animation to slides as they come into view
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeIn 0.8s ease-in-out';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all slides
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach(slide => observer.observe(slide));
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                // Next slide logic could be implemented here
+            } else if (e.key === 'ArrowLeft') {
+                // Previous slide logic could be implemented here
+            }
+        });
+
+        // Print-friendly styles
+        window.addEventListener('beforeprint', () => {
+            document.querySelectorAll('.slide').forEach(slide => {
+                slide.style.pageBreakAfter = 'always';
+                slide.style.transform = 'none';
+                slide.style.boxShadow = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
