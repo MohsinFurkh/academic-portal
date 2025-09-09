@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Anomalies and Dependencies - Lecture 9</title>
+    <title>Lecture 9: Normal Forms & Limitations of Relational Data Model</title>
     <style>
         * {
             margin: 0;
@@ -25,130 +25,182 @@
         }
 
         .slide {
-            background: white;
-            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.95);
+            margin: 30px 0;
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            opacity: 0;
-            transform: translateY(50px);
-            animation: slideIn 0.6s ease forwards;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        @keyframes slideIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .slide:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
         }
 
-        .slide:nth-child(odd) {
-            animation-delay: 0.1s;
-        }
-
-        .slide:nth-child(even) {
-            animation-delay: 0.2s;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
+        .slide-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
-            text-align: center;
-            padding: 60px 40px;
+            padding: 30px;
             border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .header h1 {
-            font-size: 2.5rem;
+        .slide-title {
+            font-size: 2.5em;
+            font-weight: bold;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
-        .header .subtitle {
-            font-size: 1.2rem;
+        .slide-subtitle {
+            font-size: 1.2em;
             opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .course-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        h1 {
+            color: #1e3c72;
+            font-size: 2.2em;
             margin-bottom: 20px;
-        }
-
-        .header .course-info {
-            font-size: 1rem;
-            opacity: 0.8;
-        }
-
-        .slide h2 {
-            color: #2c3e50;
-            font-size: 2rem;
-            margin-bottom: 25px;
-            border-bottom: 3px solid #3498db;
+            border-bottom: 3px solid #2a5298;
             padding-bottom: 10px;
         }
 
-        .slide h3 {
-            color: #34495e;
-            font-size: 1.5rem;
-            margin: 20px 0 15px 0;
+        h2 {
+            color: #2a5298;
+            font-size: 1.8em;
+            margin: 25px 0 15px 0;
+            position: relative;
         }
 
-        .slide p {
+        h2:before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
+        h3 {
+            color: #444;
+            font-size: 1.4em;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
             line-height: 1.8;
-            margin-bottom: 20px;
-            font-size: 1.1rem;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            text-align: justify;
         }
 
-        .slide ul {
+        .definition-box {
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0f8ff 100%);
+            border-left: 5px solid #2a5298;
+            padding: 20px;
             margin: 20px 0;
-            padding-left: 30px;
-        }
-
-        .slide li {
-            margin-bottom: 12px;
-            line-height: 1.6;
-            font-size: 1.1rem;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
         }
 
         .example-box {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border: 2px solid #3498db;
-            border-radius: 10px;
-            padding: 25px;
-            margin: 25px 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .example-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: #3498db;
-        }
-
-        .example-box h4 {
-            color: #2980b9;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
-        }
-
-        .table-container {
-            overflow-x: auto;
+            background: linear-gradient(135deg, #fff7e6 0%, #fffacd 100%);
+            border: 2px solid #ffa500;
+            padding: 20px;
             margin: 20px 0;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .example-box:before {
+            content: "💡 Example";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #ffa500;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .algorithm-box {
+            background: linear-gradient(135deg, #f0fff0 0%, #e6ffe6 100%);
+            border: 2px solid #32cd32;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .algorithm-box:before {
+            content: "⚙️ Algorithm";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #32cd32;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .limitation-box {
+            background: linear-gradient(135deg, #ffe6e6 0%, #ffcccc 100%);
+            border: 2px solid #ff6b6b;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .limitation-box:before {
+            content: "⚠️ Limitation";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #ff6b6b;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            margin: 20px 0;
             background: white;
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         th {
-            background: linear-gradient(135deg, #3498db, #2980b9);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
             padding: 15px;
             text-align: left;
@@ -157,863 +209,1298 @@
 
         td {
             padding: 12px 15px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f8f9fa;
+            border-bottom: 1px solid #eee;
         }
 
         tr:hover {
-            background-color: #e3f2fd;
-            transition: background-color 0.3s ease;
+            background: #f8f9ff;
         }
 
-        .highlight {
-            background: linear-gradient(120deg, #fff3cd 0%, #ffeaa7 100%);
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 5px solid #f39c12;
-            margin: 20px 0;
-        }
-
-        .definition {
-            background: linear-gradient(120deg, #d4edda 0%, #c3e6cb 100%);
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 5px solid #28a745;
-            margin: 20px 0;
-        }
-
-        .definition h4 {
-            color: #155724;
-            margin-bottom: 10px;
-        }
-
-        .anomaly-section {
-            background: linear-gradient(120deg, #f8d7da 0%, #f1c2c7 100%);
+        .normal-form-card {
+            background: white;
+            border-radius: 15px;
             padding: 25px;
-            border-radius: 10px;
-            border-left: 5px solid #dc3545;
-            margin: 25px 0;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #2a5298;
+            transition: transform 0.3s ease;
         }
 
-        .anomaly-section h4 {
-            color: #721c24;
+        .normal-form-card:hover {
+            transform: translateX(10px);
+        }
+
+        .normal-form-title {
+            color: #1e3c72;
+            font-size: 1.5em;
+            font-weight: bold;
             margin-bottom: 15px;
-            font-size: 1.2rem;
         }
 
-        .key-points {
-            background: #f8f9fa;
-            border-left: 4px solid #28a745;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 0 10px 10px 0;
-        }
-        
-        .normal-form {
-            margin: 20px 0;
-        }
-        
-        .normal-form-level {
-            background: #f8f9fa;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #6f42c1;
-        }
-        
-        .normal-form-level h4 {
-            color: #6f42c1;
-            margin-bottom: 8px;
-        }
-        
-        .summary {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        }
-        
-        .summary-points {
+        .steps-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
-            margin-top: 20px;
+            margin: 20px 0;
         }
-        
-        .summary-item {
+
+        .step-card {
             background: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .thank-you {
-            text-align: center;
-            padding: 60px 20px !important;
-        }
-        
-        .thank-you h1 {
-            font-size: 3em;
-            color: #2c3e50;
-            margin-bottom: 30px;
-        }
-        
-        .contact {
-            margin: 30px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            display: inline-block;
-        }
-        
-        .references {
-            margin-top: 40px;
-            text-align: left;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .references h3 {
-            border-bottom: 2px solid #6c757d;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .dependency-box {
-            background: linear-gradient(120deg, #cce5ff 0%, #b3d9ff 100%);
-            padding: 25px;
-            border-radius: 10px;
-            border-left: 5px solid #007bff;
-            margin: 25px 0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #2a5298;
+            transition: transform 0.3s ease;
         }
 
-        .dependency-box h4 {
-            color: #004085;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
+        .step-card:hover {
+            transform: translateY(-5px);
         }
 
-        .formula {
-            background: #2c3e50;
+        .step-number {
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            text-align: center;
-            margin: 15px 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
         }
 
-        .objectives {
-            background: linear-gradient(135deg, #e8f5e8, #d4edda);
-            border: 2px solid #28a745;
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
             border-radius: 10px;
-            padding: 25px;
-            margin: 25px 0;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            overflow-x: auto;
+            position: relative;
         }
 
-        .objectives h3 {
-            color: #155724;
-            margin-bottom: 15px;
+        .code-block:before {
+            content: "SQL";
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            color: #a0aec0;
+            font-size: 0.8em;
         }
 
-        .summary {
-            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-            border: 2px solid #ff9800;
-            border-radius: 10px;
-            padding: 25px;
-            margin: 25px 0;
-        }
-
-        .summary h3 {
-            color: #e65100;
-            margin-bottom: 15px;
-        }
-
-        .interactive-demo {
-            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
-            border: 2px solid #9c27b0;
-            border-radius: 10px;
-            padding: 25px;
-            margin: 25px 0;
-            text-align: center;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            margin: 10px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        .highlight {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #856404;
         }
 
         .navigation {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-
-        .nav-btn {
-            background: rgba(0,0,0,0.7);
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 15px;
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             color: white;
-            border: none;
-            padding: 10px 15px;
-            margin: 5px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .nav-btn:hover {
-            background: rgba(0,0,0,0.9);
-        }
-
-        .progress-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #3498db, #2980b9);
+            font-weight: bold;
             z-index: 1000;
-            transition: width 0.3s ease;
+        }
+
+        .objectives-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .objective-item {
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0f8ff 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #2a5298;
+            transition: transform 0.3s ease;
+        }
+
+        .objective-item:hover {
+            transform: scale(1.02);
         }
 
         @media (max-width: 768px) {
-            .presentation-container {
-                padding: 10px;
-            }
-            
             .slide {
                 padding: 20px;
+                margin: 20px 0;
             }
             
-            .header h1 {
-                font-size: 2rem;
+            .slide-title {
+                font-size: 2em;
             }
             
-            .slide h2 {
-                font-size: 1.5rem;
+            .steps-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .fade-in {
+            opacity: 0;
+            animation: fadeIn 0.8s ease-in forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
             }
         }
     </style>
 </head>
 <body>
-    <div class="progress-bar" id="progressBar"></div>
-    
-    <div class="navigation">
-        <button class="nav-btn" onclick="scrollToTop()">Top</button>
-        <button class="nav-btn" onclick="toggleDarkMode()">Theme</button>
-    </div>
-
     <div class="presentation-container">
         <!-- Title Slide -->
-        <div class="slide header">
-            <h1>Database Anomalies and Dependencies</h1>
-            <div class="subtitle">Functional, Multivalued and Join Dependencies</div>
-            <div class="course-info">
-                <strong>Lecture 9</strong> | Unit I: Introduction & Relational Databases<br>
-                Database Systems | MTech First Semester<br>
-                Dr. Mohsin Dar | Assistant Professor | SOCS | UPES
+        <div class="slide fade-in">
+            <div class="slide-header">
+                <div class="slide-title">Normal Forms & Limitations of Relational Data Model</div>
+                <div class="slide-subtitle">Database Systems - Lecture 9</div>
+                <div class="course-info">
+                    <strong>Course:</strong> Database Systems (MTech First Semester)<br>
+                    <strong>Unit:</strong> I - Introduction & Relational Databases<br>
+                    <strong>Instructor:</strong> Dr. Mohsin Dar<br>
+                    <strong>Department:</strong> Cloud & Software Operations Cluster | SOCS | UPES
+                </div>
             </div>
         </div>
 
         <!-- Learning Objectives -->
-        <div class="slide">
-            <div class="objectives">
-                <h3>Learning Objectives</h3>
-                <ul>
-                    <li>Understand different types of anomalies that occur in poorly designed databases</li>
-                    <li>Learn about Functional Dependencies and their properties</li>
-                    <li>Explore Multivalued Dependencies and their significance</li>
-                    <li>Understand Join Dependencies and their role in database design</li>
-                    <li>Apply knowledge to identify and resolve database design issues</li>
+        <div class="slide fade-in">
+            <h1>Learning Objectives</h1>
+            <div class="objectives-grid">
+                <div class="objective-item">
+                    <h3>🎯 Understand Normalization</h3>
+                    <p>Learn the concept and importance of database normalization in relational databases.</p>
+                </div>
+                <div class="objective-item">
+                    <h3>📊 Master Normal Forms</h3>
+                    <p>Explore 1NF, 2NF, 3NF, BCNF, and higher normal forms with practical examples.</p>
+                </div>
+                <div class="objective-item">
+                    <h3>⚙️ Apply Normalization</h3>
+                    <p>Develop skills to normalize database schemas and eliminate redundancy.</p>
+                </div>
+                <div class="objective-item">
+                    <h3>⚠️ Identify Limitations</h3>
+                    <p>Recognize the limitations of relational data model in modern applications.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Introduction to Normalization -->
+        <div class="slide fade-in">
+            <h1>Database Normalization</h1>
+            
+            <div class="definition-box">
+                <h3>Definition</h3>
+                <p><strong>Database Normalization</strong> is a systematic approach to organizing data in a relational database to minimize redundancy and dependency by organizing fields and table relationships.</p>
+            </div>
+
+            <h2>Why Normalize?</h2>
+            <div class="steps-container">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Eliminate Redundancy</h3>
+                    <p>Reduce duplicate data storage to save space and improve consistency.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Data Integrity</h3>
+                    <p>Maintain data accuracy and consistency across the database.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Update Anomalies</h3>
+                    <p>Prevent insertion, update, and deletion anomalies.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3>Logical Structure</h3>
+                    <p>Create a logical and efficient database structure.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Functional Dependencies -->
+        <div class="slide fade-in">
+            <h1>Functional Dependencies</h1>
+            
+            <div class="definition-box">
+                <h3>Functional Dependency (FD)</h3>
+                <p>A functional dependency X → Y exists if for every valid instance of a relation, whenever two tuples have the same value for attribute X, they must have the same value for attribute Y.</p>
+            </div>
+
+            <h2>Types of Functional Dependencies</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Trivial FD</strong></td>
+                        <td>Y is a subset of X</td>
+                        <td>{StudentID, Name} → {StudentID}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Non-trivial FD</strong></td>
+                        <td>Y is not a subset of X</td>
+                        <td>{StudentID} → {Name}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Partial Dependency</strong></td>
+                        <td>Non-key attribute depends on part of composite key</td>
+                        <td>{StudentID, CourseID} → {StudentName}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Transitive Dependency</strong></td>
+                        <td>A → B and B → C, then A → C</td>
+                        <td>StudentID → DeptID → DeptName</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- First Normal Form -->
+        <div class="slide fade-in">
+            <h1>First Normal Form (1NF)</h1>
+            
+            <div class="normal-form-card">
+                <div class="normal-form-title">1NF Rules</div>
+                <ul style="line-height: 2; font-size: 1.1em;">
+                    <li>Each table cell should contain a single value (atomic values)</li>
+                    <li>Each record needs to be unique</li>
+                    <li>No repeating groups or arrays</li>
                 </ul>
-            </div>
-        </div>
-
-        <!-- Database Anomalies Overview -->
-        <div class="slide">
-            <h2>Database Anomalies</h2>
-            <p>Database anomalies are problems that occur in poorly designed databases due to redundancy and inconsistent dependencies. These anomalies can lead to data inconsistency, storage waste, and maintenance difficulties.</p>
-            
-            <div class="highlight">
-                <strong>Key Point:</strong> Anomalies arise when we try to store multiple types of information in a single table without proper normalization.
-            </div>
-
-            <h3>Types of Anomalies:</h3>
-            <ul>
-                <li><strong>Insertion Anomaly</strong> - Cannot insert data without having other irrelevant data</li>
-                <li><strong>Deletion Anomaly</strong> - Deleting a row causes loss of other important information</li>
-                <li><strong>Update Anomaly</strong> - Updating information requires multiple changes, risking inconsistency</li>
-            </ul>
-        </div>
-
-        <!-- Insertion Anomaly -->
-        <div class="slide">
-            <h2>Insertion Anomaly</h2>
-            
-            <div class="anomaly-section">
-                <h4>Definition</h4>
-                <p>An insertion anomaly occurs when we cannot insert certain information into the database without also having to insert irrelevant or unknown information.</p>
             </div>
 
             <div class="example-box">
-                <h4>Example: Student Course Enrollment Table</h4>
-                <div class="table-container">
-                    <table>
+                <h3>Before 1NF (Unnormalized)</h3>
+                <table style="margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <th>Student_ID</th>
-                            <th>Student_Name</th>
-                            <th>Course_ID</th>
-                            <th>Course_Name</th>
-                            <th>Instructor</th>
+                            <th>StudentID</th>
+                            <th>Name</th>
+                            <th>Courses</th>
                         </tr>
+                    </thead>
+                    <tbody>
                         <tr>
                             <td>101</td>
-                            <td>Alice Smith</td>
-                            <td>CS101</td>
-                            <td>Database Systems</td>
-                            <td>Dr. Johnson</td>
+                            <td>Alice</td>
+                            <td>Math, Physics, Chemistry</td>
                         </tr>
                         <tr>
                             <td>102</td>
-                            <td>Bob Wilson</td>
-                            <td>CS102</td>
-                            <td>Data Structures</td>
-                            <td>Dr. Brown</td>
+                            <td>Bob</td>
+                            <td>English, History</td>
                         </tr>
-                    </table>
-                </div>
-                <p><strong>Problem:</strong> We cannot add a new course (CS103 - Algorithms, Dr. Davis) until at least one student enrolls in it. Similarly, we cannot add student information without enrollment data.</p>
-            </div>
-        </div>
+                    </tbody>
+                </table>
 
-        <!-- Deletion Anomaly -->
-        <div class="slide">
-            <h2>Deletion Anomaly</h2>
-            
-            <div class="anomaly-section">
-                <h4>Definition</h4>
-                <p>A deletion anomaly occurs when deleting a row results in the loss of information about other entities that we want to retain in the database.</p>
-            </div>
-
-            <div class="example-box">
-                <h4>Example: Using the Same Student Course Table</h4>
-                <div class="table-container">
-                    <table>
+                <h3 style="margin-top: 20px;">After 1NF</h3>
+                <table style="margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <th>Student_ID</th>
-                            <th>Student_Name</th>
-                            <th>Course_ID</th>
-                            <th>Course_Name</th>
-                            <th>Instructor</th>
+                            <th>StudentID</th>
+                            <th>Name</th>
+                            <th>Course</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>101</td>
+                            <td>Alice</td>
+                            <td>Math</td>
                         </tr>
                         <tr>
                             <td>101</td>
-                            <td>Alice Smith</td>
-                            <td>CS101</td>
-                            <td>Database Systems</td>
-                            <td>Dr. Johnson</td>
-                        </tr>
-                        <tr style="background-color: #ffebee;">
-                            <td>103</td>
-                            <td>Carol Davis</td>
-                            <td>CS103</td>
-                            <td>Algorithms</td>
-                            <td>Dr. Davis</td>
-                        </tr>
-                    </table>
-                </div>
-                <p><strong>Problem:</strong> If Carol drops out and we delete her record, we lose all information about CS103 course and Dr. Davis, even though the course might still exist and be taught by Dr. Davis.</p>
-            </div>
-        </div>
-
-        <!-- Update Anomaly -->
-        <div class="slide">
-            <h2>Update Anomaly</h2>
-            
-            <div class="anomaly-section">
-                <h4>Definition</h4>
-                <p>An update anomaly occurs when updating a single piece of information requires multiple rows to be updated, and failure to update all relevant rows results in data inconsistency.</p>
-            </div>
-
-            <div class="example-box">
-                <h4>Example: Multiple Enrollments</h4>
-                <div class="table-container">
-                    <table>
-                        <tr>
-                            <th>Student_ID</th>
-                            <th>Student_Name</th>
-                            <th>Course_ID</th>
-                            <th>Course_Name</th>
-                            <th>Instructor</th>
+                            <td>Alice</td>
+                            <td>Physics</td>
                         </tr>
                         <tr>
                             <td>101</td>
-                            <td>Alice Smith</td>
-                            <td>CS101</td>
-                            <td>Database Systems</td>
-                            <td>Dr. Johnson</td>
-                        </tr>
-                        <tr style="background-color: #fff3e0;">
-                            <td>101</td>
-                            <td>Alice Smith</td>
-                            <td>CS102</td>
-                            <td>Data Structures</td>
-                            <td>Dr. Brown</td>
-                        </tr>
-                        <tr style="background-color: #fff3e0;">
-                            <td>101</td>
-                            <td>Alice Smith</td>
-                            <td>CS103</td>
-                            <td>Algorithms</td>
-                            <td>Dr. Davis</td>
-                        </tr>
-                    </table>
-                </div>
-                <p><strong>Problem:</strong> If Alice Smith changes her name to Alice Johnson, we need to update multiple rows. If we miss updating any row, we'll have inconsistent data where the same student appears with different names.</p>
-            </div>
-        </div>
-
-        <!-- Functional Dependencies Introduction -->
-        <div class="slide">
-            <h2>Functional Dependencies</h2>
-            
-            <div class="definition">
-                <h4>Definition</h4>
-                <p>A Functional Dependency (FD) is a constraint that describes the relationship between attributes in a relation. We say that attribute Y is functionally dependent on attribute X if each value of X is associated with exactly one value of Y.</p>
-            </div>
-
-            <div class="formula">
-                X → Y (read as "X determines Y" or "Y depends on X")
-            </div>
-
-            <p>This means that for any two tuples t1 and t2 in a relation R:</p>
-            <p><strong>If t1[X] = t2[X], then t1[Y] = t2[Y]</strong></p>
-
-            <div class="highlight">
-                <strong>Important:</strong> Functional dependencies are determined by the semantics of the data, not just by looking at current data instances.
-            </div>
-        </div>
-
-        <!-- Functional Dependencies Examples -->
-        <div class="slide">
-            <h2>Functional Dependencies - Examples</h2>
-            
-            <div class="example-box">
-                <h4>Example 1: Employee Table</h4>
-                <div class="table-container">
-                    <table>
-                        <tr>
-                            <th>Emp_ID</th>
-                            <th>Emp_Name</th>
-                            <th>Department</th>
-                            <th>Salary</th>
-                            <th>Manager</th>
+                            <td>Alice</td>
+                            <td>Chemistry</td>
                         </tr>
                         <tr>
-                            <td>E001</td>
-                            <td>John Smith</td>
-                            <td>IT</td>
-                            <td>75000</td>
-                            <td>Alice Brown</td>
-                        </tr>
-                        <tr>
-                            <td>E002</td>
-                            <td>Jane Doe</td>
-                            <td>HR</td>
-                            <td>68000</td>
-                            <td>Bob Wilson</td>
-                        </tr>
-                    </table>
-                </div>
-                
-                <h4>Functional Dependencies:</h4>
-                <ul>
-                    <li><strong>Emp_ID → Emp_Name</strong> (Each employee ID uniquely determines employee name)</li>
-                    <li><strong>Emp_ID → Department</strong> (Each employee belongs to exactly one department)</li>
-                    <li><strong>Emp_ID → Salary</strong> (Each employee has exactly one salary)</li>
-                    <li><strong>Emp_ID → Manager</strong> (Each employee has exactly one direct manager)</li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Types of Functional Dependencies -->
-        <div class="slide">
-            <h2>Types of Functional Dependencies</h2>
-
-            <div class="dependency-box">
-                <h4>1. Trivial Functional Dependency</h4>
-                <p>A functional dependency X → Y is trivial if Y ⊆ X (Y is a subset of X)</p>
-                <div class="formula">Examples: AB → A, ABC → BC, A → A</div>
-            </div>
-
-            <div class="dependency-box">
-                <h4>2. Non-trivial Functional Dependency</h4>
-                <p>A functional dependency X → Y is non-trivial if Y ⊄ X (Y is not a subset of X)</p>
-                <div class="formula">Examples: A → B, AB → C, Student_ID → Student_Name</div>
-            </div>
-
-            <div class="dependency-box">
-                <h4>3. Completely Non-trivial Functional Dependency</h4>
-                <p>A functional dependency X → Y is completely non-trivial if X ∩ Y = ∅ (X and Y have no common attributes)</p>
-                <div class="formula">Examples: A → B, AB → CD, Student_ID → Student_Name</div>
-            </div>
-        </div>
-
-        <!-- Functional Dependency Rules -->
-        <div class="slide">
-            <h2>Armstrong's Axioms for Functional Dependencies</h2>
-            
-            <p>Armstrong's axioms provide a sound and complete set of inference rules for functional dependencies:</p>
-
-            <div class="dependency-box">
-                <h4>Primary Axioms:</h4>
-                <ul>
-                    <li><strong>Reflexivity:</strong> If Y ⊆ X, then X → Y</li>
-                    <li><strong>Augmentation:</strong> If X → Y, then XZ → YZ</li>
-                    <li><strong>Transitivity:</strong> If X → Y and Y → Z, then X → Z</li>
-                </ul>
-            </div>
-
-            <div class="dependency-box">
-                <h4>Derived Rules:</h4>
-                <ul>
-                    <li><strong>Union:</strong> If X → Y and X → Z, then X → YZ</li>
-                    <li><strong>Decomposition:</strong> If X → YZ, then X → Y and X → Z</li>
-                    <li><strong>Pseudo-transitivity:</strong> If X → Y and WY → Z, then WX → Z</li>
-                </ul>
-            </div>
-
-            <div class="example-box">
-                <h4>Example Application:</h4>
-                <p>Given: A → B, B → C, A → D</p>
-                <p>We can derive: A → C (by transitivity), A → BCD (by union)</p>
-            </div>
-        </div>
-
-        <!-- Multivalued Dependencies -->
-        <div class="slide">
-            <h2>Multivalued Dependencies</h2>
-            
-            <div class="definition">
-                <h4>Definition</h4>
-                <p>A Multivalued Dependency (MVD) X ↠ Y exists in relation R if, for each value of X, there is a set of values of Y that are independent of the values of the remaining attributes in R.</p>
-            </div>
-
-            <div class="formula">
-                X ↠ Y (read as "X multi-determines Y")
-            </div>
-
-            <p>Formal definition: X ↠ Y holds in relation R if whenever two tuples exist in R that agree on X, then we can swap their Y values and the resulting tuples will also be in R.</p>
-
-            <div class="highlight">
-                <strong>Key Insight:</strong> MVDs arise when we have two or more independent multi-valued attributes that depend on the same key.
-            </div>
-        </div>
-
-        <!-- Multivalued Dependencies Example -->
-        <div class="slide">
-            <h2>Multivalued Dependencies - Example</h2>
-            
-            <div class="example-box">
-                <h4>Example: Employee Skills and Languages</h4>
-                <div class="table-container">
-                    <table>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Skill</th>
-                            <th>Language</th>
-                        </tr>
-                        <tr>
-                            <td>John</td>
-                            <td>Java</td>
+                            <td>102</td>
+                            <td>Bob</td>
                             <td>English</td>
                         </tr>
                         <tr>
-                            <td>John</td>
-                            <td>Java</td>
-                            <td>Spanish</td>
+                            <td>102</td>
+                            <td>Bob</td>
+                            <td>History</td>
                         </tr>
-                        <tr>
-                            <td>John</td>
-                            <td>Python</td>
-                            <td>English</td>
-                        </tr>
-                        <tr>
-                            <td>John</td>
-                            <td>Python</td>
-                            <td>Spanish</td>
-                        </tr>
-                    </table>
-                </div>
-                
-                <p><strong>Multivalued Dependencies:</strong></p>
-                <ul>
-                    <li><strong>Employee ↠ Skill</strong> (John's skills are independent of languages)</li>
-                    <li><strong>Employee ↠ Language</strong> (John's languages are independent of skills)</li>
-                </ul>
-                
-                <p><strong>Problem:</strong> This creates redundancy - we need all combinations of skills and languages for each employee.</p>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- MVD Properties -->
-        <div class="slide">
-            <h2>Properties of Multivalued Dependencies</h2>
-
-            <div class="dependency-box">
-                <h4>Key Properties:</h4>
-                <ul>
-                    <li><strong>Trivial MVD:</strong> X ↠ Y is trivial if Y ⊆ X or XY = R</li>
-                    <li><strong>Complementation:</strong> If X ↠ Y, then X ↠ (R - X - Y)</li>
-                    <li><strong>Every FD is an MVD:</strong> If X → Y, then X ↠ Y</li>
-                    <li><strong>MVD and FD interaction:</strong> If X ↠ Y and Z ⊆ Y, and X → Z, then X → Y</li>
-                </ul>
-            </div>
-
-            <div class="dependency-box">
-                <h4>Inference Rules for MVDs:</h4>
-                <ul>
-                    <li><strong>Reflexivity:</strong> If Y ⊆ X, then X ↠ Y</li>
-                    <li><strong>Augmentation:</strong> If X ↠ Y, then XZ ↠ YZ</li>
-                    <li><strong>Transitivity:</strong> If X ↠ Y and Y ↠ Z, then X ↠ (Z - Y)</li>
-                    <li><strong>Union:</strong> If X ↠ Y and X ↠ Z, then X ↠ YZ</li>
-                    <li><strong>Intersection:</strong> If X ↠ Y and X ↠ Z, then X ↠ (Y ∩ Z)</li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Join Dependencies -->
-        <div class="slide">
-            <h2>Join Dependencies</h2>
+        <!-- Second Normal Form -->
+        <div class="slide fade-in">
+            <h1>Second Normal Form (2NF)</h1>
             
-            <div class="definition">
-                <h4>Definition</h4>
-                <p>A Join Dependency (JD) is a constraint that specifies that a relation should be decomposed into multiple relations such that the original relation can be reconstructed by joining these decomposed relations.</p>
+            <div class="normal-form-card">
+                <div class="normal-form-title">2NF Rules</div>
+                <ul style="line-height: 2; font-size: 1.1em;">
+                    <li>Must be in 1NF</li>
+                    <li>No partial dependencies on composite primary key</li>
+                    <li>All non-key attributes must be fully functionally dependent on the entire primary key</li>
+                </ul>
             </div>
 
-            <div class="formula">
-                ⋈{R1, R2, ..., Rn} (read as "join dependency on R1, R2, ..., Rn")
-            </div>
-
-            <p>A relation R satisfies a join dependency ⋈{R1, R2, ..., Rn} if R = R1 ⋈ R2 ⋈ ... ⋈ Rn, where each Ri is the projection of R onto a subset of attributes.</p>
-
-            <div class="highlight">
-                <strong>Important:</strong> Every MVD implies a JD, but not every JD is implied by an MVD.
-            </div>
-        </div>
-
-        <!-- Join Dependencies Example -->
-        <div class="slide">
-            <h2>Join Dependencies - Example</h2>
-            
             <div class="example-box">
-                <h4>Example: Supplier-Part-Project Relation</h4>
-                <div class="table-container">
-                    <table>
+                <h3>Before 2NF (1NF but not 2NF)</h3>
+                <table style="margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <th>Supplier</th>
-                            <th>Part</th>
-                            <th>Project</th>
+                            <th>StudentID</th>
+                            <th>CourseID</th>
+                            <th>StudentName</th>
+                            <th>CourseName</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>101</td>
+                            <td>CS101</td>
+                            <td>Alice</td>
+                            <td>Programming</td>
+                            <td>A</td>
                         </tr>
                         <tr>
-                            <td>S1</td>
-                            <td>P1</td>
-                            <td>J1</td>
+                            <td>101</td>
+                            <td>CS102</td>
+                            <td>Alice</td>
+                            <td>Data Structures</td>
+                            <td>B+</td>
                         </tr>
-                        <tr>
-                            <td>S1</td>
-                            <td>P2</td>
-                            <td>J2</td>
-                        </tr>
-                        <tr>
-                            <td>S2</td>
-                            <td>P1</td>
-                            <td>J1</td>
-                        </tr>
-                    </table>
+                    </tbody>
+                </table>
+                <p style="color: #d63031; font-weight: bold; margin-top: 10px;">
+                    Problem: StudentName depends only on StudentID, not on the full composite key (StudentID, CourseID)
+                </p>
+
+                <h3 style="margin-top: 20px;">After 2NF</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                    <div>
+                        <h4>Students Table</h4>
+                        <table>
+                            <thead>
+                                <tr><th>StudentID</th><th>StudentName</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>101</td><td>Alice</td></tr>
+                                <tr><td>102</td><td>Bob</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h4>Courses Table</h4>
+                        <table>
+                            <thead>
+                                <tr><th>CourseID</th><th>CourseName</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>CS101</td><td>Programming</td></tr>
+                                <tr><td>CS102</td><td>Data Structures</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                
-                <p><strong>Possible Join Dependencies:</strong></p>
-                <ul>
-                    <li>⋈{(Supplier, Part), (Part, Project), (Supplier, Project)}</li>
-                    <li>⋈{(Supplier, Part), (Supplier, Project)}</li>
+                <h4>Enrollments Table</h4>
+                <table>
+                    <thead>
+                        <tr><th>StudentID</th><th>CourseID</th><th>Grade</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>101</td><td>CS101</td><td>A</td></tr>
+                        <tr><td>101</td><td>CS102</td><td>B+</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Third Normal Form -->
+        <div class="slide fade-in">
+            <h1>Third Normal Form (3NF)</h1>
+            
+            <div class="normal-form-card">
+                <div class="normal-form-title">3NF Rules</div>
+                <ul style="line-height: 2; font-size: 1.1em;">
+                    <li>Must be in 2NF</li>
+                    <li>No transitive dependencies</li>
+                    <li>Non-key attributes should not depend on other non-key attributes</li>
                 </ul>
-                
-                <p><strong>Meaning:</strong> The original relation can be reconstructed by joining the projected relations without loss of information.</p>
+            </div>
+
+            <div class="example-box">
+                <h3>Before 3NF (2NF but not 3NF)</h3>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>StudentID</th>
+                            <th>StudentName</th>
+                            <th>DepartmentID</th>
+                            <th>DepartmentName</th>
+                            <th>DepartmentHead</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>101</td>
+                            <td>Alice</td>
+                            <td>CS</td>
+                            <td>Computer Science</td>
+                            <td>Dr. Smith</td>
+                        </tr>
+                        <tr>
+                            <td>102</td>
+                            <td>Bob</td>
+                            <td>CS</td>
+                            <td>Computer Science</td>
+                            <td>Dr. Smith</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="color: #d63031; font-weight: bold; margin-top: 10px;">
+                    Problem: DepartmentName and DepartmentHead depend on DepartmentID (transitive dependency)
+                </p>
+
+                <h3 style="margin-top: 20px;">After 3NF</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                    <div>
+                        <h4>Students Table</h4>
+                        <table>
+                            <thead>
+                                <tr><th>StudentID</th><th>StudentName</th><th>DepartmentID</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>101</td><td>Alice</td><td>CS</td></tr>
+                                <tr><td>102</td><td>Bob</td><td>CS</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h4>Departments Table</h4>
+                        <table>
+                            <thead>
+                                <tr><th>DepartmentID</th><th>DepartmentName</th><th>DepartmentHead</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>CS</td><td>Computer Science</td><td>Dr. Smith</td></tr>
+                                <tr><td>EE</td><td>Electrical Engineering</td><td>Dr. Jones</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Relationships Between Dependencies -->
-        <div class="slide">
-            <h2>Relationships Between Dependencies</h2>
+        <!-- BCNF -->
+        <div class="slide fade-in">
+            <h1>Boyce-Codd Normal Form (BCNF)</h1>
             
-            <div class="interactive-demo">
-                <h3>Dependency Hierarchy</h3>
-                <div style="text-align: left; max-width: 600px; margin: 0 auto;">
-                    <p><strong>Functional Dependencies (FDs)</strong></p>
-                    <p style="margin-left: 20px;">↓ (Every FD is an MVD)</p>
-                    <p><strong>Multivalued Dependencies (MVDs)</strong></p>
-                    <p style="margin-left: 20px;">↓ (Every MVD implies a JD)</p>
-                    <p><strong>Join Dependencies (JDs)</strong></p>
-                </div>
-                
-                <div class="key-points">
-                    <h4>Key Relationships:</h4>
-                    <ul>
-                        <li>Every FD is an MVD, but not every MVD is an FD</li>
-                        <li>Every MVD implies a JD, but not vice versa</li>
-                        <li>5NF is concerned with eliminating JDs that are not implied by keys</li>
-                    </ul>
+            <div class="normal-form-card">
+                <div class="normal-form-title">BCNF Rules</div>
+                <ul style="line-height: 2; font-size: 1.1em;">
+                    <li>Must be in 3NF</li>
+                    <li>For every functional dependency X → Y, X should be a super key</li>
+                    <li>Eliminates anomalies that can still exist in 3NF</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h3>Example: Course-Instructor-Time</h3>
+                <p><strong>Functional Dependencies:</strong></p>
+                <ul style="margin: 10px 0;">
+                    <li>CourseID, Time → Instructor</li>
+                    <li>Instructor, Time → CourseID</li>
+                </ul>
+
+                <h4>Before BCNF (3NF but not BCNF)</h4>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>CourseID</th>
+                            <th>Time</th>
+                            <th>Instructor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>CS101</td>
+                            <td>9:00 AM</td>
+                            <td>Dr. Smith</td>
+                        </tr>
+                        <tr>
+                            <td>CS102</td>
+                            <td>10:00 AM</td>
+                            <td>Dr. Smith</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4 style="margin-top: 20px;">After BCNF</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                    <div>
+                        <h4>Course-Time Table</h4>
+                        <table>
+                            <thead>
+                                <tr><th>CourseID</th><th>Time</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>CS101</td><td>9:00 AM</td></tr>
+                                <tr><td>CS102</td><td>10:00 AM</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h4>Time-Instructor Table</h4>
+                        <table>
+                            <thead>
+                                <tr><th>Time</th><th>Instructor</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>9:00 AM</td><td>Dr. Smith</td></tr>
+                                <tr><td>10:00 AM</td><td>Dr. Smith</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Normal Forms and Dependencies -->
-        <div class="slide">
-            <h2>Normal Forms and Dependencies</h2>
+        <!-- Higher Normal Forms -->
+        <div class="slide fade-in">
+            <h1>Higher Normal Forms</h1>
             
-            <div class="normal-form">
-                <h3>1NF to 5NF Overview</h3>
-                <div class="normal-form-level">
-                    <h4>First Normal Form (1NF)</h4>
-                    <p>All attributes contain atomic values, no repeating groups</p>
+            <div class="steps-container">
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3>Fourth Normal Form (4NF)</h3>
+                    <p>Must be in BCNF and have no multi-valued dependencies. Deals with situations where a table has two or more independent multi-valued facts about an entity.</p>
                 </div>
-                <div class="normal-form-level">
-                    <h4>Second Normal Form (2NF)</h4>
-                    <p>In 1NF + no partial dependencies (non-prime attributes fully functionally dependent on PK)</p>
+                <div class="step-card">
+                    <div class="step-number">5</div>
+                    <h3>Fifth Normal Form (5NF)</h3>
+                    <p>Must be in 4NF and have no join dependencies. Every join dependency in the table is implied by the candidate keys.</p>
                 </div>
-                <div class="normal-form-level">
-                    <h4>Third Normal Form (3NF)</h4>
-                    <p>In 2NF + no transitive dependencies</p>
+                <div class="step-card">
+                    <div class="step-number">6</div>
+                    <h3>Domain-Key Normal Form</h3>
+                    <p>Every constraint on the relation is a logical consequence of the definition of keys and domains. This is the ultimate normal form.</p>
                 </div>
-                <div class="normal-form-level">
-                    <h4>Boyce-Codd Normal Form (BCNF)</h4>
-                    <p>In 3NF + all determinants are candidate keys</p>
+            </div>
+
+            <div class="example-box">
+                <h3>4NF Example: Multi-valued Dependencies</h3>
+                <p><strong>Problem:</strong> A professor can teach multiple courses and have multiple research interests independently.</p>
+                
+                <h4>Before 4NF</h4>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Professor</th>
+                            <th>Course</th>
+                            <th>Research Interest</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Dr. Smith</td>
+                            <td>Database Systems</td>
+                            <td>Data Mining</td>
+                        </tr>
+                        <tr>
+                            <td>Dr. Smith</td>
+                            <td>Database Systems</td>
+                            <td>Machine Learning</td>
+                        </tr>
+                        <tr>
+                            <td>Dr. Smith</td>
+                            <td>Data Structures</td>
+                            <td>Data Mining</td>
+                        </tr>
+                        <tr>
+                            <td>Dr. Smith</td>
+                            <td>Data Structures</td>
+                            <td>Machine Learning</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h4 style="margin-top: 20px;">After 4NF</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                    <div>
+                        <h4>Professor-Course Table</h4>
+                        <table>
+                            <thead>
+                                <tr><th>Professor</th><th>Course</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Dr. Smith</td><td>Database Systems</td></tr>
+                                <tr><td>Dr. Smith</td><td>Data Structures</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h4>Professor-Research Table</h4>
+                        <table>
+                            <thead>
+                                <tr><th>Professor</th><th>Research Interest</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Dr. Smith</td><td>Data Mining</td></tr>
+                                <tr><td>Dr. Smith</td><td>Machine Learning</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="normal-form-level">
-                    <h4>Fourth Normal Form (4NF)</h4>
-                    <p>In BCNF + no non-trivial MVDs not implied by candidate keys</p>
+            </div>
+        </div>
+
+        <!-- Normalization Process -->
+        <div class="slide fade-in">
+            <h1>Normalization Process</h1>
+            
+            <div class="algorithm-box">
+                <h3>Step-by-Step Normalization Algorithm</h3>
+                <ol style="line-height: 2; font-size: 1.1em;">
+                    <li><strong>Identify Functional Dependencies:</strong> List all FDs in the relation</li>
+                    <li><strong>Find Candidate Keys:</strong> Determine all possible candidate keys</li>
+                    <li><strong>Check 1NF:</strong> Ensure atomic values and unique records</li>
+                    <li><strong>Check 2NF:</strong> Eliminate partial dependencies</li>
+                    <li><strong>Check 3NF:</strong> Eliminate transitive dependencies</li>
+                    <li><strong>Check BCNF:</strong> Ensure all determinants are super keys</li>
+                    <li><strong>Check Higher Forms:</strong> If needed, check for 4NF and 5NF</li>
+                </ol>
+            </div>
+
+            <div class="example-box">
+                <h3>Comprehensive Example: Student Management System</h3>
+                
+                <h4>Original Unnormalized Table</h4>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>StudentID</th>
+                            <th>StudentName</th>
+                            <th>Courses</th>
+                            <th>Grades</th>
+                            <th>Instructors</th>
+                            <th>DeptID</th>
+                            <th>DeptName</th>
+                            <th>DeptHead</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>S001</td>
+                            <td>Alice Johnson</td>
+                            <td>CS101, CS102</td>
+                            <td>A, B+</td>
+                            <td>Dr. Smith, Dr. Jones</td>
+                            <td>CS</td>
+                            <td>Computer Science</td>
+                            <td>Dr. Brown</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="code-block" style="margin-top: 20px;">
+-- Final Normalized Schema (3NF/BCNF)
+
+-- Students Table
+CREATE TABLE Students (
+    StudentID VARCHAR(10) PRIMARY KEY,
+    StudentName VARCHAR(50) NOT NULL,
+    DeptID VARCHAR(10),
+    FOREIGN KEY (DeptID) REFERENCES Departments(DeptID)
+);
+
+-- Departments Table
+CREATE TABLE Departments (
+    DeptID VARCHAR(10) PRIMARY KEY,
+    DeptName VARCHAR(50) NOT NULL,
+    DeptHead VARCHAR(50)
+);
+
+-- Courses Table
+CREATE TABLE Courses (
+    CourseID VARCHAR(10) PRIMARY KEY,
+    CourseName VARCHAR(50) NOT NULL,
+    InstructorID VARCHAR(10),
+    FOREIGN KEY (InstructorID) REFERENCES Instructors(InstructorID)
+);
+
+-- Enrollments Table
+CREATE TABLE Enrollments (
+    StudentID VARCHAR(10),
+    CourseID VARCHAR(10),
+    Grade VARCHAR(5),
+    PRIMARY KEY (StudentID, CourseID),
+    FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
+    FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
+);
+
+-- Instructors Table
+CREATE TABLE Instructors (
+    InstructorID VARCHAR(10) PRIMARY KEY,
+    InstructorName VARCHAR(50) NOT NULL,
+    DeptID VARCHAR(10),
+    FOREIGN KEY (DeptID) REFERENCES Departments(DeptID)
+);
                 </div>
-                <div class="normal-form-level">
-                    <h4>Fifth Normal Form (5NF)</h4>
-                    <p>In 4NF + no non-trivial JDs not implied by candidate keys</p>
+            </div>
+        </div>
+
+        <!-- Denormalization -->
+        <div class="slide fade-in">
+            <h1>Denormalization</h1>
+            
+            <div class="definition-box">
+                <h3>What is Denormalization?</h3>
+                <p><strong>Denormalization</strong> is the process of intentionally introducing redundancy into a database design to improve query performance, typically by combining normalized tables.</p>
+            </div>
+
+            <h2>When to Denormalize?</h2>
+            <div class="steps-container">
+                <div class="step-card">
+                    <div class="step-number">📊</div>
+                    <h3>Performance Requirements</h3>
+                    <p>When query performance is more critical than storage space or update efficiency.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">🔍</div>
+                    <h3>Read-Heavy Workloads</h3>
+                    <p>Systems with frequent reads but infrequent updates benefit from denormalization.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">📈</div>
+                    <h3>Data Warehousing</h3>
+                    <p>OLAP systems often use denormalized structures for faster analytics.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">⚡</div>
+                    <h3>Real-time Systems</h3>
+                    <p>Applications requiring sub-second response times may need denormalized data.</p>
+                </div>
+            </div>
+
+            <div class="example-box">
+                <h3>Denormalization Example</h3>
+                <p>Instead of joining Students and Departments tables repeatedly:</p>
+                
+                <h4>Normalized (Multiple Tables)</h4>
+                <div class="code-block">
+SELECT s.StudentName, d.DeptName 
+FROM Students s 
+JOIN Departments d ON s.DeptID = d.DeptID;
+                </div>
+                
+                <h4>Denormalized (Single Table)</h4>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>StudentID</th>
+                            <th>StudentName</th>
+                            <th>DeptID</th>
+                            <th>DeptName</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>S001</td>
+                            <td>Alice Johnson</td>
+                            <td>CS</td>
+                            <td>Computer Science</td>
+                        </tr>
+                        <tr>
+                            <td>S002</td>
+                            <td>Bob Smith</td>
+                            <td>CS</td>
+                            <td>Computer Science</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="code-block" style="margin-top: 10px;">
+SELECT StudentName, DeptName FROM Student_Dept_View;
+                </div>
+            </div>
+        </div>
+
+        <!-- Limitations of Relational Model -->
+        <div class="slide fade-in">
+            <h1>Limitations of Relational Data Model</h1>
+            
+            <h2>Structural Limitations</h2>
+            <div class="limitation-box">
+                <h3>1. Complex Data Types</h3>
+                <p><strong>Problem:</strong> Traditional relational databases struggle with complex data types like arrays, nested objects, multimedia content, and hierarchical data structures.</p>
+                <p><strong>Example:</strong> Storing JSON documents, XML data, or multimedia files requires workarounds or separate storage systems.</p>
+            </div>
+
+            <div class="limitation-box">
+                <h3>2. Object-Relational Impedance Mismatch</h3>
+                <p><strong>Problem:</strong> Difficulty in mapping object-oriented programming concepts to relational database structures.</p>
+                <p><strong>Impact:</strong> Complex inheritance hierarchies and polymorphic relationships are hard to represent efficiently.</p>
+            </div>
+
+            <div class="limitation-box">
+                <h3>3. Fixed Schema Requirements</h3>
+                <p><strong>Problem:</strong> Relational databases require predefined schemas, making it difficult to handle dynamic or evolving data structures.</p>
+                <p><strong>Example:</strong> Adding new attributes requires schema modifications and potential data migration.</p>
+            </div>
+        </div>
+
+        <!-- Performance Limitations -->
+        <div class="slide fade-in">
+            <h1>Performance & Scalability Limitations</h1>
+
+            <div class="limitation-box">
+                <h3>1. Horizontal Scalability Challenges</h3>
+                <p><strong>Problem:</strong> Traditional RDBMS are designed for vertical scaling (scaling up) rather than horizontal scaling (scaling out).</p>
+                <p><strong>Impact:</strong> Difficult to distribute data across multiple servers while maintaining ACID properties and referential integrity.</p>
+            </div>
+
+            <div class="limitation-box">
+                <h3>2. Join Operation Overhead</h3>
+                <p><strong>Problem:</strong> Complex queries involving multiple joins can be computationally expensive.</p>
+                <p><strong>Example:</strong> Normalized designs may require numerous joins for simple data retrieval operations.</p>
+            </div>
+
+            <div class="limitation-box">
+                <h3>3. Big Data Processing</h3>
+                <p><strong>Problem:</strong> Traditional relational databases are not optimized for processing massive volumes of unstructured or semi-structured data.</p>
+                <p><strong>Limitations:</strong></p>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>Limited support for parallel processing</li>
+                    <li>Inefficient for analytical workloads on large datasets</li>
+                    <li>Poor performance with real-time data streaming</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h3>Scalability Comparison</h3>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Relational Database</th>
+                            <th>NoSQL Solutions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Scaling Type</strong></td>
+                            <td>Vertical (Scale Up)</td>
+                            <td>Horizontal (Scale Out)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Data Volume</strong></td>
+                            <td>GB to TB range</td>
+                            <td>TB to PB range</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Schema Flexibility</strong></td>
+                            <td>Fixed Schema</td>
+                            <td>Dynamic Schema</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Complex Queries</strong></td>
+                            <td>SQL - Very Good</td>
+                            <td>Limited - Good for Simple Queries</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modern Data Requirements -->
+        <div class="slide fade-in">
+            <h1>Modern Data Requirements vs Relational Model</h1>
+
+            <div class="limitation-box">
+                <h3>1. Semi-Structured and Unstructured Data</h3>
+                <p><strong>Challenge:</strong> Modern applications generate diverse data types including social media posts, sensor data, log files, and multimedia content.</p>
+                <p><strong>Relational Limitation:</strong> Rigid tabular structure cannot efficiently handle variable schemas and nested data structures.</p>
+            </div>
+
+            <div class="limitation-box">
+                <h3>2. Real-Time Analytics</h3>
+                <p><strong>Requirement:</strong> Need for real-time data processing and analytics for immediate decision-making.</p>
+                <p><strong>Limitation:</strong> Traditional RDBMS are optimized for transactional processing (OLTP) rather than analytical processing (OLAP).</p>
+            </div>
+
+            <div class="limitation-box">
+                <h3>3. Geographic Distribution</h3>
+                <p><strong>Challenge:</strong> Global applications require data to be distributed across multiple geographic locations.</p>
+                <p><strong>Issues:</strong></p>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>Network latency affects performance</li>
+                    <li>Maintaining consistency across distributed nodes</li>
+                    <li>Compliance with regional data protection laws</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h3>Use Case Analysis</h3>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Use Case</th>
+                            <th>Data Characteristics</th>
+                            <th>Relational Fit</th>
+                            <th>Better Alternative</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Social Media Platform</strong></td>
+                            <td>Unstructured posts, variable metadata</td>
+                            <td>Poor</td>
+                            <td>Document Store (MongoDB)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>IoT Data Processing</strong></td>
+                            <td>High-volume time-series data</td>
+                            <td>Poor</td>
+                            <td>Time-series DB (InfluxDB)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Recommendation Engine</strong></td>
+                            <td>Graph relationships, user behavior</td>
+                            <td>Limited</td>
+                            <td>Graph Database (Neo4j)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Financial Transactions</strong></td>
+                            <td>Structured, ACID requirements</td>
+                            <td>Excellent</td>
+                            <td>Relational Database</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Alternative Data Models -->
+        <div class="slide fade-in">
+            <h1>Alternative Data Models</h1>
+
+            <div class="steps-container">
+                <div class="step-card">
+                    <div class="step-number">📄</div>
+                    <h3>Document Stores</h3>
+                    <p><strong>Examples:</strong> MongoDB, CouchDB</p>
+                    <p><strong>Best For:</strong> Semi-structured data, content management, catalogs</p>
+                    <p><strong>Advantages:</strong> Flexible schema, natural object mapping</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">🗂️</div>
+                    <h3>Column-Family</h3>
+                    <p><strong>Examples:</strong> Cassandra, HBase</p>
+                    <p><strong>Best For:</strong> Time-series data, IoT applications, wide tables</p>
+                    <p><strong>Advantages:</strong> High write throughput, compression</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">🔗</div>
+                    <h3>Graph Databases</h3>
+                    <p><strong>Examples:</strong> Neo4j, Amazon Neptune</p>
+                    <p><strong>Best For:</strong> Social networks, recommendation systems</p>
+                    <p><strong>Advantages:</strong> Natural relationship representation</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">🗝️</div>
+                    <h3>Key-Value Stores</h3>
+                    <p><strong>Examples:</strong> Redis, DynamoDB</p>
+                    <p><strong>Best For:</strong> Caching, session management</p>
+                    <p><strong>Advantages:</strong> High performance, simplicity</p>
+                </div>
+            </div>
+
+            <div class="definition-box">
+                <h3>CAP Theorem Impact</h3>
+                <p>The CAP theorem states that distributed systems can only guarantee two of three properties simultaneously:</p>
+                <ul style="margin-left: 20px; line-height: 1.8; margin-top: 10px;">
+                    <li><strong>Consistency:</strong> All nodes see the same data simultaneously</li>
+                    <li><strong>Availability:</strong> System remains operational</li>
+                    <li><strong>Partition Tolerance:</strong> System continues despite network failures</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>Impact:</strong> Traditional RDBMS prioritize Consistency and Availability but struggle with Partition Tolerance in distributed environments.</p>
+            </div>
+        </div>
+
+        <!-- Solutions and Workarounds -->
+        <div class="slide fade-in">
+            <h1>Solutions and Workarounds</h1>
+
+            <h2>Extending Relational Capabilities</h2>
+            <div class="algorithm-box">
+                <h3>Modern RDBMS Extensions</h3>
+                <ul style="line-height: 2; font-size: 1.1em;">
+                    <li><strong>JSON/XML Support:</strong> PostgreSQL, MySQL, SQL Server now support JSON data types</li>
+                    <li><strong>Array Types:</strong> PostgreSQL supports array columns and operations</li>
+                    <li><strong>Full-Text Search:</strong> Built-in text search capabilities</li>
+                    <li><strong>Spatial Data:</strong> PostGIS for geographic information systems</li>
+                    <li><strong>User-Defined Types:</strong> Custom data types and functions</li>
+                </ul>
+            </div>
+
+            <h2>Hybrid Approaches</h2>
+            <div class="example-box">
+                <h3>Polyglot Persistence</h3>
+                <p>Using different database technologies for different parts of an application based on data requirements.</p>
+                
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Data Type</th>
+                            <th>Database Choice</th>
+                            <th>Example Use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Transactional Data</td>
+                            <td>PostgreSQL/MySQL</td>
+                            <td>User accounts, orders, payments</td>
+                        </tr>
+                        <tr>
+                            <td>Product Catalog</td>
+                            <td>MongoDB</td>
+                            <td>Variable product attributes</td>
+                        </tr>
+                        <tr>
+                            <td>User Sessions</td>
+                            <td>Redis</td>
+                            <td>Fast session storage and caching</td>
+                        </tr>
+                        <tr>
+                            <td>Recommendation Data</td>
+                            <td>Neo4j</td>
+                            <td>User behavior and product relationships</td>
+                        </tr>
+                        <tr>
+                            <td>Analytics Data</td>
+                            <td>ClickHouse/BigQuery</td>
+                            <td>OLAP queries and reporting</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Best Practices -->
+        <div class="slide fade-in">
+            <h1>Best Practices & Guidelines</h1>
+
+            <h2>When to Use Relational Databases</h2>
+            <div class="algorithm-box">
+                <h3>Ideal Scenarios for RDBMS</h3>
+                <ul style="line-height: 2; font-size: 1.1em;">
+                    <li><strong>ACID Compliance Required:</strong> Financial systems, inventory management</li>
+                    <li><strong>Complex Queries:</strong> Applications requiring sophisticated joins and aggregations</li>
+                    <li><strong>Data Integrity Critical:</strong> Systems where referential integrity is paramount</li>
+                    <li><strong>Structured Data:</strong> Well-defined, stable data schemas</li>
+                    <li><strong>Reporting & Analytics:</strong> Business intelligence with SQL-based tools</li>
+                </ul>
+            </div>
+
+            <h2>Decision Framework</h2>
+            <div class="steps-container">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Analyze Data Structure</h3>
+                    <p>Is your data highly structured with fixed relationships? → RDBMS<br>
+                    Is your data semi-structured or schema-less? → NoSQL</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Consider Scale Requirements</h3>
+                    <p>Single server sufficient? → RDBMS<br>
+                    Need horizontal scaling? → NoSQL</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Evaluate Query Complexity</h3>
+                    <p>Complex joins and aggregations needed? → RDBMS<br>
+                    Simple key-value lookups? → NoSQL</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3>Assess Consistency Needs</h3>
+                    <p>Strong consistency required? → RDBMS<br>
+                    Eventual consistency acceptable? → NoSQL</p>
                 </div>
             </div>
         </div>
 
         <!-- Summary -->
-        <div class="slide summary">
-            <h2>Summary</h2>
-            
-            <div class="summary-points">
-                <div class="summary-item">
-                    <h3>Anomalies</h3>
-                    <ul>
-                        <li>Insertion Anomaly: Cannot insert data due to missing attributes</li>
-                        <li>Update Anomaly: Inconsistent data after updates</li>
-                        <li>Deletion Anomaly: Loss of unrelated data when deleting</li>
-                    </ul>
+        <div class="slide fade-in">
+            <h1>Summary & Key Takeaways</h1>
+
+            <h2>Normal Forms Recap</h2>
+            <table style="margin: 20px 0;">
+                <thead>
+                    <tr>
+                        <th>Normal Form</th>
+                        <th>Key Requirement</th>
+                        <th>Eliminates</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>1NF</strong></td>
+                        <td>Atomic values, unique records</td>
+                        <td>Repeating groups</td>
+                    </tr>
+                    <tr>
+                        <td><strong>2NF</strong></td>
+                        <td>No partial dependencies</td>
+                        <td>Partial dependencies</td>
+                    </tr>
+                    <tr>
+                        <td><strong>3NF</strong></td>
+                        <td>No transitive dependencies</td>
+                        <td>Transitive dependencies</td>
+                    </tr>
+                    <tr>
+                        <td><strong>BCNF</strong></td>
+                        <td>All determinants are super keys</td>
+                        <td>Additional anomalies in 3NF</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>Key Insights</h2>
+            <div class="objectives-grid">
+                <div class="objective-item">
+                    <h3>🎯 Normalization Benefits</h3>
+                    <p>Reduces redundancy, improves data integrity, eliminates update anomalies</p>
                 </div>
-                
-                <div class="summary-item">
-                    <h3>Dependencies</h3>
-                    <ul>
-                        <li>Functional Dependencies (FDs): X → Y</li>
-                        <li>Multivalued Dependencies (MVDs): X ↠ Y</li>
-                        <li>Join Dependencies (JDs): ⋈{R1, R2, ..., Rn}</li>
-                    </ul>
+                <div class="objective-item">
+                    <h3>⚡ Performance Trade-offs</h3>
+                    <p>Higher normalization can increase join operations; denormalization may improve query performance</p>
                 </div>
-                
-                <div class="summary-item">
-                    <h3>Normalization</h3>
-                    <p>The process of removing anomalies by decomposing relations while preserving dependencies.</p>
-                    <p>Higher normal forms (up to 5NF) eliminate more types of anomalies.</p>
+                <div class="objective-item">
+                    <h3>🔄 Modern Challenges</h3>
+                    <p>Relational model faces limitations with big data, real-time processing, and complex data types</p>
                 </div>
+                <div class="objective-item">
+                    <h3>🛠️ Hybrid Solutions</h3>
+                    <p>Modern applications often use polyglot persistence combining multiple database technologies</p>
+                </div>
+            </div>
+
+            <div class="definition-box">
+                <h3>Final Recommendation</h3>
+                <p>Choose the right tool for the job. Relational databases excel at structured data with complex relationships and strong consistency requirements. For other scenarios, consider NoSQL alternatives or hybrid approaches. The key is understanding your specific requirements and making informed architectural decisions.</p>
             </div>
         </div>
-        
-        <!-- Thank You -->
-        <div class="slide thank-you">
-            <h1>Thank You!</h1>
-            <div class="contact">
-                <p>For questions or clarifications, please contact:</p>
-                <p>Dr. Mohsin Dar</p>
-                <p>mohsin.dar@ddn.upes.ac.in</p>
+
+        <!-- Q&A and Next Lecture -->
+        <div class="slide fade-in">
+            <h1>Questions & Next Steps</h1>
+            
+            <h2>Discussion Questions</h2>
+            <div class="example-box">
+                <ol style="line-height: 2; font-size: 1.1em;">
+                    <li>When might you deliberately choose not to normalize to 3NF in a production system?</li>
+                    <li>How would you approach database design for a social media platform with millions of users?</li>
+                    <li>What are the trade-offs between consistency and performance in distributed systems?</li>
+                    <li>How can modern RDBMS extensions address some traditional limitations?</li>
+                </ol>
             </div>
-            <div class="references">
-                <h3>References:</h3>
-                <ul>
-                    <li>Database System Concepts by Silberschatz, Korth, and Sudarshan</li>
-                    <li>Fundamentals of Database Systems by Elmasri and Navathe</li>
-                    <li>Database Design and Relational Theory by C.J. Date</li>
+
+            <h2>Practical Assignment</h2>
+            <div class="algorithm-box">
+                <h3>Database Design Project</h3>
+                <p>Design a database for an e-commerce platform considering:</p>
+                <ul style="line-height: 2; font-size: 1.1em; margin-top: 10px;">
+                    <li>Product catalog with variable attributes</li>
+                    <li>User reviews and ratings</li>
+                    <li>Order processing and inventory</li>
+                    <li>Recommendation system requirements</li>
                 </ul>
+                <p style="margin-top: 15px;"><strong>Deliverables:</strong></p>
+                <ul style="line-height: 1.8; margin-left: 20px;">
+                    <li>Normalized relational schema (up to 3NF/BCNF)</li>
+                    <li>Identification of potential limitations</li>
+                    <li>Proposed hybrid approach with justification</li>
+                </ul>
+            </div>
+
+            <h2>Next Lecture Preview</h2>
+            <div class="definition-box">
+                <h3>Lecture 10: Unit II: Transaction Management</h3>
+                <p>We'll explore The ACID Properties,Transactions and Schedules.</p>
+            </div>
+
+            <div class="course-info" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 20px; border-radius: 10px; margin-top: 30px;">
+                <h3 style="color: white; margin-bottom: 15px;">Thank You!</h3>
+                <p><strong>Dr. Mohsin Dar</strong><br>
+                Assistant Professor, Cloud & Software Operations Cluster<br>
+                School of Computer Science, UPES<br>
+                Email: mohsin.dar@upes.ac.in</p>
             </div>
         </div>
     </div>
 
+    <div class="navigation">
+        Lecture 9 of Database Systems
+    </div>
+
     <script>
-        // Progress bar
-        window.onscroll = function() {
-            var winScroll = document.body.scrollTop || document.documentElement.scrollTop;
-            var height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            var scrolled = (winScroll / height) * 100;
-            document.getElementById("progressBar").style.width = scrolled + "%";
-        };
-
-        // Navigation functions
-        function scrollToTop() {
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        }
-
-        function scrollToBottom() {
-            window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
-        }
-
-        // Keyboard navigation
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-                window.scrollBy(0, window.innerHeight * 0.9);
-                event.preventDefault();
-            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-                window.scrollBy(0, -window.innerHeight * 0.9);
-                event.preventDefault();
-            } else if (event.key === 'Home') {
-                scrollToTop();
-                event.preventDefault();
-            } else if (event.key === 'End') {
-                scrollToBottom();
-                event.preventDefault();
-            }
-        });
-
-        // Initialize animations
+        // Add smooth scrolling behavior
         document.addEventListener('DOMContentLoaded', function() {
             const slides = document.querySelectorAll('.slide');
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.animation = 'slideIn 0.6s ease forwards';
-                    }
-                });
-            }, { threshold: 0.1 });
+            
+            // Add animation delays for fade-in effect
+            slides.forEach((slide, index) => {
+                slide.style.animationDelay = `${index * 0.1}s`;
+            });
 
-            slides.forEach(slide => {
-                observer.observe(slide);
+            // Add click handlers for interactive elements
+            const tables = document.querySelectorAll('table');
+            tables.forEach(table => {
+                table.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.02)';
+                    this.style.transition = 'transform 0.3s ease';
+                });
+                
+                table.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+
+            // Add keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowDown' || e.key === ' ') {
+                    e.preventDefault();
+                    window.scrollBy(0, window.innerHeight);
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    window.scrollBy(0, -window.innerHeight);
+                }
             });
         });
     </script>
