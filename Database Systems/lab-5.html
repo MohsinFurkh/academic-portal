@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAB-5: SQL Sub-Query - Database Systems</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .course-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-left: 5px solid #3498db;
+            margin: 20px;
+            border-radius: 8px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e9ecef;
+        }
+        
+        .section h2 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+            position: relative;
+        }
+        
+        .section h3 {
+            color: #34495e;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            margin-top: 25px;
+        }
+        
+        .section h4 {
+            color: #5a6c7d;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            margin-top: 20px;
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.5;
+            margin: 15px 0;
+            overflow-x: auto;
+            position: relative;
+            border: 1px solid #333;
+        }
+        
+        .code-block::before {
+            content: 'SQL';
+            position: absolute;
+            top: -1px;
+            right: -1px;
+            background: #3498db;
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            border-radius: 0 8px 0 8px;
+        }
+        
+        .sql-keyword {
+            color: #569cd6;
+            font-weight: bold;
+        }
+        
+        .sql-string {
+            color: #ce9178;
+        }
+        
+        .sql-number {
+            color: #b5cea8;
+        }
+        
+        .sql-comment {
+            color: #6a9955;
+            font-style: italic;
+        }
+        
+        .table-structure {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .table-structure h4 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .table-structure p {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+        }
+        
+        .objective-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .query-container {
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .query-header {
+            background: #f8f9fa;
+            padding: 15px;
+            font-weight: bold;
+            color: #495057;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .query-content {
+            padding: 0;
+        }
+        
+        .explanation {
+            background: #e8f4fd;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #f39c12;
+        }
+        
+        .note-title {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 5px;
+        }
+        
+        .sample-data {
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .sample-data table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .sample-data th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .sample-data td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .sample-data tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .highlight {
+            background: #fff2cc;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .subquery-highlight {
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .section {
+                padding: 15px;
+            }
+            
+            .code-block {
+                font-size: 0.85em;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>LAB-5: SQL Sub-Query</h1>
+            <div class="subtitle">Database Systems - MTech First Semester</div>
+        </div>
+        
+        <div class="course-info">
+            <strong>Course:</strong> Database Systems<br>
+            <strong>Instructor:</strong> Dr. Mohsin Dar<br>
+            <strong>Department:</strong> Cloud & Software Operations Cluster | SOCS | UPES<br>
+            <strong>Lab Session:</strong> 5
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>Experiment Objective</h2>
+                <div class="objective-box">
+                    <h3>Title: To understand and use SQL Sub-Query</h3>
+                    <p><strong>Objective:</strong> To understand the use of SQL subquery and implement various subquery operations on relational database tables.</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Introduction to SQL Sub-Queries</h2>
+                <p>A <strong>subquery</strong> (also known as an inner query or nested query) is a query within another SQL query. The subquery is executed first, and its result is used by the outer query. Subqueries can be used in SELECT, INSERT, UPDATE, and DELETE statements.</p>
+                
+                <h3>Types of Subqueries:</h3>
+                <ul>
+                    <li><strong>Single-row subqueries:</strong> Return exactly one row</li>
+                    <li><strong>Multiple-row subqueries:</strong> Return one or more rows</li>
+                    <li><strong>Correlated subqueries:</strong> Reference columns from the outer query</li>
+                    <li><strong>Non-correlated subqueries:</strong> Independent of the outer query</li>
+                </ul>
+                
+                <div class="note">
+                    <div class="note-title">Important Note:</div>
+                    Subqueries must be enclosed in parentheses and are often used with operators like IN, EXISTS, ANY, ALL, etc.
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Step 1: Database Schema Creation</h2>
+                <p>We need to create three tables as specified in the experiment:</p>
+                
+                <div class="table-structure">
+                    <h4>Table 1: Supplier</h4>
+                    <p>Supplier(scode, sname, scity, turnover)</p>
+                </div>
+                
+                <div class="table-structure">
+                    <h4>Table 2: Part</h4>
+                    <p>Part(pcode, weigh, color, cost, sellingprice)</p>
+                </div>
+                
+                <div class="table-structure">
+                    <h4>Table 3: Supplier_Part (Junction Table)</h4>
+                    <p>Supplier_Part(scode, pcode, qty)</p>
+                </div>
+                
+                <h3>SQL Commands for Table Creation:</h3>
+                
+                <div class="code-block">
+<span class="sql-comment">-- Create Supplier table</span>
+<span class="sql-keyword">CREATE TABLE</span> Supplier (
+    scode <span class="sql-keyword">INT PRIMARY KEY</span>,
+    sname <span class="sql-keyword">VARCHAR</span>(<span class="sql-number">50</span>) <span class="sql-keyword">NOT NULL</span>,
+    scity <span class="sql-keyword">VARCHAR</span>(<span class="sql-number">30</span>),
+    turnover <span class="sql-keyword">DECIMAL</span>(<span class="sql-number">10,2</span>)
+);
+
+<span class="sql-comment">-- Create Part table</span>
+<span class="sql-keyword">CREATE TABLE</span> Part (
+    pcode <span class="sql-keyword">INT PRIMARY KEY</span>,
+    weigh <span class="sql-keyword">DECIMAL</span>(<span class="sql-number">8,2</span>),
+    color <span class="sql-keyword">VARCHAR</span>(<span class="sql-number">20</span>),
+    cost <span class="sql-keyword">DECIMAL</span>(<span class="sql-number">8,2</span>),
+    sellingprice <span class="sql-keyword">DECIMAL</span>(<span class="sql-number">8,2</span>)
+);
+
+<span class="sql-comment">-- Create Supplier_Part junction table</span>
+<span class="sql-keyword">CREATE TABLE</span> Supplier_Part (
+    scode <span class="sql-keyword">INT</span>,
+    pcode <span class="sql-keyword">INT</span>,
+    qty <span class="sql-keyword">INT</span>,
+    <span class="sql-keyword">FOREIGN KEY</span> (scode) <span class="sql-keyword">REFERENCES</span> Supplier(scode),
+    <span class="sql-keyword">FOREIGN KEY</span> (pcode) <span class="sql-keyword">REFERENCES</span> Part(pcode),
+    <span class="sql-keyword">PRIMARY KEY</span> (scode, pcode)
+);
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Step 2: Data Population</h2>
+                <p>Let's populate the tables with sample data:</p>
+                
+                <div class="code-block">
+<span class="sql-comment">-- Insert data into Supplier table</span>
+<span class="sql-keyword">INSERT INTO</span> Supplier <span class="sql-keyword">VALUES</span>
+(<span class="sql-number">1</span>, <span class="sql-string">'ABC Suppliers'</span>, <span class="sql-string">'Bombay'</span>, <span class="sql-number">50.00</span>),
+(<span class="sql-number">2</span>, <span class="sql-string">'XYZ Corp'</span>, <span class="sql-string">'Delhi'</span>, <span class="sql-number">75.50</span>),
+(<span class="sql-number">3</span>, <span class="sql-string">'PQR Industries'</span>, <span class="sql-string">'Bombay'</span>, <span class="sql-number">50.00</span>),
+(<span class="sql-number">4</span>, <span class="sql-string">'LMN Traders'</span>, <span class="sql-string">'Chennai'</span>, <span class="sql-keyword">NULL</span>),
+(<span class="sql-number">5</span>, <span class="sql-string">'RST Suppliers'</span>, <span class="sql-string">'Pune'</span>, <span class="sql-number">120.75</span>);
+
+<span class="sql-comment">-- Insert data into Part table</span>
+<span class="sql-keyword">INSERT INTO</span> Part <span class="sql-keyword">VALUES</span>
+(<span class="sql-number">1</span>, <span class="sql-number">15.5</span>, <span class="sql-string">'Red'</span>, <span class="sql-number">25.00</span>, <span class="sql-number">35.00</span>),
+(<span class="sql-number">2</span>, <span class="sql-number">30.0</span>, <span class="sql-string">'Blue'</span>, <span class="sql-number">20.00</span>, <span class="sql-number">28.00</span>),
+(<span class="sql-number">3</span>, <span class="sql-number">45.2</span>, <span class="sql-string">'Green'</span>, <span class="sql-number">40.00</span>, <span class="sql-number">55.00</span>),
+(<span class="sql-number">4</span>, <span class="sql-number">28.8</span>, <span class="sql-string">'Yellow'</span>, <span class="sql-number">30.00</span>, <span class="sql-number">42.00</span>),
+(<span class="sql-number">5</span>, <span class="sql-number">52.3</span>, <span class="sql-string">'Black'</span>, <span class="sql-number">60.00</span>, <span class="sql-number">78.00</span>);
+
+<span class="sql-comment">-- Insert data into Supplier_Part table</span>
+<span class="sql-keyword">INSERT INTO</span> Supplier_Part <span class="sql-keyword">VALUES</span>
+(<span class="sql-number">1</span>, <span class="sql-number">2</span>, <span class="sql-number">100</span>),
+(<span class="sql-number">2</span>, <span class="sql-number">1</span>, <span class="sql-number">50</span>),
+(<span class="sql-number">3</span>, <span class="sql-number">2</span>, <span class="sql-number">75</span>),
+(<span class="sql-number">4</span>, <span class="sql-number">3</span>, <span class="sql-number">200</span>),
+(<span class="sql-number">5</span>, <span class="sql-number">4</span>, <span class="sql-number">150</span>),
+(<span class="sql-number">1</span>, <span class="sql-number">4</span>, <span class="sql-number">80</span>),
+(<span class="sql-number">2</span>, <span class="sql-number">5</span>, <span class="sql-number">120</span>);
+                </div>
+                
+                <h3>Sample Data Overview:</h3>
+                <div class="sample-data">
+                    <h4>Supplier Table:</h4>
+                    <table>
+                        <thead>
+                            <tr><th>scode</th><th>sname</th><th>scity</th><th>turnover</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td>ABC Suppliers</td><td>Bombay</td><td>50.00</td></tr>
+                            <tr><td>2</td><td>XYZ Corp</td><td>Delhi</td><td>75.50</td></tr>
+                            <tr><td>3</td><td>PQR Industries</td><td>Bombay</td><td>50.00</td></tr>
+                            <tr><td>4</td><td>LMN Traders</td><td>Chennai</td><td>NULL</td></tr>
+                            <tr><td>5</td><td>RST Suppliers</td><td>Pune</td><td>120.75</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Step 3: SQL Query Solutions</h2>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 1: Get the supplier number and part number in ascending order of supplier number</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> scode, pcode
+<span class="sql-keyword">FROM</span> Supplier_Part
+<span class="sql-keyword">ORDER BY</span> scode <span class="sql-keyword">ASC</span>;
+                        </div>
+                        <div class="explanation">
+                            <strong>Explanation:</strong> This is a simple query without subquery. It retrieves supplier and part numbers from the junction table, sorted by supplier number in ascending order.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 2: Get the details of supplier who operate from Bombay with turnover 50</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> *
+<span class="sql-keyword">FROM</span> Supplier
+<span class="sql-keyword">WHERE</span> scity = <span class="sql-string">'Bombay'</span> <span class="sql-keyword">AND</span> turnover = <span class="sql-number">50</span>;
+                        </div>
+                        <div class="explanation">
+                            <strong>Explanation:</strong> Direct query filtering suppliers based on city and turnover conditions.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 3: Get the total number of suppliers</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT COUNT</span>(*) <span class="sql-keyword">AS</span> total_suppliers
+<span class="sql-keyword">FROM</span> Supplier;
+                        </div>
+                        <div class="explanation">
+                            <strong>Explanation:</strong> Uses COUNT aggregate function to count total number of supplier records.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 4: Get the part number weighing between 25 and 35</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> pcode
+<span class="sql-keyword">FROM</span> Part
+<span class="sql-keyword">WHERE</span> weigh <span class="sql-keyword">BETWEEN</span> <span class="sql-number">25</span> <span class="sql-keyword">AND</span> <span class="sql-number">35</span>;
+                        </div>
+                        <div class="explanation">
+                            <strong>Explanation:</strong> Uses BETWEEN operator to find parts with weight in the specified range.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 5: Get the supplier number whose turnover is null</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> scode
+<span class="sql-keyword">FROM</span> Supplier
+<span class="sql-keyword">WHERE</span> turnover <span class="sql-keyword">IS NULL</span>;
+                        </div>
+                        <div class="explanation">
+                            <strong>Explanation:</strong> Uses IS NULL to find suppliers with missing turnover values.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 6: Get the part number that cost 20, 30 or 40 rupees</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> pcode
+<span class="sql-keyword">FROM</span> Part
+<span class="sql-keyword">WHERE</span> cost <span class="sql-keyword">IN</span> (<span class="sql-number">20</span>, <span class="sql-number">30</span>, <span class="sql-number">40</span>);
+                        </div>
+                        <div class="explanation">
+                            <strong>Explanation:</strong> Uses IN operator to match parts with specific cost values.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 7: Get the total quantity of part 2 that is supplied</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT SUM</span>(qty) <span class="sql-keyword">AS</span> total_quantity_part2
+<span class="sql-keyword">FROM</span> Supplier_Part
+<span class="sql-keyword">WHERE</span> pcode = <span class="sql-number">2</span>;
+                        </div>
+                        <div class="explanation">
+                            <strong>Explanation:</strong> Uses SUM aggregate function to calculate total quantity for a specific part.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 8: Get the name of supplier who supply part 2 (Using Subquery)</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> sname
+<span class="sql-keyword">FROM</span> Supplier
+<span class="sql-keyword">WHERE</span> scode <span class="sql-keyword">IN</span> (
+    <span class="sql-keyword">SELECT</span> scode
+    <span class="sql-keyword">FROM</span> Supplier_Part
+    <span class="sql-keyword">WHERE</span> pcode = <span class="sql-number">2</span>
+);
+                        </div>
+                        <div class="subquery-highlight">
+                            <strong>Subquery Explanation:</strong> This demonstrates a classic subquery usage. The inner query finds all supplier codes that supply part 2, and the outer query retrieves the names of these suppliers.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 9: Get the part number whose cost is greater than the average cost (Using Subquery)</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> pcode
+<span class="sql-keyword">FROM</span> Part
+<span class="sql-keyword">WHERE</span> cost > (
+    <span class="sql-keyword">SELECT AVG</span>(cost)
+    <span class="sql-keyword">FROM</span> Part
+);
+                        </div>
+                        <div class="subquery-highlight">
+                            <strong>Subquery Explanation:</strong> This uses a subquery with aggregate function. The inner query calculates the average cost of all parts, and the outer query finds parts with cost greater than this average.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Query 10: Get the supplier number and turnover in descending order of turnover</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> scode, turnover
+<span class="sql-keyword">FROM</span> Supplier
+<span class="sql-keyword">WHERE</span> turnover <span class="sql-keyword">IS NOT NULL</span>
+<span class="sql-keyword">ORDER BY</span> turnover <span class="sql-keyword">DESC</span>;
+                        </div>
+                        <div class="explanation">
+                            <strong>Explanation:</strong> Retrieves supplier information ordered by turnover in descending order, excluding NULL values.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Additional Subquery Examples</h2>
+                <p>Here are some advanced subquery examples to further understand the concept:</p>
+                
+                <div class="query-container">
+                    <div class="query-header">Example 1: Correlated Subquery - Find suppliers who supply more than one part</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> s.scode, s.sname
+<span class="sql-keyword">FROM</span> Supplier s
+<span class="sql-keyword">WHERE</span> (
+    <span class="sql-keyword">SELECT COUNT</span>(*)
+    <span class="sql-keyword">FROM</span> Supplier_Part sp
+    <span class="sql-keyword">WHERE</span> sp.scode = s.scode
+) > <span class="sql-number">1</span>;
+                        </div>
+                        <div class="subquery-highlight">
+                            <strong>Correlated Subquery:</strong> The inner query references the outer query's table (s.scode), making it dependent on each row of the outer query.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Example 2: EXISTS Subquery - Find parts that are supplied by at least one supplier</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-keyword">SELECT</span> p.pcode, p.color
+<span class="sql-keyword">FROM</span> Part p
+<span class="sql-keyword">WHERE EXISTS</span> (
+    <span class="sql-keyword">SELECT</span> <span class="sql-number">1</span>
+    <span class="sql-keyword">FROM</span> Supplier_Part sp
+    <span class="sql-keyword">WHERE</span> sp.pcode = p.pcode
+);
+                        </div>
+                        <div class="subquery-highlight">
+                            <strong>EXISTS Subquery:</strong> Returns TRUE if the subquery returns at least one row. More efficient than IN for existence checks.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Key Learning Outcomes</h2>
+                <div class="note">
+                    <div class="note-title">After completing this lab, students should be able to:</div>
+                    <ul>
+                        <li>Understand the concept and types of SQL subqueries</li>
+                        <li>Write single-row and multiple-row subqueries</li>
+                        <li>Use subqueries with IN, EXISTS, and comparison operators</li>
+                        <li>Implement correlated and non-correlated subqueries</li>
+                        <li>Apply aggregate functions within subqueries</li>
+                        <li>Optimize queries using appropriate subquery techniques</li>
+                        <li>Debug and troubleshoot complex nested queries</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Subquery Performance Tips</h2>
+                
+                <div class="note">
+                    <div class="note-title">Performance Considerations:</div>
+                    <ul>
+                        <li><strong>Use EXISTS instead of IN</strong> when checking for existence, especially with large datasets</li>
+                        <li><strong>Avoid correlated subqueries</strong> when possible, as they execute once for each row in the outer query</li>
+                        <li><strong>Consider JOINs</strong> as alternatives to subqueries for better performance</li>
+                        <li><strong>Index columns</strong> used in subquery WHERE clauses</li>
+                        <li><strong>Limit subquery results</strong> when appropriate using TOP, LIMIT, or similar clauses</li>
+                    </ul>
+                </div>
+                
+                <h3>JOIN vs Subquery Comparison:</h3>
+                <div class="query-container">
+                    <div class="query-header">Subquery Approach:</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-comment">-- Using Subquery</span>
+<span class="sql-keyword">SELECT</span> sname
+<span class="sql-keyword">FROM</span> Supplier
+<span class="sql-keyword">WHERE</span> scode <span class="sql-keyword">IN</span> (
+    <span class="sql-keyword">SELECT</span> scode
+    <span class="sql-keyword">FROM</span> Supplier_Part
+    <span class="sql-keyword">WHERE</span> pcode = <span class="sql-number">2</span>
+);
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">JOIN Approach (Alternative):</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-comment">-- Using JOIN (often more efficient)</span>
+<span class="sql-keyword">SELECT DISTINCT</span> s.sname
+<span class="sql-keyword">FROM</span> Supplier s
+<span class="sql-keyword">JOIN</span> Supplier_Part sp <span class="sql-keyword">ON</span> s.scode = sp.scode
+<span class="sql-keyword">WHERE</span> sp.pcode = <span class="sql-number">2</span>;
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Common Subquery Patterns</h2>
+                
+                <h3>1. Finding Maximum/Minimum Values:</h3>
+                <div class="code-block">
+<span class="sql-comment">-- Find suppliers with highest turnover</span>
+<span class="sql-keyword">SELECT</span> scode, sname, turnover
+<span class="sql-keyword">FROM</span> Supplier
+<span class="sql-keyword">WHERE</span> turnover = (
+    <span class="sql-keyword">SELECT MAX</span>(turnover)
+    <span class="sql-keyword">FROM</span> Supplier
+    <span class="sql-keyword">WHERE</span> turnover <span class="sql-keyword">IS NOT NULL</span>
+);
+                </div>
+                
+                <h3>2. Finding Second Highest Value:</h3>
+                <div class="code-block">
+<span class="sql-comment">-- Find second highest cost part</span>
+<span class="sql-keyword">SELECT</span> pcode, cost
+<span class="sql-keyword">FROM</span> Part
+<span class="sql-keyword">WHERE</span> cost = (
+    <span class="sql-keyword">SELECT MAX</span>(cost)
+    <span class="sql-keyword">FROM</span> Part
+    <span class="sql-keyword">WHERE</span> cost < (
+        <span class="sql-keyword">SELECT MAX</span>(cost)
+        <span class="sql-keyword">FROM</span> Part
+    )
+);
+                </div>
+                
+                <h3>3. Finding Records Not in Another Table:</h3>
+                <div class="code-block">
+<span class="sql-comment">-- Find parts that are not supplied by any supplier</span>
+<span class="sql-keyword">SELECT</span> pcode, color
+<span class="sql-keyword">FROM</span> Part
+<span class="sql-keyword">WHERE</span> pcode <span class="sql-keyword">NOT IN</span> (
+    <span class="sql-keyword">SELECT</span> pcode
+    <span class="sql-keyword">FROM</span> Supplier_Part
+    <span class="sql-keyword">WHERE</span> pcode <span class="sql-keyword">IS NOT NULL</span>
+);
+                </div>
+                
+                <h3>4. Using ALL and ANY Operators:</h3>
+                <div class="code-block">
+<span class="sql-comment">-- Find parts with cost greater than ALL costs of red parts</span>
+<span class="sql-keyword">SELECT</span> pcode, cost, color
+<span class="sql-keyword">FROM</span> Part
+<span class="sql-keyword">WHERE</span> cost > <span class="sql-keyword">ALL</span> (
+    <span class="sql-keyword">SELECT</span> cost
+    <span class="sql-keyword">FROM</span> Part
+    <span class="sql-keyword">WHERE</span> color = <span class="sql-string">'Red'</span>
+);
+
+<span class="sql-comment">-- Find parts with cost greater than ANY cost of blue parts</span>
+<span class="sql-keyword">SELECT</span> pcode, cost, color
+<span class="sql-keyword">FROM</span> Part
+<span class="sql-keyword">WHERE</span> cost > <span class="sql-keyword">ANY</span> (
+    <span class="sql-keyword">SELECT</span> cost
+    <span class="sql-keyword">FROM</span> Part
+    <span class="sql-keyword">WHERE</span> color = <span class="sql-string">'Blue'</span>
+);
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Practice Exercises</h2>
+                <div class="note">
+                    <div class="note-title">Additional Practice Problems:</div>
+                    <p>Try solving these problems using subqueries:</p>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Exercise 1: Find suppliers who supply the most expensive part</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-comment">-- Your solution here</span>
+<span class="sql-keyword">SELECT</span> s.scode, s.sname
+<span class="sql-keyword">FROM</span> Supplier s
+<span class="sql-keyword">WHERE</span> s.scode <span class="sql-keyword">IN</span> (
+    <span class="sql-keyword">SELECT</span> sp.scode
+    <span class="sql-keyword">FROM</span> Supplier_Part sp
+    <span class="sql-keyword">WHERE</span> sp.pcode = (
+        <span class="sql-keyword">SELECT</span> pcode
+        <span class="sql-keyword">FROM</span> Part
+        <span class="sql-keyword">WHERE</span> cost = (<span class="sql-keyword">SELECT MAX</span>(cost) <span class="sql-keyword">FROM</span> Part)
+    )
+);
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Exercise 2: Find suppliers whose turnover is above average</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-comment">-- Your solution here</span>
+<span class="sql-keyword">SELECT</span> scode, sname, turnover
+<span class="sql-keyword">FROM</span> Supplier
+<span class="sql-keyword">WHERE</span> turnover > (
+    <span class="sql-keyword">SELECT AVG</span>(turnover)
+    <span class="sql-keyword">FROM</span> Supplier
+    <span class="sql-keyword">WHERE</span> turnover <span class="sql-keyword">IS NOT NULL</span>
+);
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="query-container">
+                    <div class="query-header">Exercise 3: Find parts supplied by suppliers from Bombay</div>
+                    <div class="query-content">
+                        <div class="code-block">
+<span class="sql-comment">-- Your solution here</span>
+<span class="sql-keyword">SELECT DISTINCT</span> p.pcode, p.color
+<span class="sql-keyword">FROM</span> Part p
+<span class="sql-keyword">WHERE</span> p.pcode <span class="sql-keyword">IN</span> (
+    <span class="sql-keyword">SELECT</span> sp.pcode
+    <span class="sql-keyword">FROM</span> Supplier_Part sp
+    <span class="sql-keyword">WHERE</span> sp.scode <span class="sql-keyword">IN</span> (
+        <span class="sql-keyword">SELECT</span> s.scode
+        <span class="sql-keyword">FROM</span> Supplier s
+        <span class="sql-keyword">WHERE</span> s.scity = <span class="sql-string">'Bombay'</span>
+    )
+);
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Troubleshooting Common Subquery Issues</h2>
+                
+                <h3>1. NULL Value Handling:</h3>
+                <div class="note">
+                    <div class="note-title">Problem:</div>
+                    <p>Using IN with subqueries that may return NULL values can produce unexpected results.</p>
+                    <div class="code-block">
+<span class="sql-comment">-- Problematic query</span>
+<span class="sql-keyword">SELECT</span> * <span class="sql-keyword">FROM</span> Supplier 
+<span class="sql-keyword">WHERE</span> scode <span class="sql-keyword">NOT IN</span> (<span class="sql-keyword">SELECT</span> scode <span class="sql-keyword">FROM</span> Supplier_Part);
+
+<span class="sql-comment">-- Better approach</span>
+<span class="sql-keyword">SELECT</span> * <span class="sql-keyword">FROM</span> Supplier 
+<span class="sql-keyword">WHERE</span> scode <span class="sql-keyword">NOT IN</span> (
+    <span class="sql-keyword">SELECT</span> scode <span class="sql-keyword">FROM</span> Supplier_Part 
+    <span class="sql-keyword">WHERE</span> scode <span class="sql-keyword">IS NOT NULL</span>
+);
+                    </div>
+                </div>
+                
+                <h3>2. Correlated Subquery Performance:</h3>
+                <div class="note">
+                    <div class="note-title">Problem:</div>
+                    <p>Correlated subqueries can be slow with large datasets.</p>
+                    <div class="code-block">
+<span class="sql-comment">-- Slower correlated subquery</span>
+<span class="sql-keyword">SELECT</span> s.sname
+<span class="sql-keyword">FROM</span> Supplier s
+<span class="sql-keyword">WHERE EXISTS</span> (
+    <span class="sql-keyword">SELECT</span> <span class="sql-number">1</span> <span class="sql-keyword">FROM</span> Supplier_Part sp
+    <span class="sql-keyword">WHERE</span> sp.scode = s.scode <span class="sql-keyword">AND</span> sp.qty > <span class="sql-number">100</span>
+);
+
+<span class="sql-comment">-- Faster JOIN alternative</span>
+<span class="sql-keyword">SELECT DISTINCT</span> s.sname
+<span class="sql-keyword">FROM</span> Supplier s
+<span class="sql-keyword">JOIN</span> Supplier_Part sp <span class="sql-keyword">ON</span> s.scode = sp.scode
+<span class="sql-keyword">WHERE</span> sp.qty > <span class="sql-number">100</span>;
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Lab Assessment Criteria</h2>
+                
+                <div class="sample-data">
+                    <table>
+                        <thead>
+                            <tr><th>Criteria</th><th>Excellent (4)</th><th>Good (3)</th><th>Satisfactory (2)</th><th>Needs Improvement (1)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Query Correctness</strong></td>
+                                <td>All queries execute correctly and produce expected results</td>
+                                <td>Most queries correct with minor syntax issues</td>
+                                <td>Some queries correct, basic understanding shown</td>
+                                <td>Few queries work, fundamental issues</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Subquery Understanding</strong></td>
+                                <td>Demonstrates clear understanding of different subquery types</td>
+                                <td>Good grasp of basic subquery concepts</td>
+                                <td>Basic understanding, some confusion</td>
+                                <td>Limited understanding of subqueries</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Code Quality</strong></td>
+                                <td>Well-formatted, commented, efficient queries</td>
+                                <td>Good formatting and structure</td>
+                                <td>Acceptable formatting</td>
+                                <td>Poor formatting, hard to read</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Problem Solving</strong></td>
+                                <td>Creative solutions, handles edge cases</td>
+                                <td>Good analytical approach</td>
+                                <td>Basic problem-solving skills</td>
+                                <td>Struggles with complex problems</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Summary and Next Steps</h2>
+                <p>In this lab, we have covered:</p>
+                <ul>
+                    <li>Creation of relational database tables with proper constraints</li>
+                    <li>Data insertion and population techniques</li>
+                    <li>Various types of SQL subqueries and their applications</li>
+                    <li>Performance considerations and optimization techniques</li>
+                    <li>Common patterns and troubleshooting approaches</li>
+                </ul>
+                
+                <div class="note">
+                    <div class="note-title">For Next Lab Session:</div>
+                    <p>Students should review:</p>
+                    <ul>
+                        <li>Advanced JOIN operations</li>
+                        <li>Window functions and analytical queries</li>
+                        <li>Stored procedures and functions</li>
+                        <li>Database indexing strategies</li>
+                    </ul>
+                </div>
+                
+                <h3>References and Further Reading:</h3>
+                <ul>
+                    <li>Database System Concepts by Silberschatz, Korth, and Sudarshan</li>
+                    <li>SQL: The Complete Reference by James Groff</li>
+                    <li>Learning SQL by Alan Beaulieu</li>
+                    <li>Online SQL practice platforms: SQLBolt, W3Schools, SQLiteOnline</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2024 Cloud & Software Operations Cluster | SOCS | UPES</p>
+            <p>Database Systems - MTech Program | Dr. Mohsin Dar</p>
+        </div>
+    </div>
+</body>
+</html>
