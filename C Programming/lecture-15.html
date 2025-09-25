@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Array Storage Orders - Interactive Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: absolute;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.5s ease-in-out;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .slide.prev {
+            transform: translateX(-100%);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.2rem;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        h2 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #ffd700;
+        }
+
+        h3 {
+            font-size: 2.5rem;
+            margin-bottom: 1.8rem;
+            text-align: center;
+            color: #87ceeb;
+            line-height: 1.3;
+        }
+
+        .subtitle {
+            font-size: 1.6rem;
+            margin-bottom: 2.5rem;
+            text-align: center;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .instructor-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.3);
+            padding: 12px 15px;
+            border-radius: 5px;
+            line-height: 1.4;
+        }
+
+        .array-container {
+            display: grid;
+            gap: 2px;
+            margin: 2rem 0;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .array-3x3 {
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+        }
+
+        .array-4x4 {
+            grid-template-columns: repeat(4, 90px);
+            grid-template-rows: repeat(4, 90px);
+        }
+
+        .cell {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.6rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .cell:hover {
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.05);
+        }
+
+        .cell.highlighted {
+            background: #ffd700 !important;
+            color: #000;
+            animation: pulse 0.6s ease-in-out;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255,215,0,0.7);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1.1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .memory-representation {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 2rem 0;
+            justify-content: center;
+            max-width: 800px;
+        }
+
+        .memory-cell {
+            width: 70px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .memory-cell.active {
+            background: #ff6b6b;
+            color: white;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .highlight-text {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .animation-controls {
+            margin: 2rem 0;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .slide-navigation {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .slide-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .slide-indicator.active {
+            background: #ffd700;
+            transform: scale(1.2);
+        }
+
+        .practice-problems {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px 20px;
+            text-align: left;
+            max-height: 70vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #4fc3f7 rgba(255, 255, 255, 0.1);
+        }
+
+        .practice-problems::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .practice-problems::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .practice-problems::-webkit-scrollbar-thumb {
+            background-color: #4fc3f7;
+            border-radius: 4px;
+        }
+
+        .problem {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .problem h3 {
+            color: #4fc3f7;
+            margin: 0 0 10px 0;
+            font-size: 1.6rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 6px;
+        }
+
+        .problem p {
+            margin: 8px 0;
+            font-size: 1.4rem;
+            line-height: 1.5;
+        }
+
+        .problem .btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            font-size: 1.2rem;
+            background: rgba(79, 195, 247, 0.2);
+        }
+
+        .problem .btn:hover {
+            background: rgba(79, 195, 247, 0.4);
+        }
+
+        .answer {
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid #4fc3f7;
+            border-radius: 0 4px 4px 0;
+            display: none;
+            font-size: 1.3rem;
+        }
+
+        .answer p {
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .answer p:first-child {
+            color: #ffd700;
+            margin-bottom: 12px;
+        }
+
+        .code-block {
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            margin: 1rem 0;
+            border-left: 4px solid #ffd700;
+            white-space: pre-line;
+            max-width: 600px;
+        }
+
+        .comparison-container {
+            display: flex;
+            gap: 3rem;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .comparison-item {
+            background: rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .formula {
+            font-size: 1.3rem;
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            border-left: 3px solid #87ceeb;
+        }
+
+        .step-box {
+            background: rgba(0,0,0,0.4);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border-left: 4px solid #87ceeb;
+        }
+
+        .calculation-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .step-box h3 {
+            color: #ffd700;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-indicator {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="instructor-info">
+            Dr. Mohsin Dar<br>
+            Assistant Professor<br>
+            SOCS | UPES
+        </div>
+
+        <!-- Slide 1: Title Slide -->
+        <div class="slide active">
+            <div class="step-indicator">1 / 10</div>
+            <h1 class="fade-in">Array Storage Orders</h1>
+            <div class="subtitle fade-in">Row Major Order vs Column Major Order</div>
+            <div class="subtitle fade-in">C Programming - BTech First Semester</div>
+        </div>
+
+        <!-- Slide 2: 1-D Array Addressing -->
+        <div class="slide">
+            <div class="step-indicator">2 / 10</div>
+            <h2 style="font-size: 3.5rem; margin-bottom: 2rem;">1-D Array Addressing</h2>
+            <div class="content-box" style="max-width: 90%; margin: 0 auto; padding: 2rem;">
+                <h3 style="font-size: 2.5rem; color: #ffd700; margin-bottom: 1.5rem;">Address Calculation Formula</h3>
+                <p style="font-size: 2rem; margin-bottom: 1.5rem;">For a 1-D array <code style="font-size: 1.8rem;">arr[n]</code>, the address of element <code style="font-size: 1.8rem;">arr[i]</code> is calculated as:</p>
+                <div class="formula" style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 10px; margin: 2rem 0; text-align: center;">
+                    <p style="font-size: 2.2rem; font-family: 'Courier New', monospace; color: #4fc3f7; margin: 0;">
+                        <strong>Address = Base Address + (i × size_of_element)</strong>
+                    </p>
+                </div>
+                <div class="step-box" style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 10px; margin: 2rem 0;">
+                    <p style="font-size: 1.8rem; margin-bottom: 1rem; color: #ffd700;">Where:</p>
+                    <ul style="font-size: 1.8rem; line-height: 1.6; padding-left: 2rem;">
+                        <li style="margin-bottom: 0.8rem;"><strong>Base Address</strong>: Starting address of the array</li>
+                        <li style="margin-bottom: 0.8rem;"><strong>i</strong>: Index of the element</li>
+                        <li><strong>size_of_element</strong>: Size of each element in bytes (e.g., 4 bytes for int)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 1-D Array Example -->
+        <div class="slide">
+            <div class="step-indicator">3 / 10</div>
+            <h2 style="font-size: 3.5rem; margin-bottom: 2rem;">1-D Array: Example</h2>
+            <div class="content-box" style="max-width: 95%; margin: 0 auto; padding: 1.5rem;">
+                <p style="font-size: 2rem; margin-bottom: 2rem;">
+                    Consider: <code style="font-size: 1.8rem; background: rgba(255,255,255,0.1); padding: 0.3rem 0.6rem; border-radius: 5px;">int arr[5] = {10, 20, 30, 40, 50};</code> starting at address 1000
+                </p>
+                
+                <div class="array-container" style="display: flex; justify-content: center; margin: 2.5rem 0 3.5rem;">
+                    <div style="margin: 0 1rem; text-align: center; min-width: 120px;">
+                        <div class="cell" style="width: 120px; height: 80px; line-height: 80px; font-size: 1.8rem; background: rgba(255,255,255,0.15);">arr[0]</div>
+                        <div style="font-size: 1.4rem; margin-top: 0.5rem; color: #a7c7ff;">1000-1003</div>
+                    </div>
+                    <div style="margin: 0 1rem; text-align: center; min-width: 120px;">
+                        <div class="cell" style="width: 120px; height: 80px; line-height: 80px; font-size: 1.8rem; background: rgba(255,255,255,0.15);">arr[1]</div>
+                        <div style="font-size: 1.4rem; margin-top: 0.5rem; color: #a7c7ff;">1004-1007</div>
+                    </div>
+                    <div style="margin: 0 1rem; text-align: center; min-width: 120px;">
+                        <div class="cell" style="width: 120px; height: 80px; line-height: 80px; font-size: 1.8rem; background: rgba(255,255,255,0.15);">arr[2]</div>
+                        <div style="font-size: 1.4rem; margin-top: 0.5rem; color: #a7c7ff;">1008-1011</div>
+                    </div>
+                    <div style="margin: 0 1rem; text-align: center; min-width: 120px;">
+                        <div class="cell" style="width: 120px; height: 80px; line-height: 80px; font-size: 1.8rem; background: rgba(255,255,255,0.15);">arr[3]</div>
+                        <div style="font-size: 1.4rem; margin-top: 0.5rem; color: #a7c7ff;">1012-1015</div>
+                    </div>
+                    <div style="margin: 0 1rem; text-align: center; min-width: 120px;">
+                        <div class="cell" style="width: 120px; height: 80px; line-height: 80px; font-size: 1.8rem; background: rgba(255,255,255,0.15);">arr[4]</div>
+                        <div style="font-size: 1.4rem; margin-top: 0.5rem; color: #a7c7ff;">1016-1019</div>
+                    </div>
+                </div>
+                
+                <div class="step-box" style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 10px; margin: 2rem auto; max-width: 700px;">
+                    <p style="font-size: 1.8rem; margin-bottom: 1rem;">
+                        <strong style="color: #4fc3f7;">Example:</strong> Address of <code style="font-size: 1.6rem; background: rgba(255,255,255,0.1); padding: 0.2rem 0.5rem; border-radius: 4px;">arr[2]</code>
+                    </p>
+                    <p style="font-size: 1.8rem; margin: 1.2rem 0;">
+                        Base = 1000, i = 2, size_of(int) = 4 bytes
+                    </p>
+                    <p style="font-size: 2rem; font-weight: bold; color: #ffd700; margin: 1.5rem 0 0.5rem;">
+                        Address = 1000 + (2 × 4) = 1008
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Introduction to Multi-dimensional Arrays -->
+        <div class="slide">
+            <div class="step-indicator">4 / 10</div>
+            <h2>What are Multi-dimensional Arrays?</h2>
+            <div class="array-container array-3x3">
+                <div class="cell">a[0][0]</div>
+                <div class="cell">a[0][1]</div>
+                <div class="cell">a[0][2]</div>
+                <div class="cell">a[1][0]</div>
+                <div class="cell">a[1][1]</div>
+                <div class="cell">a[1][2]</div>
+                <div class="cell">a[2][0]</div>
+                <div class="cell">a[2][1]</div>
+                <div class="cell">a[2][2]</div>
+            </div>
+            <div class="subtitle">A 3×3 array in C appears as a 2D structure, but memory is linear!</div>
+        </div>
+
+        <!-- Slide 3: Memory Reality -->
+        <div class="slide">
+            <div class="step-indicator">5 / 12</div>
+            <h2>The Memory Reality</h2>
+            <h3>Computer memory is linear (1D)</h3>
+            <div class="memory-representation">
+                <div class="memory-cell">1000</div>
+                <div class="memory-cell">1004</div>
+                <div class="memory-cell">1008</div>
+                <div class="memory-cell">1012</div>
+                <div class="memory-cell">1016</div>
+                <div class="memory-cell">1020</div>
+                <div class="memory-cell">1024</div>
+                <div class="memory-cell">1028</div>
+                <div class="memory-cell">1032</div>
+            </div>
+            <div class="subtitle">How do we map 2D array indices to 1D memory addresses?</div>
+        </div>
+
+        <!-- Slide 4: Row Major Order -->
+        <div class="slide">
+            <div class="step-indicator">6 / 12</div>
+            <h2>Row Major Order</h2>
+            <h3>Store elements row by row</h3>
+            <div class="array-container array-3x3" id="rowMajorArray">
+                <div class="cell" data-pos="0,0">1</div>
+                <div class="cell" data-pos="0,1">2</div>
+                <div class="cell" data-pos="0,2">3</div>
+                <div class="cell" data-pos="1,0">4</div>
+                <div class="cell" data-pos="1,1">5</div>
+                <div class="cell" data-pos="1,2">6</div>
+                <div class="cell" data-pos="2,0">7</div>
+                <div class="cell" data-pos="2,1">8</div>
+                <div class="cell" data-pos="2,2">9</div>
+            </div>
+            <div class="memory-representation" id="rowMajorMemory">
+                <div class="memory-cell">1</div>
+                <div class="memory-cell">2</div>
+                <div class="memory-cell">3</div>
+                <div class="memory-cell">4</div>
+                <div class="memory-cell">5</div>
+                <div class="memory-cell">6</div>
+                <div class="memory-cell">7</div>
+                <div class="memory-cell">8</div>
+                <div class="memory-cell">9</div>
+            </div>
+            <div class="animation-controls">
+                <button class="btn" onclick="animateRowMajor()">Animate Storage</button>
+                <button class="btn" onclick="resetAnimation()">Reset</button>
+            </div>
+        </div>
+
+        <!-- Slide 5: Column Major Order -->
+        <div class="slide">
+            <div class="step-indicator">7 / 12</div>
+            <h2>Column Major Order</h2>
+            <h3>Store elements column by column</h3>
+            <div class="array-container array-3x3" id="colMajorArray">
+                <div class="cell" data-pos="0,0">1</div>
+                <div class="cell" data-pos="0,1">2</div>
+                <div class="cell" data-pos="0,2">3</div>
+                <div class="cell" data-pos="1,0">4</div>
+                <div class="cell" data-pos="1,1">5</div>
+                <div class="cell" data-pos="1,2">6</div>
+                <div class="cell" data-pos="2,0">7</div>
+                <div class="cell" data-pos="2,1">8</div>
+                <div class="cell" data-pos="2,2">9</div>
+            </div>
+            <div class="memory-representation" id="colMajorMemory">
+                <div class="memory-cell">1</div>
+                <div class="memory-cell">4</div>
+                <div class="memory-cell">7</div>
+                <div class="memory-cell">2</div>
+                <div class="memory-cell">5</div>
+                <div class="memory-cell">8</div>
+                <div class="memory-cell">3</div>
+                <div class="memory-cell">6</div>
+                <div class="memory-cell">9</div>
+            </div>
+            <div class="animation-controls">
+                <button class="btn" onclick="animateColumnMajor()">Animate Storage</button>
+                <button class="btn" onclick="resetAnimation()">Reset</button>
+            </div>
+        </div>
+
+        <!-- Slide 6: Formulas -->
+        <div class="slide">
+            <div class="step-indicator">8 / 12</div>
+            <h2>Address Calculation Formulas</h2>
+            <div class="comparison-container">
+                <div class="comparison-item">
+                    <h3>Row Major Order</h3>
+                    <div class="formula">
+                        Address = B + W × ((I - LR) × N + (J - LC))
+                    </div>
+                    <div class="subtitle">
+                        B = Base address<br>
+                        W = Element size in bytes<br>
+                        I = Row index, J = Column index<br>
+                        LR = Lower row bound (0 if not specified)<br>
+                        LC = Lower column bound (0 if not specified)<br>
+                        N = Number of columns (Upper - Lower + 1)
+                    </div>
+                </div>
+                <div class="comparison-item">
+                    <h3>Column Major Order</h3>
+                    <div class="formula">
+                        Address = B + W × ((J - LC) × M + (I - LR))
+                    </div>
+                    <div class="subtitle">
+                        B = Base address<br>
+                        W = Element size in bytes<br>
+                        I = Row index, J = Column index<br>
+                        LR = Lower row bound (0 if not specified)<br>
+                        LC = Lower column bound (0 if not specified)<br>
+                        M = Number of rows (Upper - Lower + 1)
+                    </div>
+                </div>
+            </div>
+            <div class="subtitle">Let's solve numerical examples step by step!</div>
+        </div>
+
+        <!-- Slide 7: Row Major Example Setup -->
+        <div class="slide">
+            <div class="step-indicator">9 / 12</div>
+            <h2>Row Major Order - Numerical Example</h2>
+            <h3>Given: int arr[4][3] starting at address 1000</h3>
+            <div class="array-container array-4x4" style="grid-template-columns: repeat(3, 200px); grid-template-rows: repeat(4, 100px);">
+                <div class="cell">arr[0][0]</div>
+                <div class="cell">arr[0][1]</div>
+                <div class="cell">arr[0][2]</div>
+                <div class="cell">arr[1][0]</div>
+                <div class="cell">arr[1][1]</div>
+                <div class="cell">arr[1][2]</div>
+                <div class="cell">arr[2][0]</div>
+                <div class="cell">arr[2][1]</div>
+                <div class="cell">arr[2][2]</div>
+                <div class="cell">arr[3][0]</div>
+                <div class="cell">arr[3][1]</div>
+                <div class="cell">arr[3][2]</div>
+            </div>
+            <div class="subtitle">
+                <span class="highlight-text">Find:</span> Address of arr[2][1]<br>
+                <span class="highlight-text">Given:</span> Base = 1000, sizeof(int) = 4 bytes
+            </div>
+        </div>
+
+        <!-- Slide 8: Row Major Calculation -->
+        <div class="slide">
+            <div class="step-indicator">10 / 12</div>
+            <h2>Row Major - Step by Step Calculation</h2>
+            <div class="formula">
+                Address = B + W × ((I - LR) × N + (J - LC))
+            </div>
+            <div class="calculation-steps">
+                <div class="step-box">
+                    <h3>Step 1: Identify Values</h3>
+                    <div class="code-block">
+B = 1000 (Base address)
+W = 4 bytes (sizeof(int))
+I = 2 (row index)
+J = 1 (column index)
+LR = 0 (default lower row bound)
+LC = 0 (default lower column bound)
+N = 3 (number of columns, upper-lower+1 = 3-0+0=3)
+                    </div>
+                </div>
+                <div class="step-box">
+                    <h3>Step 2: Apply Formula</h3>
+                    <div class="code-block">
+Address = 1000 + 4 × ((2 - 0) × 3 + (1 - 0))
+        = 1000 + 4 × (2 × 3 + 1)
+        = 1000 + 4 × (6 + 1)
+        = 1000 + 4 × 7
+        = 1000 + 28
+        = 1028
+                    </div>
+                </div>
+            </div>
+            <div class="subtitle highlight-text">Answer: arr[2][1] is stored at address 1028</div>
+        </div>
+
+        <!-- Slide 9: Column Major Example Setup -->
+        <div class="slide">
+            <div class="step-indicator">11 / 12</div>
+            <h2>Column Major Order - Numerical Example</h2>
+            <h3>Same array: int arr[4][3] starting at address 1000</h3>
+            <div class="array-container array-4x4" style="grid-template-columns: repeat(3, 200px); grid-template-rows: repeat(4, 100px);">
+                <div class="cell">arr[0][0]</div>
+                <div class="cell">arr[0][1]</div>
+                <div class="cell">arr[0][2]</div>
+                <div class="cell">arr[1][0]</div>
+                <div class="cell">arr[1][1]</div>
+                <div class="cell">arr[1][2]</div>
+                <div class="cell">arr[2][0]</div>
+                <div class="cell">arr[2][1]</div>
+                <div class="cell">arr[2][2]</div>
+                <div class="cell">arr[3][0]</div>
+                <div class="cell">arr[3][1]</div>
+                <div class="cell">arr[3][2]</div>
+            </div>
+            <div class="subtitle">
+                <span class="highlight-text">Find:</span> Address of arr[2][1] using Column Major<br>
+                <span class="highlight-text">Note:</span> Same element, different storage method!
+            </div>
+        </div>
+
+        <!-- Slide 10: Column Major Calculation -->
+        <div class="slide">
+            <div class="step-indicator">12 / 12</div>
+            <h2>Column Major - Step by Step Calculation</h2>
+            <div class="formula">
+                Address = B + W × ((J - LC) × M + (I - LR))
+            </div>
+            <div class="calculation-steps">
+                <div class="step-box">
+                    <h3>Step 1: Identify Values</h3>
+                    <div class="code-block">
+B = 1000 (Base address)
+W = 4 bytes (sizeof(int))
+I = 2 (row index)
+J = 1 (column index)
+LR = 0 (default lower row bound)
+LC = 0 (default lower column bound)
+M = 4 (number of rows, upper-lower+1 = 3-0+1=4)
+                    </div>
+                </div>
+                <div class="step-box">
+                    <h3>Step 2: Apply Formula</h3>
+                    <div class="code-block">
+Address = 1000 + 4 × ((1 - 0) × 4 + (2 - 0))
+        = 1000 + 4 × (1 × 4 + 2)
+        = 1000 + 4 × (4 + 2)
+        = 1000 + 4 × 6
+        = 1000 + 24
+        = 1024
+                    </div>
+                </div>
+            </div>
+            <div class="subtitle highlight-text">Answer: arr[2][1] is stored at address 1024</div>
+        </div>
+
+        <!-- Slide 11: C Programming Example -->
+        <div class="slide">
+            <div class="step-indicator">11 / 11</div>
+            <h2>C Programming Uses Row Major</h2>
+            <div class="code-block">
+int arr[3][3] = {
+    {1, 2, 3},
+    {4, 5, 6},
+    {7, 8, 9}
+};
+
+// Memory layout: 1 2 3 4 5 6 7 8 9
+// arr[1][2] = Base + (1×3 + 2)×4 = Base + 20 bytes
+            </div>
+            <div class="comparison-container">
+                <div class="comparison-item">
+                    <h3>💡 Cache Performance</h3>
+                    <div class="subtitle">Accessing elements in storage order is faster</div>
+                </div>
+                <div class="comparison-item">
+                    <h3>⚡ Loop Optimization</h3>
+                    <div class="code-block" style="font-size: 1.2rem; line-height: 1.6;">
+// Good for C (Row Major)
+for(i = 0; i < rows; i++)
+    for(j = 0; j < cols; j++)
+        process(arr[i][j]);
+                    </div>
+                </div>
+            </div>
+            <div class="subtitle">
+                <span class="highlight-text">Key Point:</span> C always uses Row Major Order!
+            </div>
+        </div>
+
+        <!-- Slide 12: Practice Problems -->
+        <div class="slide">
+            <div class="step-indicator">12 / 12</div>
+            <h2>Practice Problems</h2>
+            <div class="practice-problems">
+                <div class="problem">
+                    <h3>Problem 1: 1-D Array</h3>
+                    <p>Given: <code>int arr[10]; // Base address = 2000</code></p>
+                    <p>Find the address of <code>arr[7]</code> (Assume <code>sizeof(int) = 4</code>).</p>
+                    <button class="btn" onclick="showAnswer('ans1')">Show Answer</button>
+                    <div id="ans1" class="answer" style="display: none;">
+                        <p>Using formula: <code>Address = Base + (i - LB) × W</code></p>
+                        <p>= 2000 + (7 - 0) × 4 = 2000 + 28 = 2028</p>
+                    </div>
+                </div>
+
+                <div class="problem">
+                    <h3>Problem 2: 2D Array - Row Major</h3>
+                    <p>Given: <code>int arr[4][5]; // Base = 3000, LR=0, LC=0</code></p>
+                    <p>Find the address of <code>arr[2][3]</code> using row-major order.</p>
+                    <button class="btn" onclick="showAnswer('ans2')">Show Answer</button>
+                    <div id="ans2" class="answer" style="display: none;">
+                        <p>Using formula: <code>Address = B + W × ((I - LR) × N + (J - LC))</code></p>
+                        <p>= 3000 + 4 × ((2-0) × 5 + (3-0)) = 3000 + 4 × (10 + 3) = 3000 + 52 = 3052</p>
+                    </div>
+                </div>
+
+                <div class="problem">
+                    <h3>Problem 3: 2D Array - Column Major</h3>
+                    <p>Given: <code>float arr[3][6]; // Base = 5000, LR=0, LC=0</code></p>
+                    <p>Find the address of <code>arr[1][4]</code> using column-major order (assume <code>sizeof(float) = 4</code>).</p>
+                    <button class="btn" onclick="showAnswer('ans3')">Show Answer</button>
+                    <div id="ans3" class="answer" style="display: none;">
+                        <p>Using formula: <code>Address = B + W × ((J - LC) × M + (I - LR))</code></p>
+                        <p>= 5000 + 4 × ((4-0) × 3 + (1-0)) = 5000 + 4 × (12 + 1) = 5000 + 52 = 5052</p>
+                    </div>
+                </div>
+
+                <div class="problem">
+                    <h3>Problem 4: Non-Zero Lower Bounds</h3>
+                    <p>Given: <code>int arr[1..4][2..5]; // Base = 1000, LR=1, LC=2</code></p>
+                    <p>Find the address of <code>arr[3][4]</code> in row-major order.</p>
+                    <button class="btn" onclick="showAnswer('ans4')">Show Answer</button>
+                    <div id="ans4" class="answer" style="display: none;">
+                        <p>N = 5-2+1 = 4 (number of columns)</p>
+                        <p>Using formula: <code>Address = 1000 + 4 × ((3-1) × 4 + (4-2))</code></p>
+                        <p>= 1000 + 4 × (8 + 2) = 1000 + 40 = 1040</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="previousSlide()">← Previous</button>
+            <button class="btn" onclick="nextSlide()">Next →</button>
+        </div>
+
+        <div class="slide-navigation">
+            <div class="slide-indicator active" onclick="goToSlide(0)"></div>
+            <div class="slide-indicator" onclick="goToSlide(1)"></div>
+            <div class="slide-indicator" onclick="goToSlide(2)"></div>
+            <div class="slide-indicator" onclick="goToSlide(3)"></div>
+            <div class="slide-indicator" onclick="goToSlide(4)"></div>
+            <div class="slide-indicator" onclick="goToSlide(5)"></div>
+            <div class="slide-indicator" onclick="goToSlide(6)"></div>
+            <div class="slide-indicator" onclick="goToSlide(7)"></div>
+            <div class="slide-indicator" onclick="goToSlide(8)"></div>
+            <div class="slide-indicator" onclick="goToSlide(9)"></div>
+            <div class="slide-indicator" onclick="goToSlide(10)"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const indicators = document.querySelectorAll('.slide-indicator');
+        let animationTimeout;
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active', 'prev');
+                if (i === index) {
+                    slide.classList.add('active');
+                } else if (i < index) {
+                    slide.classList.add('prev');
+                }
+            });
+
+            indicators.forEach((indicator, i) => {
+                indicator.classList.toggle('active', i === index);
+            });
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        function goToSlide(index) {
+            currentSlide = index;
+            showSlide(currentSlide);
+        }
+
+        function animateRowMajor() {
+            resetAnimation();
+            const cells = document.querySelectorAll('#rowMajorArray .cell');
+            const memoryCells = document.querySelectorAll('#rowMajorMemory .memory-cell');
+            
+            // Row major order: [0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]
+            const order = [
+                {array: 0, memory: 0}, {array: 1, memory: 1}, {array: 2, memory: 2},
+                {array: 3, memory: 3}, {array: 4, memory: 4}, {array: 5, memory: 5},
+                {array: 6, memory: 6}, {array: 7, memory: 7}, {array: 8, memory: 8}
+            ];
+
+            order.forEach((item, index) => {
+                setTimeout(() => {
+                    cells[item.array].classList.add('highlighted');
+                    memoryCells[item.memory].classList.add('active');
+                    
+                    setTimeout(() => {
+                        cells[item.array].classList.remove('highlighted');
+                    }, 800);
+                }, index * 600);
+            });
+        }
+
+        function animateColumnMajor() {
+            resetAnimation();
+            const cells = document.querySelectorAll('#colMajorArray .cell');
+            const memoryCells = document.querySelectorAll('#colMajorMemory .memory-cell');
+            
+            // Column major order: [0,0], [1,0], [2,0], [0,1], [1,1], [2,1], [0,2], [1,2], [2,2]
+            const order = [
+                {array: 0, memory: 0}, {array: 3, memory: 1}, {array: 6, memory: 2},
+                {array: 1, memory: 3}, {array: 4, memory: 4}, {array: 7, memory: 5},
+                {array: 2, memory: 6}, {array: 5, memory: 7}, {array: 8, memory: 8}
+            ];
+
+            order.forEach((item, index) => {
+                setTimeout(() => {
+                    cells[item.array].classList.add('highlighted');
+                    memoryCells[item.memory].classList.add('active');
+                    
+                    setTimeout(() => {
+                        cells[item.array].classList.remove('highlighted');
+                    }, 800);
+                }, index * 600);
+            });
+        }
+
+        function resetAnimation() {
+            if (animationTimeout) clearTimeout(animationTimeout);
+            
+            document.querySelectorAll('.cell.highlighted').forEach(cell => {
+                cell.classList.remove('highlighted');
+            });
+            document.querySelectorAll('.memory-cell.active').forEach(cell => {
+                cell.classList.remove('active');
+            });
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                previousSlide();
+            } else if (e.key >= '1' && e.key <= '8') {
+                goToSlide(parseInt(e.key) - 1);
+            }
+        });
+
+        // Auto-start animations when relevant slides are shown
+        function checkAutoAnimation() {
+            if (currentSlide === 3) {
+                setTimeout(animateRowMajor, 1000);
+            } else if (currentSlide === 4) {
+                setTimeout(animateColumnMajor, 1000);
+            }
+        }
+
+        // Function to show/hide answers for practice problems
+        function showAnswer(id) {
+            const answer = document.getElementById(id);
+            if (answer.style.display === 'none' || !answer.style.display) {
+                answer.style.display = 'block';
+            } else {
+                answer.style.display = 'none';
+            }
+        }
+
+        // Override showSlide to include auto-animations
+        const originalShowSlide = showSlide;
+        showSlide = function(index) {
+            resetAnimation();
+            originalShowSlide.call(this, index);
+            // Add a small delay to ensure the slide transition is complete
+            setTimeout(checkAutoAnimation, 100);
+        };
+    </script>
+</body>
+</html>
