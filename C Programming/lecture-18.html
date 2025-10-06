@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 18: Pointers in C</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide {
+            background: white;
+            width: 90%;
+            height: 90%;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 60px;
+            display: none;
+            flex-direction: column;
+            position: relative;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .slide-header h1 {
+            font-size: 3.5em;
+            color: #333;
+            margin-bottom: 10px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .slide-header h2 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 15px;
+            animation: fadeInDown 0.8s ease-out 0.2s both;
+        }
+
+        .slide-header p {
+            font-size: 1.3em;
+            color: #666;
+            animation: fadeInDown 0.8s ease-out 0.4s both;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 20px;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            animation: fadeInUp 0.8s ease-out forwards;
+            opacity: 0;
+        }
+
+        .section:nth-child(1) { animation-delay: 0.2s; }
+        .section:nth-child(2) { animation-delay: 0.4s; }
+        .section:nth-child(3) { animation-delay: 0.6s; }
+        .section:nth-child(4) { animation-delay: 0.8s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h3 {
+            font-size: 2em;
+            color: #764ba2;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        h3::before {
+            content: "▶";
+            margin-right: 15px;
+            color: #667eea;
+        }
+
+        p, li {
+            font-size: 1.4em;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 15px;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.3em;
+            margin: 20px 0;
+            overflow-x: auto;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            white-space: pre-wrap;       /* Preserve line breaks and wrap text */
+            word-wrap: break-word;       /* Break long words if they exceed container width */
+            line-height: 1.6;            /* Improve readability with more line spacing */
+            tab-size: 4;                 /* Set tab width to 4 spaces */
+        }
+
+        .code-block .keyword {
+            color: #569cd6;
+        }
+
+        .code-block .function {
+            color: #dcdcaa;
+        }
+
+        .code-block .string {
+            color: #ce9178;
+        }
+
+        .code-block .comment {
+            color: #6a9955;
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #ffd93d 0%, #ffb649 100%);
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .memory-diagram {
+            display: flex;
+            gap: 30px;
+            margin: 30px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .memory-box {
+            border: 3px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 180px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .memory-box strong {
+            display: block;
+            font-size: 1.3em;
+            color: #764ba2;
+            margin-bottom: 10px;
+        }
+
+        .memory-box span {
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        .arrow {
+            font-size: 3em;
+            color: #667eea;
+            align-self: center;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            50% {
+                transform: translateX(10px);
+            }
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        .nav-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            font-size: 1.3em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .nav-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .slide-counter {
+            font-size: 1.3em;
+            color: #666;
+            font-weight: bold;
+        }
+
+        ul {
+            margin-left: 40px;
+        }
+
+        .note-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .note-box strong {
+            color: #856404;
+            font-size: 1.3em;
+        }
+
+        .warning-box {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box strong {
+            color: #721c24;
+            font-size: 1.3em;
+        }
+
+        .practice-problem {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .practice-problem strong {
+            color: #0c5460;
+            font-size: 1.4em;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 1.3em;
+        }
+
+        table th, table td {
+            border: 2px solid #667eea;
+            padding: 15px;
+            text-align: left;
+        }
+
+        table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        table tr:nth-child(even) {
+            background: #f5f7fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title Slide -->
+        <div class="slide active">
+            <div class="slide-header">
+                <h1>Lecture 18: Pointers in C</h1>
+                <h2>Unit IV: Structures and Pointers</h2>
+                <p>Dr. Mohsin Dar</p>
+                <p>Assistant Professor, Cloud & Software Operations Cluster | SOCS | UPES</p>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <h3>Topics Covered Today</h3>
+                    <ul>
+                        <li>Introduction to Pointers</li>
+                        <li>Declaring and Initializing Pointers</li>
+                        <li>Dereferencing Pointers</li>
+                        <li>Size of Pointers</li>
+                        <li>Special Types of Pointers</li>
+                        <li>Pointer Arithmetic</li>
+                        <li>Multilevel Pointers</li>
+                        <li>Practice Problems</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()" disabled>Previous</button>
+                <span class="slide-counter">Slide <span id="current">1</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 2: Introduction to Pointers -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>What are Pointers?</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <p>A <span class="highlight">pointer</span> is a variable that stores the <strong>memory address</strong> of another variable.</p>
+                    <p>Pointers are one of the most powerful features in C programming, allowing direct memory manipulation.</p>
+                </div>
+                <div class="section">
+                    <h3>Why Use Pointers?</h3>
+                    <ul>
+                        <li>Dynamic memory allocation</li>
+                        <li>Efficient array and string handling</li>
+                        <li>Pass by reference in functions</li>
+                        <li>Implement complex data structures (linked lists, trees, etc.)</li>
+                        <li>Direct hardware manipulation</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h3>Memory Address Concept</h3>
+                    <div class="memory-diagram">
+                        <div class="memory-box">
+                            <strong>Variable: x</strong>
+                            <span>Value: 10</span>
+                            <span>Address: 0x1000</span>
+                        </div>
+                        <div class="arrow">→</div>
+                        <div class="memory-box">
+                            <strong>Pointer: ptr</strong>
+                            <span>Value: 0x1000</span>
+                            <span>Address: 0x2000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">2</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 3: Declaring a Pointer -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Declaring a Pointer</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <h3>Syntax</h3>
+                    <div class="code-block">
+<span class="keyword">data_type</span> *pointer_name;
+                    </div>
+                    <p>The asterisk (*) is used to declare a pointer variable.</p>
+                </div>
+                <div class="section">
+                    <h3>Examples</h3>
+                    <div class="code-block">
+<span class="keyword">int</span> *ptr;        <span class="comment">// Pointer to an integer</span>
+<span class="keyword">float</span> *fptr;     <span class="comment">// Pointer to a float</span>
+<span class="keyword">char</span> *cptr;      <span class="comment">// Pointer to a character</span>
+<span class="keyword">double</span> *dptr;    <span class="comment">// Pointer to a double</span>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="note-box">
+                        <strong>Note:</strong> When a pointer is declared, it contains garbage value. It must be initialized before use.
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Complete Example</h3>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> *ptr;    <span class="comment">// Declaration of integer pointer</span>
+    <span class="keyword">char</span> *cptr;  <span class="comment">// Declaration of character pointer</span>
+    
+    <span class="function">printf</span>(<span class="string">"Pointers declared successfully!\n"</span>);
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">3</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 4: Initialize the Pointer -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Initialize the Pointer</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <h3>Address-of Operator (&)</h3>
+                    <p>The <span class="highlight">&</span> operator returns the memory address of a variable.</p>
+                    <div class="code-block">
+<span class="keyword">int</span> x = 10;
+<span class="keyword">int</span> *ptr = &x;  <span class="comment">// ptr now stores the address of x</span>
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Complete Example</h3>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> num = 42;
+    <span class="keyword">int</span> *ptr = &num;  <span class="comment">// Initialize pointer with address of num</span>
+    
+    <span class="function">printf</span>(<span class="string">"Value of num: %d\n"</span>, num);
+    <span class="function">printf</span>(<span class="string">"Address of num: %p\n"</span>, &num);
+    <span class="function">printf</span>(<span class="string">"Value stored in ptr: %p\n"</span>, ptr);
+    <span class="function">printf</span>(<span class="string">"Address of ptr: %p\n"</span>, &ptr);
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Memory Visualization</h3>
+                    <div class="memory-diagram">
+                        <div class="memory-box">
+                            <strong>num</strong>
+                            <span>Value: 42</span>
+                            <span>Address: 0x7ffe5c</span>
+                        </div>
+                        <div class="arrow">←</div>
+                        <div class="memory-box">
+                            <strong>ptr</strong>
+                            <span>Value: 0x7ffe5c</span>
+                            <span>Address: 0x7ffe60</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">4</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 5: Dereference a Pointer -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Dereference a Pointer</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <h3>Dereference Operator (*)</h3>
+                    <p>The <span class="highlight">*</span> operator (when used with a pointer) accesses the value stored at the address the pointer points to.</p>
+                </div>
+                <div class="section">
+                    <h3>Example</h3>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> x = 25;
+    <span class="keyword">int</span> *ptr = &x;
+    
+    <span class="function">printf</span>(<span class="string">"Value of x: %d\n"</span>, x);
+    <span class="function">printf</span>(<span class="string">"Value at address stored in ptr: %d\n"</span>, *ptr);
+    
+    <span class="comment">// Modify value using pointer</span>
+    *ptr = 50;
+    
+    <span class="function">printf</span>(<span class="string">"New value of x: %d\n"</span>, x);
+    <span class="function">printf</span>(<span class="string">"New value at *ptr: %d\n"</span>, *ptr);
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Output</h3>
+                    <div class="code-block">
+Value of x: 25
+Value at address stored in ptr: 25
+New value of x: 50
+New value at *ptr: 50
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="note-box">
+                        <strong>Key Point:</strong> Modifying *ptr modifies the original variable because they both refer to the same memory location.
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">5</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 6: Size of Pointers -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Size of Pointers</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <p>The size of a pointer depends on the <span class="highlight">architecture</span> of the system, not the data type it points to.</p>
+                    <ul>
+                        <li><strong>32-bit system:</strong> Pointer size = 4 bytes</li>
+                        <li><strong>64-bit system:</strong> Pointer size = 8 bytes</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h3>Example</h3>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> *iptr;
+    <span class="keyword">char</span> *cptr;
+    <span class="keyword">float</span> *fptr;
+    <span class="keyword">double</span> *dptr;
+    
+    <span class="function">printf</span>(<span class="string">"Size of int pointer: %zu bytes\n"</span>, <span class="keyword">sizeof</span>(iptr));
+    <span class="function">printf</span>(<span class="string">"Size of char pointer: %zu bytes\n"</span>, <span class="keyword">sizeof</span>(cptr));
+    <span class="function">printf</span>(<span class="string">"Size of float pointer: %zu bytes\n"</span>, <span class="keyword">sizeof</span>(fptr));
+    <span class="function">printf</span>(<span class="string">"Size of double pointer: %zu bytes\n"</span>, <span class="keyword">sizeof</span>(dptr));
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Output (on 64-bit system)</h3>
+                    <div class="code-block">
+Size of int pointer: 8 bytes
+Size of char pointer: 8 bytes
+Size of float pointer: 8 bytes
+Size of double pointer: 8 bytes
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="note-box">
+                        <strong>Important:</strong> All pointers have the same size regardless of the data type they point to, because they all store memory addresses.
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">6</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 7: Special Types of Pointers - Part 1 -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Special Types of Pointers (Part 1)</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <h3>1. NULL Pointer</h3>
+                    <p>A pointer that points to <span class="highlight">nothing</span>. It's initialized with NULL value.</p>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> *ptr = NULL;  <span class="comment">// NULL pointer initialization</span>
+    
+    <span class="keyword">if</span> (ptr == NULL) {
+        <span class="function">printf</span>(<span class="string">"Pointer is NULL\n"</span>);
+    }
+    
+    <span class="comment">// Always check before dereferencing</span>
+    <span class="keyword">if</span> (ptr != NULL) {
+        <span class="function">printf</span>(<span class="string">"Value: %d\n"</span>, *ptr);
+    } <span class="keyword">else</span> {
+        <span class="function">printf</span>(<span class="string">"Cannot dereference NULL pointer\n"</span>);
+    }
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>2. Void Pointer</h3>
+                    <p>A <span class="highlight">generic pointer</span> that can point to any data type.</p>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">void</span> *ptr;
+    <span class="keyword">int</span> x = 10;
+    <span class="keyword">float</span> y = 5.5;
+    
+    ptr = &x;
+    <span class="function">printf</span>(<span class="string">"Integer: %d\n"</span>, *(<span class="keyword">int</span>*)ptr);
+    
+    ptr = &y;
+    <span class="function">printf</span>(<span class="string">"Float: %.2f\n"</span>, *(<span class="keyword">float</span>*)ptr);
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="note-box">
+                        <strong>Note:</strong> Void pointers must be type-cast before dereferencing.
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">7</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 8: Special Types of Pointers - Part 2 -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Special Types of Pointers (Part 2)</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <h3>3. Wild Pointers</h3>
+                    <p>Pointers that are <span class="highlight">not initialized</span> and contain garbage values.</p>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> *ptr;  <span class="comment">// Wild pointer - not initialized!</span>
+    
+    <span class="comment">// DANGER: This can cause undefined behavior</span>
+    <span class="comment">// printf("%d\n", *ptr);  // DON'T DO THIS!</span>
+    
+    <span class="comment">// Always initialize pointers</span>
+    ptr = NULL;  <span class="comment">// Now it's safe</span>
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                    <div class="warning-box">
+                        <strong>Warning:</strong> Never use wild pointers! Always initialize pointers before use.
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>4. Dangling Pointer</h3>
+                    <p>A pointer that points to <span class="highlight">freed or deallocated memory</span>.</p>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> *ptr = (<span class="keyword">int</span>*)<span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+    *ptr = 100;
+    
+    <span class="function">printf</span>(<span class="string">"Value: %d\n"</span>, *ptr);
+    
+    <span class="function">free</span>(ptr);  <span class="comment">// Memory deallocated</span>
+    <span class="comment">// ptr is now a dangling pointer</span>
+    
+    ptr = NULL;  <span class="comment">// Good practice: Set to NULL after free</span>
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                    <div class="warning-box">
+                        <strong>Warning:</strong> Always set pointers to NULL after freeing memory to avoid dangling pointer issues.
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">8</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 9: C Pointer Arithmetic -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>C Pointer Arithmetic</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <h3>Operations Allowed</h3>
+                    <p>Pointers support the following arithmetic operations:</p>
+                    <ul>
+                        <li><strong>Increment:</strong> ptr++ or ++ptr</li>
+                        <li><strong>Decrement:</strong> ptr-- or --ptr</li>
+                        <li><strong>Addition:</strong> ptr + n</li>
+                        <li><strong>Subtraction:</strong> ptr - n</li>
+                        <li><strong>Difference:</strong> ptr1 - ptr2</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h3>Example 1: Array Traversal</h3>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> arr[] = {10, 20, 30, 40, 50};
+    <span class="keyword">int</span> *ptr = arr;  <span class="comment">// Points to first element</span>
+    
+    <span class="function">printf</span>(<span class="string">"Array elements using pointer arithmetic:\n"</span>);
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = 0; i < 5; i++) {
+        <span class="function">printf</span>(<span class="string">"arr[%d] = %d, Address: %p\n"</span>, i, *(ptr + i), (ptr + i));
+    }
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Example 2: Pointer Increment</h3>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> arr[] = {100, 200, 300};
+    <span class="keyword">int</span> *ptr = arr;
+    
+    <span class="function">printf</span>(<span class="string">"Value: %d, Address: %p\n"</span>, *ptr, ptr);
+    
+    ptr++;  <span class="comment">// Move to next element</span>
+    <span class="function">printf</span>(<span class="string">"Value: %d, Address: %p\n"</span>, *ptr, ptr);
+    
+    ptr++;  <span class="comment">// Move to next element</span>
+    <span class="function">printf</span>(<span class="string">"Value: %d, Address: %p\n"</span>, *ptr, ptr);
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="note-box">
+                        <strong>Important:</strong> When you add 1 to a pointer, it moves by the size of the data type it points to (e.g., int pointer moves by 4 bytes).
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">9</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 10: Multilevel Pointers -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Multilevel Pointers</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <h3>Pointer to Pointer</h3>
+                    <p>A <span class="highlight">pointer to pointer</span> stores the address of another pointer.</p>
+                    <div class="code-block">
+<span class="keyword">int</span> **ptr;  <span class="comment">// Pointer to pointer (double pointer)</span>
+<span class="keyword">int</span> ***ptr; <span class="comment">// Pointer to pointer to pointer (triple pointer)</span>
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Example: Double Pointer</h3>
+                    <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> x = 100;
+    <span class="keyword">int</span> *ptr = &x;      <span class="comment">// Pointer to x</span>
+    <span class="keyword">int</span> **pptr = &ptr;  <span class="comment">// Pointer to pointer</span>
+    
+    <span class="function">printf</span>(<span class="string">"Value of x: %d\n"</span>, x);
+    <span class="function">printf</span>(<span class="string">"Value using ptr: %d\n"</span>, *ptr);
+    <span class="function">printf</span>(<span class="string">"Value using pptr: %d\n"</span>, **pptr);
+    
+    <span class="function">printf</span>(<span class="string">"\nAddress of x: %p\n"</span>, &x);
+    <span class="function">printf</span>(<span class="string">"Value in ptr: %p\n"</span>, ptr);
+    <span class="function">printf</span>(<span class="string">"Address of ptr: %p\n"</span>, &ptr);
+    <span class="function">printf</span>(<span class="string">"Value in pptr: %p\n"</span>, pptr);
+    
+    <span class="keyword">return</span> 0;
+}
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Memory Visualization</h3>
+                    <div class="memory-diagram">
+                        <div class="memory-box">
+                            <strong>x</strong>
+                            <span>Value: 100</span>
+                            <span>Addr: 0x1000</span>
+                        </div>
+                        <div class="arrow">←</div>
+                        <div class="memory-box">
+                            <strong>ptr</strong>
+                            <span>Value: 0x1000</span>
+                            <span>Addr: 0x2000</span>
+                        </div>
+                        <div class="arrow">←</div>
+                        <div class="memory-box">
+                            <strong>pptr</strong>
+                            <span>Value: 0x2000</span>
+                            <span>Addr: 0x3000</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Use Cases</h3>
+                    <ul>
+                        <li>2D array manipulation</li>
+                        <li>Function arguments for modifying pointers</li>
+                        <li>Dynamic memory allocation for matrices</li>
+                        <li>Linked data structures</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">10</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 11: Summary -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Summary - Key Points</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <table>
+                        <tr>
+                            <th>Concept</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Pointer</strong></td>
+                            <td>Variable that stores memory address</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Declaration</strong></td>
+                            <td>data_type *ptr;</td>
+                        </tr>
+                        <tr>
+                            <td><strong>& Operator</strong></td>
+                            <td>Returns address of a variable</td>
+                        </tr>
+                        <tr>
+                            <td><strong>* Operator</strong></td>
+                            <td>Dereferences pointer (accesses value)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>NULL Pointer</strong></td>
+                            <td>Points to nothing (safe initialization)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Void Pointer</strong></td>
+                            <td>Generic pointer (can point to any type)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Wild Pointer</strong></td>
+                            <td>Uninitialized pointer (dangerous!)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dangling Pointer</strong></td>
+                            <td>Points to freed memory (dangerous!)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pointer Arithmetic</strong></td>
+                            <td>+, -, ++, -- operations on pointers</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Double Pointer</strong></td>
+                            <td>Pointer to pointer (**ptr)</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="section">
+                    <div class="warning-box">
+                        <strong>Best Practices:</strong>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Always initialize pointers</li>
+                            <li>Check for NULL before dereferencing</li>
+                            <li>Set pointers to NULL after freeing memory</li>
+                            <li>Be careful with pointer arithmetic</li>
+                            <li>Avoid wild and dangling pointers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">11</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()">Next</button>
+            </div>
+        </div>
+
+        <!-- Slide 12: Practice Problems -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Practice Problems</h2>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <div class="practice-problem">
+                        <strong>Problem 1: Basic Pointer Operations</strong>
+                        <p>Write a program to swap two numbers using pointers. Create a function swap() that takes two integer pointers as parameters.</p>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="practice-problem">
+                        <strong>Problem 2: Array Manipulation</strong>
+                        <p>Write a program that uses pointer arithmetic to find the largest element in an integer array of size 10.</p>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="practice-problem">
+                        <strong>Problem 3: Pointer to Pointer</strong>
+                        <p>Create a program that uses a double pointer to dynamically allocate a 2D array of integers (3x3 matrix) and initialize it with values 1-9.</p>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="practice-problem">
+                        <strong>Problem 4: String Reversal</strong>
+                        <p>Write a function to reverse a string in-place using two pointers (one at the start and one at the end).</p>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="practice-problem">
+                        <strong>Problem 5: Pointer Comparison</strong>
+                        <p>Write a program that declares three integer variables and three pointers. Initialize the pointers and compare their addresses to determine which variable is stored at the lowest memory address.</p>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="practice-problem">
+                        <strong>Problem 6: Void Pointer</strong>
+                        <p>Create a generic print function using void pointer that can print integer, float, or character values based on a type parameter.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-button" onclick="prevSlide()">Previous</button>
+                <span class="slide-counter">Slide <span id="current">12</span> of <span id="total">12</span></span>
+                <button class="nav-button" onclick="nextSlide()" disabled>Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                }
+            });
+
+            // Update all slide counters
+            document.querySelectorAll('#current').forEach(el => {
+                el.textContent = currentSlide + 1;
+            });
+
+            // Update navigation buttons
+            const prevButtons = document.querySelectorAll('.nav-button:first-child');
+            const nextButtons = document.querySelectorAll('.nav-button:last-child');
+
+            prevButtons.forEach(btn => {
+                btn.disabled = currentSlide === 0;
+            });
+
+            nextButtons.forEach(btn => {
+                btn.disabled = currentSlide === totalSlides - 1;
+            });
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Initialize
+        updateSlide();
+    </script>
+</body>
+</html>
