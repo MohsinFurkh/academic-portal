@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 11: Concurrency Control Protocols & Deadlocks</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .slide-container {
+            min-height: 100vh;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .slide-container.active {
+            display: flex;
+        }
+
+        .slide {
+            background: white;
+            border-radius: 20px;
+            padding: 60px;
+            max-width: 1200px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .university-info {
+            font-size: 14px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .header h1 {
+            color: white;
+        }
+
+        h2 {
+            color: #667eea;
+            margin: 30px 0 20px 0;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #764ba2;
+            margin: 20px 0 15px 0;
+            font-size: 1.4em;
+        }
+
+        .content {
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            font-size: 1.05em;
+        }
+
+        .protocol-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .protocol-box h3 {
+            color: white;
+            border-bottom: 2px solid white;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .example-box {
+            background: #f7fafc;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+
+        .example-box h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .schedule-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .schedule-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .schedule-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .lock-notation {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            margin: 3px;
+        }
+
+        .shared-lock {
+            background: #48bb78;
+            color: white;
+        }
+
+        .exclusive-lock {
+            background: #f56565;
+            color: white;
+        }
+
+        .key-point {
+            background: #fef5e7;
+            border-left: 5px solid #f39c12;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .comparison-card {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .comparison-card h4 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .deadlock-diagram {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .formula {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .highlight {
+            background: #fef5e7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            color: #e67e22;
+        }
+
+        code {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timestamp-example {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .timestamp-box {
+            background: #ebf8ff;
+            border: 2px solid #3182ce;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px;
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: Title Slide -->
+    <div class="slide-container active">
+        <div class="slide">
+            <div class="header">
+                <div class="university-info">
+                    <strong>UPES - University of Petroleum and Energy Studies</strong><br>
+                    School of Computer Science | Cloud & Software Operations Cluster<br>
+                    M.Tech - Database Systems | First Semester
+                </div>
+                <h1>Lecture 11: Concurrency Control Protocols & Deadlocks</h1>
+                <p style="margin-top: 20px; font-size: 1.1em;">Unit II: Transaction Management</p>
+            </div>
+            <div style="margin-top: 40px; padding: 30px; background: #f7fafc; border-radius: 15px;">
+                <h3 style="color: #2d3748; margin-bottom: 20px;">Instructor Information</h3>
+                <p style="font-size: 1.2em; color: #2d3748;"><strong>Dr. Mohsin Dar</strong></p>
+                <p style="color: #4a5568;">Assistant Professor</p>
+                <p style="color: #4a5568;">Cloud & Software Operations Cluster</p>
+            </div>
+            <div class="navigation">
+                <button disabled>← Previous</button>
+                <div class="slide-counter">Slide <span id="current">1</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+ 
+
+    <!-- Slide 3: Today's Agenda -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>📋 Today's Lecture Agenda</h1>
+            <div class="content">
+                <h2>Part I: Concurrency Control Protocols</h2>
+                <ul>
+                    <li>Introduction to Locking Mechanisms</li>
+                    <li>Basic Two-Phase Locking (2PL)</li>
+                    <li>Conservative 2PL</li>
+                    <li>Rigorous 2PL</li>
+                    <li>Strict 2PL</li>
+                    <li>Multi-Version Concurrency Control (MVCC)</li>
+                    <li>Timestamp-Based Protocols</li>
+                    <li>Thomas Write Rule</li>
+                </ul>
+                <h2>Part II: Deadlock Management</h2>
+                <ul>
+                    <li>Deadlock Detection</li>
+                    <li>Deadlock Prevention</li>
+                    <li>Deadlock Avoidance</li>
+                </ul>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">3</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Introduction to Concurrency Control -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>🔐 Concurrency Control: The Foundation</h1>
+            <div class="content">
+                <h2>Why Do We Need Concurrency Control?</h2>
+                <p>Concurrency control protocols ensure that concurrent transactions maintain database consistency while maximizing system throughput.</p>
+                
+                <div class="example-box">
+                    <h4>Key Objectives:</h4>
+                    <ul>
+                        <li><strong>Isolation:</strong> Transactions should not interfere with each other</li>
+                        <li><strong>Consistency:</strong> Database remains in a valid state</li>
+                        <li><strong>Serializability:</strong> Concurrent execution equivalent to serial execution</li>
+                        <li><strong>Performance:</strong> Maximize concurrent transaction processing</li>
+                    </ul>
+                </div>
+
+                <h2>Lock Types</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h4>🔓 Shared Lock (S)</h4>
+                        <p><strong>Read-only access</strong></p>
+                        <p>Multiple transactions can hold shared locks on the same data item simultaneously.</p>
+                        <p>Notation: <code>S(X)</code></p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>🔒 Exclusive Lock (X)</h4>
+                        <p><strong>Read and Write access</strong></p>
+                        <p>Only one transaction can hold an exclusive lock on a data item at a time.</p>
+                        <p>Notation: <code>X(X)</code></p>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">4</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Basic 2PL -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>🔄 Basic Two-Phase Locking (2PL)</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Protocol Definition</h3>
+                    <p>Basic 2PL divides transaction execution into two distinct phases:</p>
+                    <ol>
+                        <li><strong>Growing Phase:</strong> Transaction can acquire locks but cannot release any locks</li>
+                        <li><strong>Shrinking Phase:</strong> Transaction can release locks but cannot acquire any new locks</li>
+                    </ol>
+                </div>
+
+                <h2>Key Characteristics</h2>
+                <ul>
+                    <li><strong>Lock Point:</strong> The point where transaction acquires its last lock</li>
+                    <li><strong>Guarantees:</strong> Conflict Serializability</li>
+                    <li><strong>Issues:</strong> May suffer from cascading rollbacks, deadlocks possible</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>Example: Basic 2PL Schedule</h4>
+                    <div class="formula">
+T1: S(A), Read(A), X(B), Write(B), Unlock(A), Unlock(B)
+T2: S(B), Read(B), X(A), Write(A), Unlock(B), Unlock(A)
+                    </div>
+                    <p><strong>Growing Phase T1:</strong> S(A), X(B)</p>
+                    <p><strong>Shrinking Phase T1:</strong> Unlock(A), Unlock(B)</p>
+                </div>
+
+                <div class="key-point">
+                    <strong>Important:</strong> Basic 2PL ensures serializability but doesn't guarantee recoverability or avoid cascading rollbacks!
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">5</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: Conservative 2PL -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>🛡️ Conservative Two-Phase Locking</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Protocol Definition</h3>
+                    <p>Conservative 2PL requires a transaction to lock ALL data items it needs BEFORE beginning execution.</p>
+                    <ul>
+                        <li>Also known as <strong>Static 2PL</strong></li>
+                        <li>Transaction must predeclare its read and write sets</li>
+                        <li>If all locks cannot be obtained, transaction waits</li>
+                    </ul>
+                </div>
+
+                <h2>Advantages</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h4>✅ Deadlock-Free</h4>
+                        <p>No circular wait can occur since all locks are acquired at once</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>✅ Simple Logic</h4>
+                        <p>Easy to implement and reason about</p>
+                    </div>
+                </div>
+
+                <h2>Disadvantages</h2>
+                <ul>
+                    <li><strong>Difficult to Predict:</strong> Transaction must know all data items in advance</li>
+                    <li><strong>Reduced Concurrency:</strong> Locks held for entire transaction duration</li>
+                    <li><strong>Lock Overhead:</strong> May lock more data than actually needed</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>Example: Conservative 2PL</h4>
+                    <div class="formula">
+T1: [Request all locks: S(A), X(B), X(C)]
+    If all granted → Execute: Read(A), Write(B), Write(C)
+    Finally → Release: Unlock(A), Unlock(B), Unlock(C)
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">6</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Strict 2PL -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>🔐 Strict Two-Phase Locking</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Protocol Definition</h3>
+                    <p>Strict 2PL holds all <span class="highlight">EXCLUSIVE (X) locks</span> until the transaction commits or aborts.</p>
+                    <ul>
+                        <li>Shared locks can be released during shrinking phase</li>
+                        <li>Exclusive locks held until transaction end</li>
+                        <li>Most commonly used variant in commercial databases</li>
+                    </ul>
+                </div>
+
+                <h2>Why Strict 2PL?</h2>
+                <div class="key-point">
+                    <strong>Problem with Basic 2PL:</strong> If T1 writes X and releases lock, then T2 reads X, and T1 aborts → T2 must abort (Cascading Rollback)
+                </div>
+                <div class="key-point">
+                    <strong>Solution with Strict 2PL:</strong> Hold X locks until commit → No transaction can read uncommitted data → Cascadeless Schedule!
+                </div>
+
+                <h2>Properties</h2>
+                <ul>
+                    <li>✅ Guarantees <strong>Cascadeless Schedules</strong></li>
+                    <li>✅ Prevents <strong>Dirty Reads</strong></li>
+                    <li>✅ Easier <strong>Recovery</strong> mechanism</li>
+                    <li>⚠️ Deadlocks still possible</li>
+                </ul>
+
+                <div class="example-box">
+                    <h4>Example Comparison</h4>
+                    <table class="schedule-table">
+                        <tr>
+                            <th>Time</th>
+                            <th>Basic 2PL (Cascading)</th>
+                            <th>Strict 2PL (Cascadeless)</th>
+                        </tr>
+                        <tr>
+                            <td>t1</td>
+                            <td>T1: X(A), Write(A)</td>
+                            <td>T1: X(A), Write(A)</td>
+                        </tr>
+                        <tr>
+                            <td>t2</td>
+                            <td>T1: Unlock(A)</td>
+                            <td>T1: (holds X(A))</td>
+                        </tr>
+                        <tr>
+                            <td>t3</td>
+                            <td>T2: S(A), Read(A) ❌</td>
+                            <td>T2: <strong>WAITS</strong></td>
+                        </tr>
+                        <tr>
+                            <td>t4</td>
+                            <td>T1: ABORT → T2 must abort</td>
+                            <td>T1: COMMIT, Unlock(A) ✅</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">7</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Rigorous 2PL -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>💪 Rigorous Two-Phase Locking</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Protocol Definition</h3>
+                    <p>Rigorous 2PL holds <span class="highlight">ALL locks (both Shared and Exclusive)</span> until the transaction commits or aborts.</p>
+                    <ul>
+                        <li>No locks are released until transaction completion</li>
+                        <li>Strictest variant of 2PL</li>
+                        <li>Most restrictive but safest protocol</li>
+                    </ul>
+                </div>
+
+                <h2>Comparison: Strict vs Rigorous 2PL</h2>
+                <table class="schedule-table">
+                    <tr>
+                        <th>Aspect</th>
+                        <th>Strict 2PL</th>
+                        <th>Rigorous 2PL</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Exclusive Locks</strong></td>
+                        <td>Held until commit/abort</td>
+                        <td>Held until commit/abort</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Shared Locks</strong></td>
+                        <td>Can be released early</td>
+                        <td>Held until commit/abort</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Concurrency</strong></td>
+                        <td>Higher</td>
+                        <td>Lower</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Recoverability</strong></td>
+                        <td>Cascadeless</td>
+                        <td>Strict (No cascading at all)</td>
+                    </tr>
+                </table>
+
+                <h2>Properties</h2>
+                <ul>
+                    <li>✅ Guarantees <strong>Strict Schedules</strong></li>
+                    <li>✅ Simplest recovery mechanism</li>
+                    <li>✅ No uncommitted data ever visible</li>
+                    <li>⚠️ Lowest concurrency among 2PL variants</li>
+                    <li>⚠️ Deadlocks still possible</li>
+                </ul>
+
+                <div class="key-point">
+                    <strong>Trade-off:</strong> Rigorous 2PL sacrifices concurrency for maximum safety and simplicity in recovery.
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">8</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: 2PL Variants Summary -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>📊 Two-Phase Locking: Complete Comparison</h1>
+            <div class="content">
+                <table class="schedule-table">
+                    <tr>
+                        <th>Protocol</th>
+                        <th>Growing Phase</th>
+                        <th>Shrinking Phase</th>
+                        <th>Deadlock-Free?</th>
+                        <th>Recoverability</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Basic 2PL</strong></td>
+                        <td>Acquire locks</td>
+                        <td>Release locks anytime</td>
+                        <td>❌ No</td>
+                        <td>May have cascading rollbacks</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Conservative 2PL</strong></td>
+                        <td>All locks at start</td>
+                        <td>Release anytime</td>
+                        <td>✅ Yes</td>
+                        <td>Depends on when locks released</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Strict 2PL</strong></td>
+                        <td>Acquire locks</td>
+                        <td>X locks at commit only</td>
+                        <td>❌ No</td>
+                        <td>Cascadeless</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rigorous 2PL</strong></td>
+                        <td>Acquire locks</td>
+                        <td>All locks at commit only</td>
+                        <td>❌ No</td>
+                        <td>Strict (Strongest)</td>
+                    </tr>
+                </table>
+
+                <h2>Usage in Real Systems</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h4>MySQL InnoDB</h4>
+                        <p>Uses Strict 2PL with deadlock detection</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>PostgreSQL</h4>
+                        <p>Uses variations of Strict 2PL with MVCC</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>Oracle</h4>
+                        <p>Primarily uses MVCC, not 2PL</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>SQL Server</h4>
+                        <p>Uses Strict 2PL with various isolation levels</p>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">9</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <!-- Slide 11: Timestamp Ordering Protocol -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>⏰ Timestamp Ordering Protocol</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Basic Principle</h3>
+                    <p>Each transaction is assigned a unique timestamp when it begins. The protocol ensures that operations execute in timestamp order.</p>
+                    <ul>
+                        <li><strong>TS(Ti):</strong> Timestamp of transaction Ti</li>
+                        <li><strong>Read-TS(X):</strong> Largest timestamp of any transaction that read X</li>
+                        <li><strong>Write-TS(X):</strong> Largest timestamp of any transaction that wrote X</li>
+                    </ul>
+                </div>
+
+                <h2>Protocol Rules</h2>
+                <h3>For Read Operation: Ti reads X</h3>
+                <div class="example-box">
+                    <ul>
+                        <li><strong>If TS(Ti) < Write-TS(X):</strong> ❌ REJECT & ROLLBACK Ti
+                            <br><em>Ti is trying to read a value that was written by a younger transaction</em>
+                        </li>
+                        <li><strong>If TS(Ti) ≥ Write-TS(X):</strong> ✅ ALLOW read
+                            <br>Update Read-TS(X) = max(Read-TS(X), TS(Ti))
+                        </li>
+                    </ul>
+                </div>
+
+                <h3>For Write Operation: Ti writes X</h3>
+                <div class="example-box">
+                    <ul>
+                        <li><strong>If TS(Ti) < Read-TS(X):</strong> ❌ REJECT & ROLLBACK Ti
+                            <br><em>Ti is trying to write a value that was already read by a younger transaction</em>
+                        </li>
+                        <li><strong>If TS(Ti) < Write-TS(X):</strong> ❌ REJECT & ROLLBACK Ti
+                            <br><em>Obsolete write attempt</em>
+                        </li>
+                        <li><strong>Otherwise:</strong> ✅ ALLOW write
+                            <br>Update Write-TS(X) = TS(Ti)
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="key-point">
+                    <strong>Key Feature:</strong> Timestamp ordering is deadlock-free because transactions never wait for locks. However, it may cause more rollbacks.
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">11</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 12: Timestamp Example -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>⏰ Timestamp Ordering: Complete Example</h1>
+            <div class="content">
+                <div class="example-box">
+                    <h4>Scenario Setup</h4>
+                    <p><strong>Initial State:</strong> Data items A and B</p>
+                    <p>Read-TS(A) = 0, Write-TS(A) = 0</p>
+                    <p>Read-TS(B) = 0, Write-TS(B) = 0</p>
+                </div>
+
+                <table class="schedule-table">
+                    <tr>
+                        <th>Time</th>
+                        <th>T1 (TS=1)</th>
+                        <th>T2 (TS=2)</th>
+                        <th>T3 (TS=3)</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>t1</td>
+                        <td>Read(A)</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>✅ R-TS(A)=1, W-TS(A)=0</td>
+                    </tr>
+                    <tr>
+                        <td>t2</td>
+                        <td>-</td>
+                        <td>Write(A)</td>
+                        <td>-</td>
+                        <td>✅ W-TS(A)=2</td>
+                    </tr>
+                    <tr>
+                        <td>t3</td>
+                        <td>Write(A)</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>❌ TS(T1)=1 < W-TS(A)=2 → ROLLBACK T1</td>
+                    </tr>
+                    <tr>
+                        <td>t4</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>Read(A)</td>
+                        <td>✅ R-TS(A)=3, W-TS(A)=2</td>
+                    </tr>
+                    <tr>
+                        <td>t5</td>
+                        <td>-</td>
+                        <td>Write(B)</td>
+                        <td>-</td>
+                        <td>✅ W-TS(B)=2</td>
+                    </tr>
+                </table>
+
+                <div class="key-point">
+                    <strong>Result:</strong> T1 is rolled back because it tried to write a value (Write(A)) that was already overwritten by a younger transaction T2. T2 and T3 complete successfully.
+                </div>
+
+                <h2>Timestamp Protocol Characteristics</h2>
+                <ul>
+                    <li>✅ <strong>Deadlock-Free:</strong> No waiting involved</li>
+                    <li>✅ <strong>Serializable:</strong> Equivalent to serial order by timestamps</li>
+                    <li>⚠️ <strong>High Rollback Rate:</strong> Conflicts cause immediate rollbacks</li>
+                    <li>⚠️ <strong>Starvation Possible:</strong> Old transactions might keep getting rolled back</li>
+                </ul>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">12</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 13: Thomas Write Rule -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>✍️ Thomas Write Rule</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Optimization for Timestamp Ordering</h3>
+                    <p>Thomas Write Rule is a modification to the basic timestamp ordering protocol that <strong>ignores obsolete writes</strong> instead of rolling back transactions.</p>
+                </div>
+
+                <h2>Modified Write Rule</h2>
+                <div class="example-box">
+                    <h4>When Ti wants to Write(X):</h4>
+                    <ul>
+                        <li><strong>If TS(Ti) < Read-TS(X):</strong> ❌ REJECT & ROLLBACK Ti
+                            <br><em>(Same as basic protocol)</em>
+                        </li>
+                        <li><strong>If TS(Ti) < Write-TS(X):</strong> 
+                            <br>🔄 <span class="highlight">IGNORE the write (don't rollback!)</span>
+                            <br><em>This write is obsolete - a later transaction already wrote X</em>
+                        </li>
+                        <li><strong>Otherwise:</strong> ✅ ALLOW write
+                            <br>Update Write-TS(X) = TS(Ti)
+                        </li>
+                    </ul>
+                </div>
+
+                <h2>Example: Thomas Write Rule in Action</h2>
+                <table class="schedule-table">
+                    <tr>
+                        <th>Operation</th>
+                        <th>Basic Timestamp</th>
+                        <th>Thomas Write Rule</th>
+                    </tr>
+                    <tr>
+                        <td>T1(TS=1): Write(X)</td>
+                        <td>✅ W-TS(X) = 1</td>
+                        <td>✅ W-TS(X) = 1</td>
+                    </tr>
+                    <tr>
+                        <td>T3(TS=3): Write(X)</td>
+                        <td>✅ W-TS(X) = 3</td>
+                        <td>✅ W-TS(X) = 3</td>
+                    </tr>
+                    <tr>
+                        <td>T2(TS=2): Write(X)</td>
+                        <td>❌ ROLLBACK T2<br>(TS(T2)=2 < W-TS(X)=3)</td>
+                        <td>✅ IGNORE write<br>T2 continues</td>
+                    </tr>
+                </table>
+
+                <h2>Why Does This Work?</h2>
+                <div class="key-point">
+                    <strong>Reasoning:</strong> If T2 writes X but T3 (with later timestamp) already wrote X, then in the equivalent serial schedule, T3's write comes after T2's write anyway. So T2's write would be overwritten and can be safely ignored!
+                </div>
+
+                <h2>Benefits</h2>
+                <ul>
+                    <li>✅ Fewer transaction rollbacks</li>
+                    <li>✅ Better performance than basic timestamp ordering</li>
+                    <li>✅ Still guarantees conflict serializability</li>
+                    <li>✅ Allows <strong>View Serializable</strong> schedules (not just conflict serializable)</li>
+                </ul>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">13</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: MVCC Introduction -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>🔄 Multi-Version Concurrency Control (MVCC)</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Core Concept</h3>
+                    <p>MVCC maintains <strong>multiple versions</strong> of each data item to allow greater concurrency without locking for reads.</p>
+                    <ul>
+                        <li>Each write creates a NEW version of the data item</li>
+                        <li>Each transaction sees a consistent snapshot</li>
+                        <li>Readers don't block writers, writers don't block readers</li>
+                    </ul>
+                </div>
+
+                <h2>How MVCC Works</h2>
+                <div class="example-box">
+                    <h4>Version Management</h4>
+                    <p>Each version has metadata:</p>
+                    <ul>
+                        <li><strong>Write-Timestamp (WTS):</strong> When version was created</li>
+                        <li><strong>Read-Timestamp (RTS):</strong> Latest transaction that read it</li>
+                        <li><strong>Transaction ID:</strong> Which transaction created it</li>
+                    </ul>
+                </div>
+
+                <h2>MVCC Read Rule</h2>
+                <div class="example-box">
+                    <p>When transaction Ti with timestamp TS(Ti) wants to read X:</p>
+                    <div class="formula">
+Select the version Xk where:
+  WTS(Xk) is the largest timestamp ≤ TS(Ti)
+  AND the transaction that created Xk has committed
+                    </div>
+                    <p>This ensures Ti reads the most recent <strong>committed</strong> version visible to it.</p>
+                </div>
+
+                <h2>MVCC Write Rule</h2>
+                <div class="example-box">
+                    <p>When transaction Ti with timestamp TS(Ti) wants to write X:</p>
+                    <ul>
+                        <li><strong>If RTS(X) > TS(Ti):</strong> ❌ REJECT - a younger transaction already read X</li>
+                        <li><strong>Otherwise:</strong> ✅ Create a new version Xnew with WTS(Xnew) = TS(Ti)</li>
+                    </ul>
+                </div>
+
+                <div class="key-point">
+                    <strong>Key Advantage:</strong> Read operations never wait! They always find an appropriate version to read.
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">10</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 14: Protocol Comparison -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>📊 Concurrency Control Protocols: Complete Comparison</h1>
+            <div class="content">
+                <table class="schedule-table">
+                    <tr>
+                        <th>Protocol</th>
+                        <th>Deadlock-Free?</th>
+                        <th>Conflict Serializability</th>
+                        <th>View Serializability</th>
+                        <th>Recoverability</th>
+                        <th>Cascadelessness</th>
+                        <th>Rollbacks</th>
+                        <th>Concurrency</th>
+                        <th>Best Use Case</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Basic 2PL</strong></td>
+                        <td>❌</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                        <td>Medium</td>
+                        <td>Medium</td>
+                        <td>General purpose with deadlock detection</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Conservative 2PL</strong></td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                        <td>Low</td>
+                        <td>Low</td>
+                        <td>When all data items known upfront</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Strict 2PL</strong></td>
+                        <td>❌</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>Medium</td>
+                        <td>Medium-High</td>
+                        <td>Most commercial databases</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rigorous 2PL</strong></td>
+                        <td>❌</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅ (Strict)</td>
+                        <td>Low</td>
+                        <td>Low</td>
+                        <td>When simplicity > performance</td>
+                    </tr>
+                    <tr>
+                        <td><strong>MVCC</strong></td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>Low</td>
+                        <td>Very High</td>
+                        <td>Read-heavy workloads, PostgreSQL, Oracle</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Timestamp</strong></td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>✅</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                        <td>High</td>
+                        <td>High</td>
+                        <td>Distributed systems, low contention</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Thomas Write</strong></td>
+                        <td>✅</td>
+                        <td>❌</td>                    
+                        <td>✅</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                        <td>Medium</td>
+                        <td>High</td>
+                        <td>Optimization for timestamp ordering</td>
+                    </tr>
+                </table>
+
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h4>Lock-Based Protocols</h4>
+                        <p><strong>Pros:</strong> Well understood, predictable</p>
+                        <p><strong>Cons:</strong> Deadlocks, lower concurrency</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>Timestamp-Based</h4>
+                        <p><strong>Pros:</strong> Deadlock-free, high concurrency</p>
+                        <p><strong>Cons:</strong> More rollbacks, starvation risk</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>MVCC</h4>
+                        <p><strong>Pros:</strong> Highest concurrency, no read locks</p>
+                        <p><strong>Cons:</strong> Storage overhead, complexity</p>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">14</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 15: Deadlocks Introduction -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>💀 Deadlocks in Database Systems</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>What is a Deadlock?</h3>
+                    <p>A deadlock occurs when two or more transactions are waiting indefinitely for each other to release locks, creating a <strong>circular wait</strong> condition.</p>
+                </div>
+
+                <h2>Classic Deadlock Example</h2>
+                <div class="example-box">
+                    <h4>The Dining Philosophers Problem (Database Version)</h4>
+                    <table class="schedule-table">
+                        <tr>
+                            <th>Time</th>
+                            <th>Transaction T1</th>
+                            <th>Transaction T2</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr>
+                            <td>t1</td>
+                            <td>X(A) ✅</td>
+                            <td>-</td>
+                            <td>T1 holds lock on A</td>
+                        </tr>
+                        <tr>
+                            <td>t2</td>
+                            <td>-</td>
+                            <td>X(B) ✅</td>
+                            <td>T2 holds lock on B</td>
+                        </tr>
+                        <tr>
+                            <td>t3</td>
+                            <td>X(B) ⏳</td>
+                            <td>-</td>
+                            <td>T1 waits for B (held by T2)</td>
+                        </tr>
+                        <tr>
+                            <td>t4</td>
+                            <td>-</td>
+                            <td>X(A) ⏳</td>
+                            <td>T2 waits for A (held by T1)</td>
+                        </tr>
+                        <tr>
+                            <td>Result</td>
+                            <td colspan="3" style="text-align:center; color: red; font-weight: bold;">💀 DEADLOCK: Both transactions wait forever!</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <h2>Necessary Conditions for Deadlock</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h4>1. Mutual Exclusion</h4>
+                        <p>Resources cannot be shared (e.g., exclusive locks)</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>2. Hold and Wait</h4>
+                        <p>Transactions hold resources while waiting for others</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>3. No Preemption</h4>
+                        <p>Resources cannot be forcibly taken from transactions</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>4. Circular Wait</h4>
+                        <p>A circular chain of transactions waiting for each other</p>
+                    </div>
+                </div>
+
+                <div class="key-point">
+                    <strong>All four conditions must be present</strong> for a deadlock to occur. Breaking any one condition prevents deadlocks!
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">15</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 16: Deadlock Detection -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>🔍 Deadlock Detection</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Detection Strategy</h3>
+                    <p>Allow deadlocks to occur, but <strong>detect and resolve</strong> them when they happen.</p>
+                    <ul>
+                        <li>Build a Wait-For Graph (WFG)</li>
+                        <li>Check for cycles periodically</li>
+                        <li>If cycle found → Deadlock exists!</li>
+                        <li>Select a victim transaction to rollback</li>
+                    </ul>
+                </div>
+
+                <h2>Wait-For Graph (WFG)</h2>
+                <div class="example-box">
+                    <h4>Construction Rules:</h4>
+                    <ul>
+                        <li><strong>Nodes:</strong> Each transaction is a node</li>
+                        <li><strong>Edges:</strong> Ti → Tj if Ti is waiting for a lock held by Tj</li>
+                        <li><strong>Cycle:</strong> Indicates deadlock</li>
+                    </ul>
+                </div>
+
+                <h2>Example: Deadlock Detection</h2>
+                <div class="deadlock-diagram">
+                    <h4>Scenario:</h4>
+                    <div class="formula">
+T1 holds X(A), wants X(B)
+T2 holds X(B), wants X(C)
+T3 holds X(C), wants X(A)
+                    </div>
+                    <h4>Wait-For Graph:</h4>
+                    <div class="formula">
+    T1 → T2
+    ↑     ↓
+    T3 ← T2 → T3
+    
+    Cycle detected: T1 → T2 → T3 → T1
+    </div>
+                    <p style="color: red; font-weight: bold;">💀 DEADLOCK DETECTED!</p>
+                </div>
+
+                <h2>Victim Selection Criteria</h2>
+                <ul>
+                    <li>📊 <strong>Age:</strong> Rollback youngest transaction (minimize wasted work)</li>
+                    <li>⚖️ <strong>Work Done:</strong> Rollback transaction with least progress</li>
+                    <li>🔄 <strong>Rollback Count:</strong> Avoid starvation - don't repeatedly pick same transaction</li>
+                    <li>🔒 <strong>Lock Count:</strong> Rollback transaction holding fewest locks</li>
+                </ul>
+
+                <div class="key-point">
+                    <strong>Trade-off:</strong> Detection frequency vs. overhead. Check too often = waste CPU. Check too rarely = long waits.
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">16</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 17: Deadlock Prevention -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>🛡️ Deadlock Prevention</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Prevention Strategy</h3>
+                    <p>Design protocols that ensure <strong>at least one</strong> of the four necessary conditions cannot occur.</p>
+                </div>
+
+                <h2>Prevention Techniques</h2>
+                
+                <h3>1. Prevent Mutual Exclusion</h3>
+                <div class="example-box">
+                    <p><strong>Approach:</strong> Make all resources shareable</p>
+                    <p><strong>Reality:</strong> ❌ Not practical for databases - writes need exclusive access</p>
+                </div>
+
+                <h3>2. Prevent Hold and Wait</h3>
+                <div class="example-box">
+                    <p><strong>Approach:</strong> Require transactions to request all locks at once</p>
+                    <p><strong>Implementation:</strong> Conservative 2PL!</p>
+                    <ul>
+                        <li>✅ Guarantees no deadlock</li>
+                        <li>⚠️ Reduces concurrency</li>
+                        <li>⚠️ Requires knowing all data items in advance</li>
+                    </ul>
+                </div>
+
+                <h3>3. Allow Preemption</h3>
+                <div class="example-box">
+                    <p><strong>Approach:</strong> If Ti waits for Tj, abort one of them</p>
+                    <p><strong>Schemes:</strong></p>
+                    <ul>
+                        <li><strong>Wound-Wait:</strong> Older transaction "wounds" younger
+                            <br><code>If TS(Ti) < TS(Tj): Abort Tj, else Ti waits</code>
+                        </li>
+                        <li><strong>Wait-Die:</strong> Younger transaction "dies"
+                            <br><code>If TS(Ti) < TS(Tj): Ti waits, else abort Ti</code>
+                        </li>
+                    </ul>
+                </div>
+
+                <h3>4. Prevent Circular Wait</h3>
+                <div class="example-box">
+                    <p><strong>Approach:</strong> Impose ordering on resource requests</p>
+                    <p><strong>Implementation:</strong> Assign unique IDs to all data items. Transactions must request locks in increasing order of IDs.</p>
+                    <ul>
+                        <li>✅ Provably prevents deadlocks</li>
+                        <li>⚠️ May not match natural access patterns</li>
+                    </ul>
+                    <div class="formula">
+Example: Data items ordered A(ID=1), B(ID=2), C(ID=3)
+Valid: Lock(A) → Lock(B) → Lock(C)
+Invalid: Lock(C) → Lock(A) ❌
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">17</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 18: Deadlock Avoidance -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>⚠️ Deadlock Avoidance</h1>
+            <div class="content">
+                <div class="protocol-box">
+                    <h3>Avoidance Strategy</h3>
+                    <p>Dynamically examine resource allocation state to ensure the system never enters an <strong>unsafe state</strong> that could lead to deadlock.</p>
+                </div>
+
+                <h2>Safe State Concept</h2>
+                <div class="example-box">
+                    <h4>Definitions:</h4>
+                    <ul>
+                        <li><strong>Safe State:</strong> System can allocate resources to each transaction in some order and still avoid deadlock</li>
+                        <li><strong>Unsafe State:</strong> No guarantee that deadlock can be avoided</li>
+                        <li><strong>Key Point:</strong> Unsafe ≠ Deadlock, but unsafe state <em>may</em> lead to deadlock</li>
+                    </ul>
+                </div>
+
+                <h2>Wait-Die and Wound-Wait Schemes (Detailed)</h2>
+                
+                <h3>Wait-Die (Non-Preemptive)</h3>
+                <div class="example-box">
+                    <p><strong>Rule:</strong> Older transactions wait, younger transactions die</p>
+                    <div class="formula">
+                            If Ti requests lock held by Tj:
+                            If TS(Ti) < TS(Tj):  // Ti is older
+                                Ti WAITS for Tj
+                            Else:                // Ti is younger
+                                ABORT Ti (Ti "dies")
+                    </div>
+                    <p><strong>Example:</strong> T1(TS=5) wants lock from T2(TS=10)</p>
+                    <p>→ T1 is older, so T1 waits ✅</p>
+                    <p><strong>Example:</strong> T2(TS=10) wants lock from T1(TS=5)</p>
+                    <p>→ T2 is younger, so T2 aborts ❌</p>
+                </div>
+
+                <h3>Wound-Wait (Preemptive)</h3>
+                <div class="example-box">
+                    <p><strong>Rule:</strong> Older transactions wound (preempt) younger, younger wait for older</p>
+                    <div class="formula">
+                                If Ti requests lock held by Tj:
+                                If TS(Ti) < TS(Tj):  // Ti is older
+                                    ABORT Tj (Ti "wounds" Tj)
+                                Else:                // Ti is younger
+                                    Ti WAITS for Tj
+                    </div>
+                    <p><strong>Example:</strong> T1(TS=5) wants lock from T2(TS=10)</p>
+                    <p>→ T1 is older, so T2 is aborted (wounded) ❌</p>
+                    <p><strong>Example:</strong> T2(TS=10) wants lock from T1(TS=5)</p>
+                    <p>→ T2 is younger, so T2 waits ✅</p>
+                </div>
+
+                <h2>Comparison</h2>
+                <table class="schedule-table">
+                    <tr>
+                        <th>Aspect</th>
+                        <th>Wait-Die</th>
+                        <th>Wound-Wait</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Type</strong></td>
+                        <td>Non-preemptive</td>
+                        <td>Preemptive</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Who Dies?</strong></td>
+                        <td>Younger transaction</td>
+                        <td>Younger transaction</td>
+                    </tr>
+                    <tr>
+                        <td><strong>When?</strong></td>
+                        <td>When younger requests lock</td>
+                        <td>When older requests lock</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rollbacks</strong></td>
+                        <td>More frequent</td>
+                        <td>Less frequent</td>
+                    </tr>
+                </table>
+
+                <div class="key-point">
+                    <strong>Both schemes prevent deadlock</strong> by ensuring transactions only wait for older ones, eliminating circular wait!
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">18</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    
+
+       <!-- Slide 19: Deadlock Management Comparison -->
+       <div class="slide-container">
+        <div class="slide">
+            <h1>📊 Deadlock Management: Complete Comparison</h1>
+            <div class="content">
+                <table class="schedule-table">
+                    <tr>
+                        <th>Approach</th>
+                        <th>When Applied</th>
+                        <th>Overhead</th>
+                        <th>Advantages</th>
+                        <th>Disadvantages</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Detection</strong></td>
+                        <td>After deadlock occurs</td>
+                        <td>Periodic WFG construction</td>
+                        <td>
+                            • Max concurrency<br>
+                            • No false alarms<br>
+                            • Simple to implement
+                        </td>
+                        <td>
+                            • Victim must rollback<br>
+                            • Wasted work<br>
+                            • Detection delay
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Prevention</strong></td>
+                        <td>During protocol design</td>
+                        <td>Low runtime overhead</td>
+                        <td>
+                            • No deadlocks possible<br>
+                            • No detection needed<br>
+                            • Predictable behavior
+                        </td>
+                        <td>
+                            • Reduced concurrency<br>
+                            • May not fit all scenarios<br>
+                            • Conservative approach
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Avoidance</strong></td>
+                        <td>Before granting locks</td>
+                        <td>Check state on each request</td>
+                        <td>
+                            • No deadlocks<br>
+                            • Better concurrency than prevention<br>
+                            • Dynamic decision
+                        </td>
+                        <td>
+                            • Complex algorithms<br>
+                            • Overhead on every request<br>
+                            • May abort unnecessarily
+                        </td>
+                    </tr>
+                </table>
+
+                <h2>Real-World Database Systems</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h4>🔷 MySQL InnoDB</h4>
+                        <p><strong>Strategy:</strong> Detection</p>
+                        <p>Uses timeout + WFG detection. Automatically rolls back one transaction in deadlock.</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>🐘 PostgreSQL</h4>
+                        <p><strong>Strategy:</strong> Detection</p>
+                        <p>Builds WFG and detects cycles. Uses deadlock_timeout parameter.</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>🔶 Oracle</h4>
+                        <p><strong>Strategy:</strong> Detection + MVCC</p>
+                        <p>Reduces deadlocks through MVCC. Detects remaining cases.</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>⚡ SQL Server</h4>
+                        <p><strong>Strategy:</strong> Detection</p>
+                        <p>Deadlock monitor runs every 5 seconds. Chooses victim based on cost.</p>
+                    </div>
+                </div>
+
+                <h2>Choosing the Right Strategy</h2>
+                <div class="example-box">
+                    <h4>Decision Factors:</h4>
+                    <ul>
+                        <li><strong>Deadlock Frequency:</strong> If rare → Detection. If common → Prevention/Avoidance</li>
+                        <li><strong>Transaction Patterns:</strong> If predictable → Prevention. If dynamic → Detection</li>
+                        <li><strong>Performance Priority:</strong> If max throughput → Detection. If predictability → Prevention</li>
+                        <li><strong>System Resources:</strong> If CPU available → Detection. If memory constrained → Prevention</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">19</span> of <span id="total">20</span></div>
+                <button onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 20: Summary and Next Lecture -->
+    <div class="slide-container">
+        <div class="slide">
+            <h1>📚 Lecture Summary</h1>
+            <div class="content">
+                <h2>What We Covered Today</h2>
+                
+                <h3>Part I: Concurrency Control Protocols</h3>
+                <div class="example-box">
+                    <h4>Lock-Based Protocols (2PL Family):</h4>
+                    <ul>
+                        <li><strong>Basic 2PL:</strong> Growing and shrinking phases - guarantees serializability</li>
+                        <li><strong>Conservative 2PL:</strong> All locks upfront - deadlock-free but low concurrency</li>
+                        <li><strong>Strict 2PL:</strong> Hold X locks until commit - prevents cascading rollbacks</li>
+                        <li><strong>Rigorous 2PL:</strong> Hold all locks until commit - strictest recoverability</li>
+                    </ul>
+                </div>
+
+                <div class="example-box">
+                    <h4>Alternative Protocols:</h4>
+                    <ul>
+                        <li><strong>MVCC:</strong> Multiple versions for high concurrency - used in PostgreSQL, Oracle</li>
+                        <li><strong>Timestamp Ordering:</strong> Deadlock-free but may have high rollbacks</li>
+                        <li><strong>Thomas Write Rule:</strong> Optimization that ignores obsolete writes</li>
+                    </ul>
+                </div>
+
+                <h3>Part II: Deadlock Management</h3>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h4>Detection</h4>
+                        <p>✓ Wait-For Graphs<br>
+                        ✓ Cycle detection<br>
+                        ✓ Victim selection</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>Prevention</h4>
+                        <p>✓ Break necessary conditions<br>
+                        ✓ Resource ordering<br>
+                        ✓ Conservative 2PL</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h4>Avoidance</h4>
+                        <p>✓ Safe state checking<br>
+                        ✓ Wait-Die scheme<br>
+                        ✓ Wound-Wait scheme</p>
+                    </div>
+                </div>
+
+                <h2>Key Takeaways</h2>
+                <div class="key-point">
+                    <ul>
+                        <li>🔒 <strong>No perfect protocol</strong> - each has trade-offs between concurrency, complexity, and guarantees</li>
+                        <li>📊 <strong>Strict 2PL</strong> is most common in commercial databases due to balance of safety and performance</li>
+                        <li>🔄 <strong>MVCC</strong> provides highest concurrency for read-heavy workloads</li>
+                        <li>💀 <strong>Deadlocks</strong> are inevitable in lock-based systems - must have strategy to handle them</li>
+                        <li>⚖️ <strong>Detection</strong> is most flexible but requires overhead; <strong>Prevention</strong> sacrifices concurrency</li>
+                    </ul>
+                </div>
+
+                <h2>Practice Questions</h2>
+                <div class="example-box">
+                    <ol>
+                        <li>Given a schedule, determine if it follows Strict 2PL</li>
+                        <li>Construct a Wait-For Graph and detect deadlocks</li>
+                        <li>Apply Thomas Write Rule to a timestamp-ordered schedule</li>
+                        <li>Compare two transactions using Wait-Die and Wound-Wait schemes</li>
+                        <li>Design a protocol for a specific use case with given requirements</li>
+                    </ol>
+                </div>
+
+                <div class="protocol-box">
+                    <h3>🎯 Next Lecture Preview</h3>
+                    <p><strong>Lecture 15: Recovery Systems</strong></p>
+                    <ul>
+                        <li>Log-based recovery</li>
+                        <li>Checkpointing techniques</li>
+                        <li>ARIES recovery algorithm</li>
+                        <li>Shadow paging</li>
+                    </ul>
+                </div>
+
+                <div style="margin-top: 40px; padding: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; text-align: center;">
+                    <h3 style="color: white; margin-bottom: 15px;">Thank You!</h3>
+                    <p style="font-size: 1.1em;">Questions? Office Hours: 10:00 AM - 05:00 PM</p>
+                    <p>Email: mohsin.dar@ddn.upes.ac.in</p>
+                </div>
+            </div>
+            <div class="navigation">
+                <button onclick="prevSlide()">← Previous</button>
+                <div class="slide-counter">Slide <span id="current">20</span> of <span id="total">20</span></div>
+                <button disabled>Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slideContainers = document.querySelectorAll('.slide-container');
+        const totalSlides = slideContainers.length;
+
+        function updateSlide() {
+            slideContainers.forEach((container, index) => {
+                container.classList.remove('active');
+                if (index === currentSlide) {
+                    container.classList.add('active');
+                }
+            });
+            
+            document.querySelectorAll('#current').forEach(el => {
+                el.textContent = currentSlide + 1;
+            });
+            
+            document.querySelectorAll('#total').forEach(el => {
+                el.textContent = totalSlides;
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        updateSlide();
+    </script>
+</body>
+</html>

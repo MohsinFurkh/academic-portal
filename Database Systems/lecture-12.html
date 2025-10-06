@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Optimization - Lecture 12</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .slide {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-height: 500px;
+        }
+        
+        .title-slide {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 80px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+        
+        .title-slide h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        .title-slide h2 {
+            font-size: 1.8em;
+            margin: 10px 0 30px;
+            font-weight: 400;
+            color: #ecf0f1;
+        }
+        
+        .title-slide .course-info {
+            font-size: 1.2em;
+            margin: 5px 0;
+            color: #bdc3c7;
+        }
+        
+        .slide-number {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        h2 {
+            color: #667eea;
+            border-bottom: 3px solid #764ba2;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        
+        h3 {
+            color: #764ba2;
+            margin: 20px 0 15px 0;
+            font-size: 1.3em;
+        }
+        
+        .content-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .formula {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            font-size: 1.1em;
+        }
+        
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .highlight {
+            background: #ffffcc;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+        
+        li {
+            margin: 10px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .problem-box {
+            background: #e7f3ff;
+            border: 2px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .problem-box h4 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+        
+        .diagram {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .tree-node {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 5px;
+        }
+        
+        @media print {
+            .slide {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Title Slide -->
+        <div class="slide title-slide">
+            <h1>Query Optimization</h1>
+            <h2>Database Systems - Lecture 12</h2>
+            <div class="course-info">Unit II: Transaction Management</div>
+            <div class="course-info">M.Tech - First Semester</div>
+            <h2 style="margin-top: 40px;">Database Systems (MTech Semester I)</h2>
+            <h2 style="font-weight: 400; margin-top: 30px;">Dr. Mohsin Dar</h2>
+            <h2 style="font-weight: 300;">Assistant Professor, Cloud & Software Operations Cluster</h2>
+            <h2 style="font-weight: 300;">UPES</h2>
+        </div>
+
+        <!-- Slide 2: Lecture Outline -->
+        <div class="slide">
+            <span class="slide-number">Slide 2</span>
+            <h2>Lecture Outline</h2>
+            <div class="content-box">
+                <ol>
+                    <li><strong>Introduction to Query Optimization</strong></li>
+                    <li><strong>Cardinality Estimation</strong>
+                        <ul>
+                            <li>Selection, Projection, Join Operations</li>
+                            <li>Set Operations and Aggregation</li>
+                        </ul>
+                    </li>
+                    <li><strong>Histograms for Selectivity Estimation</strong></li>
+                    <li><strong>Equivalences of Relational Algebra</strong></li>
+                    <li><strong>Query Plans and Execution Strategies</strong></li>
+                    <li><strong>Cost Estimation Models</strong></li>
+                    <li><strong>Nested Query Optimization</strong></li>
+                    <li><strong>Numerical Practice Problems</strong></li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Slide 3: Introduction to Query Optimization -->
+        <div class="slide">
+            <span class="slide-number">Slide 3</span>
+            <h2>Introduction to Query Optimization</h2>
+            
+            <h3>What is Query Optimization?</h3>
+            <p>Query optimization is the process of selecting the most efficient execution plan for a given SQL query from multiple possible plans.</p>
+            
+            <div class="content-box">
+                <h3>Goals of Query Optimization:</h3>
+                <ul>
+                    <li><strong>Minimize response time</strong> - Reduce query execution time</li>
+                    <li><strong>Minimize resource consumption</strong> - Reduce CPU, I/O, memory usage</li>
+                    <li><strong>Maximize throughput</strong> - Handle more queries concurrently</li>
+                </ul>
+            </div>
+            
+            <h3>Query Optimization Process:</h3>
+            <div class="two-column">
+                <div>
+                    <ol>
+                        <li>Parse SQL query</li>
+                        <li>Generate query tree</li>
+                        <li>Apply algebraic transformations</li>
+                        <li>Enumerate possible plans</li>
+                    </ol>
+                </div>
+                <div>
+                    <ol start="5">
+                        <li>Estimate cost for each plan</li>
+                        <li>Select optimal plan</li>
+                        <li>Execute selected plan</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Cardinality Estimation Overview -->
+        <div class="slide">
+            <span class="slide-number">Slide 4</span>
+            <h2>Cardinality Estimation</h2>
+            
+            <h3>Definition:</h3>
+            <p><span class="highlight">Cardinality</span> refers to the number of tuples (rows) in the result of a relational operation.</p>
+            
+            <div class="content-box">
+                <h3>Why is Cardinality Estimation Important?</h3>
+                <ul>
+                    <li>Determines cost of query execution plans</li>
+                    <li>Helps choose optimal join algorithms</li>
+                    <li>Guides index selection decisions</li>
+                    <li>Critical for cost-based optimization</li>
+                </ul>
+            </div>
+            
+            <h3>Key Statistics Maintained:</h3>
+            <table>
+                <tr>
+                    <th>Statistic</th>
+                    <th>Symbol</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Cardinality</td>
+                    <td>n<sub>r</sub></td>
+                    <td>Number of tuples in relation r</td>
+                </tr>
+                <tr>
+                    <td>Block Size</td>
+                    <td>b<sub>r</sub></td>
+                    <td>Number of blocks containing r</td>
+                </tr>
+                <tr>
+                    <td>Tuple Size</td>
+                    <td>l<sub>r</sub></td>
+                    <td>Size of a tuple in relation r</td>
+                </tr>
+                <tr>
+                    <td>Distinct Values</td>
+                    <td>V(A,r)</td>
+                    <td>Number of distinct values for attribute A</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Slide 5: Selection Operation -->
+        <div class="slide">
+            <span class="slide-number">Slide 5</span>
+            <h2>Cardinality Estimation: Selection (σ)</h2>
+            
+            <h3>Selection Operation: σ<sub>predicate</sub>(r)</h3>
+            
+            <div class="content-box">
+                <h3>Case 1: Equality Condition (A = v)</h3>
+                <div class="formula">
+                    n<sub>σ<sub>A=v</sub>(r)</sub> = n<sub>r</sub> / V(A,r)
+                </div>
+                <p><strong>Assumption:</strong> Values are uniformly distributed</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>Case 2: Comparison Condition (A ≤ v)</h3>
+                <div class="formula">
+                    n<sub>σ<sub>A≤v</sub>(r)</sub> = n<sub>r</sub> × (v - min(A,r)) / (max(A,r) - min(A,r))
+                </div>
+                <p><strong>Assumption:</strong> Values are uniformly distributed within range</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>Case 3: Conjunction (cond<sub>1</sub> ∧ cond<sub>2</sub>)</h3>
+                <div class="formula">
+                    n<sub>σ<sub>c1∧c2</sub>(r)</sub> = n<sub>r</sub> × s<sub>1</sub> × s<sub>2</sub>
+                </div>
+                <p>where s<sub>i</sub> is the selectivity factor of condition i</p>
+                <p><strong>Assumption:</strong> Conditions are independent</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>Case 4: Disjunction (cond<sub>1</sub> ∨ cond<sub>2</sub>)</h3>
+                <div class="formula">
+                    n<sub>σ<sub>c1∨c2</sub>(r)</sub> = n<sub>r</sub> × (1 - (1-s<sub>1</sub>) × (1-s<sub>2</sub>))
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Join Operations -->
+        <div class="slide">
+            <span class="slide-number">Slide 6</span>
+            <h2>Cardinality Estimation: Join Operations</h2>
+            
+            <h3>Natural Join: r ⋈ s</h3>
+            
+            <div class="content-box">
+                <h3>Case 1: Join on Key of r (R ∩ S = primary key of r)</h3>
+                <div class="formula">
+                    n<sub>r⋈s</sub> ≤ n<sub>s</sub>
+                </div>
+                <p>Each tuple in s joins with at most one tuple in r</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>Case 2: Foreign Key Join (R ∩ S is foreign key from s to r)</h3>
+                <div class="formula">
+                    n<sub>r⋈s</sub> = n<sub>s</sub>
+                </div>
+                <p>Each tuple in s joins with exactly one tuple in r</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>Case 3: General Case (No key constraints)</h3>
+                <div class="formula">
+                    n<sub>r⋈s</sub> = (n<sub>r</sub> × n<sub>s</sub>) / max(V(A,r), V(A,s))
+                </div>
+                <p>where A is the common attribute(s)</p>
+                <p><strong>Worst Case (Cartesian Product):</strong> n<sub>r</sub> × n<sub>s</sub></p>
+            </div>
+            
+            <h3>Example:</h3>
+            <p>If Student has 1000 tuples, Enrollment has 5000 tuples, and V(student_id, Student) = 1000:</p>
+            <div class="formula">
+                n<sub>Student⋈Enrollment</sub> = (1000 × 5000) / 1000 = 5000
+            </div>
+        </div>
+
+        <!-- Slide 7: Other Operations -->
+        <div class="slide">
+            <span class="slide-number">Slide 7</span>
+            <h2>Cardinality Estimation: Other Operations</h2>
+            
+            <div class="content-box">
+                <h3>Projection: π<sub>A</sub>(r)</h3>
+                <div class="formula">
+                    n<sub>π<sub>A</sub>(r)</sub> ≤ min(V(A,r), n<sub>r</sub>)
+                </div>
+                <p>If A is a key: n<sub>π<sub>A</sub>(r)</sub> = n<sub>r</sub></p>
+                <p>If duplicates removed: n<sub>π<sub>A</sub>(r)</sub> = V(A,r)</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>Set Operations:</h3>
+                <table>
+                    <tr>
+                        <th>Operation</th>
+                        <th>Cardinality Estimate</th>
+                    </tr>
+                    <tr>
+                        <td>Union: r ∪ s</td>
+                        <td>n<sub>r</sub> + n<sub>s</sub> (upper bound)</td>
+                    </tr>
+                    <tr>
+                        <td>Intersection: r ∩ s</td>
+                        <td>min(n<sub>r</sub>, n<sub>s</sub>)</td>
+                    </tr>
+                    <tr>
+                        <td>Difference: r - s</td>
+                        <td>n<sub>r</sub> (upper bound)</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="content-box">
+                <h3>Aggregation: <sub>A</sub>γ<sub>F(B)</sub>(r)</h3>
+                <p>Group by A with aggregate function F on B</p>
+                <div class="formula">
+                    n<sub><sub>A</sub>γ<sub>F(B)</sub>(r)</sub> = V(A,r)
+                </div>
+                <p>Result has one tuple per distinct value of grouping attributes</p>
+            </div>
+        </div>
+
+        <!-- Slide 8: Histograms -->
+        <div class="slide">
+            <span class="slide-number">Slide 8</span>
+            <h2>Histograms for Selectivity Estimation</h2>
+            
+            <h3>Why Histograms?</h3>
+            <p>The <span class="highlight">uniform distribution assumption</span> is often incorrect in real data. Histograms provide more accurate estimates.</p>
+            
+            <div class="content-box">
+                <h3>Types of Histograms:</h3>
+                <ul>
+                    <li><strong>Equi-width Histogram:</strong> Divide domain into equal-sized buckets</li>
+                    <li><strong>Equi-depth (Equi-height) Histogram:</strong> Each bucket contains approximately same number of tuples</li>
+                    <li><strong>Compressed Histogram:</strong> Store only non-empty buckets</li>
+                    <li><strong>End-biased Histogram:</strong> Separate treatment for high-frequency values</li>
+                </ul>
+            </div>
+            
+            <h3>Equi-depth Histogram Example:</h3>
+            <table>
+                <tr>
+                    <th>Bucket</th>
+                    <th>Range</th>
+                    <th>Count</th>
+                    <th>Distinct Values</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>[1-25]</td>
+                    <td>500</td>
+                    <td>20</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>[26-45]</td>
+                    <td>500</td>
+                    <td>15</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>[46-75]</td>
+                    <td>500</td>
+                    <td>25</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>[76-100]</td>
+                    <td>500</td>
+                    <td>18</td>
+                </tr>
+            </table>
+            
+            <p><strong>Usage:</strong> For query σ<sub>age=30</sub>(Person), look up bucket 2: estimate ≈ 500/15 ≈ 33 tuples</p>
+        </div>
+
+        <!-- Slide 9: Relational Algebra Equivalences 1 -->
+        <div class="slide">
+            <span class="slide-number">Slide 9</span>
+            <h2>Equivalences of Relational Algebra (Part 1)</h2>
+            
+            <h3>Why Equivalences Matter?</h3>
+            <p>Multiple equivalent expressions can produce the same result with different costs. Query optimizers use these rules to transform queries.</p>
+            
+            <div class="content-box">
+                <h3>1. Selection Operations:</h3>
+                <p><strong>Cascade:</strong> σ<sub>c1∧c2</sub>(r) ≡ σ<sub>c1</sub>(σ<sub>c2</sub>(r))</p>
+                <p><strong>Commutativity:</strong> σ<sub>c1</sub>(σ<sub>c2</sub>(r)) ≡ σ<sub>c2</sub>(σ<sub>c1</sub>(r))</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>2. Projection Operations:</h3>
+                <p><strong>Cascade:</strong> π<sub>L1</sub>(π<sub>L2</sub>(...π<sub>Ln</sub>(r))) ≡ π<sub>L1</sub>(r)</p>
+                <p>if L1 ⊆ L2 ⊆ ... ⊆ Ln</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>3. Join Operations:</h3>
+                <p><strong>Commutativity:</strong> r ⋈ s ≡ s ⋈ r</p>
+                <p><strong>Associativity:</strong> (r ⋈ s) ⋈ t ≡ r ⋈ (s ⋈ t)</p>
+                <p>These properties allow reordering joins for efficiency</p>
+            </div>
+        </div>
+
+        <!-- Slide 10: Relational Algebra Equivalences 2 -->
+        <div class="slide">
+            <span class="slide-number">Slide 10</span>
+            <h2>Equivalences of Relational Algebra (Part 2)</h2>
+            
+            <div class="content-box">
+                <h3>4. Selection with Join (Push Selection):</h3>
+                <p>σ<sub>c</sub>(r ⋈ s) ≡ σ<sub>c</sub>(r) ⋈ s</p>
+                <p>if condition c involves only attributes of r</p>
+                <p><strong>Benefit:</strong> Reduces intermediate result size</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>5. Projection with Join (Push Projection):</h3>
+                <p>π<sub>L</sub>(r ⋈<sub>c</sub> s) ≡ π<sub>L</sub>(π<sub>L1</sub>(r) ⋈<sub>c</sub> π<sub>L2</sub>(s))</p>
+                <p>where L1 contains attributes from r needed for join and output</p>
+                <p>and L2 contains attributes from s needed for join and output</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>6. Set Operations:</h3>
+                <p><strong>Union:</strong> r ∪ s ≡ s ∪ r (commutative)</p>
+                <p><strong>Union:</strong> (r ∪ s) ∪ t ≡ r ∪ (s ∪ t) (associative)</p>
+                <p><strong>Intersection:</strong> r ∩ s ≡ s ∩ r (commutative)</p>
+                <p><strong>Selection with Union:</strong> σ<sub>c</sub>(r ∪ s) ≡ σ<sub>c</sub>(r) ∪ σ<sub>c</sub>(s)</p>
+            </div>
+        </div>
+
+        <!-- Slide 11: Query Plans -->
+        <div class="slide">
+            <span class="slide-number">Slide 11</span>
+            <h2>Query Plans</h2>
+            
+            <h3>What is a Query Plan?</h3>
+            <p>A <span class="highlight">query plan</span> (or query execution plan) is a tree-like data structure representing the sequence of operations to execute a query.</p>
+            
+            <div class="content-box">
+                <h3>Components of a Query Plan:</h3>
+                <ul>
+                    <li><strong>Operators:</strong> Selection, Projection, Join, etc.</li>
+                    <li><strong>Access Methods:</strong> Sequential scan, index scan, etc.</li>
+                    <li><strong>Join Algorithms:</strong> Nested loop, hash join, merge join</li>
+                    <li><strong>Data Flow:</strong> Direction from leaves to root</li>
+                </ul>
+            </div>
+            
+            <h3>Example Query:</h3>
+            <div class="code-block">
+SELECT S.name, E.grade
+FROM Student S, Enrollment E
+WHERE S.student_id = E.student_id
+  AND S.dept = 'CS'
+  AND E.grade > 3.5;
+            </div>
+            
+            <h3>Two Possible Query Plans:</h3>
+            <div class="two-column">
+                <div class="content-box">
+                    <strong>Plan A (Less Efficient):</strong>
+                    <ol>
+                        <li>Cartesian Product: Student × Enrollment</li>
+                        <li>Selection: σ<sub>conditions</sub></li>
+                        <li>Projection: π<sub>name,grade</sub></li>
+                    </ol>
+                </div>
+                <div class="content-box">
+                    <strong>Plan B (More Efficient):</strong>
+                    <ol>
+                        <li>Selection: σ<sub>dept='CS'</sub>(Student)</li>
+                        <li>Selection: σ<sub>grade>3.5</sub>(Enrollment)</li>
+                        <li>Join: result1 ⋈ result2</li>
+                        <li>Projection: π<sub>name,grade</sub></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Cost Estimation Overview -->
+        <div class="slide">
+            <span class="slide-number">Slide 12</span>
+            <h2>Cost Estimation</h2>
+            
+            <h3>What is Cost?</h3>
+            <p>Cost is a measure of resources consumed by a query execution plan.</p>
+            
+            <div class="content-box">
+                <h3>Cost Factors:</h3>
+                <ul>
+                    <li><strong>I/O Cost:</strong> Number of disk block transfers (dominant factor)</li>
+                    <li><strong>CPU Cost:</strong> Time for in-memory operations</li>
+                    <li><strong>Memory Cost:</strong> Buffer space required</li>
+                    <li><strong>Network Cost:</strong> Data transfer in distributed systems</li>
+                </ul>
+                <p><strong>Simplified Model:</strong> Cost = b<sub>T</sub> × t<sub>T</sub> + b<sub>S</sub> × t<sub>S</sub></p>
+                <p>where b<sub>T</sub> = blocks transferred, t<sub>T</sub> = transfer time per block,</p>
+                <p>b<sub>S</sub> = seeks, t<sub>S</sub> = seek time</p>
+            </div>
+            
+            <h3>Cost Model Assumptions:</h3>
+            <ul>
+                <li>Relations stored on disk</li>
+                <li>Limited buffer space available</li>
+                <li>I/O dominates cost (CPU cost often ignored)</li>
+                <li>Sequential I/O cheaper than random I/O</li>
+            </ul>
+        </div>
+
+        <!-- Slide 13: Cost of Operations -->
+        <div class="slide">
+            <span class="slide-number">Slide 13</span>
+            <h2>Cost Estimation for Operations</h2>
+            
+            <div class="content-box">
+                <h3>Selection: σ<sub>A=v</sub>(r)</h3>
+                <table>
+                    <tr>
+                        <th>Method</th>
+                        <th>Cost (blocks)</th>
+                    </tr>
+                    <tr>
+                        <td>Linear Search</td>
+                        <td>b<sub>r</sub></td>
+                    </tr>
+                    <tr>
+                        <td>Binary Search (sorted)</td>
+                        <td>⌈log<sub>2</sub>(b<sub>r</sub>)⌉ + ⌈n<sub>σ</sub>/b<sub>fr</sub>⌉ - 1</td>
+                    </tr>
+                    <tr>
+                        <td>Primary Index (key)</td>
+                        <td>h<sub>i</sub> + 1</td>
+                    </tr>
+                    <tr>
+                        <td>Secondary Index (key)</td>
+                        <td>h<sub>i</sub> + 1</td>
+                    </tr>
+                    <tr>
+                        <td>Secondary Index (non-key)</td>
+                        <td>h<sub>i</sub> + n<sub>σ</sub></td>
+                    </tr>
+                </table>
+                <p>where h<sub>i</sub> = index height, b<sub>fr</sub> = blocking factor</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>Join: r ⋈ s (Cost depends on algorithm)</h3>
+                <table>
+                    <tr>
+                        <th>Algorithm</th>
+                        <th>Cost (blocks)</th>
+                    </tr>
+                    <tr>
+                        <td>Nested Loop</td>
+                        <td>b<sub>r</sub> + (n<sub>r</sub> × b<sub>s</sub>)</td>
+                    </tr>
+                    <tr>
+                        <td>Block Nested Loop</td>
+                        <td>b<sub>r</sub> + (b<sub>r</sub> × b<sub>s</sub>)</td>
+                    </tr>
+                    <tr>
+                        <td>Indexed Nested Loop</td>
+                        <td>b<sub>r</sub> + (n<sub>r</sub> × c)</td>
+                    </tr>
+                    <tr>
+                        <td>Merge Join</td>
+                        <td>b<sub>r</sub> + b<sub>s</sub> + sort cost</td>
+                    </tr>
+                    <tr>
+                        <td>Hash Join</td>
+                        <td>3(b<sub>r</sub> + b<sub>s</sub>)</td>
+                    </tr>
+                </table>
+                <p>where c = cost to access s using index per tuple of r</p>
+            </div>
+        </div>
+
+        <!-- Slide 14: Nested Queries -->
+        <div class="slide">
+            <span class="slide-number">Slide 14</span>
+            <h2>Nested Queries</h2>
+            
+            <h3>What are Nested Queries?</h3>
+            <p>A <span class="highlight">nested query</span> (or subquery) is a query within another query, typically appearing in the WHERE or HAVING clause.</p>
+            
+            <h3>Types of Nested Queries:</h3>
+            <div class="content-box">
+                <p><strong>1. Uncorrelated (Independent) Subquery:</strong></p>
+                <div class="code-block">
+SELECT name FROM Student
+WHERE dept_id IN (
+    SELECT dept_id FROM Department
+    WHERE location = 'Delhi'
+);
+                </div>
+                <p>Inner query executes once, independent of outer query</p>
+            </div>
+            
+            <div class="content-box">
+                <p><strong>2. Correlated Subquery:</strong></p>
+                <div class="code-block">
+SELECT name FROM Student S
+WHERE salary > (
+    SELECT AVG(salary) FROM Student
+    WHERE dept = S.dept
+);
+                </div>
+                <p>Inner query references outer query variables; executes for each outer tuple</p>
+            </div>
+        </div>
+
+        <!-- Slide 15: Nested Query Optimization -->
+        <div class="slide">
+            <span class="slide-number">Slide 15</span>
+            <h2>Nested Query Optimization</h2>
+            
+            <h3>Challenges:</h3>
+            <ul>
+                <li>Correlated subqueries can be very expensive (O(n²) complexity)</li>
+                <li>Nested queries may prevent use of efficient join algorithms</li>
+                <li>Optimizer has limited visibility into nested structure</li>
+            </ul>
+            
+            <div class="content-box">
+                <h3>Optimization Strategies:</h3>
+                
+                <p><strong>1. Subquery Decorrelation (Unnesting):</strong></p>
+                <p>Transform correlated subquery into a join</p>
+                
+                <p><strong>Before (Correlated):</strong></p>
+                <div class="code-block">
+SELECT S.name FROM Student S
+WHERE EXISTS (
+    SELECT * FROM Enrollment E
+    WHERE E.student_id = S.student_id
+      AND E.grade > 3.5
+);
+                </div>
+                
+                <p><strong>After (Join):</strong></p>
+                <div class="code-block">
+SELECT DISTINCT S.name
+FROM Student S, Enrollment E
+WHERE S.student_id = E.student_id
+  AND E.grade > 3.5;
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: Nested Query Optimization Continued -->
+        <div class="slide">
+            <span class="slide-number">Slide 16</span>
+            <h2>Nested Query Optimization (Continued)</h2>
+            
+            <div class="content-box">
+                <p><strong>2. Materialization:</strong></p>
+                <p>Execute inner query once, store result, use for all outer tuples</p>
+                <ul>
+                    <li>Works well for uncorrelated subqueries</li>
+                    <li>Reduces repeated computation</li>
+                    <li>Requires space for materialized result</li>
+                </ul>
+            </div>
+            
+            <div class="content-box">
+                <p><strong>3. Semi-Join Execution:</strong></p>
+                <p>For EXISTS/IN queries, stop searching inner relation once match found</p>
+            </div>
+            
+            <div class="content-box">
+                <p><strong>4. Index Usage:</strong></p>
+                <p>Create temporary index on subquery result if used multiple times</p>
+            </div>
+            
+            <h3>Example Transformation:</h3>
+            <p><strong>Query with NOT IN:</strong></p>
+            <div class="code-block">
+SELECT name FROM Student
+WHERE student_id NOT IN (
+    SELECT student_id FROM Enrollment
+);
+            </div>
+            
+            <p><strong>Optimized as Anti-Join:</strong></p>
+            <div class="code-block">
+SELECT S.name
+FROM Student S LEFT OUTER JOIN Enrollment E
+  ON S.student_id = E.student_id
+WHERE E.student_id IS NULL;
+            </div>
+        </div>
+
+        <!-- Slide 17: Query Optimization Example -->
+        <div class="slide">
+            <span class="slide-number">Slide 17</span>
+            <h2>Complete Optimization Example</h2>
+            
+            <h3>Given Query:</h3>
+            <div class="code-block">
+SELECT P.name, D.dept_name
+FROM Professor P, Department D, Course C
+WHERE P.dept_id = D.dept_id
+  AND P.prof_id = C.prof_id
+  AND D.location = 'Delhi'
+  AND C.credits > 3;
+            </div>
+            
+            <h3>Step 1: Initial Query Tree (Cartesian Products)</h3>
+            <div class="content-box">
+                <ul>
+                    <li>π<sub>P.name, D.dept_name</sub></li>
+                    <li>σ<sub>P.dept_id=D.dept_id ∧ P.prof_id=C.prof_id ∧ D.location='Delhi' ∧ C.credits>3</sub></li>
+                    <li>Professor × Department × Course</li>
+                </ul>
+                <p><strong>Cost:</strong> Very high due to Cartesian products</p>
+            </div>
+            
+            <h3>Step 2: Push Selections Down</h3>
+            <div class="content-box">
+                <ul>
+                    <li>Apply σ<sub>location='Delhi'</sub> to Department</li>
+                    <li>Apply σ<sub>credits>3</sub> to Course</li>
+                    <li>Reduces size of intermediate results</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 18: Optimization Example Continued -->
+        <div class="slide">
+            <span class="slide-number">Slide 18</span>
+            <h2>Complete Optimization Example (Continued)</h2>
+            
+            <h3>Step 3: Replace Cartesian Products with Joins</h3>
+            <div class="content-box">
+                <p>Transform to:</p>
+                <ul>
+                    <li>π<sub>P.name, D.dept_name</sub></li>
+                    <li>(σ<sub>location='Delhi'</sub>(Department)) ⋈<sub>dept_id</sub> Professor ⋈<sub>prof_id</sub> (σ<sub>credits>3</sub>(Course))</li>
+                </ul>
+            </div>
+            
+            <h3>Step 4: Choose Join Order</h3>
+            <div class="content-box">
+                <p><strong>Statistics:</strong></p>
+                <ul>
+                    <li>Department: 50 tuples, Delhi filter → 5 tuples</li>
+                    <li>Professor: 500 tuples</li>
+                    <li>Course: 1000 tuples, credits filter → 400 tuples</li>
+                </ul>
+                
+                <p><strong>Option A:</strong> (Department ⋈ Professor) ⋈ Course</p>
+                <p>Cost: ~5×500 + result×400 ≈ 2500 + 50×400 = 22,500</p>
+                
+                <p><strong>Option B:</strong> (Professor ⋈ Course) ⋈ Department</p>
+                <p>Cost: ~500×400 + result×5 = 200,000 + (large)×5</p>
+                
+                <p><strong>Best Choice:</strong> Option A (start with smallest relation)</p>
+            </div>
+        </div>
+
+        <!-- Slide 19: Dynamic Programming for Join Ordering -->
+        <div class="slide">
+            <span class="slide-number">Slide 19</span>
+            <h2>Join Ordering: Dynamic Programming</h2>
+            
+            <h3>Problem:</h3>
+            <p>For n relations, there are O((2n)!/(n!)) possible join orders. For 10 relations: ~17 billion possibilities!</p>
+            
+            <div class="content-box">
+                <h3>System-R Style Dynamic Programming Algorithm:</h3>
+                <ol>
+                    <li><strong>Step 1:</strong> Consider all single relations (base case)</li>
+                    <li><strong>Step 2:</strong> Consider all ways to join 2 relations</li>
+                    <li><strong>Step 3:</strong> Consider all ways to join 3 relations using results from Step 2</li>
+                    <li><strong>Continue...</strong> until all n relations joined</li>
+                </ol>
+                <p>For each subset, keep only the cheapest plan</p>
+                <p><strong>Complexity:</strong> O(3<sup>n</sup>) - much better than factorial!</p>
+            </div>
+            
+            <h3>Example: Join Order for {R, S, T}</h3>
+            <table>
+                <tr>
+                    <th>Size</th>
+                    <th>Subsets Considered</th>
+                    <th>Best Plan Stored</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>{R}, {S}, {T}</td>
+                    <td>3 plans</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>{R,S}, {R,T}, {S,T}</td>
+                    <td>3 plans</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>{R,S,T}</td>
+                    <td>1 plan</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Slide 20: Heuristic Optimization -->
+        <div class="slide">
+            <span class="slide-number">Slide 20</span>
+            <h2>Heuristic-Based Optimization</h2>
+            
+            <h3>Common Heuristics:</h3>
+            <div class="content-box">
+                <ol>
+                    <li><strong>Perform selections as early as possible</strong>
+                        <ul>
+                            <li>Reduces cardinality of intermediate results</li>
+                        </ul>
+                    </li>
+                    <li><strong>Perform projections early</strong>
+                        <ul>
+                            <li>Reduces tuple size</li>
+                        </ul>
+                    </li>
+                    <li><strong>Perform most restrictive selections first</strong>
+                        <ul>
+                            <li>Smallest intermediate results</li>
+                        </ul>
+                    </li>
+                    <li><strong>Avoid Cartesian products when possible</strong>
+                        <ul>
+                            <li>Replace with joins when feasible</li>
+                        </ul>
+                    </li>
+                    <li><strong>Perform joins with smallest results first</strong>
+                        <ul>
+                            <li>Left-deep trees preferred for pipelining</li>
+                        </ul>
+                    </li>
+                    <li><strong>Use indexes when available</strong>
+                        <ul>
+                            <li>Especially for selections and joins</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+            
+            <p><strong>Note:</strong> Heuristics provide good plans quickly but may not find optimal plan</p>
+        </div>
+
+        <!-- Slide 21: Summary -->
+        <div class="slide">
+            <span class="slide-number">Slide 21</span>
+            <h2>Summary</h2>
+            
+            <div class="content-box">
+                <h3>Key Takeaways:</h3>
+                <ul>
+                    <li><strong>Cardinality Estimation:</strong> Critical for cost-based optimization; uses statistics and histograms for accuracy</li>
+                    <li><strong>Histograms:</strong> Provide better selectivity estimates than uniform distribution assumption</li>
+                    <li><strong>Relational Algebra Equivalences:</strong> Enable query transformations; push selections and projections down</li>
+                    <li><strong>Query Plans:</strong> Multiple equivalent plans with vastly different costs</li>
+                    <li><strong>Cost Estimation:</strong> I/O cost dominates; depends on access methods and join algorithms</li>
+                    <li><strong>Nested Queries:</strong> Can be optimized through decorrelation, materialization, or semi-joins</li>
+                    <li><strong>Join Ordering:</strong> Dynamic programming finds optimal order efficiently</li>
+                </ul>
+            </div>
+            
+            <div class="content-box">
+                <h3>Optimization Process:</h3>
+                <ol>
+                    <li>Parse query into logical plan</li>
+                    <li>Apply heuristic transformations</li>
+                    <li>Generate physical plans with different algorithms</li>
+                    <li>Estimate cost using statistics</li>
+                    <li>Select cheapest plan for execution</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Slide 22: Practice Problems Introduction -->
+        <div class="slide">
+            <span class="slide-number">Slide 22</span>
+            <h2>Numerical Practice Problems</h2>
+            
+            <h3>Database Schema for Problems:</h3>
+            <div class="content-box">
+                <p><strong>Student</strong>(student_id, name, dept, age)</p>
+                <ul>
+                    <li>n<sub>Student</sub> = 10,000 tuples</li>
+                    <li>b<sub>Student</sub> = 500 blocks</li>
+                    <li>V(dept, Student) = 20 distinct departments</li>
+                    <li>V(age, Student) = 50 distinct ages (18-67)</li>
+                </ul>
+                
+                <p><strong>Enrollment</strong>(student_id, course_id, grade)</p>
+                <ul>
+                    <li>n<sub>Enrollment</sub> = 50,000 tuples</li>
+                    <li>b<sub>Enrollment</sub> = 2000 blocks</li>
+                    <li>V(course_id, Enrollment) = 500 distinct courses</li>
+                    <li>V(grade, Enrollment) = 11 distinct grades (0.0-4.0 in 0.5 steps)</li>
+                </ul>
+                
+                <p><strong>Course</strong>(course_id, title, credits, dept)</p>
+                <ul>
+                    <li>n<sub>Course</sub> = 500 tuples</li>
+                    <li>b<sub>Course</sub> = 50 blocks</li>
+                    <li>V(credits, Course) = 4 distinct values (1,2,3,4)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 23: Problem 1 -->
+        <div class="slide">
+            <span class="slide-number">Slide 23</span>
+            <h2>Problem 1: Cardinality Estimation (Selection)</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 1A:</h4>
+                <p>Estimate the cardinality of: σ<sub>dept='CS'</sub>(Student)</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p>Using uniform distribution assumption:</p>
+                <div class="formula">
+                    n<sub>σ</sub> = n<sub>Student</sub> / V(dept, Student) = 10,000 / 20 = 500 tuples
+                </div>
+            </div>
+            
+            <div class="problem-box">
+                <h4>Problem 1B:</h4>
+                <p>Estimate the cardinality of: σ<sub>age≤25</sub>(Student)</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p>Age range: 18-67 (total range = 49)</p>
+                <p>Values ≤ 25: 18-25 (range = 7)</p>
+                <div class="formula">
+                    n<sub>σ</sub> = n<sub>Student</sub> × (7/49) = 10,000 × (7/49) ≈ 1,429 tuples
+                </div>
+            </div>
+            
+            <div class="problem-box">
+                <h4>Problem 1C:</h4>
+                <p>Estimate the cardinality of: σ<sub>dept='CS' ∧ age≤25</sub>(Student)</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p>Assuming independence:</p>
+                <div class="formula">
+                    n<sub>σ</sub> = n<sub>Student</sub> × (1/20) × (7/49) = 10,000 × 0.05 × 0.143 ≈ 71 tuples
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 24: Problem 2 -->
+        <div class="slide">
+            <span class="slide-number">Slide 24</span>
+            <h2>Problem 2: Cardinality Estimation (Join)</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 2A:</h4>
+                <p>Estimate the cardinality of: Student ⋈<sub>student_id</sub> Enrollment</p>
+                <p>(Assume student_id is a foreign key in Enrollment referencing Student)</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p>Foreign key join - each enrollment tuple joins with exactly one student:</p>
+                <div class="formula">
+                    n<sub>join</sub> = n<sub>Enrollment</sub> = 50,000 tuples
+                </div>
+            </div>
+            
+            <div class="problem-box">
+                <h4>Problem 2B:</h4>
+                <p>Estimate the cardinality of: Enrollment ⋈<sub>course_id</sub> Course</p>
+                <p>(Assume course_id is a foreign key in Enrollment referencing Course)</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p>Foreign key join:</p>
+                <div class="formula">
+                    n<sub>join</sub> = n<sub>Enrollment</sub> = 50,000 tuples
+                </div>
+            </div>
+            
+            <div class="problem-box">
+                <h4>Problem 2C:</h4>
+                <p>If we join all three: Student ⋈ Enrollment ⋈ Course, what is the estimated cardinality?</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p>Since both joins are on foreign keys:</p>
+                <div class="formula">
+                    n<sub>join</sub> = n<sub>Enrollment</sub> = 50,000 tuples
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 25: Problem 3 -->
+        <div class="slide">
+            <span class="slide-number">Slide 25</span>
+            <h2>Problem 3: Cost Estimation (Selection)</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 3A:</h4>
+                <p>Calculate the cost of σ<sub>dept='CS'</sub>(Student) using:</p>
+                <p>a) Linear search</p>
+                <p>b) Binary search (assume Student is sorted by dept)</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p><strong>a) Linear Search:</strong></p>
+                <div class="formula">
+                    Cost = b<sub>Student</sub> = 500 block accesses
+                </div>
+                
+                <p><strong>b) Binary Search:</strong></p>
+                <p>Expected result size: 500 tuples</p>
+                <p>Assuming 20 tuples per block (blocking factor = 20)</p>
+                <div class="formula">
+                    Cost = ⌈log<sub>2</sub>(500)⌉ + ⌈500/20⌉ - 1 = 9 + 25 - 1 = 33 block accesses
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 26: Problem 4 -->
+        <div class="slide">
+            <span class="slide-number">Slide 26</span>
+            <h2>Problem 4: Cost Estimation (Join)</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 4:</h4>
+                <p>Calculate the cost of Student ⋈<sub>student_id</sub> Enrollment using:</p>
+                <p>a) Nested loop join (Student as outer)</p>
+                <p>b) Block nested loop join (Student as outer, 5 buffer blocks available)</p>
+                <p>c) Hash join</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p><strong>a) Nested Loop Join:</strong></p>
+                <div class="formula">
+                    Cost = b<sub>Student</sub> + (n<sub>Student</sub> × b<sub>Enrollment</sub>)
+                    <br>= 500 + (10,000 × 2,000) = 20,000,500 block accesses
+                </div>
+                
+                <p><strong>b) Block Nested Loop Join:</strong></p>
+                <p>With 5 buffers: 3 for outer, 1 for inner, 1 for output</p>
+                <div class="formula">
+                    Cost = b<sub>Student</sub> + (⌈b<sub>Student</sub>/3⌉ × b<sub>Enrollment</sub>)
+                    <br>= 500 + (⌈500/3⌉ × 2,000) = 500 + (167 × 2,000) = 334,500 block accesses
+                </div>
+                
+                <p><strong>c) Hash Join:</strong></p>
+                <div class="formula">
+                    Cost = 3 × (b<sub>Student</sub> + b<sub>Enrollment</sub>)
+                    <br>= 3 × (500 + 2,000) = 7,500 block accesses
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 27: Problem 5 -->
+        <div class="slide">
+            <span class="slide-number">Slide 27</span>
+            <h2>Problem 5: Query Plan Comparison</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 5:</h4>
+                <p>Consider the query:</p>
+                <div class="code-block">
+SELECT S.name, E.grade
+FROM Student S, Enrollment E
+WHERE S.student_id = E.student_id
+  AND S.dept = 'CS'
+  AND E.grade >= 3.5
+                </div>
+                
+                <p>Compare two plans:</p>
+                <p><strong>Plan A:</strong> (Student × Enrollment) then select</p>
+                <p><strong>Plan B:</strong> Select from each, then join</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p><strong>Plan A Cost (Cartesian Product):</strong></p>
+                <p>Intermediate result: 10,000 × 50,000 = 500,000,000 tuples</p>
+                <div class="formula">
+                    Cost = b<sub>Student</sub> × b<sub>Enrollment</sub> = 500 × 2,000 = 1,000,000 block accesses
+                </div>
+                <p>Plus cost of selecting from huge intermediate result</p>
+            </div>
+        </div>
+
+        <!-- Slide 28: Problem 5 Continued -->
+        <div class="slide">
+            <span class="slide-number">Slide 28</span>
+            <h2>Problem 5: Query Plan Comparison (Continued)</h2>
+            
+            <div class="problem-box">
+                <p><strong>Plan B Cost (Select then Join):</strong></p>
+                
+                <p>Step 1: σ<sub>dept='CS'</sub>(Student)</p>
+                <p>Result: ~500 tuples, ~25 blocks</p>
+                <div class="formula">
+                    Cost<sub>1</sub> = 500 blocks
+                </div>
+                
+                <p>Step 2: σ<sub>grade≥3.5</sub>(Enrollment)</p>
+                <p>Result: Grades 3.5, 4.0 = 2 out of 11 values</p>
+                <p>Estimated: 50,000 × (2/11) ≈ 9,091 tuples, ~455 blocks</p>
+                <div class="formula">
+                    Cost<sub>2</sub> = 2,000 blocks
+                </div>
+                
+                <p>Step 3: Hash Join of results</p>
+                <div class="formula">
+                    Cost<sub>3</sub> = 3 × (25 + 455) = 1,440 blocks
+                </div>
+                
+                <p><strong>Total Plan B Cost:</strong></p>
+                <div class="formula">
+                    Total = 500 + 2,000 + 1,440 = 3,940 block accesses
+                </div>
+                
+                <p><strong>Conclusion:</strong> Plan B is ~250× more efficient!</p>
+            </div>
+        </div>
+
+        <!-- Slide 29: Problem 6 -->
+        <div class="slide">
+            <span class="slide-number">Slide 29</span>
+            <h2>Problem 6: Histogram-Based Estimation</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 6:</h4>
+                <p>Given an equi-depth histogram for Student.age:</p>
+                <table>
+                    <tr>
+                        <th>Bucket</th>
+                        <th>Age Range</th>
+                        <th>Count</th>
+                        <th>Distinct</th>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>18-22</td>
+                        <td>4,000</td>
+                        <td>5</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>23-27</td>
+                        <td>3,000</td>
+                        <td>5</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>28-40</td>
+                        <td>2,000</td>
+                        <td>13</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>41-67</td>
+                        <td>1,000</td>
+                        <td>27</td>
+                    </tr>
+                </table>
+                
+                <p>Estimate the cardinality of σ<sub>age=25</sub>(Student)</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p>Age 25 falls in Bucket 2 (23-27)</p>
+                <p>Using uniform distribution within the bucket:</p>
+                <div class="formula">
+                    n<sub>σ</sub> = Count / Distinct = 3,000 / 5 = 600 tuples
+                </div>
+                
+                <p><strong>Note:</strong> Compare with uniform assumption over entire range:</p>
+                <div class="formula">
+                    10,000 / 50 = 200 tuples (less accurate!)
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 30: Problem 7 -->
+        <div class="slide">
+            <span class="slide-number">Slide 30</span>
+            <h2>Problem 7: Join Order Optimization</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 7:</h4>
+                <p>Given three relations R, S, T with statistics:</p>
+                <table>
+                    <tr>
+                        <th>Relation</th>
+                        <th>Tuples</th>
+                        <th>Blocks</th>
+                    </tr>
+                    <tr>
+                        <td>R</td>
+                        <td>1,000</td>
+                        <td>100</td>
+                    </tr>
+                    <tr>
+                        <td>S</td>
+                        <td>5,000</td>
+                        <td>250</td>
+                    </tr>
+                    <tr>
+                        <td>T</td>
+                        <td>10,000</td>
+                        <td>500</td>
+                    </tr>
+                </table>
+                
+                <p>Join conditions: R.a = S.a and S.b = T.b</p>
+                <p>V(a, R) = 100, V(a, S) = 100 (foreign key from R to S)</p>
+                <p>V(b, S) = 500, V(b, T) = 500 (foreign key from S to T)</p>
+                
+                <p>Compare join orders using block nested loop join (3 buffers for outer):</p>
+                <p>a) (R ⋈ S) ⋈ T</p>
+                <p>b) (S ⋈ T) ⋈ R</p>
+            </div>
+        </div>
+
+        <!-- Slide 31: Problem 7 Solution -->
+        <div class="slide">
+            <span class="slide-number">Slide 31</span>
+            <h2>Problem 7: Solution</h2>
+            
+            <div class="problem-box">
+                <p><strong>Order A: (R ⋈ S) ⋈ T</strong></p>
+                
+                <p>Step 1: R ⋈ S (R outer, S inner)</p>
+                <p>Cardinality: 1,000 tuples (foreign key join)</p>
+                <div class="formula">
+                    Cost<sub>1</sub> = 100 + ⌈100/2⌉ × 250 = 100 + 50 × 250 = 12,600 blocks
+                </div>
+                <p>Result blocks: assume 100 blocks</p>
+                
+                <p>Step 2: (R ⋈ S) ⋈ T</p>
+                <p>Cardinality: 5,000 tuples (foreign key join from S to T)</p>
+                <div class="formula">
+                    Cost<sub>2</sub> = 100 + ⌈100/2⌉ × 500 = 100 + 50 × 500 = 25,100 blocks
+                </div>
+                
+                <p><strong>Total Cost A: 12,600 + 25,100 = 37,700 blocks</strong></p>
+            </div>
+        </div>
+
+        <!-- Slide 32: Problem 7 Solution Continued -->
+        <div class="slide">
+            <span class="slide-number">Slide 32</span>
+            <h2>Problem 7: Solution (Continued)</h2>
+            
+            <div class="problem-box">
+                <p><strong>Order B: (S ⋈ T) ⋈ R</strong></p>
+                
+                <p>Step 1: S ⋈ T (S outer, T inner)</p>
+                <p>Cardinality: 5,000 tuples (foreign key join)</p>
+                <div class="formula">
+                    Cost<sub>1</sub> = 250 + ⌈250/2⌉ × 500 = 250 + 125 × 500 = 62,750 blocks
+                </div>
+                <p>Result blocks: assume 250 blocks</p>
+                
+                <p>Step 2: (S ⋈ T) ⋈ R</p>
+                <p>Cardinality: 5,000 tuples</p>
+                <div class="formula">
+                    Cost<sub>2</sub> = 250 + ⌈250/2⌉ × 100 = 250 + 125 × 100 = 12,750 blocks
+                </div>
+                
+                <p><strong>Total Cost B: 62,750 + 12,750 = 75,500 blocks</strong></p>
+                
+                <p><strong>Conclusion:</strong> Order A is approximately 2× better!</p>
+                <p><strong>General Rule:</strong> Join smallest relations first to minimize intermediate results</p>
+            </div>
+        </div>
+
+        <!-- Slide 33: Problem 8 -->
+        <div class="slide">
+            <span class="slide-number">Slide 33</span>
+            <h2>Problem 8: Nested Query Transformation</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 8:</h4>
+                <p>Transform the following correlated nested query into a join:</p>
+                
+                <div class="code-block">
+SELECT S.name, S.dept
+FROM Student S
+WHERE S.age > (
+    SELECT AVG(age)
+    FROM Student
+    WHERE dept = S.dept
+);
+                </div>
+                
+                <p><strong>Analysis:</strong></p>
+                <ul>
+                    <li>This is a correlated subquery (references outer S.dept)</li>
+                    <li>Inner query executes once per outer tuple</li>
+                    <li>Cost: O(n<sub>Student</sub><sup>2</sup>) if no optimization</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 34: Problem 8 Solution -->
+        <div class="slide">
+            <span class="slide-number">Slide 34</span>
+            <h2>Problem 8: Solution</h2>
+            
+            <div class="problem-box">
+                <p><strong>Optimized Query (Using Join):</strong></p>
+                
+                <div class="code-block">
+SELECT S.name, S.dept
+FROM Student S,
+     (SELECT dept, AVG(age) as avg_age
+      FROM Student
+      GROUP BY dept) AS DeptAvg
+WHERE S.dept = DeptAvg.dept
+  AND S.age > DeptAvg.avg_age;
+                </div>
+                
+                <p><strong>Steps:</strong></p>
+                <ol>
+                    <li>Compute department averages once (instead of per tuple)</li>
+                    <li>Store in temporary table DeptAvg (20 tuples, 1 block)</li>
+                    <li>Join Student with DeptAvg</li>
+                    <li>Apply age comparison</li>
+                </ol>
+                
+                <p><strong>Cost Analysis:</strong></p>
+                <p>Step 1 - Compute averages: Scan Student + aggregate</p>
+                <div class="formula">
+                    Cost<sub>1</sub> = 500 blocks
+                </div>
+                
+                <p>Step 2 - Join + filter: Hash join</p>
+                <div class="formula">
+                    Cost<sub>2</sub> = 3 × (500 + 1) ≈ 1,503 blocks
+                </div>
+                
+                <p><strong>Total: ~2,003 blocks vs. 500 × 10,000 = 5,000,000 blocks!</strong></p>
+            </div>
+        </div>
+
+        <!-- Slide 35: Problem 9 -->
+        <div class="slide">
+            <span class="slide-number">Slide 35</span>
+            <h2>Problem 9: Multi-Attribute Selectivity</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 9:</h4>
+                <p>Given the following statistics on Enrollment:</p>
+                <ul>
+                    <li>n<sub>Enrollment</sub> = 50,000</li>
+                    <li>V(course_id, Enrollment) = 500</li>
+                    <li>V(grade, Enrollment) = 11</li>
+                    <li>V(semester, Enrollment) = 8</li>
+                </ul>
+                
+                <p>Estimate cardinality for:</p>
+                <p>σ<sub>course_id='CS101' ∨ grade≥3.5</sub>(Enrollment)</p>
+                
+                <p><strong>Solution:</strong></p>
+                <p>First, calculate individual selectivities:</p>
+                
+                <p>s<sub>1</sub> (course_id='CS101'):</p>
+                <div class="formula">
+                    s<sub>1</sub> = 1 / V(course_id, Enrollment) = 1/500 = 0.002
+                </div>
+                
+                <p>s<sub>2</sub> (grade≥3.5):</p>
+                <p>Grades: 0.0, 0.5, 1.0, ..., 4.0 (11 values)</p>
+                <p>Grades ≥ 3.5: {3.5, 4.0} = 2 values</p>
+                <div class="formula">
+                    s<sub>2</sub> = 2/11 ≈ 0.182
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 36: Problem 9 Solution -->
+        <div class="slide">
+            <span class="slide-number">Slide 36</span>
+            <h2>Problem 9: Solution (Continued)</h2>
+            
+            <div class="problem-box">
+                <p>For disjunction (OR), use formula:</p>
+                <div class="formula">
+                    s = 1 - (1 - s<sub>1</sub>) × (1 - s<sub>2</sub>)
+                </div>
+                
+                <p>Substituting values:</p>
+                <div class="formula">
+                    s = 1 - (1 - 0.002) × (1 - 0.182)
+                    <br>s = 1 - (0.998 × 0.818)
+                    <br>s = 1 - 0.816
+                    <br>s = 0.184
+                </div>
+                
+                <p>Therefore, estimated cardinality:</p>
+                <div class="formula">
+                    n<sub>σ</sub> = 50,000 × 0.184 = 9,200 tuples
+                </div>
+                
+                <p><strong>Interpretation:</strong> About 18.4% of enrollments match the condition</p>
+                
+                <p><strong>Note:</strong> If we had used simple addition (incorrect!):</p>
+                <div class="formula">
+                    s = s<sub>1</sub> + s<sub>2</sub> = 0.002 + 0.182 = 0.184
+                </div>
+                <p>In this case, it gives the same result, but this is coincidental because s<sub>1</sub> is very small. For larger selectivities, the correct formula matters!</p>
+            </div>
+        </div>
+
+        <!-- Slide 37: Problem 10 -->
+        <div class="slide">
+            <span class="slide-number">Slide 37</span>
+            <h2>Problem 10: Comprehensive Query Optimization</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 10:</h4>
+                <p>Optimize the following query and estimate the cost:</p>
+                
+                <div class="code-block">
+SELECT S.name, C.title, E.grade
+FROM Student S, Enrollment E, Course C
+WHERE S.student_id = E.student_id
+  AND E.course_id = C.course_id
+  AND S.dept = 'CS'
+  AND C.credits = 4
+  AND E.grade >= 3.0;
+                </div>
+                
+                <p><strong>Given Statistics:</strong></p>
+                <ul>
+                    <li>Student: 10,000 tuples, 500 blocks, V(dept)=20</li>
+                    <li>Enrollment: 50,000 tuples, 2,000 blocks, V(grade)=11</li>
+                    <li>Course: 500 tuples, 50 blocks, V(credits)=4</li>
+                    <li>All joins are on foreign keys</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 38: Problem 10 Solution Part 1 -->
+        <div class="slide">
+            <span class="slide-number">Slide 38</span>
+            <h2>Problem 10: Solution (Part 1)</h2>
+            
+            <div class="problem-box">
+                <p><strong>Step 1: Apply Selections (Push Down)</strong></p>
+                
+                <p>σ<sub>dept='CS'</sub>(Student):</p>
+                <div class="formula">
+                    n<sub>1</sub> = 10,000 / 20 = 500 tuples, ~25 blocks
+                    <br>Cost<sub>1</sub> = 500 blocks (linear scan)
+                </div>
+                
+                <p>σ<sub>credits=4</sub>(Course):</p>
+                <div class="formula">
+                    n<sub>2</sub> = 500 / 4 = 125 tuples, ~13 blocks
+                    <br>Cost<sub>2</sub> = 50 blocks (linear scan)
+                </div>
+                
+                <p>σ<sub>grade≥3.0</sub>(Enrollment):</p>
+                <p>Grades ≥3.0: {3.0, 3.5, 4.0} = 3 out of 11</p>
+                <div class="formula">
+                    n<sub>3</sub> = 50,000 × (3/11) ≈ 13,636 tuples, ~682 blocks
+                    <br>Cost<sub>3</sub> = 2,000 blocks (linear scan)
+                </div>
+                
+                <p><strong>Total Selection Cost: 500 + 50 + 2,000 = 2,550 blocks</strong></p>
+            </div>
+        </div>
+
+        <!-- Slide 39: Problem 10 Solution Part 2 -->
+        <div class="slide">
+            <span class="slide-number">Slide 39</span>
+            <h2>Problem 10: Solution (Part 2)</h2>
+            
+            <div class="problem-box">
+                <p><strong>Step 2: Determine Join Order</strong></p>
+                
+                <p>We have three filtered relations:</p>
+                <ul>
+                    <li>Student': 500 tuples, 25 blocks</li>
+                    <li>Course': 125 tuples, 13 blocks</li>
+                    <li>Enrollment': 13,636 tuples, 682 blocks</li>
+                </ul>
+                
+                <p><strong>Best Strategy:</strong> Join smallest relations first</p>
+                <p>Order: (Student' ⋈ Enrollment') ⋈ Course'</p>
+                
+                <p><strong>Step 3: First Join - Student' ⋈ Enrollment'</strong></p>
+                <p>Using hash join:</p>
+                <div class="formula">
+                    Cost<sub>4</sub> = 3 × (25 + 682) = 3 × 707 = 2,121 blocks
+                </div>
+                <p>Result cardinality: ~13,636 tuples (foreign key)</p>
+                <p>Result blocks: ~682 blocks</p>
+            </div>
+        </div>
+
+        <!-- Slide 40: Problem 10 Solution Part 3 -->
+        <div class="slide">
+            <span class="slide-number">Slide 40</span>
+            <h2>Problem 10: Solution (Part 3)</h2>
+            
+            <div class="problem-box">
+                <p><strong>Step 4: Second Join - Result ⋈ Course'</strong></p>
+                <p>Using hash join:</p>
+                <div class="formula">
+                    Cost<sub>5</sub> = 3 × (682 + 13) = 3 × 695 = 2,085 blocks
+                </div>
+                <p>Final result cardinality:</p>
+                <p>Since each enrollment links to one course, and we filtered to credits=4:</p>
+                <div class="formula">
+                    n<sub>final</sub> = 13,636 × (125/500) = 3,409 tuples
+                </div>
+                
+                <p><strong>Step 5: Total Cost Summary</strong></p>
+                <table>
+                    <tr>
+                        <th>Operation</th>
+                        <th>Cost (blocks)</th>
+                    </tr>
+                    <tr>
+                        <td>Select Student</td>
+                        <td>500</td>
+                    </tr>
+                    <tr>
+                        <td>Select Course</td>
+                        <td>50</td>
+                    </tr>
+                    <tr>
+                        <td>Select Enrollment</td>
+                        <td>2,000</td>
+                    </tr>
+                    <tr>
+                        <td>Join Student' ⋈ Enrollment'</td>
+                        <td>2,121</td>
+                    </tr>
+                    <tr>
+                        <td>Join Result ⋈ Course'</td>
+                        <td>2,085</td>
+                    </tr>
+                    <tr style="font-weight: bold; background: #667eea; color: white;">
+                        <td>TOTAL</td>
+                        <td>6,756 blocks</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 41: Additional Practice Problems -->
+        <div class="slide">
+            <span class="slide-number">Slide 41</span>
+            <h2>Additional Practice Problems</h2>
+            
+            <div class="problem-box">
+                <h4>Problem 11:</h4>
+                <p>Explain why pushing selections down in a query tree generally improves performance. Give a counter-example where it might not help.</p>
+            </div>
+            
+            <div class="problem-box">
+                <h4>Problem 12:</h4>
+                <p>Calculate the number of different join orders possible for a query with 5 relations. If evaluating each plan takes 1 microsecond, how long would exhaustive enumeration take?</p>
+            </div>
+            
+            <div class="problem-box">
+                <h4>Problem 13:</h4>
+                <p>Given a relation R with n<sub>R</sub>=1,000,000 and an equi-depth histogram with 10 buckets, what is the maximum and minimum number of tuples that could match σ<sub>A=v</sub>(R) for any value v?</p>
+            </div>
+            
+            <div class="problem-box">
+                <h4>Problem 14:</h4>
+                <p>Compare the cost of evaluating σ<sub>A=5 ∧ B=10</sub>(R) using:
+                <br>a) A single index on (A,B)
+                <br>b) Two separate indexes on A and B with intersection
+                <br>Assume: n<sub>R</sub>=100,000, V(A)=100, V(B)=1000, index height=3</p>
+            </div>
+        </div>
+
+        <!-- Slide 42: Key Formulas Summary -->
+        <div class="slide">
+            <span class="slide-number">Slide 42</span>
+            <h2>Key Formulas - Quick Reference</h2>
+            
+            <div class="content-box">
+                <h3>Cardinality Estimation:</h3>
+                <p><strong>Selection (equality):</strong> n<sub>σ<sub>A=v</sub>(r)</sub> = n<sub>r</sub> / V(A,r)</p>
+                <p><strong>Selection (range):</strong> n<sub>σ<sub>A≤v</sub>(r)</sub> = n<sub>r</sub> × (v-min)/(max-min)</p>
+                <p><strong>Conjunction:</strong> n<sub>σ<sub>c1∧c2</sub>(r)</sub> = n<sub>r</sub> × s<sub>1</sub> × s<sub>2</sub></p>
+                <p><strong>Disjunction:</strong> n<sub>σ<sub>c1∨c2</sub>(r)</sub> = n<sub>r</sub> × (1-(1-s<sub>1</sub>)(1-s<sub>2</sub>))</p>
+                <p><strong>Join (general):</strong> n<sub>r⋈s</sub> = (n<sub>r</sub> × n<sub>s</sub>) / max(V(A,r), V(A,s))</p>
+                <p><strong>Projection:</strong> n<sub>π<sub>A</sub>(r)</sub> ≤ min(V(A,r), n<sub>r</sub>)</p>
+                <p><strong>Aggregation:</strong> n<sub><sub>A</sub>γ<sub>F(B)</sub>(r)</sub> = V(A,r)</p>
+            </div>
+            
+            <div class="content-box">
+                <h3>Cost Estimation (I/O):</h3>
+                <p><strong>Linear scan:</strong> b<sub>r</sub></p>
+                <p><strong>Nested loop join:</strong> b<sub>r</sub> + (n<sub>r</sub> × b<sub>s</sub>)</p>
+                <p><strong>Block nested loop:</strong> b<sub>r</sub> + (b<sub>r</sub> × b<sub>s</sub>) / (M-2)</p>
+                <p><strong>Hash join:</strong> 3(b<sub>r</sub> + b<sub>s</sub>)</p>
+                <p><strong>Merge join:</strong> b<sub>r</sub> + b<sub>s</sub> + sort cost</p>
+            </div>
+        </div>
+
+        <!-- Slide 43: References and Further Reading -->
+        <div class="slide">
+            <span class="slide-number">Slide 43</span>
+            <h2>References and Further Reading</h2>
+            
+            <div class="content-box">
+                <h3>Recommended Textbooks:</h3>
+                <ol>
+                    <li>Silberschatz, Korth, Sudarshan - "Database System Concepts" (Chapter 13-14)</li>
+                    <li>Ramakrishnan & Gehrke - "Database Management Systems" (Chapter 12-15)</li>
+                    <li>Elmasri & Navathe - "Fundamentals of Database Systems" (Chapter 18-19)</li>
+                </ol>
+            </div>
+            
+            <div class="content-box">
+                <h3>Classic Papers:</h3>
+                <ul>
+                    <li>Selinger et al. (1979) - "Access Path Selection in a Relational Database Management System" (System R)</li>
+                    <li>Graefe & McKenna (1993) - "The Volcano Optimizer Generator"</li>
+                    <li>Chaudhuri (1998) - "An Overview of Query Optimization in Relational Systems"</li>
+                </ul>
+            </div>
+            
+        </div>
+
+        <!-- Slide 44: Questions -->
+        <div class="slide title-slide">
+            <h1>Questions?</h1>
+            <h2 style="margin-top: 60px;">Thank You!</h2>
+            <div style="margin-top: 80px; font-size: 0.9em;">
+                <p>Dr. Mohsin Dar</p>
+                <p>Cloud & Software Operations Cluster | UPES</p>
+                <p style="margin-top: 30px; font-weight: 300;">Office Hours: As per schedule</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Database Systems - MTech Semester I | Lecture 12: Query Optimization</p>
+        <p>UPES - University of Petroleum and Energy Studies</p>
+    </div>
+</body>
+</html>
