@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 19: Pointer to Arrays/Structures/Functions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            padding: 60px 80px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .slide-header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #764ba2;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .subtitle {
+            color: #555;
+            font-size: 1.5em;
+            font-weight: 300;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.4em;
+            line-height: 1.8;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+         .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 25px 30px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 15px;
+            line-height: 1.5;
+            white-space: pre;
+            overflow-x: auto;
+            tab-size: 4;
+            margin: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.3em;
+            line-height: 1.8;
+            overflow-x: auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .keyword {
+            color: #569cd6;
+        }
+
+        .function {
+            color: #dcdcaa;
+        }
+
+        .string {
+            color: #ce9178;
+        }
+
+        .comment {
+            color: #6a9955;
+        }
+
+        .number {
+            color: #b5cea8;
+        }
+
+        .memory-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px 0;
+            gap: 40px;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .memory-box {
+            background: white;
+            border: 3px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 180px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .memory-box:hover {
+            transform: scale(1.05);
+        }
+
+        .memory-label {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .memory-value {
+            font-size: 1.5em;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .arrow {
+            font-size: 3em;
+            color: #764ba2;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        .bullet-list {
+            font-size: 1.4em;
+            line-height: 2.2;
+            color: #333;
+            padding-left: 40px;
+        }
+
+        .bullet-list li {
+            margin: 15px 0;
+            animation: fadeInLeft 0.6s ease-out both;
+        }
+
+        .bullet-list li:nth-child(1) { animation-delay: 0.1s; }
+        .bullet-list li:nth-child(2) { animation-delay: 0.2s; }
+        .bullet-list li:nth-child(3) { animation-delay: 0.3s; }
+        .bullet-list li:nth-child(4) { animation-delay: 0.4s; }
+        .bullet-list li:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes fadeInLeft {
+            from {
+                transform: translateX(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.2em;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            background: #667eea;
+            color: white;
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .highlight {
+            background: #ffeb3b;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .note-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 1.3em;
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 1.3em;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .array-visual {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .array-element {
+            border: 3px solid #667eea;
+            padding: 20px;
+            background: white;
+            font-family: 'Courier New', monospace;
+            font-size: 1.3em;
+            min-width: 80px;
+            text-align: center;
+            position: relative;
+        }
+
+        .array-element::after {
+            content: attr(data-index);
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9em;
+            color: #764ba2;
+            font-weight: bold;
+        }
+
+        .struct-visual {
+            background: white;
+            border: 3px solid #764ba2;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .struct-member {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            border-bottom: 2px solid #eee;
+            font-size: 1.3em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .struct-member:last-child {
+            border-bottom: none;
+        }
+
+        strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title Slide -->
+        <div class="slide active">
+            <div class="slide-header">
+                <h1>Lecture 19: Pointers to Arrays, Structures & Functions</h1>
+                <p class="subtitle">Unit IV: Structures and Pointers</p>
+                <p class="subtitle" style="margin-top: 10px;">Dr. Mohsin Dar | Cloud & Software Operations Cluster | UPES</p>
+            </div>
+            <div class="content">
+                <h3>Topics Covered Today:</h3>
+                <ul class="bullet-list">
+                    <li><strong>Pointers to Arrays</strong> - Array-pointer relationship and manipulation</li>
+                    <li><strong>Pointers to Structures</strong> - Dynamic structure handling</li>
+                    <li><strong>Pointers to Functions</strong> - Callback mechanisms and function references</li>
+                </ul>
+                <div class="info-box">
+                    Building on Previous Lecture: We'll extend our pointer knowledge to work with complex data types!
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Pointer to Arrays - Introduction -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Pointer to Arrays - Introduction</h2>
+            </div>
+            <div class="content">
+                <div class="info-box">
+                    An array name acts as a constant pointer to the first element of the array.
+                </div>
+                
+                <h3>Key Concepts:</h3>
+                <ul class="bullet-list">
+                    <li><strong>Array Name</strong> is a pointer constant to the first element</li>
+                    <li><strong>&arr[0]</strong> and <strong>arr</strong> give the same address</li>
+                    <li><strong>arr[i]</strong> is equivalent to <strong>*(arr + i)</strong></li>
+                    <li>We can use pointers to traverse arrays efficiently</li>
+                </ul>
+
+                <div class="code-block">
+<span class="keyword">int</span> arr[<span class="number">5</span>] = {<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>, <span class="number">40</span>, <span class="number">50</span>};
+<span class="keyword">int</span> *ptr = arr;  <span class="comment">// ptr points to first element</span>
+
+<span class="function">printf</span>(<span class="string">"arr = %p\n"</span>, arr);
+<span class="function">printf</span>(<span class="string">"&arr[0] = %p\n"</span>, &arr[<span class="number">0</span>]);
+<span class="function">printf</span>(<span class="string">"ptr = %p\n"</span>, ptr);
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Array Memory Visualization -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Array in Memory</h2>
+            </div>
+            <div class="content">
+                <h3>Memory Layout of Array:</h3>
+                <div class="code-block">
+<span class="keyword">int</span> arr[<span class="number">5</span>] = {<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>, <span class="number">40</span>, <span class="number">50</span>};
+                </div>
+
+                <div class="array-visual">
+                    <div class="array-element" data-index="arr[0]">10</div>
+                    <div class="array-element" data-index="arr[1]">20</div>
+                    <div class="array-element" data-index="arr[2]">30</div>
+                    <div class="array-element" data-index="arr[3]">40</div>
+                    <div class="array-element" data-index="arr[4]">50</div>
+                </div>
+
+                <div style="text-align: center; margin-top: 60px;">
+                    <div class="memory-diagram">
+                        <div class="memory-box">
+                            <div class="memory-label">Address</div>
+                            <div class="memory-value">1000</div>
+                        </div>
+                        <div class="memory-box">
+                            <div class="memory-label">Address</div>
+                            <div class="memory-value">1004</div>
+                        </div>
+                        <div class="memory-box">
+                            <div class="memory-label">Address</div>
+                            <div class="memory-value">1008</div>
+                        </div>
+                        <div class="memory-box">
+                            <div class="memory-label">Address</div>
+                            <div class="memory-value">1012</div>
+                        </div>
+                        <div class="memory-box">
+                            <div class="memory-label">Address</div>
+                            <div class="memory-value">1016</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="note-box">
+                    <strong>Note:</strong> Addresses increment by 4 bytes (size of int) in contiguous memory
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Accessing Array Elements Using Pointers -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Accessing Array Elements via Pointers</h2>
+            </div>
+            <div class="content">
+                <h3>Multiple Ways to Access:</h3>
+                
+                <div class="table-container">
+                    <table>
+                        <tr>
+                            <th>Method</th>
+                            <th>Syntax</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>Array Subscript</td>
+                            <td>arr[i]</td>
+                            <td>Traditional array notation</td>
+                        </tr>
+                        <tr>
+                            <td>Pointer Arithmetic</td>
+                            <td>*(arr + i)</td>
+                            <td>Pointer offset from base</td>
+                        </tr>
+                        <tr>
+                            <td>Pointer Variable</td>
+                            <td>*(ptr + i)</td>
+                            <td>Using separate pointer</td>
+                        </tr>
+                        <tr>
+                            <td>Pointer Subscript</td>
+                            <td>ptr[i]</td>
+                            <td>Array notation on pointer</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="code-block">
+<span class="keyword">int</span> arr[<span class="number">3</span>] = {<span class="number">100</span>, <span class="number">200</span>, <span class="number">300</span>};
+<span class="keyword">int</span> *ptr = arr;
+
+<span class="function">printf</span>(<span class="string">"%d\n"</span>, arr[<span class="number">1</span>]);       <span class="comment">// Output: 200</span>
+<span class="function">printf</span>(<span class="string">"%d\n"</span>, *(arr + <span class="number">1</span>));  <span class="comment">// Output: 200</span>
+<span class="function">printf</span>(<span class="string">"%d\n"</span>, *(ptr + <span class="number">1</span>));  <span class="comment">// Output: 200</span>
+<span class="function">printf</span>(<span class="string">"%d\n"</span>, ptr[<span class="number">1</span>]);      <span class="comment">// Output: 200</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Complete Example - Pointer to Array -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Complete Example: Traversing Array</h2>
+            </div>
+            <div class="content">
+                <div class="code-block">
+<span class="keyword">#include</span> &lt;stdio.h&gt;
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> arr[<span class="number">5</span>] = {<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>, <span class="number">40</span>, <span class="number">50</span>};
+    <span class="keyword">int</span> *ptr = arr;
+    
+    <span class="function">printf</span>(<span class="string">"Using array notation:\n"</span>);
+    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i < <span class="number">5</span>; i++) {
+        <span class="function">printf</span>(<span class="string">"arr[%d] = %d\n"</span>, i, arr[i]);
+    }
+    
+    <span class="function">printf</span>(<span class="string">"\nUsing pointer arithmetic:\n"</span>);
+    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i < <span class="number">5</span>; i++) {
+        <span class="function">printf</span>(<span class="string">"*(ptr + %d) = %d\n"</span>, i, *(ptr + i));
+    }
+    
+    <span class="function">printf</span>(<span class="string">"\nUsing pointer increment:\n"</span>);
+    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i < <span class="number">5</span>; i++) {
+        <span class="function">printf</span>(<span class="string">"*ptr = %d\n"</span>, *ptr);
+        ptr++;  <span class="comment">// Move to next element</span>
+    }
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Pointer to Structures - Introduction -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Pointer to Structures</h2>
+            </div>
+            <div class="content">
+                <div class="info-box">
+                    Pointers to structures allow dynamic memory allocation and efficient passing of structures to functions.
+                </div>
+
+                <h3>Syntax:</h3>
+                <div class="code-block">
+<span class="keyword">struct</span> Student {
+    <span class="keyword">char</span> name[<span class="number">50</span>];
+    <span class="keyword">int</span> roll;
+    <span class="keyword">float</span> marks;
+};
+
+<span class="keyword">struct</span> Student s1;
+<span class="keyword">struct</span> Student *ptr = &s1;  <span class="comment">// Pointer to structure</span>
+                </div>
+
+                <h3>Accessing Members:</h3>
+                <ul class="bullet-list">
+                    <li><strong>(*ptr).member</strong> - Dereference then access</li>
+                    <li><strong>ptr->member</strong> - Arrow operator (preferred)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 7: Structure Pointer Operators -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Structure Pointer: Arrow Operator</h2>
+            </div>
+            <div class="content">
+                <div class="code-block">
+<span class="keyword">struct</span> Student {
+    <span class="keyword">char</span> name[<span class="number">50</span>];
+    <span class="keyword">int</span> roll;
+    <span class="keyword">float</span> marks;
+};
+
+<span class="keyword">struct</span> Student s1 = {<span class="string">"Rahul"</span>, <span class="number">101</span>, <span class="number">85.5</span>};
+<span class="keyword">struct</span> Student *ptr = &s1;
+
+<span class="comment">// Method 1: Using dereference operator</span>
+<span class="function">printf</span>(<span class="string">"Name: %s\n"</span>, (*ptr).name);
+<span class="function">printf</span>(<span class="string">"Roll: %d\n"</span>, (*ptr).roll);
+
+<span class="comment">// Method 2: Using arrow operator (Recommended)</span>
+<span class="function">printf</span>(<span class="string">"Name: %s\n"</span>, ptr->name);
+<span class="function">printf</span>(<span class="string">"Roll: %d\n"</span>, ptr->roll);
+<span class="function">printf</span>(<span class="string">"Marks: %.2f\n"</span>, ptr->marks);
+                </div>
+
+                <div class="note-box">
+                    <strong>Important:</strong> The arrow operator (->) is syntactic sugar for (*ptr).member
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Structure Memory Visualization -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Structure Pointer Visualization</h2>
+            </div>
+            <div class="content">
+                <div class="code-block">
+<span class="keyword">struct</span> Student {
+    <span class="keyword">char</span> name[<span class="number">50</span>];
+    <span class="keyword">int</span> roll;
+    <span class="keyword">float</span> marks;
+};
+<span class="keyword">struct</span> Student s1 = {<span class="string">"Rahul"</span>, <span class="number">101</span>, <span class="number">85.5</span>};
+<span class="keyword">struct</span> Student *ptr = &s1;
+                </div>
+
+                <div class="memory-diagram">
+                    <div class="memory-box" style="min-width: 250px;">
+                        <div class="memory-label">ptr</div>
+                        <div class="memory-value">2000</div>
+                        <div style="font-size: 0.9em; margin-top: 10px; color: #666;">Address of s1</div>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="struct-visual" style="margin: 0;">
+                        <div style="text-align: center; color: #764ba2; font-weight: bold; margin-bottom: 15px; font-size: 1.2em;">
+                            s1 (Address: 2000)
+                        </div>
+                        <div class="struct-member">
+                            <span>name:</span>
+                            <span>"Rahul"</span>
+                        </div>
+                        <div class="struct-member">
+                            <span>roll:</span>
+                            <span>101</span>
+                        </div>
+                        <div class="struct-member">
+                            <span>marks:</span>
+                            <span>85.5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Complete Example - Structure Pointer -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Complete Example: Structure Pointer</h2>
+            </div>
+            <div class="content">
+                <div class="code-block">
+<span class="keyword">#include</span> &lt;stdio.h&gt;
+<span class="keyword">#include</span> &lt;string.h&gt;
+
+<span class="keyword">struct</span> Student {
+    <span class="keyword">char</span> name[<span class="number">50</span>];
+    <span class="keyword">int</span> roll;
+    <span class="keyword">float</span> marks;
+};
+
+<span class="keyword">void</span> <span class="function">displayStudent</span>(<span class="keyword">struct</span> Student *ptr) {
+    <span class="function">printf</span>(<span class="string">"\n--- Student Details ---\n"</span>);
+    <span class="function">printf</span>(<span class="string">"Name: %s\n"</span>, ptr->name);
+    <span class="function">printf</span>(<span class="string">"Roll: %d\n"</span>, ptr->roll);
+    <span class="function">printf</span>(<span class="string">"Marks: %.2f\n"</span>, ptr->marks);
+}
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">struct</span> Student s1;
+    <span class="keyword">struct</span> Student *ptr = &s1;
+    
+    <span class="function">strcpy</span>(ptr->name, <span class="string">"Priya Sharma"</span>);
+    ptr->roll = <span class="number">102</span>;
+    ptr->marks = <span class="number">92.5</span>;
+    
+    <span class="function">displayStudent</span>(ptr);
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Dynamic Memory for Structures -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Dynamic Memory Allocation for Structures</h2>
+            </div>
+            <div class="content">
+                <div class="info-box">
+                    Using malloc() to create structures dynamically at runtime
+                </div>
+
+                <div class="code-block">
+<span class="keyword">#include</span> &lt;stdio.h&gt;
+<span class="keyword">#include</span> &lt;stdlib.h&gt;
+
+<span class="keyword">struct</span> Student {
+    <span class="keyword">char</span> name[<span class="number">50</span>];
+    <span class="keyword">int</span> roll;
+    <span class="keyword">float</span> marks;
+};
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">struct</span> Student *ptr;
+    
+    <span class="comment">// Allocate memory dynamically</span>
+    ptr = (<span class="keyword">struct</span> Student*)<span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> Student));
+    
+    <span class="keyword">if</span>(ptr == <span class="number">NULL</span>) {
+        <span class="function">printf</span>(<span class="string">"Memory allocation failed!\n"</span>);
+        <span class="keyword">return</span> <span class="number">1</span>;
+    }
+    
+    <span class="comment">// Use the allocated structure</span>
+    ptr->roll = <span class="number">103</span>;
+    ptr->marks = <span class="number">88.0</span>;
+    
+    <span class="function">printf</span>(<span class="string">"Roll: %d, Marks: %.2f\n"</span>, ptr->roll, ptr->marks);
+    
+    <span class="comment">// Free allocated memory</span>
+    <span class="function">free</span>(ptr);
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+
+                <div class="note-box">
+                    <strong>Remember:</strong> Always free dynamically allocated memory to prevent memory leaks!
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Pointer to Functions - Introduction -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Pointer to Functions</h2>
+            </div>
+            <div class="content">
+                <div class="info-box">
+                    Function pointers store the address of a function and can be used to call functions indirectly.
+                </div>
+
+                <h3>Why Use Function Pointers?</h3>
+                <ul class="bullet-list">
+                    <li><strong>Callback Functions</strong> - Pass functions as arguments</li>
+                    <li><strong>Event Handling</strong> - Register function handlers</li>
+                    <li><strong>Dynamic Function Selection</strong> - Choose function at runtime</li>
+                    <li><strong>Implementing Function Tables</strong> - Menu-driven programs</li>
+                </ul>
+
+                <div class="code-block">
+<span class="comment">// Syntax for function pointer declaration</span>
+<span class="keyword">return_type</span> (*<span class="function">pointer_name</span>)(<span class="keyword">parameter_types</span>);
+
+<span class="comment">// Example:</span>
+<span class="keyword">int</span> (*<span class="function">funcPtr</span>)(<span class="keyword">int</span>, <span class="keyword">int</span>);
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Declaring Function Pointers -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Declaring and Using Function Pointers</h2>
+            </div>
+            <div class="content">
+                <div class="code-block">
+<span class="keyword">#include</span> &lt;stdio.h&gt;
+
+<span class="comment">// Function declaration</span>
+<span class="keyword">int</span> <span class="function">add</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) {
+    <span class="keyword">return</span> a + b;
+}
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="comment">// Declare function pointer</span>
+    <span class="keyword">int</span> (*<span class="function">funcPtr</span>)(<span class="keyword">int</span>, <span class="keyword">int</span>);
+    
+    <span class="comment">// Assign function address to pointer</span>
+    funcPtr = add;  <span class="comment">// or funcPtr = &add;</span>
+    
+    <span class="comment">// Call function using pointer</span>
+    <span class="keyword">int</span> result = funcPtr(<span class="number">10</span>, <span class="number">20</span>);  <span class="comment">// or (*funcPtr)(10, 20);</span>
+    
+    <span class="function">printf</span>(<span class="string">"Result: %d\n"</span>, result);  <span class="comment">// Output: 30</span>
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+
+                <div class="note-box">
+                    <strong>Note:</strong> Both funcPtr(a, b) and (*funcPtr)(a, b) are valid ways to call through a function pointer.
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Function Pointer Visualization -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Function Pointer - Memory Visualization</h2>
+            </div>
+            <div class="content">
+                <div class="code-block">
+<span class="keyword">int</span> <span class="function">add</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a + b; }
+<span class="keyword">int</span> (*<span class="function">funcPtr</span>)(<span class="keyword">int</span>, <span class="keyword">int</span>) = add;
+                </div>
+
+                <div class="memory-diagram">
+                    <div class="memory-box" style="min-width: 250px;">
+                        <div class="memory-label">funcPtr</div>
+                        <div class="memory-value">0x4000A0</div>
+                        <div style="font-size: 0.9em; margin-top: 10px; color: #666;">Points to add()</div>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="memory-box" style="min-width: 300px; background: #f0f0f0;">
+                        <div class="memory-label" style="color: #764ba2;">Function: add()</div>
+                        <div class="memory-value" style="font-size: 1.2em;">Address: 0x4000A0</div>
+                        <div style="font-size: 1.1em; margin-top: 15px; color: #333; font-family: 'Courier New', monospace;">
+                            int add(int a, int b) {<br>
+                            &nbsp;&nbsp;return a + b;<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box" style="margin-top: 30px;">
+                    Function names are actually pointers to the function code in memory!
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Function Pointers as Arguments -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Passing Function Pointers as Arguments</h2>
+            </div>
+            <div class="content">
+                <h3>Callback Functions Example:</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> &lt;stdio.h&gt;
+
+<span class="keyword">int</span> <span class="function">add</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a + b; }
+<span class="keyword">int</span> <span class="function">subtract</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a - b; }
+<span class="keyword">int</span> <span class="function">multiply</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a * b; }
+
+<span class="comment">// Function that takes function pointer as parameter</span>
+<span class="keyword">void</span> <span class="function">calculate</span>(<span class="keyword">int</span> x, <span class="keyword">int</span> y, <span class="keyword">int</span> (*<span class="function">operation</span>)(<span class="keyword">int</span>, <span class="keyword">int</span>)) {
+    <span class="keyword">int</span> result = operation(x, y);
+    <span class="function">printf</span>(<span class="string">"Result: %d\n"</span>, result);
+}
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="function">calculate</span>(<span class="number">10</span>, <span class="number">5</span>, add);       <span class="comment">// Output: 15</span>
+    <span class="function">calculate</span>(<span class="number">10</span>, <span class="number">5</span>, subtract);  <span class="comment">// Output: 5</span>
+    <span class="function">calculate</span>(<span class="number">10</span>, <span class="number">5</span>, multiply);  <span class="comment">// Output: 50</span>
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: Array of Function Pointers -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Array of Function Pointers</h2>
+            </div>
+            <div class="content">
+                <div class="info-box">
+                    Create a lookup table of functions for menu-driven programs
+                </div>
+
+                <div class="code-block">
+<span class="keyword">#include</span> &lt;stdio.h&gt;
+
+<span class="keyword">int</span> <span class="function">add</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a + b; }
+<span class="keyword">int</span> <span class="function">subtract</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a - b; }
+<span class="keyword">int</span> <span class="function">multiply</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a * b; }
+<span class="keyword">int</span> <span class="function">divide</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a / b; }
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="comment">// Array of function pointers</span>
+    <span class="keyword">int</span> (*<span class="function">operations</span>[<span class="number">4</span>])(<span class="keyword">int</span>, <span class="keyword">int</span>) = {add, subtract, multiply, divide};
+    
+    <span class="keyword">int</span> choice, a = <span class="number">20</span>, b = <span class="number">4</span>;
+    
+    <span class="function">printf</span>(<span class="string">"Choose: 0-Add, 1-Sub, 2-Mul, 3-Div: "</span>);
+    <span class="function">scanf</span>(<span class="string">"%d"</span>, &choice);
+    
+    <span class="keyword">if</span>(choice >= <span class="number">0</span> && choice < <span class="number">4</span>) {
+        <span class="keyword">int</span> result = operations[choice](a, b);
+        <span class="function">printf</span>(<span class="string">"Result: %d\n"</span>, result);
+    }
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: Complete Calculator Example -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Practical Application: Calculator</h2>
+            </div>
+            <div class="content">
+                <div class="code-block">
+<span class="keyword">#include</span> &lt;stdio.h&gt;
+
+<span class="keyword">int</span> <span class="function">add</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a + b; }
+<span class="keyword">int</span> <span class="function">sub</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a - b; }
+<span class="keyword">int</span> <span class="function">mul</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> a * b; }
+<span class="keyword">int</span> <span class="function">div</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) { <span class="keyword">return</span> b != <span class="number">0</span> ? a / b : <span class="number">0</span>; }
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> (*<span class="function">calc</span>[<span class="number">4</span>])(<span class="keyword">int</span>, <span class="keyword">int</span>) = {add, sub, mul, div};
+    <span class="keyword">char</span> *ops[] = {<span class="string">"Addition"</span>, <span class="string">"Subtraction"</span>, 
+                     <span class="string">"Multiplication"</span>, <span class="string">"Division"</span>};
+    
+    <span class="keyword">int</span> a, b, choice;
+    
+    <span class="function">printf</span>(<span class="string">"Enter two numbers: "</span>);
+    <span class="function">scanf</span>(<span class="string">"%d %d"</span>, &a, &b);
+    
+    <span class="function">printf</span>(<span class="string">"\nSelect operation:\n"</span>);
+    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i < <span class="number">4</span>; i++)
+        <span class="function">printf</span>(<span class="string">"%d. %s\n"</span>, i, ops[i]);
+    
+    <span class="function">scanf</span>(<span class="string">"%d"</span>, &choice);
+    
+    <span class="keyword">if</span>(choice >= <span class="number">0</span> && choice < <span class="number">4</span>)
+        <span class="function">printf</span>(<span class="string">"Result: %d\n"</span>, calc[choice](a, b));
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Comparison Table -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Comparison: Pointer Types</h2>
+            </div>
+            <div class="content">
+                <div class="table-container">
+                    <table>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Pointer to Array</th>
+                            <th>Pointer to Structure</th>
+                            <th>Pointer to Function</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Declaration</strong></td>
+                            <td>int *ptr = arr;</td>
+                            <td>struct S *ptr;</td>
+                            <td>int (*ptr)(int);</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Access</strong></td>
+                            <td>*(ptr + i) or ptr[i]</td>
+                            <td>ptr->member</td>
+                            <td>ptr(args)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Arithmetic</strong></td>
+                            <td>Allowed</td>
+                            <td>Allowed</td>
+                            <td>Not Allowed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Primary Use</strong></td>
+                            <td>Array traversal</td>
+                            <td>Dynamic structures</td>
+                            <td>Callbacks</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Memory</strong></td>
+                            <td>Contiguous</td>
+                            <td>Single block</td>
+                            <td>Code segment</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="note-box" style="margin-top: 30px;">
+                    <strong>Key Takeaway:</strong> Each pointer type serves different purposes but follows similar principles of indirection.
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: Common Mistakes -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Common Mistakes to Avoid</h2>
+            </div>
+            <div class="content">
+                <h3>1. Array Pointers:</h3>
+                <div class="code-block">
+<span class="comment">// WRONG: Modifying array name</span>
+<span class="keyword">int</span> arr[<span class="number">5</span>];
+arr++;  <span class="comment">// ERROR! Array name is constant pointer</span>
+
+<span class="comment">// CORRECT: Use a separate pointer</span>
+<span class="keyword">int</span> *ptr = arr;
+ptr++;  <span class="comment">// OK</span>
+                </div>
+
+                <h3>2. Structure Pointers:</h3>
+                <div class="code-block">
+<span class="comment">// WRONG: Using dot operator with pointer</span>
+<span class="keyword">struct</span> Student *ptr;
+ptr.roll = <span class="number">10</span>;  <span class="comment">// ERROR!</span>
+
+<span class="comment">// CORRECT: Use arrow operator</span>
+ptr->roll = <span class="number">10</span>;  <span class="comment">// OK</span>
+                </div>
+
+                <h3>3. Function Pointers:</h3>
+                <div class="code-block">
+<span class="comment">// WRONG: Incorrect declaration</span>
+<span class="keyword">int</span> *<span class="function">funcPtr</span>(<span class="keyword">int</span>);  <span class="comment">// This is a function returning int*</span>
+
+<span class="comment">// CORRECT: Use parentheses</span>
+<span class="keyword">int</span> (*<span class="function">funcPtr</span>)(<span class="keyword">int</span>);  <span class="comment">// Pointer to function</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 19: Real-world Applications -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Real-World Applications</h2>
+            </div>
+            <div class="content">
+                <h3>🎯 Pointer to Arrays:</h3>
+                <ul class="bullet-list">
+                    <li>Image processing (2D arrays for pixels)</li>
+                    <li>Matrix operations in scientific computing</li>
+                    <li>Efficient array manipulation in algorithms</li>
+                </ul>
+
+                <h3>🎯 Pointer to Structures:</h3>
+                <ul class="bullet-list">
+                    <li>Linked lists, trees, graphs</li>
+                    <li>Database record management</li>
+                    <li>Dynamic data structures</li>
+                    <li>Object-oriented programming in C</li>
+                </ul>
+
+                <h3>🎯 Pointer to Functions:</h3>
+                <ul class="bullet-list">
+                    <li>Event-driven programming (GUI callbacks)</li>
+                    <li>Sorting with custom comparison functions</li>
+                    <li>Plugin architectures</li>
+                    <li>State machines and strategy patterns</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 20: Summary -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Summary</h2>
+            </div>
+            <div class="content">
+                <div class="info-box">
+                    Today we explored advanced pointer concepts that form the foundation of complex C programming!
+                </div>
+
+                <h3>Key Concepts Covered:</h3>
+                <ul class="bullet-list">
+                    <li><strong>Pointer to Arrays:</strong> Array names are pointers; use pointer arithmetic for traversal</li>
+                    <li><strong>Pointer to Structures:</strong> Use -> operator; enables dynamic memory allocation</li>
+                    <li><strong>Pointer to Functions:</strong> Store function addresses; enable callbacks and dynamic dispatch</li>
+                </ul>
+
+                <div class="code-block">
+<span class="comment">// Quick Reference:</span>
+<span class="keyword">int</span> *arrPtr = array;           <span class="comment">// Array pointer</span>
+<span class="keyword">struct</span> S *sPtr = &structure;  <span class="comment">// Structure pointer</span>
+<span class="keyword">int</span> (*fPtr)(<span class="keyword">int</span>) = function;  <span class="comment">// Function pointer</span>
+
+arrPtr[i];      <span class="comment">// Access array element</span>
+sPtr->member;   <span class="comment">// Access structure member</span>
+fPtr(arg);      <span class="comment">// Call function</span>
+                </div>
+
+                <div class="note-box">
+                    <strong>Next Lecture:</strong> We'll explore dynamic memory management and advanced data structures!
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 21: Practice Questions -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Practice Questions</h2>
+            </div>
+            <div class="content">
+                <h3>Try These:</h3>
+                
+                <div class="info-box" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <strong>Question 1:</strong> Write a program to find the sum of array elements using pointer arithmetic.
+                </div>
+
+                <div class="info-box" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+                    <strong>Question 2:</strong> Create a structure for Employee (name, id, salary) and write functions to input and display employee data using structure pointers.
+                </div>
+
+                <div class="info-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <strong>Question 3:</strong> Implement a simple calculator using an array of function pointers that supports 5 operations: +, -, *, /, %.
+                </div>
+
+                <div class="note-box">
+                    <strong>Assignment:</strong> Combine all three concepts - Create a program that manages student records (structure) in an array, and provides a menu using function pointers!
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 22: Thank You -->
+        <div class="slide">
+            <div class="slide-header">
+                <h1>Thank You!</h1>
+                <p class="subtitle">Questions & Discussion</p>
+            </div>
+            <div class="content" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                <div style="font-size: 5em; margin-bottom: 30px;">💻</div>
+                <h2 style="color: #667eea; margin-bottom: 30px;">Lecture 19 Complete</h2>
+                <div class="info-box" style="font-size: 1.6em;">
+                    <strong>Dr. Mohsin Dar</strong><br>
+                    Assistant Professor<br>
+                    Cloud & Software Operations Cluster | SOCS<br>
+                    UPES
+                </div>
+                <div style="margin-top: 40px; font-size: 1.5em; color: white; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 40px; border-radius: 50px;">
+                    "Master Pointers, Master C Programming!"
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" onclick="prevSlide()">◀ Previous</button>
+        <button class="nav-btn" onclick="nextSlide()">Next ▶</button>
+    </div>
+
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">22</span>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>
