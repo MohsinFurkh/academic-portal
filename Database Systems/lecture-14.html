@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 14: Clustering and Secondary Indexing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .presentation {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .slide {
+            background: white;
+            border-radius: 15px;
+            padding: 50px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-header {
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .slide-number {
+            color: #667eea;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        h1 {
+            color: #2d3748;
+            font-size: 42px;
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+        
+        h3 {
+            color: #4a5568;
+            font-size: 24px;
+            margin-bottom: 15px;
+            margin-top: 25px;
+        }
+        
+        p {
+            color: #4a5568;
+            font-size: 18px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        .university-info {
+            text-align: center;
+            color: #718096;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        
+        .instructor {
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .content-box {
+            background: #f7fafc;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .key-point {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+        }
+        
+        .definition {
+            background: #edf2f7;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 5px solid #48bb78;
+        }
+        
+        .example-box {
+            background: #fffaf0;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 10px;
+            border: 2px solid #ed8936;
+        }
+        
+        .formula {
+            background: #2d3748;
+            color: #fff;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            overflow-x: auto;
+        }
+        
+        .calculation {
+            background: #e6fffa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #38b2ac;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+        
+        tr:hover {
+            background: #f7fafc;
+        }
+        
+        .advantage {
+            color: #48bb78;
+            font-weight: 600;
+        }
+        
+        .disadvantage {
+            color: #f56565;
+            font-weight: 600;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+        
+        li {
+            color: #4a5568;
+            font-size: 18px;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        
+        .highlight {
+            background: #fef5e7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #d97706;
+        }
+        
+        .diagram {
+            background: white;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .tree-diagram {
+            background: #f7fafc;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+        
+        .tree-node {
+            display: inline-block;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            margin: 5px;
+            background: white;
+            font-weight: 600;
+        }
+        
+        .tree-level {
+            margin: 20px 0;
+        }
+        
+        .box {
+            display: inline-block;
+            padding: 15px 30px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            margin: 10px;
+            background: #f7fafc;
+        }
+        
+        .arrow {
+            display: inline-block;
+            margin: 0 10px;
+            color: #667eea;
+            font-size: 24px;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            .slide {
+                page-break-after: always;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        
+        <!-- Title Slide -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Lecture 14</div>
+            </div>
+            <h1>Clustering and Secondary Indexing</h1>
+            <p style="font-size: 24px; color: #667eea; margin-top: 20px;">Unit III: Storage & Indexing</p>
+            <div class="university-info">
+                <p><strong>Database Systems - MTech First Semester</strong></p>
+                <p>Cloud & Software Operations Cluster | SOCS | UPES</p>
+                <p class="instructor">Dr. Mohsin Dar<br>Assistant Professor</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Learning Objectives -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Learning Objectives</div>
+            </div>
+            <h2>What We'll Learn Today</h2>
+            <div class="content-box">
+                <ul>
+                    <li>Understand different types of indexing structures</li>
+                    <li>Learn about Clustering Index and its characteristics</li>
+                    <li>Explore Secondary Index and its applications</li>
+                    <li>Compare Dense vs Sparse indexing</li>
+                    <li>Analyze index performance through practical calculations</li>
+                    <li>Understand multilevel indexing concepts</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 3: Types of Indexing -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Index Classification</div>
+            </div>
+            <h2>Types of Indexing</h2>
+            
+            <div class="tree-diagram">
+                <div class="tree-level">
+                    <div class="tree-node" style="background: #667eea; color: white;">INDEX</div>
+                </div>
+                <div class="tree-level">
+                    <div class="tree-node">Single Level</div>
+                    <div class="tree-node">Multilevel</div>
+                </div>
+                <div class="tree-level" style="margin-left: -200px;">
+                    <div class="tree-node" style="background: #48bb78; color: white;">Primary Index</div>
+                    <div class="tree-node" style="background: #ed8936; color: white;">Clustering Index</div>
+                    <div class="tree-node" style="background: #e53e3e; color: white;">Secondary Index</div>
+                </div>
+                <div class="tree-level" style="margin-left: 400px;">
+                    <div class="tree-node">Simple Multilevel</div>
+                    <div class="tree-node">B-Tree</div>
+                    <div class="tree-node">B+ Tree</div>
+                </div>
+            </div>
+
+            <div class="content-box">
+                <h3>Classification Overview</h3>
+                <ul>
+                    <li><strong>Single Level:</strong> One level of indirection between index and data</li>
+                    <li><strong>Multilevel:</strong> Multiple levels of indexes for large files</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 4: Recap - Primary Indexing -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Recap: Primary Index</div>
+            </div>
+            <h2>PRIMARY INDEXING</h2>
+            
+            <div class="definition">
+                <h3>Key Characteristics</h3>
+                <ul>
+                    <li>Main file is always <strong>sorted according to primary key</strong>.</li>
+                    <li>Indexing is done on Primary Key, therefore called as primary indexing.</li>
+                    <li>Index file has two columns: first primary key and second anchor pointer (base address of block).</li>
+                    <li>It is an example of <strong>Sparse Indexing</strong>.</li>
+                    <li>Here first record (anchor record) of every block gets an entry in the index file.</li>
+                    <li><strong>No. of entries in the index file = No. of blocks acquired by the main file.</strong></li>
+                </ul>
+            </div>
+
+            <div class="diagram">
+                <h3>Primary Index Structure</h3>
+                <table style="width: 80%; margin: 20px auto;">
+                    <tr>
+                        <th colspan="2" style="text-align: center;">Index File (Sparse)</th>
+                    </tr>
+                    <tr>
+                        <th>Primary Key (First Record)</th>
+                        <th>Block Pointer</th>
+                    </tr>
+                    <tr>
+                        <td>K1</td>
+                        <td>→ Block 1</td>
+                    </tr>
+                    <tr>
+                        <td>K10</td>
+                        <td>→ Block 2</td>
+                    </tr>
+                    <tr>
+                        <td>K20</td>
+                        <td>→ Block 3</td>
+                    </tr>
+                    <tr>
+                        <td>...</td>
+                        <td>...</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 5: Clustering Index Introduction -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Clustering Index</div>
+            </div>
+            <h2>CLUSTERED INDEXING</h2>
+            
+            <div class="definition">
+                <h3>What is Clustering Index?</h3>
+                <p>A clustering index is created when the data file is ordered on a <strong>non-key attribute</strong> that may have duplicate values.</p>
+            </div>
+
+            <div class="key-point">
+                <h3>Key Characteristics</h3>
+                <ul>
+                    <li>Main file will be ordered on some <strong>non-key attributes</strong>.</li>
+                    <li><strong>No. of entries in the index file = No. of unique values</strong> of the attribute on which indexing is done.</li>
+                    <li>It is an example of <strong>Sparse as well as Dense indexing</strong>.</li>
+                    <li>One index entry per distinct value of the clustering field.</li>
+                    <li>Records with the same clustering field value are grouped together.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 6: Clustering Index Example -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Clustering Index Example</div>
+            </div>
+            <h2>Clustering Index: Practical Example</h2>
+            
+            <div class="example-box">
+                <h3>Scenario: Employee Database</h3>
+                <p>Consider an employee database ordered by <strong>Department_ID</strong> (non-key field):</p>
+                
+                <table style="margin: 20px 0;">
+                    <tr>
+                        <th>Employee_ID</th>
+                        <th>Name</th>
+                        <th>Department_ID</th>
+                        <th>Salary</th>
+                    </tr>
+                    <tr>
+                        <td>101</td>
+                        <td>Alice</td>
+                        <td>10</td>
+                        <td>50000</td>
+                    </tr>
+                    <tr>
+                        <td>105</td>
+                        <td>Bob</td>
+                        <td>10</td>
+                        <td>55000</td>
+                    </tr>
+                    <tr>
+                        <td>102</td>
+                        <td>Charlie</td>
+                        <td>20</td>
+                        <td>60000</td>
+                    </tr>
+                    <tr>
+                        <td>108</td>
+                        <td>David</td>
+                        <td>20</td>
+                        <td>62000</td>
+                    </tr>
+                    <tr>
+                        <td>103</td>
+                        <td>Eve</td>
+                        <td>30</td>
+                        <td>58000</td>
+                    </tr>
+                </table>
+
+                <div class="content-box">
+                    <h3>Clustering Index on Department_ID</h3>
+                    <table style="width: 60%; margin: 20px auto;">
+                        <tr>
+                            <th>Department_ID</th>
+                            <th>Block Pointer</th>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td>→ Block 1</td>
+                        </tr>
+                        <tr>
+                            <td>20</td>
+                            <td>→ Block 2</td>
+                        </tr>
+                        <tr>
+                            <td>30</td>
+                            <td>→ Block 3</td>
+                        </tr>
+                    </table>
+                    <p><strong>Note:</strong> Only 3 index entries for potentially hundreds of employee records!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Clustering Index Advantages -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Clustering Index Benefits</div>
+            </div>
+            <h2>Advantages and Disadvantages</h2>
+
+            <h3>Advantages:</h3>
+            <div class="content-box">
+                <ul>
+                    <li class="advantage">✓ Efficient for range queries on clustering field</li>
+                    <li class="advantage">✓ Reduces number of index entries (sparse)</li>
+                    <li class="advantage">✓ Groups related records together (better locality)</li>
+                    <li class="advantage">✓ Faster retrieval for queries on clustering attribute</li>
+                </ul>
+            </div>
+
+            <h3>Disadvantages:</h3>
+            <div class="content-box">
+                <ul>
+                    <li class="disadvantage">✗ Data file must be ordered on non-key field</li>
+                    <li class="disadvantage">✗ Insertions/deletions are expensive</li>
+                    <li class="disadvantage">✗ Only one clustering index per file</li>
+                    <li class="disadvantage">✗ Requires periodic reorganization</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 8: Secondary Index Introduction -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Secondary Index</div>
+            </div>
+            <h2>SECONDARY INDEXING</h2>
+            
+            <div class="definition">
+                <h3>What is Secondary Index?</h3>
+                <p>A secondary index provides an alternate access path to the data file. It can be created on any field (key or non-key) that is different from the primary ordering field.</p>
+            </div>
+
+            <div class="key-point">
+                <h3>Key Characteristics</h3>
+                <ul>
+                    <li><strong>Most common scenario:</strong> Suppose we already have a primary indexing on primary key, but there is frequent query on some other attributes, so we may decide to have one more index file with some other attribute.</li>
+                    <li>Main file is <strong>unordered</strong> according to the attribute on which secondary indexing is done.</li>
+                    <li>Secondary indexing can be done on <strong>key or non-key attribute</strong>.</li>
+                    <li><strong>No. of entries in the index file is same as the number of entries in the main file.</strong></li>
+                    <li>It is an example of <strong>dense indexing</strong>.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 9: Secondary Index Example -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Secondary Index Example</div>
+            </div>
+            <h2>Secondary Index: Practical Scenario</h2>
+            
+            <div class="example-box">
+                <h3>Scenario: Employee Database with Multiple Access Patterns</h3>
+                <p><strong>Primary Index:</strong> On Employee_ID (primary key)</p>
+                <p><strong>Secondary Index:</strong> On Salary (for frequent salary-based queries)</p>
+                
+                <div style="display: flex; justify-content: space-around; margin: 30px 0;">
+                    <div style="flex: 1; margin: 0 10px;">
+                        <h4 style="text-align: center; color: #667eea;">Main Data File (Ordered by Employee_ID)</h4>
+                        <table>
+                            <tr>
+                                <th>Emp_ID</th>
+                                <th>Name</th>
+                                <th>Salary</th>
+                            </tr>
+                            <tr>
+                                <td>101</td>
+                                <td>Alice</td>
+                                <td>50000</td>
+                            </tr>
+                            <tr>
+                                <td>102</td>
+                                <td>Bob</td>
+                                <td>60000</td>
+                            </tr>
+                            <tr>
+                                <td>103</td>
+                                <td>Charlie</td>
+                                <td>55000</td>
+                            </tr>
+                            <tr>
+                                <td>104</td>
+                                <td>David</td>
+                                <td>50000</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div style="flex: 1; margin: 0 10px;">
+                        <h4 style="text-align: center; color: #667eea;">Secondary Index on Salary</h4>
+                        <table>
+                            <tr>
+                                <th>Salary</th>
+                                <th>Record Pointer</th>
+                            </tr>
+                            <tr>
+                                <td>50000</td>
+                                <td>→ Record 1 (Alice)</td>
+                            </tr>
+                            <tr>
+                                <td>50000</td>
+                                <td>→ Record 4 (David)</td>
+                            </tr>
+                            <tr>
+                                <td>55000</td>
+                                <td>→ Record 3 (Charlie)</td>
+                            </tr>
+                            <tr>
+                                <td>60000</td>
+                                <td>→ Record 2 (Bob)</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <p><strong>Note:</strong> Secondary index has one entry for each record (Dense Index)</p>
+            </div>
+        </div>
+
+        <!-- Slide 10: Secondary Index Problem Statement -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Practical Problem</div>
+            </div>
+            <h2>Secondary Index: Problem Statement</h2>
+            
+            <div class="example-box">
+                <h3>Given:</h3>
+                <ul>
+                    <li>Number of records: <strong>r = 30,000</strong></li>
+                    <li>Block size: <strong>B = 1,024 bytes</strong></li>
+                    <li>Record length: <strong>R = 100 bytes</strong></li>
+                    <li>Ordering key field length: <strong>V = 9 bytes</strong></li>
+                    <li>Record pointer size: <strong>P = 6 bytes</strong></li>
+                    <li>Records are fixed-size and unspanned</li>
+                    <li>File is <strong>unordered</strong></li>
+                </ul>
+                <h3>Find:</h3>
+                <p>Design and analyze the secondary index for this file.</p>
+            </div>
+        </div>
+
+        <!-- Slide 11: Solution Step 1 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Solution - Part 1</div>
+            </div>
+            <h2>Step 1: Calculate Blocking Factor (bfr)</h2>
+            
+            <p><strong>Blocking Factor (bfr):</strong> Number of records that can fit in one block</p>
+            
+            <div class="formula">
+                bfr = ⌊Block Size / Record Size⌋ = ⌊B / R⌋
+            </div>
+
+            <div class="calculation">
+                <p><strong>Calculation:</strong></p>
+                <p>bfr = ⌊1,024 / 100⌋ = ⌊10.24⌋ = <span class="highlight">10 records/block</span></p>
+            </div>
+
+            <p><strong>Interpretation:</strong> Each data block can store exactly 10 records.</p>
+        </div>
+
+        <!-- Slide 12: Solution Step 2 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Solution - Part 2</div>
+            </div>
+            <h2>Step 2: Calculate Number of Blocks (b)</h2>
+            
+            <p><strong>Number of Blocks:</strong> Total blocks needed to store all records</p>
+            
+            <div class="formula">
+                b = ⌈Total Records / Blocking Factor⌉ = ⌈r / bfr⌉
+            </div>
+
+            <div class="calculation">
+                <p><strong>Calculation:</strong></p>
+                <p>b = ⌈30,000 / 10⌉ = <span class="highlight">3,000 blocks</span></p>
+            </div>
+
+            <p><strong>Storage for Data File:</strong></p>
+            <div class="calculation">
+                <p>Total Space = 3,000 blocks × 1,024 bytes = 3,072,000 bytes ≈ 3 MB</p>
+            </div>
+        </div>
+
+        <!-- Slide 13: Solution Step 3 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Solution - Part 3</div>
+            </div>
+            <h2>Step 3: Calculate Index Entry Size</h2>
+            
+            <p><strong>Secondary Index Entry Components:</strong></p>
+            <ul>
+                <li>Search Key Value: V = 9 bytes</li>
+                <li><strong>Record Pointer</strong> (not block pointer): P = 6 bytes</li>
+            </ul>
+
+            <div class="formula">
+                Index Entry Size = V + P
+            </div>
+
+            <div class="calculation">
+                <p><strong>Calculation:</strong></p>
+                <p>Index Entry Size = 9 + 6 = <span class="highlight">15 bytes</span></p>
+            </div>
+
+            <div class="key-point">
+                <p><strong>Important Difference:</strong> Secondary index uses <strong>record pointers</strong> (pointing to individual records), not block pointers. This is because the file is unordered.</p>
+            </div>
+        </div>
+
+        <!-- Slide 14: Solution Step 4 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Solution - Part 4</div>
+            </div>
+            <h2>Step 4: Calculate Index Blocking Factor (bfr<sub>i</sub>)</h2>
+            
+            <p><strong>Index Blocking Factor:</strong> Number of index entries per block</p>
+            
+            <div class="formula">
+                bfr<sub>i</sub> = ⌊Block Size / Index Entry Size⌋ = ⌊B / (V + P)⌋
+            </div>
+
+            <div class="calculation">
+                <p><strong>Calculation:</strong></p>
+                <p>bfr<sub>i</sub> = ⌊1,024 / 15⌋ = ⌊68.27⌋ = <span class="highlight">68 entries/block</span></p>
+            </div>
+
+            <p><strong>Interpretation:</strong> Each index block can store 68 index entries.</p>
+        </div>
+
+        <!-- Slide 15: Solution Step 5 -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Solution - Part 5</div>
+            </div>
+            <h2>Step 5: Calculate Number of Index Blocks (b<sub>i</sub>)</h2>
+            
+            <p><strong>Number of Index Entries:</strong> One entry per record = 30,000 entries (Dense Index)</p>
+            
+            <div class="formula">
+                b<sub>i</sub> = ⌈Number of Index Entries / bfr<sub>i</sub>⌉ = ⌈r / bfr<sub>i</sub>⌉
+            </div>
+
+            <div class="calculation">
+                <p><strong>Calculation:</strong></p>
+                <p>b<sub>i</sub> = ⌈30,000 / 68⌉ = ⌈441.18⌉ = <span class="highlight">442 index blocks</span></p>
+            </div>
+
+            <p><strong>Storage for Secondary Index File:</strong></p>
+            <div class="calculation">
+                <p>Index Space = 442 blocks × 1,024 bytes = 452,608 bytes ≈ 442 KB</p>
+            </div>
+        </div>
+
+        <!-- Slide 16: Performance Analysis -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Performance Analysis</div>
+            </div>
+            <h2>Search Performance Comparison</h2>
+
+            <h3>Without Secondary Index (Linear Search):</h3>
+            <div class="calculation">
+                <p><strong>Average block accesses:</strong> b / 2 = 3,000 / 2 = <span class="highlight">1,500 blocks</span></p>
+                <p><strong>Worst case:</strong> 3,000 blocks</p>
+            </div>
+
+            <h3>With Secondary Index (Binary Search on Index):</h3>
+            <div class="calculation">
+                <p><strong>Index search:</strong> ⌈log<sub>2</sub>(442)⌉ = <span class="highlight">9 block accesses</span></p>
+                <p><strong>Data record access:</strong> 1 block access</p>
+                <p><strong>Total:</strong> 9 + 1 = <span class="highlight">10 block accesses</span></p>
+            </div>
+
+            <div class="key-point">
+                <h3>Performance Improvement</h3>
+                <p>Speedup: 1,500 / 10 = <strong>150× faster on average!</strong></p>
+            </div>
+        </div>
+
+        <!-- Slide 17: Comparison Table -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Index Comparison</div>
+            </div>
+            <h2>Primary vs Clustering vs Secondary Index</h2>
+
+            <table>
+                <tr>
+                    <th>Characteristic</th>
+                    <th>Primary Index</th>
+                    <th>Clustering Index</th>
+                    <th>Secondary Index</th>
+                </tr>
+                <tr>
+                    <td><strong>Ordering Field</strong></td>
+                    <td>Primary Key</td>
+                    <td>Non-key attribute</td>
+                    <td>Any field (key/non-key)</td>
+                </tr>
+                <tr>
+                    <td><strong>File Organization</strong></td>
+                    <td>Ordered (sorted)</td>
+                    <td>Ordered (sorted)</td>
+                    <td>Unordered</td>
+                </tr>
+                <tr>
+                    <td><strong>Index Type</strong></td>
+                    <td>Sparse</td>
+                    <td>Sparse/Dense</td>
+                    <td>Dense</td>
+                </tr>
+                <tr>
+                    <td><strong>No. of Entries</strong></td>
+                    <td>= No. of blocks</td>
+                    <td>= No. of unique values</td>
+                    <td>= No. of records</td>
+                </tr>
+                <tr>
+                    <td><strong>Pointer Type</strong></td>
+                    <td>Block pointer</td>
+                    <td>Block pointer</td>
+                    <td>Record pointer</td>
+                </tr>
+                <tr>
+                    <td><strong>Multiple Allowed</strong></td>
+                    <td>No (only one)</td>
+                    <td>No (only one)</td>
+                    <td>Yes (multiple)</td>
+                </tr>
+                <tr>
+                    <td><strong>Space Overhead</strong></td>
+                    <td>Low</td>
+                    <td>Low</td>
+                    <td>High</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Slide 18: Dense vs Sparse -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Dense vs Sparse Indexing</div>
+            </div>
+            <h2>Dense vs Sparse Indexing</h2>
+
+            <div class="definition">
+                <h3>Dense Index</h3>
+                <p>In dense index, there is an entry in the index file for <strong>every search key value</strong> in the main file. This makes searching faster but requires more space to store index records itself.</p>
+                <ul>
+                    <li>One entry per search key value</li>
+                    <li>Larger space requirement</li>
+                    <li>Can determine record existence from index alone</li>
+                    <li><strong>Note:</strong> It is not for every record, it is for every search key value. Sometimes number of records in the main file > number of search keys in the main file, for example if search key is repeated.</li>
+                </ul>
+            </div>
+
+            <div class="definition">
+                <h3>Sparse Index</h3>
+                <p>If an index entry is created only for some records of the main file, then it is called sparse index.</p>
+                <ul>
+                    <li>No. of index entries in the index file < No. of records in the main file</li>
+                    <li>Smaller space requirement</li>
+                    <li>Data file must be ordered</li>
+                    <li>Typically one entry per block</li>
+                </ul>
+            </div>
+
+            <div class="key-point">
+                <p><strong>Note:</strong> Dense and sparse are not complementary to each other. Sometimes it is possible that an index is both dense and sparse (e.g., clustering index).</p>
+            </div>
+        </div>
+
+        <!-- Slide 19: Dense vs Sparse Visual Comparison -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Visual Comparison</div>
+            </div>
+            <h2>Dense vs Sparse: Visual Representation</h2>
+
+            <div style="display: flex; justify-content: space-around; margin: 30px 0;">
+                <div style="flex: 1; margin: 0 20px;">
+                    <h3 style="text-align: center; color: #48bb78;">Sparse Index</h3>
+                    <div class="diagram">
+                        <table style="width: 100%;">
+                            <tr>
+                                <th colspan="2">Index (Sparse)</th>
+                            </tr>
+                            <tr>
+                                <td>10</td>
+                                <td>→ Block 1</td>
+                            </tr>
+                            <tr>
+                                <td>30</td>
+                                <td>→ Block 2</td>
+                            </tr>
+                            <tr>
+                                <td>50</td>
+                                <td>→ Block 3</td>
+                            </tr>
+                        </table>
+                        <p style="margin-top: 20px; font-size: 14px;">Only first record of each block indexed</p>
+                    </div>
+                </div>
+
+                <div style="flex: 1; margin: 0 20px;">
+                    <h3 style="text-align: center; color: #e53e3e;">Dense Index</h3>
+                    <div class="diagram">
+                        <table style="width: 100%;">
+                            <tr>
+                                <th colspan="2">Index (Dense)</th>
+                            </tr>
+                            <tr>
+                                <td>10</td>
+                                <td>→ Record 1</td>
+                            </tr>
+                            <tr>
+                                <td>15</td>
+                                <td>→ Record 2</td>
+                            </tr>
+                            <tr>
+                                <td>20</td>
+                                <td>→ Record 3</td>
+                            </tr>
+                            <tr>
+                                <td>30</td>
+                                <td>→ Record 4</td>
+                            </tr>
+                            <tr>
+                                <td>...</td>
+                                <td>...</td>
+                            </tr>
+                        </table>
+                        <p style="margin-top: 20px; font-size: 14px;">Every record/search key indexed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: Summary -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Summary</div>
+            </div>
+            <h2>Key Takeaways</h2>
+
+            <div class="key-point">
+                <ul>
+                    <li><strong>Primary Index:</strong> Sparse index on ordered file's primary key field</li>
+                    <li><strong>Clustering Index:</strong> Index on ordered file's non-key field with duplicate values</li>
+                    <li><strong>Secondary Index:</strong> Dense index on any field, file can be unordered</li>
+                    <li>Dense index has entry for every search key value</li>
+                    <li>Sparse index has entries only for some records (typically per block)</li>
+                    <li>Multiple secondary indexes possible, but only one primary/clustering index</li>
+                </ul>
+            </div>
+
+            <h3>Performance Trade-offs:</h3>
+            <div class="content-box">
+                <ul>
+                    <li><strong>Space:</strong> Sparse < Dense</li>
+                    <li><strong>Search Speed:</strong> All provide logarithmic search time</li>
+                    <li><strong>Update Cost:</strong> Primary/Clustering > Secondary</li>
+                    <li><strong>Flexibility:</strong> Secondary > Primary/Clustering</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 21: Practical Considerations -->
+        <div class="slide">
+            <div class="slide-header">
+                <div class="slide-number">Implementation Guidelines</div>
+            </div>
+            <h2>When to Use Each Index Type</h2>
+
+            <div class="content-box">
+                <h3>Use Primary Index When:</h3>
+                <ul>
+                    <li>Data is naturally ordered by primary key</li>
+                    <li>Frequent searches on primary key</li>
+                    <li>Space efficiency is important</li>
+                    <li>Update frequency is low</li>
+                </ul>
+            </div>
+
+            <div class="content-box">
+                <h3>Use Clustering Index When:</h3>
+                <ul>
+                    <li>Frequent queries on non-key attribute with few distinct values</li>
+                    <li>Range queries on clustering field are common</li>
+                    <li>Records with same value should be grouped together</li>
+                    <li>Example: Grouping employees by department</li>
+                </ul>
+            </div>
+
+            <div class="content-box">
+                <h3>Use Secondary Index When:</h3>
+                <ul>
+                    <li>Need multiple access paths to data</li>
+                    <li>Frequent queries on non-ordering fields</li>
+                    <li>File cannot be reordered</li>
+                    <li>Example: Searching by email, phone, or other attributes</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="../js/script.js"></script>
+</body>
+</html>
