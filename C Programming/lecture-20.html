@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Organization & File Operations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide {
+            display: none;
+            width: 90%;
+            max-width: 1400px;
+            height: 85vh;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 60px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+            color: #333;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 3.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            font-size: 2.8em;
+            color: #667eea;
+            margin-bottom: 30px;
+            border-bottom: 4px solid #764ba2;
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            font-size: 2em;
+            color: #764ba2;
+            margin: 25px 0 15px 0;
+        }
+
+        p, li {
+            font-size: 1.5em;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        .subtitle {
+            font-size: 1.8em;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .instructor-info {
+            text-align: center;
+            margin-top: 60px;
+            font-size: 1.4em;
+            color: #555;
+        }
+
+        .instructor-info strong {
+            color: #667eea;
+            font-size: 1.3em;
+        }
+
+        .content-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 25px 0;
+            border-left: 6px solid #667eea;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.3em;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin: 20px 0;
+            border: 3px solid #667eea;
+        }
+
+        .highlight {
+            background: #ffd700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 25px 0;
+        }
+
+        .column {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #667eea;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            font-size: 1.3em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(255,255,255,0.95);
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        ul {
+            margin-left: 40px;
+        }
+
+        .key-point {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 25px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1.3em;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-size: 1.2em;
+        }
+
+        td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .lecture-header {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title Slide -->
+        <div class="slide active">
+            <div class="lecture-header">
+                Lecture 20 | Unit V: File Handling & Memory Management
+            </div>
+            <h1>Data Organization and File Operations</h1>
+            <p class="subtitle">Understanding File Handling in C Programming</p>
+            <div class="instructor-info">
+                <p><strong>Instructor:</strong> Mohsin F. Dar</p>
+                <p>Assistant Professor</p>
+                <p>Cloud & Software Operations Cluster | SOCS</p>
+                <p>University of Petroleum and Energy Studies (UPES)</p>
+                <p style="margin-top: 40px; font-size: 1.2em;">BTech First Semester - C Programming</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Introduction -->
+        <div class="slide">
+            <h2>What is Data Organization?</h2>
+            <div class="content-box">
+                <h3>Definition</h3>
+                <p>Data organization refers to the systematic arrangement and management of data for efficient storage, retrieval, and processing.</p>
+            </div>
+            
+            <h3>Why Do We Need Files?</h3>
+            <p><span class="highlight">Problem:</span> Variables and arrays lose data when the program terminates.</p>
+            <p><span class="highlight">Solution:</span> Files provide permanent storage on secondary memory (hard disk, SSD).</p>
+            
+            <div class="key-point">
+                <strong>Key Concept:</strong> Files enable data persistence beyond program execution, allowing data to be saved and retrieved across multiple program runs.
+            </div>
+        </div>
+
+        <!-- Slide 3: Types of Data Organization -->
+        <div class="slide">
+            <h2>Types of Data Organization</h2>
+            
+            <div class="two-column">
+                <div class="column">
+                    <h3>1. Sequential Organization</h3>
+                    <p>Records are stored one after another in a specific order.</p>
+                    <p><strong>Example:</strong> Student records stored by roll number</p>
+                    <p><strong>Use:</strong> Processing all records, simple access</p>
+                </div>
+                
+                <div class="column">
+                    <h3>2. Random/Direct Organization</h3>
+                    <p>Records can be accessed directly without reading previous records.</p>
+                    <p><strong>Example:</strong> Database index files</p>
+                    <p><strong>Use:</strong> Quick access to specific records</p>
+                </div>
+            </div>
+            
+            <div class="two-column">
+                <div class="column">
+                    <h3>3. Indexed Organization</h3>
+                    <p>Uses an index to locate records quickly.</p>
+                    <p><strong>Example:</strong> Phone directory</p>
+                    <p><strong>Use:</strong> Fast searching</p>
+                </div>
+                
+                <div class="column">
+                    <h3>4. Linked Organization</h3>
+                    <p>Records contain pointers to next records.</p>
+                    <p><strong>Example:</strong> Linked list implementation</p>
+                    <p><strong>Use:</strong> Dynamic data structures</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: File Operations Overview -->
+        <div class="slide">
+            <h2>File Operations in C</h2>
+            
+            <h3>Basic File Operations</h3>
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th>Operation</th>
+                        <th>Description</th>
+                        <th>Function</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Create</strong></td>
+                        <td>Create a new file</td>
+                        <td>fopen() with "w" mode</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Open</strong></td>
+                        <td>Open existing file</td>
+                        <td>fopen()</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Read</strong></td>
+                        <td>Read data from file</td>
+                        <td>fscanf(), fgets(), fread()</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Write</strong></td>
+                        <td>Write data to file</td>
+                        <td>fprintf(), fputs(), fwrite()</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Close</strong></td>
+                        <td>Close the file</td>
+                        <td>fclose()</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 5: File Pointer -->
+        <div class="slide">
+            <h2>File Pointer (FILE *)</h2>
+            
+            <div class="content-box">
+                <h3>What is a File Pointer?</h3>
+                <p>A file pointer is a pointer to a structure of type <span class="highlight">FILE</span> defined in <span class="highlight">stdio.h</span>. It maintains information about the file being accessed.</p>
+            </div>
+            
+            <div class="code-block">
+FILE *fptr;</pre>
+            </div>
+            
+            <h3>What FILE Pointer Contains:</h3>
+            <ul>
+                <li><strong>Current position:</strong> Where we are reading/writing</li>
+                <li><strong>Mode:</strong> Read, write, or append</li>
+                <li><strong>Buffer information:</strong> For efficient I/O</li>
+                <li><strong>Error indicators:</strong> To check file status</li>
+            </ul>
+            
+            <div class="key-point">
+                <strong>Important:</strong> Always check if file pointer is NULL after fopen() to ensure file opened successfully!
+            </div>
+        </div>
+
+        <!-- Slide 6: fopen() Function -->
+        <div class="slide">
+            <h2>Opening a File: fopen()</h2>
+            
+            <h3>Syntax</h3>
+            <div class="code-block">
+FILE *fopen(const char *filename, const char *mode);
+            </div>
+            
+            <h3>File Opening Modes</h3>
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th>Mode</th>
+                        <th>Description</th>
+                        <th>File Must Exist?</th>
+                    </tr>
+                    <tr>
+                        <td><strong>"r"</strong></td>
+                        <td>Read only</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>"w"</strong></td>
+                        <td>Write only (creates new/overwrites existing)</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td><strong>"a"</strong></td>
+                        <td>Append (add to end of file)</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td><strong>"r+"</strong></td>
+                        <td>Read and write</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>"w+"</strong></td>
+                        <td>Read and write (overwrites)</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td><strong>"a+"</strong></td>
+                        <td>Read and append</td>
+                        <td>No</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 7: fopen() Example -->
+        <div class="slide">
+            <h2>fopen() - Practical Example</h2>
+            
+            <div class="code-block">
+#include &lt;stdio.h&gt;
+
+int main() {
+    FILE *fptr;
+    
+    // Opening file for writing
+    fptr = fopen("student.txt", "w");
+    
+    // Check if file opened successfully
+    if (fptr == NULL) {
+        printf("Error opening file!\n");
+        return 1;
+    }
+    
+    printf("File opened successfully!\n");
+    
+    // Always close the file
+    fclose(fptr);
+    
+    return 0;
+}
+            </div>
+            
+            <div class="key-point">
+                <strong>Best Practice:</strong> Always check if fptr is NULL before performing file operations. This prevents program crashes and undefined behavior.
+            </div>
+        </div>
+
+        <!-- Slide 8: Writing to Files -->
+        <div class="slide">
+            <h2>Writing to Files</h2>
+            
+            <h3>1. fprintf() - Formatted Output</h3>
+            <div class="code-block">
+FILE *fptr = fopen("data.txt", "w");
+fprintf(fptr, "Name: %s\n", "John");
+fprintf(fptr, "Age: %d\n", 20);
+fclose(fptr);
+            </div>
+            
+            <h3>2. fputs() - Write String</h3>
+            <div class="code-block">
+FILE *fptr = fopen("data.txt", "w");
+fputs("Hello, World!\n", fptr);
+fputs("Welcome to C Programming\n", fptr);
+fclose(fptr);
+            </div>
+            
+            <h3>3. fputc() - Write Single Character</h3>
+            <div class="code-block">
+FILE *fptr = fopen("data.txt", "w");
+fputc('A', fptr);
+fputc('\n', fptr);
+fclose(fptr);
+            </div>
+        </div>
+
+        <!-- Slide 9: Reading from Files -->
+        <div class="slide">
+            <h2>Reading from Files</h2>
+            
+            <h3>1. fscanf() - Formatted Input</h3>
+            <div class="code-block">
+FILE *fptr = fopen("data.txt", "r");
+char name[50];
+int age;
+fscanf(fptr, "%s %d", name, &age);
+printf("Name: %s, Age: %d\n", name, age);
+fclose(fptr);
+            </div>
+            
+            <h3>2. fgets() - Read String</h3>
+            <div class="code-block">
+FILE *fptr = fopen("data.txt", "r");
+char line[100];
+while (fgets(line, 100, fptr) != NULL) {
+    printf("%s", line);
+}
+fclose(fptr);
+            </div>
+            
+            <h3>3. fgetc() - Read Single Character</h3>
+            <div class="code-block">
+FILE *fptr = fopen("data.txt", "r");
+char ch;
+while ((ch = fgetc(fptr)) != EOF) {
+    printf("%c", ch);
+}
+fclose(fptr);
+            </div>
+        </div>
+
+        <!-- Slide 10: Complete Example -->
+        <div class="slide">
+            <h2>Complete Example: Student Record System</h2>
+            
+            <div class="code-block">
+#include &lt;stdio.h&gt;
+
+int main() {
+    FILE *fptr;
+    char name[50];
+    int rollno, marks;
+    
+    // Writing to file
+    fptr = fopen("students.txt", "w");
+    if (fptr == NULL) {
+        printf("Error!\n");
+        return 1;
+    }
+    
+    fprintf(fptr, "101 Rahul 85\n");
+    fprintf(fptr, "102 Priya 92\n");
+    fprintf(fptr, "103 Amit 78\n");
+    fclose(fptr);
+    
+    // Reading from file
+    fptr = fopen("students.txt", "r");
+    printf("Roll No\tName\tMarks\n");
+    printf("-------------------------\n");
+    
+    while (fscanf(fptr, "%d %s %d", &rollno, name, &marks) != EOF) {
+        printf("%d\t%s\t%d\n", rollno, name, marks);
+    }
+    
+    fclose(fptr);
+    return 0;
+}
+            </div>
+        </div>
+
+        <!-- Slide 11: EOF and Error Handling -->
+        <div class="slide">
+            <h2>EOF and Error Handling</h2>
+            
+            <div class="content-box">
+                <h3>What is EOF?</h3>
+                <p><span class="highlight">EOF (End Of File)</span> is a constant defined in stdio.h that indicates the end of file has been reached.</p>
+            </div>
+            
+            <h3>Error Handling Functions</h3>
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th>Function</th>
+                        <th>Purpose</th>
+                    </tr>
+                    <tr>
+                        <td><strong>feof(fptr)</strong></td>
+                        <td>Returns non-zero if end of file reached</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ferror(fptr)</strong></td>
+                        <td>Returns non-zero if error occurred</td>
+                    </tr>
+                    <tr>
+                        <td><strong>perror()</strong></td>
+                        <td>Prints error message</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="code-block">
+FILE *fptr = fopen("data.txt", "r");
+if (fptr == NULL) {
+    perror("Error");  // Prints: Error: No such file or directory
+    return 1;
+}
+            </div>
+        </div>
+
+        <!-- Slide 12: Binary vs Text Files -->
+        <div class="slide">
+            <h2>Text Files vs Binary Files</h2>
+            
+            <div class="two-column">
+                <div class="column">
+                    <h3>Text Files</h3>
+                    <ul>
+                        <li>Human-readable format</li>
+                        <li>Stores data as characters</li>
+                        <li>Larger file size</li>
+                        <li>Easy to edit</li>
+                        <li>Mode: "r", "w", "a"</li>
+                    </ul>
+                    <div class="code-block">
+fptr = fopen("data.txt", "w");
+fprintf(fptr, "%d", 100);
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <h3>Binary Files</h3>
+                    <ul>
+                        <li>Machine-readable format</li>
+                        <li>Stores data in binary form</li>
+                        <li>Smaller file size</li>
+                        <li>Faster processing</li>
+                        <li>Mode: "rb", "wb", "ab"</li>
+                    </ul>
+                    <div class="code-block">
+fptr = fopen("data.bin", "wb");
+int num = 100;
+fwrite(&num, sizeof(int), 1, fptr);
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: fread() and fwrite() -->
+        <div class="slide">
+            <h2>Binary File Operations</h2>
+            
+            <h3>fwrite() - Write Binary Data</h3>
+            <div class="code-block">
+size_t fwrite(const void *ptr, size_t size, size_t count, FILE *fptr);
+
+// Example
+int numbers[] = {10, 20, 30, 40, 50};
+FILE *fptr = fopen("data.bin", "wb");
+fwrite(numbers, sizeof(int), 5, fptr);
+fclose(fptr);
+            </div>
+            
+            <h3>fread() - Read Binary Data</h3>
+            <div class="code-block">
+size_t fread(void *ptr, size_t size, size_t count, FILE *fptr);
+
+// Example
+int numbers[5];
+FILE *fptr = fopen("data.bin", "rb");
+fread(numbers, sizeof(int), 5, fptr);
+fclose(fptr);
+
+for (int i = 0; i < 5; i++) {
+    printf("%d ", numbers[i]);
+}
+            </div>
+        </div>
+
+        <!-- Slide 14: File Positioning -->
+        <div class="slide">
+            <h2>File Positioning Functions</h2>
+            
+            <h3>Important Functions</h3>
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th>Function</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><strong>fseek(fptr, offset, whence)</strong></td>
+                        <td>Move file pointer to specific position</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ftell(fptr)</strong></td>
+                        <td>Returns current position of file pointer</td>
+                    </tr>
+                    <tr>
+                        <td><strong>rewind(fptr)</strong></td>
+                        <td>Move file pointer to beginning</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3>fseek() Parameters</h3>
+            <ul>
+                <li><strong>SEEK_SET (0):</strong> Beginning of file</li>
+                <li><strong>SEEK_CUR (1):</strong> Current position</li>
+                <li><strong>SEEK_END (2):</strong> End of file</li>
+            </ul>
+            
+            <div class="code-block">
+FILE *fptr = fopen("data.txt", "r");
+fseek(fptr, 10, SEEK_SET);  // Move 10 bytes from start
+long pos = ftell(fptr);     // Get current position
+rewind(fptr);               // Go back to start
+            </div>
+        </div>
+
+        <!-- Slide 15: Common Mistakes -->
+        <div class="slide">
+            <h2>Common Mistakes to Avoid</h2>
+            
+            <div class="content-box">
+                <h3>❌ Mistake 1: Not Checking FILE Pointer</h3>
+                <div class="code-block">
+FILE *fptr = fopen("data.txt", "r");
+fprintf(fptr, "Hello");  // CRASH if file doesn't exist!
+                </div>
+                
+                <h3>✅ Correct Way</h3>
+                <div class="code-block">
+FILE *fptr = fopen("data.txt", "r");
+if (fptr == NULL) {
+    printf("Error opening file!\n");
+    return 1;
+}
+fprintf(fptr, "Hello");
+                </div>
+            </div>
+            
+            <div class="content-box">
+                <h3>❌ Mistake 2: Forgetting to Close File</h3>
+                <p>Always close files using <span class="highlight">fclose(fptr)</span> to:</p>
+                <ul>
+                    <li>Save buffered data</li>
+                    <li>Free system resources</li>
+                    <li>Prevent data corruption</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 16: Practical Application -->
+        <div class="slide">
+            <h2>Practical Application: Grade Management</h2>
+            
+            <div class="code-block">
+#include &lt;stdio.h&gt;
+
+struct Student {
+    int rollno;
+    char name[50];
+    float marks;
+};
+
+int main() {
+    FILE *fptr;
+    struct Student s;
+    
+    // Writing student data
+    fptr = fopen("grades.dat", "wb");
+    if (fptr == NULL) {
+        printf("Error!\n");
+        return 1;
+    }
+    
+    s.rollno = 101;
+    strcpy(s.name, "Alice");
+    s.marks = 89.5;
+    fwrite(&s, sizeof(struct Student), 1, fptr);
+    fclose(fptr);
+    
+    // Reading student data
+    fptr = fopen("grades.dat", "rb");
+    fread(&s, sizeof(struct Student), 1, fptr);
+    printf("Roll: %d, Name: %s, Marks: %.2f\n", 
+           s.rollno, s.name, s.marks);
+    fclose(fptr);
+    
+    return 0;
+}
+            </div>
+        </div>
+
+        <!-- Slide 17: Summary -->
+        <div class="slide">
+            <h2>Summary</h2>
+            
+            <div class="content-box">
+                <h3>Key Takeaways</h3>
+                <ul>
+                    <li><strong>Files provide permanent storage</strong> for data beyond program execution</li>
+                    <li><strong>FILE pointer</strong> is essential for all file operations</li>
+                    <li><strong>Always check</strong> if file opened successfully (fptr != NULL)</li>
+                    <li><strong>Different modes</strong> for different operations (r, w, a, etc.)</li>
+                    <li><strong>Text files</strong> are human-readable, <strong>binary files</strong> are more efficient</li>
+                    <li><strong>Always close files</strong> using fclose() to prevent data loss</li>
+                    <li><strong>Error handling</strong> is crucial for robust programs</li>
+                </ul>
+            </div>
+            
+            <div class="key-point">
+                <strong>Remember:</strong> File handling is fundamental for real-world applications like databases, log files, configuration files, and data persistence.
+            </div>
+        </div>
+
+        <!-- Slide 18: Next Lecture Preview -->
+        <div class="slide">
+            <h2>What's Next?</h2>
+            
+            <div class="content-box">
+                <h3>In Our Next Lecture...</h3>
+                <ul>
+                    <li>Advanced file operations</li>
+                    <li>File management functions (rename, remove)</li>
+                    <li>Command line arguments with files</li>
+                    <li>Working with multiple files</li>
+                    <li>Introduction to memory management</li>
+                </ul>
+            </div>
+            
+            <div class="content-box" style="margin-top: 40px;">
+                <h3>Practice Exercises</h3>
+                <ul>
+                    <li>Create a program to store and retrieve employee records</li>
+                    <li>Write a program to copy contents from one file to another</li>
+                    <li>Develop a simple text editor using file operations</li>
+                    <li>Implement a student grade calculator with file storage</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Final Slide -->
+        <div class="slide">
+            <h1>Thank You!</h1>
+            <div class="content-box" style="margin-top: 60px;">
+                <h3 style="text-align: center; color: #667eea;">Questions?</h3>
+                <p style="text-align: center; font-size: 1.6em; margin-top: 30px;">
+                    Feel free to ask any questions about File Handling!
+                </p>
+            </div>
+            
+            <div class="instructor-info" style="margin-top: 80px;">
+                <p><strong>Mohsin F. Dar</strong></p>
+                <p>Assistant Professor - SOCS | UPES</p>
+                <p style="margin-top: 20px; font-size: 1.1em;">📧 Contact for clarifications</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">19</span>
+    </div>
+
+    <div class="navigation">
+        <button id="prev-btn" onclick="changeSlide(-1)">← Previous</button>
+        <button id="next-btn" onclick="changeSlide(1)">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const currentSlideSpan = document.getElementById('current-slide');
+        const totalSlidesSpan = document.getElementById('total-slides');
+
+        totalSlidesSpan.textContent = totalSlides;
+
+        function showSlide(n) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            
+            if (n >= totalSlides) {
+                currentSlide = totalSlides - 1;
+            } else if (n < 0) {
+                currentSlide = 0;
+            } else {
+                currentSlide = n;
+            }
+            
+            slides[currentSlide].classList.add('active');
+            currentSlideSpan.textContent = currentSlide + 1;
+            
+            // Scroll to top of slide
+            slides[currentSlide].scrollTop = 0;
+            
+            // Update button states
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                changeSlide(-1);
+            } else if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                changeSlide(1);
+            } else if (e.key === 'Home') {
+                showSlide(0);
+            } else if (e.key === 'End') {
+                showSlide(totalSlides - 1);
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>
