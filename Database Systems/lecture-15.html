@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture-20: Tree-Based Indexing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .presentation {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .slide {
+            display: none;
+            padding: 60px;
+            min-height: 600px;
+            animation: fadeIn 0.5s;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .slide.active {
+            display: block;
+            opacity: 1;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 15px;
+        }
+
+        h2 {
+            color: #764ba2;
+            font-size: 2em;
+            margin-bottom: 25px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            margin-top: 25px;
+        }
+
+        p, li {
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        ul {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #ffeaa7 0%, #fdcb6e 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #fdcb6e;
+        }
+
+        .code-block {
+            background: #2d3436;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-size: 1.1em;
+        }
+
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .tree-diagram {
+            background: #f0f3ff;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 25px 0;
+            text-align: center;
+            border: 2px solid #667eea;
+        }
+
+        .node {
+            display: inline-block;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin: 10px;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid #ddd;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1em;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .slide-number {
+            color: #666;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .title-slide {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 600px;
+        }
+
+        .title-slide h1 {
+            font-size: 3em;
+            border: none;
+            margin-bottom: 30px;
+        }
+
+        .title-slide .info {
+            font-size: 1.3em;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .advantages {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .advantage-card {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .advantage-card h4 {
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        strong {
+            color: #667eea;
+        }
+
+        .formula {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            font-size: 1.2em;
+        }
+
+        .note {
+            background: #e3f2fd;
+            border-left: 5px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .operation-steps {
+            background: #f1f8f4;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #28a745;
+        }
+
+        .operation-steps ol {
+            margin-left: 25px;
+        }
+
+        .operation-steps li {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title -->
+        <div class="slide active title-slide">
+            <h1>Tree-Based Indexing</h1>
+            <h2>B-Tree & B+ Tree</h2>
+            <div class="info">Lecture-20 | Database Systems</div>
+            <div class="info">Dr. Mohsin Dar</div>
+            <div class="info">Cloud & Software Operations Cluster | UPES</div>
+            <div class="info">MTech First Semester</div>
+        </div>
+
+        <!-- Slide 2: Learning Objectives -->
+        <div class="slide">
+            <h1>Learning Objectives</h1>
+            <div class="highlight">
+                <h3>By the end of this lecture, you will be able to:</h3>
+                <ul>
+                    <li>Understand why tree structures are preferred for database indexing</li>
+                    <li>Explain the structure and operations of B-trees</li>
+                    <li>Differentiate between B-trees and B+ trees</li>
+                    <li>Analyze why modern DBMS prefer B+ trees for indexing</li>
+                    <li>Perform search, insert, and delete operations on tree-based indexes</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 3: Why Trees for Indexing? -->
+        <div class="slide">
+            <h1>Why Trees for Indexing?</h1>
+            <h2>The Problem with Alternatives</h2>
+            
+            <h3>1. Arrays</h3>
+            <ul>
+                <li><strong>Search:</strong> O(log n) with binary search (sorted array)</li>
+                <li><strong>Insert/Delete:</strong> O(n) - requires shifting elements</li>
+                <li><strong>Problem:</strong> Inefficient for dynamic data with frequent updates</li>
+            </ul>
+
+            <h3>2. Binary Search Trees (BST)</h3>
+            <ul>
+                <li><strong>Average case:</strong> O(log n) for all operations</li>
+                <li><strong>Worst case:</strong> O(n) - degenerates to linked list</li>
+                <li><strong>Problem:</strong> Not balanced, poor disk I/O performance</li>
+                <li><strong>Issue:</strong> High tree height = more disk accesses</li>
+            </ul>
+
+            <div class="note">
+                <strong>Key Insight:</strong> Database indexes are stored on disk. Minimizing disk I/O is critical. We need balanced trees with high fan-out to reduce tree height and disk accesses.
+            </div>
+        </div>
+
+        <!-- Slide 4: Enter B-Trees -->
+        <div class="slide">
+            <h1>B-Trees: The Solution</h1>
+            
+            <div class="highlight">
+                <h3>What is a B-Tree?</h3>
+                <p>A <strong>B-Tree</strong> is a self-balancing tree data structure that maintains sorted data and allows searches, sequential access, insertions, and deletions in logarithmic time.</p>
+            </div>
+
+            <h2>Key Characteristics</h2>
+            <div class="advantages">
+                <div class="advantage-card">
+                    <h4>✓ Balanced</h4>
+                    <p>All leaf nodes are at the same level</p>
+                </div>
+                <div class="advantage-card">
+                    <h4>✓ High Fan-out</h4>
+                    <p>Many children per node (not just 2)</p>
+                </div>
+                <div class="advantage-card">
+                    <h4>✓ Sorted Order</h4>
+                    <p>Keys within nodes are sorted</p>
+                </div>
+                <div class="advantage-card">
+                    <h4>✓ Disk-Friendly</h4>
+                    <p>Optimized for block-based I/O</p>
+                </div>
+            </div>
+
+            <div class="formula">
+                <strong>Order of B-Tree (m):</strong> Maximum number of children a node can have
+            </div>
+        </div>
+
+        <!-- Slide 5: B-Tree Structure -->
+        <div class="slide">
+            <h1>B-Tree Structure</h1>
+            
+            <h2>Properties of a B-Tree of order m</h2>
+            <ul>
+                <li>Every node has at most <strong>m</strong> children</li>
+                <li>Every non-leaf node (except root) has at least <strong>⌈m/2⌉</strong> children</li>
+                <li>Root has at least 2 children (if not a leaf)</li>
+                <li>All leaves appear at the same level</li>
+                <li>A non-leaf node with k children contains <strong>k-1</strong> keys</li>
+                <li>Keys in a node are sorted: K₁ < K₂ < ... < Kₖ₋₁</li>
+            </ul>
+
+            <div class="tree-diagram">
+                <h3>Example: B-Tree of order 3</h3>
+                <div style="margin: 20px 0;">
+                    <div class="node">50</div>
+                </div>
+                <div style="margin: 20px 0;">
+                    <div class="node">20 | 30</div>
+                    <div class="node">60 | 70</div>
+                </div>
+                <div style="margin: 20px 0; font-size: 0.9em;">
+                    <div class="node">10 | 15</div>
+                    <div class="node">25</div>
+                    <div class="node">35 | 40</div>
+                    <div class="node">55</div>
+                    <div class="node">65</div>
+                    <div class="node">75 | 80</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: B-Tree Node Structure -->
+        <div class="slide">
+            <h1>B-Tree Node Structure</h1>
+            
+            <div class="tree-diagram">
+                <h3>Internal Node Structure</h3>
+                <div style="display: inline-block; text-align: left; margin: 20px;">
+                    <div style="display: flex; border: 3px solid #667eea; background: white;">
+                        <div style="padding: 15px; border-right: 2px solid #667eea;">P₀</div>
+                        <div style="padding: 15px; border-right: 2px solid #667eea; background: #ffeaa7;">K₁</div>
+                        <div style="padding: 15px; border-right: 2px solid #667eea;">P₁</div>
+                        <div style="padding: 15px; border-right: 2px solid #667eea; background: #ffeaa7;">K₂</div>
+                        <div style="padding: 15px; border-right: 2px solid #667eea;">P₂</div>
+                        <div style="padding: 15px; border-right: 2px solid #667eea;">...</div>
+                        <div style="padding: 15px; border-right: 2px solid #667eea; background: #ffeaa7;">Kₙ</div>
+                        <div style="padding: 15px;">Pₙ</div>
+                    </div>
+                </div>
+                <p><strong>Kᵢ:</strong> Search keys | <strong>Pᵢ:</strong> Pointers to child nodes or data records</p>
+            </div>
+
+            <h2>Key Ordering Property</h2>
+            <ul>
+                <li>All keys in subtree P₀ < K₁</li>
+                <li>All keys in subtree P₁ are between K₁ and K₂</li>
+                <li>All keys in subtree P₂ are between K₂ and K₃</li>
+                <li>All keys in subtree Pₙ > Kₙ</li>
+            </ul>
+
+            <div class="note">
+                <strong>Data Location:</strong> In B-trees, data records (or pointers to data) can be stored in both internal nodes and leaf nodes.
+            </div>
+        </div>
+
+        <!-- Slide 7: B-Tree Search Operation -->
+        <div class="slide">
+            <h1>B-Tree Search Operation</h1>
+            
+            <div class="operation-steps">
+                <h3>Algorithm: Search(key, node)</h3>
+                <ol>
+                    <li><strong>Start at root node</strong></li>
+                    <li><strong>In current node:</strong>
+                        <ul>
+                            <li>Perform binary search to find position i where Kᵢ₋₁ < key ≤ Kᵢ</li>
+                            <li>If key == Kᵢ, return found (data is here)</li>
+                        </ul>
+                    </li>
+                    <li><strong>If not found and not leaf:</strong>
+                        <ul>
+                            <li>Follow pointer Pᵢ to appropriate child</li>
+                            <li>Repeat step 2</li>
+                        </ul>
+                    </li>
+                    <li><strong>If leaf reached and not found:</strong> Key doesn't exist</li>
+                </ol>
+            </div>
+
+            <div class="highlight">
+                <h3>Time Complexity</h3>
+                <p><strong>O(log<sub>m</sub> n)</strong> where m is the order and n is the number of keys</p>
+                <p>For m = 100 and n = 1,000,000: Only ~3 disk accesses needed!</p>
+            </div>
+
+            <div class="code-block">
+Search(50) in B-Tree:
+Root: [30, 60] → 50 < 60, go to middle child
+Child: [40, 50, 55] → Found at index 1!
+Result: 2 disk I/O operations
+            </div>
+        </div>
+
+        <!-- Slide 8: B-Tree Insert Operation -->
+        <div class="slide">
+            <h1>B-Tree Insert Operation</h1>
+            
+            <div class="operation-steps">
+                <h3>Algorithm: Insert(key)</h3>
+                <ol>
+                    <li><strong>Search for the appropriate leaf node</strong> where key should be inserted</li>
+                    <li><strong>Insert key in sorted order</strong> in the leaf node</li>
+                    <li><strong>If node overflows</strong> (more than m-1 keys):
+                        <ul>
+                            <li>Split the node into two nodes</li>
+                            <li>Move median key to parent</li>
+                            <li>If parent overflows, split recursively</li>
+                            <li>If root splits, create new root (tree height increases)</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="tree-diagram">
+                <h3>Example: Insert 25 in B-Tree (order 3)</h3>
+                <p><strong>Before:</strong></p>
+                <div class="node">10 | 20 | 30</div>
+                <p style="margin: 15px 0;">↓ Node is full, insert causes overflow</p>
+                <p><strong>After Split:</strong></p>
+                <div style="margin: 10px 0;">
+                    <div class="node">20</div>
+                    <p style="font-size: 0.8em; margin: 5px;">↙ ↘</p>
+                    <div class="node">10</div>
+                    <div class="node">25 | 30</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: B-Tree Delete Operation -->
+        <div class="slide">
+            <h1>B-Tree Delete Operation</h1>
+            
+            <div class="operation-steps">
+                <h3>Algorithm: Delete(key) - Simplified</h3>
+                <ol>
+                    <li><strong>Locate the key</strong> in the tree</li>
+                    <li><strong>If key is in a leaf node:</strong>
+                        <ul>
+                            <li>Simply remove it</li>
+                            <li>If underflow (< ⌈m/2⌉-1 keys), borrow from sibling or merge</li>
+                        </ul>
+                    </li>
+                    <li><strong>If key is in internal node:</strong>
+                        <ul>
+                            <li>Replace with predecessor or successor</li>
+                            <li>Delete the predecessor/successor from leaf</li>
+                        </ul>
+                    </li>
+                    <li><strong>Handle underflow:</strong>
+                        <ul>
+                            <li><strong>Borrow:</strong> If sibling has extra keys, redistribute</li>
+                            <li><strong>Merge:</strong> Combine with sibling if borrowing not possible</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="note">
+                <strong>Important:</strong> Delete is the most complex operation in B-Trees due to maintaining balance and minimum key requirements. Underflow propagates upward, possibly reducing tree height.
+            </div>
+        </div>
+
+        <!-- Slide 10: Introducing B+ Trees -->
+        <div class="slide">
+            <h1>B+ Trees: An Enhanced Variant</h1>
+            
+            <div class="highlight">
+                <h3>What is a B+ Tree?</h3>
+                <p>A <strong>B+ Tree</strong> is a variation of B-Tree where <strong>all data records reside only at the leaf level</strong>, and internal nodes contain only keys for navigation.</p>
+            </div>
+
+            <h2>Key Differences from B-Tree</h2>
+            <div class="advantages">
+                <div class="advantage-card">
+                    <h4>📍 Data Location</h4>
+                    <p><strong>B-Tree:</strong> Data in all nodes<br>
+                    <strong>B+ Tree:</strong> Data only in leaves</p>
+                </div>
+                <div class="advantage-card">
+                    <h4>🔗 Leaf Structure</h4>
+                    <p><strong>B-Tree:</strong> Leaves independent<br>
+                    <strong>B+ Tree:</strong> Leaves form linked list</p>
+                </div>
+                <div class="advantage-card">
+                    <h4>🔑 Key Duplication</h4>
+                    <p><strong>B-Tree:</strong> Keys appear once<br>
+                    <strong>B+ Tree:</strong> Keys duplicated in internal nodes</p>
+                </div>
+                <div class="advantage-card">
+                    <h4>🎯 Search Path</h4>
+                    <p><strong>B-Tree:</strong> Can end anywhere<br>
+                    <strong>B+ Tree:</strong> Always reaches leaf</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: B+ Tree Structure -->
+        <div class="slide">
+            <h1>B+ Tree Structure</h1>
+            
+            <h2>Properties</h2>
+            <ul>
+                <li><strong>Internal nodes:</strong> Store only keys and pointers (no data records)</li>
+                <li><strong>Leaf nodes:</strong> Store keys and data records (or pointers to data)</li>
+                <li><strong>Leaf nodes are linked:</strong> Forms a doubly linked list for sequential access</li>
+                <li><strong>Key duplication:</strong> Keys in internal nodes are duplicated in leaves</li>
+                <li>All properties of B-Tree apply (balance, order, min/max children)</li>
+            </ul>
+
+            <div class="tree-diagram">
+                <h3>B+ Tree Structure</h3>
+                <div style="margin: 20px 0;">
+                    <div class="node" style="background: #e3f2fd;">50</div>
+                    <p style="font-size: 0.8em; color: #666;">Internal Node (keys only)</p>
+                </div>
+                <div style="margin: 20px 0;">
+                    <div class="node" style="background: #e3f2fd;">20 | 30</div>
+                    <div class="node" style="background: #e3f2fd;">60 | 70</div>
+                    <p style="font-size: 0.8em; color: #666;">Internal Nodes</p>
+                </div>
+                <div style="margin: 20px 0;">
+                    <div class="node" style="background: #c8e6c9;">10:D1 | 20:D2</div>
+                    <div class="node" style="background: #c8e6c9;">30:D3 | 40:D4</div>
+                    <div class="node" style="background: #c8e6c9;">50:D5 | 60:D6</div>
+                    <div class="node" style="background: #c8e6c9;">70:D7 | 80:D8</div>
+                    <p style="font-size: 0.8em; color: #666;">Leaf Nodes (with data) ← → ← → ← →</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: B+ Tree Operations -->
+        <div class="slide">
+            <h1>B+ Tree Operations</h1>
+            
+            <h2>Search Operation</h2>
+            <div class="operation-steps">
+                <ol>
+                    <li>Start at root, navigate using keys in internal nodes</li>
+                    <li><strong>Always traverse to leaf level</strong> (even if key found in internal node)</li>
+                    <li>Search key in leaf node</li>
+                    <li>Return data record if found</li>
+                </ol>
+                <p><strong>Time Complexity:</strong> O(log<sub>m</sub> n)</p>
+            </div>
+
+            <h2>Range Query</h2>
+            <div class="highlight">
+                <h3>Major Advantage of B+ Trees!</h3>
+                <p><strong>Query:</strong> Find all records where 20 ≤ key ≤ 60</p>
+                <ol>
+                    <li>Search for key = 20 (reaches leaf)</li>
+                    <li>Follow linked list of leaves from 20 to 60</li>
+                    <li>Collect all records in range</li>
+                </ol>
+                <p><strong>Efficient Sequential Access:</strong> No need to traverse tree multiple times!</p>
+            </div>
+        </div>
+
+        <!-- Slide 13: B+ Tree Insert & Delete -->
+        <div class="slide">
+            <h1>B+ Tree Insert & Delete</h1>
+            
+            <h2>Insert Operation</h2>
+            <div class="operation-steps">
+                <ol>
+                    <li>Search for appropriate leaf node</li>
+                    <li>Insert key-data pair in sorted order in leaf</li>
+                    <li>If leaf overflows:
+                        <ul>
+                            <li>Split leaf into two leaves</li>
+                            <li>Copy (not move) middle key to parent</li>
+                            <li>Update leaf linked list pointers</li>
+                        </ul>
+                    </li>
+                    <li>Handle parent overflow recursively</li>
+                </ol>
+            </div>
+
+            <h2>Delete Operation</h2>
+            <div class="operation-steps">
+                <ol>
+                    <li>Locate key in leaf node</li>
+                    <li>Remove key-data pair from leaf</li>
+                    <li>If underflow:
+                        <ul>
+                            <li>Borrow from sibling or merge leaves</li>
+                            <li>Update parent keys accordingly</li>
+                            <li>Update linked list pointers</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="note">
+                <strong>Note:</strong> Keys in internal nodes may remain even after deletion from leaves (not critical as they guide search).
+            </div>
+        </div>
+
+        <!-- Slide 14: B-Tree vs B+ Tree Comparison -->
+        <div class="slide">
+            <h1>B-Tree vs B+ Tree Comparison</h1>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>B-Tree</th>
+                        <th>B+ Tree</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Data Location</strong></td>
+                        <td>All nodes (internal & leaf)</td>
+                        <td>Only leaf nodes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Key Duplication</strong></td>
+                        <td>No duplication</td>
+                        <td>Keys duplicated in internal nodes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Leaf Node Structure</strong></td>
+                        <td>Independent leaves</td>
+                        <td>Linked list of leaves</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Search Termination</strong></td>
+                        <td>Can end at any level</td>
+                        <td>Always at leaf level</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Range Queries</strong></td>
+                        <td>Requires multiple tree traversals</td>
+                        <td>Efficient via leaf linked list</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sequential Access</strong></td>
+                        <td>Difficult (requires tree traversal)</td>
+                        <td>Easy (follow leaf pointers)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Node Utilization</strong></td>
+                        <td>Lower (stores data)</td>
+                        <td>Higher (only keys in internal)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tree Height</strong></td>
+                        <td>Slightly shorter</td>
+                        <td>Slightly taller (but negligible)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Deletion Complexity</strong></td>
+                        <td>More complex (data in all nodes)</td>
+                        <td>Simpler (data only in leaves)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Slide 15: Why DBMS Prefer B+ Trees -->
+        <div class="slide">
+            <h1>Why Modern DBMS Prefer B+ Trees</h1>
+            
+            <div class="advantages">
+                <div class="advantage-card">
+                    <h4>1️⃣ Better Range Queries</h4>
+                    <p>Sequential access through linked leaves is much faster than traversing the tree multiple times</p>
+                </div>
+                
+                <div class="advantage-card">
+                    <h4>2️⃣ Higher Fan-out</h4>
+                    <p>Internal nodes can store more keys (no data), reducing tree height and disk I/O</p>
+                </div>
+                
+                <div class="advantage-card">
+                    <h4>3️⃣ Simpler Deletion</h4>
+                    <p>Data only in leaves makes deletion logic cleaner and more predictable</p>
+                </div>
+                
+                <div class="advantage-card">
+                    <h4>4️⃣ Consistent Performance</h4>
+                    <p>All searches go to leaf level, providing predictable I/O cost</p>
+                </div>
+                
+                <div class="advantage-card">
+                    <h4>5️⃣ Better Caching</h4>
+                    <p>Internal nodes are smaller, more fit in memory/cache</p>
+                </div>
+                
+                <div class="advantage-card">
+                    <h4>6️⃣ Full Scans</h4>
+                    <p>Scanning entire table is just a leaf-level linked list traversal</p>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <h3>Real-World Usage</h3>
+                <p><strong>MySQL InnoDB:</strong> Uses B+ Trees for indexes<br>
+                <strong>PostgreSQL:</strong> Uses B+ Trees for indexes<br>
+                <strong>Oracle:</strong> Uses B+ Trees for indexes<br>
+                <strong>SQL Server:</strong> Uses B+ Trees for indexes</p>
+            </div>
+        </div>
+
+        <!-- Slide 16: Summary -->
+        <div class="slide">
+            <h1>Summary</h1>
+            
+            <div class="highlight">
+                <h3>Key Takeaways</h3>
+                <ul>
+                    <li><strong>Tree-based indexing</strong> is essential for efficient database operations</li>
+                    <li><strong>B-Trees</strong> provide balanced, disk-friendly indexing with O(log n) operations</li>
+                    <li><strong>B+ Trees</strong> enhance B-Trees by storing data only in leaves</li>
+                    <li><strong>Linked leaf nodes</strong> in B+ Trees enable efficient range queries and sequential access</li>
+                    <li><strong>Modern DBMS</strong> universally prefer B+ Trees for their superior performance characteristics</li>
+                </ul>
+            </div>
+
+            <h2>What's Next?</h2>
+            <ul>
+                <li>Hash-based indexing</li>
+                <li>Bitmap indexes</li>
+                <li>Composite indexes</li>
+                <li>Index selection and optimization strategies</li>
+            </ul>
+
+            <div class="note">
+                <strong>Practice:</strong> Try implementing B+ Tree insert and delete operations on paper to solidify your understanding!
+            </div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="controls">
+            <button id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+            <span class="slide-number">
+                <span id="currentSlide">1</span> / <span id="totalSlides">16</span>
+            </span>
+            <button id="nextBtn" onclick="changeSlide(1)">Next →</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        // Initialize
+        document.getElementById('totalSlides').textContent = totalSlides;
+        showSlide(currentSlide);
+
+        function showSlide(n) {
+            // Remove active class from all slides
+            slides.forEach(slide => slide.classList.remove('active'));
+            
+            // Handle wrap around for looping
+            if (n >= totalSlides) {
+                currentSlide = 0; // Go to the first slide
+            } else if (n < 0) {
+                currentSlide = totalSlides - 1; // Go to the last slide
+            } else {
+                currentSlide = n;
+            }
+            
+            // Show current slide
+            slides[currentSlide].classList.add('active');
+            
+            // Update slide number
+            document.getElementById('currentSlide').textContent = currentSlide + 1;
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowLeft') {
+                changeSlide(-1);
+            } else if (event.key === 'ArrowRight') {
+                changeSlide(1);
+            }
+        });
+    </script>
+</body>
+</html>
