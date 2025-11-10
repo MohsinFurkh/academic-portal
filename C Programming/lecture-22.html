@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 22: Garbage Collection & Dynamic Memory Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide {
+            display: none;
+            width: 99%;
+            max-width: 1800px;
+            height: 85vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 60px 100px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            color: #333;
+            overflow-y: auto;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        h1 {
+            font-size: 3.5em;
+            margin-bottom: 30px;
+            color: #1e3c72;
+            border-bottom: 5px solid #2a5298;
+            padding-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 2.8em;
+            margin: 30px 0 20px 0;
+            color: #2a5298;
+        }
+
+        h3 {
+            font-size: 2.2em;
+            margin: 25px 0 15px 0;
+            color: #1e3c72;
+        }
+
+        p, li {
+            font-size: 1.6em;
+            line-height: 1.8;
+            margin: 15px 0;
+        }
+
+        ul, ol {
+            margin-left: 50px;
+        }
+
+        li {
+            margin: 12px 0;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.4em;
+            margin: 20px 0;
+            overflow-x: auto;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .keyword { color: #ff79c6; }
+        .function { color: #50fa7b; }
+        .comment { color: #6272a4; font-style: italic; }
+        .string { color: #f1fa8c; }
+        .number { color: #bd93f9; }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 3px 8px;
+            border-radius: 5px;
+            color: #856404;
+            font-weight: bold;
+        }
+
+        .warning {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #721c24;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #155724;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #0c5460;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #2a5298;
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            font-size: 1.4em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-btn:hover {
+            background: #1e3c72;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(42, 82, 152, 0.9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.4em;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 1.3em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 1.5em;
+        }
+
+        th, td {
+            border: 2px solid #2a5298;
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            background: #2a5298;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .problem-box {
+            background: #fff8dc;
+            border: 3px solid #ff8c00;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .solution-box {
+            background: #e8f5e9;
+            border: 3px solid #4caf50;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="header-info">
+                <strong>UPES - Cloud & Software Operations Cluster (SOCS)</strong><br>
+                BTech First Semester | C Programming
+            </div>
+            <h1 style="text-align: center; margin-top: 80px;">Lecture 22</h1>
+            <h2 style="text-align: center; color: #2a5298;">Garbage Collection &<br>Dynamic Memory Management</h2>
+            <h3 style="text-align: center; margin-top: 60px; color: #666;">Unit V: File Handling, Memory Management</h3>
+            <p style="text-align: center; margin-top: 80px; font-size: 1.8em;">
+                <strong>Instructor:</strong> Mohsin F. Dar<br>
+                <strong>Assistant Professor</strong><br>
+                Cloud & Software Operations Cluster | SOCS | UPES
+            </p>
+        </div>
+
+        <!-- Slide 2: Recap -->
+        <div class="slide">
+            <h1>Quick Recap</h1>
+            <h2>Dynamic Memory Management in C</h2>
+            <ul>
+                <li><strong>malloc():</strong> Allocates uninitialized memory block</li>
+                <li><strong>calloc():</strong> Allocates and initializes memory to zero</li>
+                <li><strong>realloc():</strong> Resizes previously allocated memory</li>
+                <li><strong>free():</strong> Deallocates memory and returns it to heap</li>
+            </ul>
+            <div class="info">
+                <strong>Key Point:</strong> In C, the programmer is responsible for both allocation and deallocation of memory. There is NO automatic garbage collection!
+            </div>
+        </div>
+
+        <!-- Slide 3: What is Garbage Collection? -->
+        <div class="slide">
+            <h1>What is Garbage Collection?</h1>
+            <h2>Definition</h2>
+            <p><strong>Garbage Collection (GC)</strong> is an automatic memory management feature that identifies and reclaims memory occupied by objects that are no longer in use by the program.</p>
+            
+            <h3>In Simple Terms:</h3>
+            <p>It's like having an automatic cleaner that finds and removes unused items from your computer's memory.</p>
+            
+            <div class="two-column">
+                <div class="success">
+                    <h3 style="font-size: 1.8em;">Languages WITH GC</h3>
+                    <ul style="font-size: 0.9em;">
+                        <li>Java</li>
+                        <li>Python</li>
+                        <li>JavaScript</li>
+                        <li>C#</li>
+                        <li>Go</li>
+                    </ul>
+                </div>
+                <div class="warning">
+                    <h3 style="font-size: 1.8em;">Languages WITHOUT GC</h3>
+                    <ul style="font-size: 0.9em;">
+                        <li>C</li>
+                        <li>C++</li>
+                        <li>Rust (ownership model)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Why C Doesn't Have GC -->
+        <div class="slide">
+            <h1>Why C Doesn't Have Garbage Collection?</h1>
+            <h2>Design Philosophy</h2>
+            <ul>
+                <li><strong>Performance:</strong> GC adds runtime overhead; C prioritizes speed</li>
+                <li><strong>Control:</strong> Gives programmers complete control over memory</li>
+                <li><strong>Predictability:</strong> No unexpected pauses from GC cycles</li>
+                <li><strong>Simplicity:</strong> Keeps the language simple and close to hardware</li>
+                <li><strong>System Programming:</strong> OS kernels, drivers need precise memory control</li>
+            </ul>
+            
+            <div class="info">
+                <strong>Trade-off:</strong> Greater power and performance comes with greater responsibility. The programmer must manually manage memory, which can lead to bugs if not done carefully.
+            </div>
+        </div>
+
+        <!-- Slide 5: Memory Leaks -->
+        <div class="slide">
+            <h1>Memory Leaks</h1>
+            <h2>What is a Memory Leak?</h2>
+            <p>A <span class="highlight">memory leak</span> occurs when dynamically allocated memory is not freed, causing the program to consume more and more memory over time.</p>
+            
+            <h3>Example of Memory Leak:</h3>
+            <div class="code-block">
+<span class="keyword">void</span> <span class="function">createLeak</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> *ptr = (<span class="keyword">int</span>*) <span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">int</span>) * <span class="number">100</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Memory allocated but never freed!</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// When function returns, pointer is lost</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Memory becomes inaccessible (leaked)</span><br>
+}<br>
+<br>
+<span class="keyword">int</span> <span class="function">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i < <span class="number">1000</span>; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">createLeak</span>(); <span class="comment">// Leaking memory 1000 times!</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">0</span>;<br>
+}
+            </div>
+            
+            <div class="warning">
+                <strong>Consequence:</strong> Program gradually consumes all available memory, leading to crashes or system slowdown.
+            </div>
+        </div>
+
+        <!-- Slide 6: Dangling Pointers -->
+        <div class="slide">
+            <h1>Dangling Pointers</h1>
+            <h2>What is a Dangling Pointer?</h2>
+            <p>A <span class="highlight">dangling pointer</span> is a pointer that references memory that has already been freed or is invalid.</p>
+            
+            <h3>Example of Dangling Pointer:</h3>
+            <div class="code-block">
+<span class="keyword">int</span> <span class="function">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> *ptr = (<span class="keyword">int</span>*) <span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">int</span>));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;*ptr = <span class="number">42</span>;<br>
+    <br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(ptr);  <span class="comment">// Memory freed</span><br>
+    <br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// ptr is now dangling - points to freed memory!</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"%d"</span>, *ptr);  <span class="comment">// Undefined behavior!</span><br>
+    <br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">0</span>;<br>
+}
+            </div>
+            
+            <div class="warning">
+                <strong>Danger:</strong> Accessing dangling pointers can cause crashes, data corruption, or security vulnerabilities!
+            </div>
+            
+            <div class="success">
+                <strong>Best Practice:</strong> Set pointer to NULL after freeing: <code>ptr = NULL;</code>
+            </div>
+        </div>
+
+        <!-- Slide 7: Double Free -->
+        <div class="slide">
+            <h1>Double Free Error</h1>
+            <h2>What is Double Free?</h2>
+            <p>A <span class="highlight">double free</span> occurs when free() is called twice on the same memory address.</p>
+            
+            <h3>Example of Double Free:</h3>
+            <div class="code-block">
+<span class="keyword">int</span> <span class="function">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> *ptr = (<span class="keyword">int</span>*) <span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">int</span>));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;*ptr = <span class="number">100</span>;<br>
+    <br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(ptr);  <span class="comment">// First free - OK</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(ptr);  <span class="comment">// Second free - ERROR!</span><br>
+    <br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">0</span>;
+}
+            </div>
+            
+            <div class="warning">
+                <strong>Consequence:</strong> Heap corruption, program crash, or security vulnerabilities.
+            </div>
+            
+            <h3>Prevention:</h3>
+            <div class="code-block">
+<span class="function">free</span>(ptr);<br>
+ptr = <span class="keyword">NULL</span>;  <span class="comment">// Setting to NULL prevents double free</span><br>
+<br>
+<span class="comment">// Later, you can safely check:</span><br>
+<span class="keyword">if</span>(ptr != <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(ptr);<br>
+}
+            </div>
+        </div>
+
+        <!-- Slide 8: Best Practices -->
+        <div class="slide">
+            <h1>Best Practices for Memory Management</h1>
+            <h2>Golden Rules</h2>
+            <ol>
+                <li><strong>Always check if malloc/calloc succeeded</strong>
+                    <div class="code-block">
+<span class="keyword">int</span> *ptr = (<span class="keyword">int</span>*) <span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">int</span>));<br>
+<span class="keyword">if</span>(ptr == <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">fprintf</span>(stderr, <span class="string">"Memory allocation failed\n"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">-1</span>;<br>
+}
+                    </div>
+                </li>
+                <li><strong>Every malloc needs a corresponding free</strong></li>
+                <li><strong>Set pointers to NULL after freeing</strong></li>
+                <li><strong>Never access memory after freeing it</strong></li>
+                <li><strong>Free memory in reverse order of dependencies</strong></li>
+            </ol>
+        </div>
+
+        <!-- Slide 9: Problem 1 -->
+        <div class="slide">
+            <h1>Problem 1: Dynamic Array</h1>
+            <div class="problem-box">
+                <h3>Problem:</h3>
+                <p>Create a program that dynamically allocates an array of integers, fills it with user input, displays the values, and properly frees the memory.</p>
+            </div>
+            
+            <div class="solution-box">
+                <h3>Solution:</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span><br>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span><br>
+<br>
+<span class="keyword">int</span> <span class="function">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> n, i;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> *arr;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"Enter number of elements: "</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">scanf</span>(<span class="string">"%d"</span>, &n);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Allocate memory</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;arr = (<span class="keyword">int</span>*) <span class="function">malloc</span>(n * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Check allocation</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>(arr == <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"Memory allocation failed!\n"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">-1</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Input values</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">0</span>; i < n; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"Enter element %d: "</span>, i+<span class="number">1</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">scanf</span>(<span class="string">"%d"</span>, &arr[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Display values</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"\nArray elements: "</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">0</span>; i < n; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"%d "</span>, arr[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Free memory</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(arr);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;arr = <span class="keyword">NULL</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">0</span>;<br>
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Problem 2 -->
+        <div class="slide">
+            <h1>Problem 2: Dynamic 2D Array</h1>
+            <div class="problem-box">
+                <h3>Problem:</h3>
+                <p>Allocate a 2D array dynamically (matrix) and properly deallocate it.</p>
+            </div>
+            
+            <div class="solution-box">
+                <h3>Solution:</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span><br>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span><br>
+<br>
+<span class="keyword">int</span> <span class="function">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> rows = <span class="number">3</span>, cols = <span class="number">4</span>, i, j;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> **matrix;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Allocate array of row pointers</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;matrix = (<span class="keyword">int</span>**) <span class="function">malloc</span>(rows * <span class="keyword">sizeof</span>(<span class="keyword">int</span>*));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Allocate each row</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">0</span>; i < rows; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;matrix[i] = (<span class="keyword">int</span>*) <span class="function">malloc</span>(cols * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Use the matrix...</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">0</span>; i < rows; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(j = <span class="number">0</span>; j < cols; j++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;matrix[i][j] = i * cols + j;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// IMPORTANT: Free in reverse order!</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">0</span>; i < rows; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(matrix[i]);  <span class="comment">// Free each row first</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(matrix);  <span class="comment">// Then free the row pointer array</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">0</span>;<br>
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Problem 3 -->
+        <div class="slide">
+            <h1>Problem 3: Dynamic String Handling</h1>
+            <div class="problem-box">
+                <h3>Problem:</h3>
+                <p>Create a function that dynamically allocates memory for a string, copies user input, and returns it. The caller is responsible for freeing the memory.</p>
+            </div>
+            
+            <div class="solution-box">
+                <h3>Solution:</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span><br>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span><br>
+<span class="keyword">#include</span> <span class="string">&lt;string.h&gt;</span><br>
+<br>
+<span class="keyword">char</span>* <span class="function">getString</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">char</span> temp[<span class="number">100</span>];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">char</span> *str;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"Enter a string: "</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">fgets</span>(temp, <span class="number">100</span>, stdin);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Allocate exact size needed</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;str = (<span class="keyword">char</span>*) <span class="function">malloc</span>(<span class="function">strlen</span>(temp) + <span class="number">1</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>(str == <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="keyword">NULL</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">strcpy</span>(str, temp);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> str;<br>
+}<br>
+<br>
+<span class="keyword">int</span> <span class="function">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">char</span> *myString = <span class="function">getString</span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>(myString != <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"You entered: %s"</span>, myString);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(myString);  <span class="comment">// Caller must free!</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myString = <span class="keyword">NULL</span>;<nobr>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Problem 4 -->
+        <div class="slide">
+            <h1>Problem 4: Resizing Array with realloc</h1>
+            <div class="problem-box">
+                <h3>Problem:</h3>
+                <p>Start with an array of 5 integers, then dynamically resize it to hold 10 integers without losing existing data.</p>
+            </div>
+            
+            <div class="solution-box">
+                <h3>Solution:</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span><br>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span><br>
+<br>
+<span class="keyword">int</span> <span class="function">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> *arr;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> i;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Initial allocation</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;arr = (<span class="keyword">int</span>*) <span class="function">malloc</span>(<span class="number">5</span> * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Fill initial array</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">0</span>; i < <span class="number">5</span>; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arr[i] = i + <span class="number">1</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"Initial array: "</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">0</span>; i < <span class="number">5</span>; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"%d "</span>, arr[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Resize to 10 elements</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;arr = (<span class="keyword">int</span>*) <span class="function">realloc</span>(arr, <span class="number">10</span> * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>(arr == <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"Reallocation failed!\n"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">-1</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Fill new elements</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">5</span>; i < <span class="number">10</span>; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arr[i] = i + <span class="number">1</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"\nResized array: "</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span>(i = <span class="number">0</span>; i < <span class="number">10</span>; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"%d "</span>, arr[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(arr);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">0</span>;<br>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Problem 5 -->
+        <div class="slide">
+            <h1>Problem 5: Linked List Memory Management</h1>
+            <div class="problem-box">
+                <h3>Problem:</h3>
+                <p>Create a simple linked list, add nodes dynamically, and properly free all nodes.</p>
+            </div>
+            
+            <div class="solution-box">
+                <h3>Solution:</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span><br>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span><br>
+<br>
+<span class="keyword">struct</span> Node {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">int</span> data;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">struct</span> Node *next;<br>
+};<br>
+<br>
+<span class="keyword">struct</span> Node* <span class="function">createNode</span>(<span class="keyword">int</span> data) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">struct</span> Node *newNode = (<span class="keyword">struct</span> Node*) <span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> Node));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>(newNode == <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"Memory allocation failed!\n"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="keyword">NULL</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;newNode-&gt;data = data;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;newNode-&gt;next = <span class="keyword">NULL</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> newNode;<br>
+}<br>
+<br>
+<span class="keyword">void</span> <span class="function">freeList</span>(<span class="keyword">struct</span> Node *head) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">struct</span> Node *temp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">while</span>(head != <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;temp = head;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;head = head-&gt;next;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">free</span>(temp);  <span class="comment">// Free each node</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+}<br>
+<br>
+<span class="keyword">int</span> <span class="function">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">struct</span> Node *head = <span class="function">createNode</span>(<span class="number">10</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;head-&gt;next = <span class="function">createNode</span>(<span class="number">20</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;head-&gt;next-&gt;next = <span class="function">createNode</span>(<span class="number">30</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Use the list...</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">struct</span> Node *temp = head;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"List: "</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">while</span>(temp != <span class="keyword">NULL</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"%d -&gt; "</span>, temp-&gt;data);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;temp = temp-&gt;next;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">printf</span>(<span class="string">"NULL\n"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Free all nodes</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="function">freeList</span>(head);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="number">0</span>;<br>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Common Mistakes -->
+        <div class="slide">
+            <h1>Common Memory Management Mistakes</h1>
+            <h2>Top Mistakes to Avoid</h2>
+            
+            <h3>1. Forgetting to Free Memory</h3>
+            <div class="code-block">
+<span class="keyword">void</span> <span class="function">badFunction</span>() {
+    <span class="keyword">int</span> *ptr = <span class="function">malloc</span>(<span class="number">100</span> * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+    <span class="comment">// Use ptr...</span>
+    <span class="comment">// Forgot to free! Memory leak!</span>
+}
+            </div>
+            
+            <h3>2. Using Freed Memory</h3>
+            <div class="code-block">
+<span class="keyword">int</span> *ptr = <span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+<span class="function">free</span>(ptr);
+*ptr = <span class="number">10</span>;  <span class="comment">// ERROR: Using freed memory!</span>
+            </div>
+            
+            <h3>3. Not Checking malloc Return Value</h3>
+            <div class="code-block">
+<span class="keyword">int</span> *ptr = <span class="function">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+*ptr = <span class="number">5</span>;  <span class="comment">// What if malloc failed? Crash!</span>
+            </div>
+            
+            <h3>4. Freeing Stack Memory</h3>
+            <div class="code-block">
+<span class="keyword">int</span> x = <span class="number">10</span>;
+<span class="keyword">int</span> *ptr = &x;
+<span class="function">free</span>(ptr);  <span class="comment">// ERROR: Can't free stack memory!</span>
+            </div>
+        </div>
+
+        <!-- Slide 15: Problem 6 -->
+        <div class="slide">
+            <h1>Problem 6: Student Database</h1>
+            <div class="problem-box">
+                <h3>Problem:</h3>
+                <p>Create a dynamic array of student structures. Allow user to input student data and properly manage memory.</p>
+            </div>
+            
+            <div class="solution-box">
+                <h3>Solution:</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span>
+<span class="keyword">#include</span> <span class="string">&lt;string.h&gt;</span>
+
+<span class="keyword">struct</span> Student {
+    <span class="keyword">char</span> name[<span class="number">50</span>];
+    <span class="keyword">int</span> rollNo;
+    <span class="keyword">float</span> marks;
+};
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> n, i;
+    <span class="keyword">struct</span> Student *students;
+    
+    <span class="function">printf</span>(<span class="string">"Enter number of students: "</span>);
+    <span class="function">scanf</span>(<span class="string">"%d"</span>, &n);
+    
+    <span class="comment">// Allocate memory for n students</span>
+    students = (<span class="keyword">struct</span> Student*) <span class="function">malloc</span>(n * <span class="keyword">sizeof</span>(<span class="keyword">struct</span> Student));
+    
+    <span class="keyword">if</span>(students == <span class="keyword">NULL</span>) {
+        <span class="function">printf</span>(<span class="string">"Memory allocation failed!\n"</span>);
+        <span class="keyword">return</span> <span class="number">-1</span>;
+    }
+    
+    <span class="comment">// Input student data</span>
+    <span class="keyword">for</span>(i = <span class="number">0</span>; i < n; i++) {
+        <span class="function">printf</span>(<span class="string">"\nStudent %d:\n"</span>, i+<span class="number">1</span>);
+        <span class="function">printf</span>(<span class="string">"Name: "</span>);
+        <span class="function">scanf</span>(<span class="string">"%s"</span>, students[i].name);
+        <span class="function">printf</span>(<span class="string">"Roll No: "</span>);
+        <span class="function">scanf</span>(<span class="string">"%d"</span>, &students[i].rollNo);
+        <span class="function">printf</span>(<span class="string">"Marks: "</span>);
+        <span class="function">scanf</span>(<span class="string">"%f"</span>, &students[i].marks);
+    }
+    
+    <span class="comment">// Display student data</span>
+    <span class="function">printf</span>(<span class="string">"\n\nStudent Records:\n"</span>);
+    <span class="keyword">for</span>(i = <span class="number">0</span>; i < n; i++) {
+        <span class="function">printf</span>(<span class="string">"%s\t%d\t%.2f\n"</span>, 
+               students[i].name, 
+               students[i].rollNo, 
+               students[i].marks);
+    }
+    
+    <span class="comment">// Free memory</span>
+    <span class="function">free</span>(students);
+    students = <span class="keyword">NULL</span>;
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: Memory Debugging Tools -->
+        <div class="slide">
+            <h1>Memory Debugging Tools</h1>
+            <h2>Tools to Detect Memory Issues</h2>
+            
+            <div class="two-column" style="margin-top: 30px;">
+                <div>
+                    <h3>1. Valgrind (Linux/Mac)</h3>
+                    <div class="info">
+                        <p><strong>Usage:</strong> <code>valgrind --leak-check=full ./program</code></p>
+                        <p>Detects: Memory leaks, invalid memory access, use after free</p>
+                    </div>
+                    
+                    <h3 style="margin-top: 30px;">2. Address Sanitizer (ASan)</h3>
+                    <div class="info">
+                        <p><strong>Compilation:</strong> <code>gcc -fsanitize=address program.c</code></p>
+                        <p>Detects: Buffer overflows, use after free, memory leaks</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3>3. Dr. Memory (Windows)</h3>
+                    <div class="info">
+                        <p>Free tool for Windows that detects memory errors including:</p>
+                        <ul>
+                            <li>Memory leaks</li>
+                            <li>Use after free</li>
+                            <li>Buffer overflows</li>
+                            <li>Uninitialized memory access</li>
+                        </ul>
+                    </div>
+                    
+                    <h3 style="margin-top: 30px;">4. Manual Techniques</h3>
+                    <div class="info">
+                        <ul>
+                            <li>Print statements before/after malloc and free</li>
+                            <li>Keep track of allocations in a separate log</li>
+                            <li>Use assert() to verify assumptions</li>
+                            <li>Set pointers to NULL after freeing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Problem 7 -->
+        <div class="slide">
+            <h1>Problem 7: Find and Fix Memory Issues</h1>
+            <div class="problem-box">
+                <h3>Problem:</h3>
+                <p>Identify and fix ALL memory issues in the following code:</p>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> *arr1 = <span class="function">malloc</span>(<span class="number">5</span> * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+    <span class="keyword">int</span> *arr2 = <span class="function">malloc</span>(<span class="number">3</span> * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+    
+    arr1[<span class="number">0</span>] = <span class="number">10</span>;
+    <span class="function">free</span>(arr1);
+    <span class="function">printf</span>(<span class="string">"%d"</span>, arr1[<span class="number">0</span>]);
+    
+    <span class="function">free</span>(arr2);
+    <span class="function">free</span>(arr2);
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+            
+            <div class="solution-box">
+                <h3>Issues Found:</h3>
+                <ol>
+                    <li>Missing cast for malloc</li>
+                    <li>Not checking if malloc succeeded</li>
+                    <li>Using arr1 after freeing (dangling pointer)</li>
+                    <li>Double free on arr2</li>
+                    <li>Not setting pointers to NULL after free</li>
+                </ol>
+                
+                <h3>Corrected Code:</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> *arr1 = (<span class="keyword">int</span>*)<span class="function">malloc</span>(<span class="number">5</span> * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+    <span class="keyword">int</span> *arr2 = (<span class="keyword">int</span>*)<span class="function">malloc</span>(<span class="number">3</span> * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+    
+    <span class="comment">// Check allocations</span>
+    <span class="keyword">if</span>(arr1 == <span class="keyword">NULL</span> || arr2 == <span class="keyword">NULL</span>) {
+        <span class="function">printf</span>(<span class="string">"Allocation failed!\n"</span>);
+        <span class="keyword">return</span> <span class="number">-1</span>;
+    }
+    
+    arr1[<span class="number">0</span>] = <span class="number">10</span>;
+    <span class="function">printf</span>(<span class="string">"%d"</span>, arr1[<span class="number">0</span>]); <span class="comment">// Use before free</span>
+    
+    <span class="function">free</span>(arr1);
+    arr1 = <span class="keyword">NULL</span>;
+    
+    <span class="function">free</span>(arr2);
+    arr2 = <span class="keyword">NULL</span>;  <span class="comment">// Prevents double free</span>
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: Memory Layout -->
+        <div class="slide">
+            <h1>Memory Layout of a C Program</h1>
+            <h2>Understanding Where Memory is Allocated</h2>
+            
+            <table>
+                <tr>
+                    <th>Memory Segment</th>
+                    <th>Contains</th>
+                    <th>Management</th>
+                </tr>
+                <tr>
+                    <td><strong>Stack</strong></td>
+                    <td>Local variables, function parameters, return addresses</td>
+                    <td>Automatic (LIFO)</td>
+                </tr>
+                <tr>
+                    <td><strong>Heap</strong></td>
+                    <td>Dynamically allocated memory (malloc, calloc)</td>
+                    <td>Manual (programmer)</td>
+                </tr>
+                <tr>
+                    <td><strong>Data Segment</strong></td>
+                    <td>Global & static variables (initialized)</td>
+                    <td>Automatic</td>
+                </tr>
+                <tr>
+                    <td><strong>BSS Segment</strong></td>
+                    <td>Uninitialized global & static variables</td>
+                    <td>Automatic</td>
+                </tr>
+                <tr>
+                    <td><strong>Text Segment</strong></td>
+                    <td>Program code (instructions)</td>
+                    <td>Read-only</td>
+                </tr>
+            </table>
+            
+            <div class="info">
+                <strong>Key Point:</strong> Only heap memory requires manual management using malloc/calloc/realloc/free!
+            </div>
+        </div>
+
+        <!-- Slide 19: Advanced Problem -->
+        <div class="slide">
+            <h1>Problem 8: Dynamic String Array</h1>
+            <div class="problem-box">
+                <h3>Problem:</h3>
+                <p>Create a program that reads n strings from user, stores them dynamically, sorts them, and displays them. Properly free all memory.</p>
+            </div>
+            
+            <div class="solution-box">
+                <h3>Solution (Part 1):</h3>
+                <div class="code-block">
+<span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+<span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span>
+<span class="keyword">#include</span> <span class="string">&lt;string.h&gt;</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> n, i, j;
+    <span class="keyword">char</span> **strings;
+    <span class="keyword">char</span> temp[<span class="number">100</span>], *tempPtr;
+    
+    <span class="function">printf</span>(<span class="string">"Enter number of strings: "</span>);
+    <span class="function">scanf</span>(<span class="string">"%d"</span>, &n);
+    <span class="function">getchar</span>(); <span class="comment">// Consume newline</span>
+    
+    <span class="comment">// Allocate array of string pointers</span>
+    strings = (<span class="keyword">char</span>**) <span class="function">malloc</span>(n * <span class="keyword">sizeof</span>(<span class="keyword">char</span>*));
+    
+    <span class="keyword">if</span>(strings == <span class="keyword">NULL</span>) {
+        <span class="function">printf</span>(<span class="string">"Memory allocation failed!\n"</span>);
+        <span class="keyword">return</span> <span class="number">-1</span>;
+    }
+    
+    <span class="comment">// Read strings</span>
+    <span class="keyword">for</span>(i = <span class="number">0</span>; i < n; i++) {
+        <span class="function">printf</span>(<span class="string">"Enter string %d: "</span>, i+<span class="number">1</span>);
+        <span class="function">fgets</span>(temp, <span class="number">100</span>, stdin);
+        temp[<span class="function">strcspn</span>(temp, <span class="string">"\n"</span>)] = <span class="number">0</span>; <span class="comment">// Remove newline</span>
+        
+        <span class="comment">// Allocate exact memory for string</span>
+        strings[i] = (<span class="keyword">char</span>*) <span class="function">malloc</span>((<span class="function">strlen</span>(temp) + <span class="number">1</span>) * <span class="keyword">sizeof</span>(<span class="keyword">char</span>));
+        <span class="function">strcpy</span>(strings[i], temp);
+    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: Advanced Problem Continued -->
+        <div class="slide">
+            <h1>Problem 8: Solution (Part 2)</h1>
+            <div class="solution-box">
+                <div class="code-block">
+    <span class="comment">// Bubble sort strings</span>
+    <span class="keyword">for</span>(i = <span class="number">0</span>; i < n-<span class="number">1</span>; i++) {
+        <span class="keyword">for</span>(j = <span class="number">0</span>; j < n-i-<span class="number">1</span>; j++) {
+            <span class="keyword">if</span>(<span class="function">strcmp</span>(strings[j], strings[j+<span class="number">1</span>]) > <span class="number">0</span>) {
+                <span class="comment">// Swap pointers</span>
+                tempPtr = strings[j];
+                strings[j] = strings[j+<span class="number">1</span>];
+                strings[j+<span class="number">1</span>] = tempPtr;
+            }
+        }
+    }
+    
+    <span class="comment">// Display sorted strings</span>
+    <span class="function">printf</span>(<span class="string">"\nSorted strings:\n"</span>);
+    <span class="keyword">for</span>(i = <span class="number">0</span>; i < n; i++) {
+        <span class="function">printf</span>(<span class="string">"%d. %s\n"</span>, i+<span class="number">1</span>, strings[i]);
+    }
+    
+    <span class="comment">// Free memory - each string first, then array</span>
+    <span class="keyword">for</span>(i = <span class="number">0</span>; i < n; i++) {
+        <span class="function">free</span>(strings[i]);
+    }
+    <span class="function">free</span>(strings);
+    
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 21: Tips for Exam -->
+        <div class="slide">
+            <h1>Tips for Exams & Practical</h1>
+            <h2>Memory Management Checklist</h2>
+            
+            <div class="two-column" style="margin-top: 30px;">
+                <div>
+                    <div class="success">
+                        <h3>✓ Before Writing Code:</h3>
+                        <ul style="font-size: 0.9em;">
+                            <li>Plan which data needs dynamic allocation</li>
+                            <li>Calculate exact memory needed</li>
+                            <li>Identify when memory should be freed</li>
+                            <li>Design clear ownership of memory</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info" style="margin-top: 30px;">
+                        <h3>✓ While Writing Code:</h3>
+                        <ul style="font-size: 0.9em;">
+                            <li>Always cast malloc/calloc return value</li>
+                            <li>Check if allocation succeeded (NULL check)</li>
+                            <li>Use sizeof() instead of hardcoded sizes</li>
+                            <li>Match every malloc with a free</li>
+                            <li>Set pointer to NULL after freeing</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="warning">
+                        <h3>✓ After Writing Code:</h3>
+                        <ul style="font-size: 0.9em;">
+                            <li>Count malloc calls = free calls?</li>
+                            <li>Check for memory leaks in all code paths</li>
+                            <li>Verify no use-after-free</li>
+                            <li>Test with different inputs</li>
+                            <li>Use tools like Valgrind/ASan</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info" style="margin-top: 30px; background: #f8f9fa; border-left: 5px solid #6c757d;">
+                        <h3>✓ Common Mistakes to Avoid:</h3>
+                        <ul style="font-size: 0.9em;">
+                            <li>Forgetting to free memory</li>
+                            <li>Using memory after freeing it</li>
+                            <li>Not checking for allocation failures</li>
+                            <li>Memory leaks in error paths</li>
+                            <li>Buffer overflows/underflows</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 22: Summary -->
+        <div class="slide">
+            <h1>Summary</h1>
+            <h2>Key Takeaways</h2>
+            
+            <div class="two-column" style="margin-top: 30px;">
+                <div>
+                    <div class="info" style="margin-bottom: 30px;">
+                        <h3>What We Learned:</h3>
+                        <ol style="font-size: 0.9em;">
+                            <li><strong>Garbage Collection:</strong> Automatic memory management (not in C)</li>
+                            <li><strong>Memory Leaks:</strong> Allocated memory not freed</li>
+                            <li><strong>Dangling Pointers:</strong> Pointers to freed memory</li>
+                            <li><strong>Double Free:</strong> Freeing same memory twice</li>
+                            <li><strong>Best Practices:</strong> Check malloc, free properly, set NULL</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="success">
+                        <h3>Memory Management is Critical For:</h3>
+                        <ul style="font-size: 0.9em;">
+                            <li>Preventing crashes and bugs</li>
+                            <li>Efficient resource usage</li>
+                            <li>Professional-quality code</li>
+                            <li>System stability</li>
+                            <li>Security & performance</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="warning" style="height: 100%; display: flex; flex-direction: column;">
+                        <h3>The Golden Rule of Memory Management:</h3>
+                        <div style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px 0;">
+                            <p style="font-size: 1.8em; margin: 0;">
+                                <strong>Every malloc() must have a corresponding free()</strong>
+                            </p>
+                        </div>
+                        <div style="margin-top: auto;">
+                            <h4>Remember to:</h4>
+                            <ul style="font-size: 0.9em;">
+                                <li>Check for NULL after allocation</li>
+                                <li>Free in the reverse order of allocation</li>
+                                <li>Set pointers to NULL after freeing</li>
+                                <li>Use tools to verify memory safety</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 23: Practice Questions -->
+        <div class="slide">
+            <h1>Practice Questions for Students</h1>
+            
+            <h2>Conceptual Questions:</h2>
+            <ol>
+                <li>Why doesn't C have automatic garbage collection?</li>
+                <li>What is the difference between a memory leak and a dangling pointer?</li>
+                <li>When should you use malloc vs calloc?</li>
+                <li>What happens if you free() the same pointer twice?</li>
+            </ol>
+            
+            <h2>Practical Assignments:</h2>
+            <ol>
+                <li>Write a program to implement a dynamic stack using linked list</li>
+                <li>Create a phone book application using dynamic arrays</li>
+                <li>Implement a function to concatenate two dynamic strings</li>
+                <li>Build a simple memory leak detector that tracks allocations</li>
+            </ol>
+            
+            <div class="info">
+                <strong>Tip:</strong> Practice these problems and always run your code through valgrind or similar tools to check for memory issues!
+            </div>
+        </div>
+
+        <!-- Slide 24: Thank You -->
+        <div class="slide">
+            <h1 style="text-align: center; margin-top: 150px; font-size: 4em;">Thank You!</h1>
+            <h2 style="text-align: center; color: #666; margin-top: 50px;">Questions?</h2>
+            
+            <div style="text-align: center; margin-top: 100px; font-size: 1.8em; color: #2a5298;">
+                <p><strong>Mohsin F. Dar</strong></p>
+                <p>Assistant Professor</p>
+                <p>Cloud & Software Operations Cluster | SOCS</p>
+                <p>UPES</p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 80px; font-size: 1.5em; color: #666;">
+                <p><em>"Good programmers manage memory.<br>Great programmers manage it perfectly."</em></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">24</span>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" id="prev-btn" onclick="previousSlide()">← Previous</button>
+        <button class="nav-btn" id="next-btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('total-slides').textContent = totalSlides;
+        
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+            
+            // Update button states
+            document.getElementById('prev-btn').disabled = currentSlide === 0;
+            document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
+            
+            // Scroll to top of slide
+            slides[currentSlide].scrollTop = 0;
+        }
+        
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            }
+        }
+        
+        function previousSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight' || event.key === ' ') {
+                nextSlide();
+            } else if (event.key === 'ArrowLeft') {
+                previousSlide();
+            } else if (event.key === 'Home') {
+                showSlide(0);
+            } else if (event.key === 'End') {
+                showSlide(totalSlides - 1);
+            }
+        });
+        
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>
