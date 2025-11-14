@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash-Based Indexing - Database Systems</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 60px 80px;
+            background: white;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .slide-header h1 {
+            font-size: 3.5em;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .slide-header h2 {
+            font-size: 2.8em;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .slide-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 1.8em;
+            line-height: 1.6;
+            color: #2d3748;
+        }
+
+        .slide-content h3 {
+            font-size: 2em;
+            color: #667eea;
+            margin: 30px 0 20px 0;
+            font-weight: 600;
+        }
+
+        .slide-content ul {
+            margin-left: 50px;
+            margin-bottom: 25px;
+        }
+
+        .slide-content li {
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+
+        .slide-content strong {
+            color: #764ba2;
+            font-weight: 600;
+        }
+
+        .highlight {
+            background-color: #fef3c7;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+
+        .code-block {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.4em;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .hash-demo {
+            background: #f8fafc;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 25px 0;
+        }
+
+        .bucket-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .bucket {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 150px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 10px;
+        }
+
+        .bucket-header {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .bucket-item {
+            background: #e0e7ff;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 1.5em;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .formula {
+            background: #fef3c7;
+            border-left: 5px solid #f59e0b;
+            padding: 20px;
+            margin: 25px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.6em;
+            font-weight: 600;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            font-size: 1.4em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: #2d3748;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.4em;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .title-slide h1 {
+            font-size: 5em;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .title-slide h2 {
+            font-size: 2.5em;
+            margin-bottom: 50px;
+            color: #e0e7ff;
+        }
+
+        .title-slide .instructor-info {
+            font-size: 2em;
+            margin-top: 50px;
+            line-height: 1.8;
+        }
+
+        .advantages-list {
+            background: #dcfce7;
+            border-left: 5px solid #10b981;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .disadvantages-list {
+            background: #fee2e2;
+            border-left: 5px solid #ef4444;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .visual-diagram {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 2em;
+            color: #667eea;
+            margin: 15px 0;
+        }
+
+        .step-box {
+            background: #e0e7ff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            font-size: 1.6em;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title -->
+        <div class="slide active title-slide">
+            <h1>Hash-Based Indexing</h1>
+            <h2>Database Systems - Unit III</h2>
+            <div class="instructor-info">
+                <p><strong>Dr. Mohsin Dar</strong></p>
+                <p>Assistant Professor</p>
+                <p>Cloud & Software Operations Cluster</p>
+                <p>UPES - MTech First Semester</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Introduction to Hashing -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Introduction to Hash-Based Indexing</h2>
+            </div>
+            <div class="slide-content">
+                <h3>What is Hashing?</h3>
+                <ul>
+                    <li><strong>Hashing</strong> is a technique that uses a <span class="highlight">hash function</span> to compute the address of a data record based on its search key value</li>
+                    <li>Provides <strong>O(1) average time complexity</strong> for search, insert, and delete operations</li>
+                    <li>Alternative to tree-based indexing (B-Trees, B+ Trees)</li>
+                </ul>
+
+                <h3>Key Components</h3>
+                <ul>
+                    <li><strong>Hash Function h(k):</strong> Maps search key k to a bucket address</li>
+                    <li><strong>Buckets:</strong> Storage units that hold one or more records</li>
+                    <li><strong>Collision:</strong> When multiple keys hash to the same bucket</li>
+                </ul>
+
+                <div class="formula">
+                    Bucket Address = h(search_key) mod N
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Hash Function Example -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Hash Function Visualization</h2>
+            </div>
+            <div class="slide-content">
+                <div class="hash-demo">
+                    <h3 style="text-align: center; color: #667eea;">Example: h(k) = k mod 5</h3>
+                    <div class="visual-diagram">
+                        <p style="font-size: 1.5em; margin-bottom: 20px;"><strong>Keys: 12, 17, 23, 8, 31, 19</strong></p>
+                        <div class="arrow">↓ Apply Hash Function ↓</div>
+                    </div>
+                    <div class="bucket-container">
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 0</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 1</div>
+                            <div class="bucket-item">31</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 2</div>
+                            <div class="bucket-item">12</div>
+                            <div class="bucket-item">17</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 3</div>
+                            <div class="bucket-item">23</div>
+                            <div class="bucket-item">8</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 4</div>
+                            <div class="bucket-item">19</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Static Hashing -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Static Hashing</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Definition</h3>
+                <ul>
+                    <li>Fixed number of buckets allocated at creation time</li>
+                    <li>Hash function maps keys to a <strong>fixed range</strong> of bucket addresses</li>
+                    <li>Simplest form of hash-based indexing</li>
+                </ul>
+
+                <h3>Characteristics</h3>
+                <ul>
+                    <li><strong>Fixed Structure:</strong> Number of buckets (N) remains constant</li>
+                    <li><strong>Overflow Handling:</strong> Uses overflow buckets/chains for collisions</li>
+                    <li><strong>Performance:</strong> Degrades when load factor increases significantly</li>
+                </ul>
+
+                <div class="formula">
+                    Load Factor (α) = (Number of Records) / (Number of Buckets × Bucket Capacity)
+                </div>
+
+                <div class="advantages-list">
+                    <strong style="font-size: 1.2em;">✓ Advantages:</strong>
+                    <ul style="margin-top: 15px;">
+                        <li>Simple implementation</li>
+                        <li>Fast access when properly configured</li>
+                        <li>Predictable memory usage</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Static Hashing Problems -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Problems with Static Hashing</h2>
+            </div>
+            <div class="slide-content">
+                <div class="disadvantages-list">
+                    <h3 style="color: #ef4444;">Major Limitations:</h3>
+                    <ul style="font-size: 1.6em;">
+                        <li><strong>Database Growth:</strong> Performance degrades as more records are added beyond initial capacity</li>
+                        <li><strong>Long Overflow Chains:</strong> Multiple collisions create linked lists, degrading to O(n) search time</li>
+                        <li><strong>Fixed Allocation:</strong> Cannot dynamically adjust to changing data volumes</li>
+                        <li><strong>Space Wastage:</strong> Pre-allocating too many buckets wastes space; too few causes overflow</li>
+                    </ul>
+                </div>
+
+                <h3>Solution Needed:</h3>
+                <p style="font-size: 1.8em; margin-top: 30px;">
+                    Dynamic hashing techniques that can <span class="highlight">grow and shrink</span> based on the number of records
+                </p>
+                <div class="arrow">↓</div>
+                <p style="font-size: 2em; text-align: center; color: #667eea; font-weight: 600;">
+                    Extendable Hashing & Linear Hashing
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 6: Extendable Hashing Introduction -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Extendable Hashing</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Concept</h3>
+                <ul>
+                    <li>Dynamic hashing technique that allows the hash structure to <strong>grow and shrink</strong> dynamically</li>
+                    <li>Uses a <strong>directory</strong> (lookup table) that can double in size when needed</li>
+                    <li>Based on binary representation of hash values</li>
+                </ul>
+
+                <h3>Key Components</h3>
+                <ul>
+                    <li><strong>Global Depth (d):</strong> Number of bits used from the hash value for directory indexing</li>
+                    <li><strong>Local Depth (d'):</strong> Number of bits used for a specific bucket</li>
+                    <li><strong>Directory:</strong> Array of 2<sup>d</sup> bucket pointers</li>
+                    <li><strong>Buckets:</strong> Store actual data records</li>
+                </ul>
+
+                <div class="formula">
+                    Directory Size = 2<sup>Global Depth</sup>
+                </div>
+
+                <h3>Relationship</h3>
+                <p style="font-size: 1.7em; margin-top: 20px;">
+                    <strong>Local Depth ≤ Global Depth</strong> for all buckets
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 7: Extendable Hashing Structure -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Extendable Hashing Structure</h2>
+            </div>
+            <div class="slide-content">
+                <div class="hash-demo">
+                    <h3 style="text-align: center; margin-bottom: 30px;">Example Structure (Global Depth = 2)</h3>
+                    <div style="display: flex; justify-content: space-around; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <div style="background: #667eea; color: white; padding: 15px; text-align: center; font-weight: 700; font-size: 1.5em; border-radius: 10px 10px 0 0;">
+                                Directory (d=2)
+                            </div>
+                            <div style="border: 3px solid #667eea; border-top: none;">
+                                <div style="border-bottom: 2px solid #667eea; padding: 15px; background: #f8fafc; display: flex; justify-content: space-between;">
+                                    <span style="font-weight: 700;">00</span>
+                                    <span>→ Bucket A</span>
+                                </div>
+                                <div style="border-bottom: 2px solid #667eea; padding: 15px; display: flex; justify-content: space-between;">
+                                    <span style="font-weight: 700;">01</span>
+                                    <span>→ Bucket B</span>
+                                </div>
+                                <div style="border-bottom: 2px solid #667eea; padding: 15px; background: #f8fafc; display: flex; justify-content: space-between;">
+                                    <span style="font-weight: 700;">10</span>
+                                    <span>→ Bucket C</span>
+                                </div>
+                                <div style="padding: 15px; display: flex; justify-content: space-between;">
+                                    <span style="font-weight: 700;">11</span>
+                                    <span>→ Bucket B</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex: 1; margin-left: 40px;">
+                            <div class="bucket" style="margin-bottom: 20px;">
+                                <div class="bucket-header">Bucket A (d'=2)</div>
+                                <div class="bucket-item">Key: 4 (00)</div>
+                                <div class="bucket-item">Key: 12 (00)</div>
+                            </div>
+                            <div class="bucket" style="margin-bottom: 20px;">
+                                <div class="bucket-header">Bucket B (d'=1)</div>
+                                <div class="bucket-item">Key: 5 (01)</div>
+                                <div class="bucket-item">Key: 7 (11)</div>
+                            </div>
+                            <div class="bucket">
+                                <div class="bucket-header">Bucket C (d'=2)</div>
+                                <div class="bucket-item">Key: 10 (10)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Extendable Hashing Operations -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Extendable Hashing: Operations</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Search Operation</h3>
+                <div class="step-box">
+                    1. Apply hash function to search key<br>
+                    2. Use first <strong>d bits</strong> to index into directory<br>
+                    3. Follow pointer to appropriate bucket<br>
+                    4. Search sequentially within bucket
+                </div>
+
+                <h3>Insert Operation</h3>
+                <div class="step-box">
+                    1. Hash the key and locate target bucket<br>
+                    2. <strong>If bucket has space:</strong> Insert record<br>
+                    3. <strong>If bucket is full:</strong><br>
+                    &nbsp;&nbsp;&nbsp;a) If local depth < global depth: Split bucket<br>
+                    &nbsp;&nbsp;&nbsp;b) If local depth = global depth: Double directory, then split bucket<br>
+                    4. Redistribute records based on additional bit
+                </div>
+
+                <h3>Delete Operation</h3>
+                <div class="step-box">
+                    1. Locate and remove the record<br>
+                    2. If bucket becomes empty, merge with sibling bucket<br>
+                    3. Reduce local depth if appropriate<br>
+                    4. Halve directory if possible (all local depths < global depth)
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Extendable Hashing Example -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Extendable Hashing: Insert Example</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Scenario: Inserting key 20 causing bucket split</h3>
+                
+                <div style="display: flex; justify-content: space-between; margin-top: 30px;">
+                    <div style="flex: 1; margin-right: 30px;">
+                        <h4 style="color: #667eea; text-align: center; margin-bottom: 20px;">Before Insert (d=2)</h4>
+                        <div class="hash-demo">
+                            <div class="bucket">
+                                <div class="bucket-header">Bucket A (d'=2)</div>
+                                <div class="bucket-item">4 (100)</div>
+                                <div class="bucket-item">12 (1100)</div>
+                                <div class="bucket-item">FULL!</div>
+                            </div>
+                        </div>
+                        <p style="margin-top: 20px; font-size: 1.5em;">
+                            <strong>Problem:</strong> Inserting 20 (10100) → ends with "00"<br>
+                            Bucket A is full!
+                        </p>
+                    </div>
+                    
+                    <div style="flex: 1; margin-left: 30px;">
+                        <h4 style="color: #10b981; text-align: center; margin-bottom: 20px;">After Split (d=3)</h4>
+                        <div class="hash-demo">
+                            <div class="bucket" style="margin-bottom: 15px;">
+                                <div class="bucket-header">Bucket A1 (d'=3)</div>
+                                <div class="bucket-item">4 (000)</div>
+                                <div class="bucket-item">20 (000)</div>
+                            </div>
+                            <div class="bucket">
+                                <div class="bucket-header">Bucket A2 (d'=3)</div>
+                                <div class="bucket-item">12 (100)</div>
+                            </div>
+                        </div>
+                        <p style="margin-top: 20px; font-size: 1.5em;">
+                            <strong>Solution:</strong> Global depth = local depth<br>
+                            → Double directory (d=3)<br>
+                            → Split bucket using 3rd bit
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Extendible Hashing with Student Names -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Extendible Hashing: Student Names Example</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Student Names & Hashes</h3>
+                <div class="comparison-table" style="font-size: 0.8em; margin: 20px 0;">
+                    <table>
+                        <tr>
+                            <th>Name</th>
+                            <th>First Letter</th>
+                            <th>Hash (binary)</th>
+                        </tr>
+                        <tr>
+                            <td>Arun</td>
+                            <td>A</td>
+                            <td>000</td>
+                        </tr>
+                        <tr>
+                            <td>Aditi</td>
+                            <td>A</td>
+                            <td>001</td>
+                        </tr>
+                        <tr>
+                            <td>Aman</td>
+                            <td>A</td>
+                            <td>010</td>
+                        </tr>
+                        <tr>
+                            <td>Bharat</td>
+                            <td>B</td>
+                            <td>100</td>
+                        </tr>
+                        <tr>
+                            <td>Bina</td>
+                            <td>B</td>
+                            <td>101</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin: 30px 0; gap: 20px;">
+                    <!-- Step 1-2: Initial Setup -->
+                    <div style="flex: 1; background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0;">
+                        <h4 style="color: #667eea; text-align: center; margin-bottom: 15px;">Step 1-2: Initial Setup (GD=1)</h4>
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <div style="font-weight: bold; margin-bottom: 10px;">Directory (1 bit)</div>
+                            <div style="background: #e0e7ff; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                                <div>0 → B0</div>
+                                <div>1 → B1</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-around;">
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; width: 45%;">
+                                    <div class="bucket-header">B0 (LD=1)</div>
+                                    <div class="bucket-item">[ ]</div>
+                                </div>
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; width: 45%;">
+                                    <div class="bucket-header">B1 (LD=1)</div>
+                                    <div class="bucket-item">[ ]</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: After inserting Arun, Aditi -->
+                    <div style="flex: 1; background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0;">
+                        <h4 style="color: #667eea; text-align: center; margin-bottom: 15px;">Step 3: After Inserting Arun, Aditi</h4>
+                        <div style="text-align: center;">
+                            <div style="font-weight: bold; margin-bottom: 10px;">Directory (1 bit)</div>
+                            <div style="background: #e0e7ff; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                                <div>0 → B0</div>
+                                <div>1 → B1</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-around;">
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; width: 45%;">
+                                    <div class="bucket-header">B0 (LD=1)</div>
+                                    <div class="bucket-item">Arun (000)</div>
+                                    <div class="bucket-item" style="background: #fef3c7;">Aditi (001)</div>
+                                </div>
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; width: 45%;">
+                                    <div class="bucket-header">B1 (LD=1)</div>
+                                    <div class="bucket-item">[ ]</div>
+                                </div>
+                            </div>
+                            <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                                <span style="background: #fef3c7; padding: 2px 5px; border-radius: 3px;">Aditi (001)</span> is added to B0
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin: 30px 0; gap: 20px;">
+                    <!-- Step 4-6: Directory Doubling -->
+                    <div style="flex: 1; background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0;">
+                        <h4 style="color: #667eea; text-align: center; margin-bottom: 15px;">Step 4-6: Directory Doubling (GD=2)</h4>
+                        <div style="text-align: center;">
+                            <div style="font-weight: bold; margin-bottom: 10px;">Directory (2 bits)</div>
+                            <div style="background: #e0e7ff; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                                <div>00 → B0</div>
+                                <div>01 → B0</div>
+                                <div>10 → B1</div>
+                                <div>11 → B1</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px;">
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; min-width: 45%;">
+                                    <div class="bucket-header">B0 (LD=1)</div>
+                                    <div class="bucket-item">Arun (000)</div>
+                                    <div class="bucket-item">Aditi (001)</div>
+                                    <div class="bucket-item" style="background: #fecaca;">Aman (010)</div>
+                                </div>
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; min-width: 45%;">
+                                    <div class="bucket-header">B1 (LD=1)</div>
+                                    <div class="bucket-item">[ ]</div>
+                                </div>
+                            </div>
+                            <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                                <span style="background: #fecaca; padding: 2px 5px; border-radius: 3px;">Aman (010)</span> causes split
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 7-8: Final State -->
+                    <div style="flex: 1; background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0;">
+                        <h4 style="color: #667eea; text-align: center; margin-bottom: 15px;">Final State (After All Insertions)</h4>
+                        <div style="text-align: center;">
+                            <div style="font-weight: bold; margin-bottom: 10px;">Directory (GD=2)</div>
+                            <div style="background: #e0e7ff; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                                <div>00 → B0a</div>
+                                <div>01 → B0b</div>
+                                <div>10 → B1</div>
+                                <div>11 → B1</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px;">
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; min-width: 30%;">
+                                    <div class="bucket-header">B0a (LD=2)</div>
+                                    <div class="bucket-item">Arun (000)</div>
+                                    <div class="bucket-item">Aditi (001)</div>
+                                </div>
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; min-width: 30%;">
+                                    <div class="bucket-header">B0b (LD=2)</div>
+                                    <div class="bucket-item">Aman (010)</div>
+                                </div>
+                                <div style="background: white; border: 2px solid #667eea; border-radius: 5px; padding: 10px; min-width: 30%;">
+                                    <div class="bucket-header">B1 (LD=1)</div>
+                                    <div class="bucket-item">Bharat (100)</div>
+                                    <div class="bucket-item">Bina (101)</div>
+                                </div>
+                            </div>
+                            <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                                Key: GD=2 (Global Depth), LD=Local Depth
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Linear Hashing Introduction -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Linear Hashing</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Concept</h3>
+                <ul>
+                    <li>Dynamic hashing that grows <strong>one bucket at a time</strong> in a linear fashion</li>
+                    <li><strong>No directory</strong> required - more space efficient than extendable hashing</li>
+                    <li>Uses multiple hash functions based on level</li>
+                </ul>
+
+                <h3>Key Components</h3>
+                <ul>
+                    <li><strong>Level (L):</strong> Current round of splitting</li>
+                    <li><strong>Next (N):</strong> Pointer to next bucket to split</li>
+                    <li><strong>Hash Functions:</strong> h<sub>L</sub>(k) and h<sub>L+1</sub>(k)</li>
+                    <li><strong>Split Threshold:</strong> Based on load factor</li>
+                </ul>
+
+                <div class="formula">
+                    h<sub>L</sub>(k) = k mod (2<sup>L</sup> × N<sub>0</sub>)<br>
+                    h<sub>L+1</sub>(k) = k mod (2<sup>L+1</sup> × N<sub>0</sub>)
+                </div>
+
+                <p style="font-size: 1.7em; margin-top: 30px;">
+                    where <strong>N<sub>0</sub></strong> = initial number of buckets
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 11: Linear Hashing Mechanism -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Linear Hashing: How It Works</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Split Trigger</h3>
+                <ul>
+                    <li>Split occurs when <strong>load factor exceeds threshold</strong> (typically 0.7-0.8)</li>
+                    <li>Bucket that caused overflow may NOT be the one that splits!</li>
+                    <li>Split follows <strong>round-robin order</strong> from bucket 0</li>
+                </ul>
+
+                <h3>Split Process</h3>
+                <div class="step-box">
+                    1. Identify bucket <strong>N</strong> (Next pointer) to split<br>
+                    2. Create new bucket at end of file<br>
+                    3. Redistribute records from bucket N using h<sub>L+1</sub><br>
+                    4. Increment Next pointer<br>
+                    5. If all buckets in current level split → increment Level (L)
+                </div>
+
+                <h3>Search Strategy</h3>
+                <div class="step-box">
+                    1. Apply h<sub>L</sub>(k) to get bucket address B<br>
+                    2. <strong>If B < Next:</strong> Bucket already split, use h<sub>L+1</sub>(k)<br>
+                    3. <strong>If B ≥ Next:</strong> Bucket not yet split, use h<sub>L</sub>(k)
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Linear Hashing Example -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Linear Hashing: Example</h2>
+            </div>
+            <div class="slide-content">
+                <div class="hash-demo">
+                    <h3 style="text-align: center; margin-bottom: 25px;">Initial State: L=0, N=0, N<sub>0</sub>=4</h3>
+                    
+                    <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 25px;">
+                        <p style="font-size: 1.6em; margin-bottom: 15px;"><strong>Hash Functions:</strong></p>
+                        <p style="font-size: 1.5em;">h<sub>0</sub>(k) = k mod 4</p>
+                        <p style="font-size: 1.5em;">h<sub>1</sub>(k) = k mod 8</p>
+                    </div>
+
+                    <div class="bucket-container">
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 0 ← Next</div>
+                            <div class="bucket-item">4, 12, 20</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 1</div>
+                            <div class="bucket-item">5, 13</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 2</div>
+                            <div class="bucket-item">6, 14</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 3</div>
+                            <div class="bucket-item">7, 15</div>
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓ Insert 28 causes split of Bucket 0 ↓</div>
+
+                    <div class="bucket-container">
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 0 (split)</div>
+                            <div class="bucket-item">20 (h₁=4)</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 1 ← Next</div>
+                            <div class="bucket-item">5, 13</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 2</div>
+                            <div class="bucket-item">6, 14</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 3</div>
+                            <div class="bucket-item">7, 15</div>
+                        </div>
+                        <div class="bucket">
+                            <div class="bucket-header">Bucket 4 (new)</div>
+                            <div class="bucket-item">4, 12, 28</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Extendable vs Linear Hashing -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Extendable vs Linear Hashing</h2>
+            </div>
+            <div class="slide-content">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Extendable Hashing</th>
+                            <th>Linear Hashing</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Directory</strong></td>
+                            <td>Required (can double in size)</td>
+                            <td>Not required</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Growth Pattern</strong></td>
+                            <td>Exponential (doubles)</td>
+                            <td>Linear (one bucket at a time)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Split Trigger</strong></td>
+                            <td>Bucket overflow</td>
+                            <td>Load factor threshold</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Which Bucket Splits</strong></td>
+                            <td>Overflowing bucket</td>
+                            <td>Next in round-robin order</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Space Overhead</strong></td>
+                            <td>Directory space overhead</td>
+                            <td>Minimal overhead</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Performance</strong></td>
+                            <td>1-2 disk accesses</td>
+                            <td>1-2 disk accesses + overflow</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Complexity</strong></td>
+                            <td>Moderate</td>
+                            <td>Higher (multiple hash functions)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 14: Advantages and Disadvantages -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Hash-Based Indexing: Trade-offs</h2>
+            </div>
+            <div class="slide-content">
+                <div class="advantages-list">
+                    <h3 style="color: #10b981;">✓ Advantages of Hash-Based Indexing</h3>
+                    <ul style="font-size: 1.6em; margin-top: 20px;">
+                        <li><strong>Fast Access:</strong> O(1) average case for equality searches</li>
+                        <li><strong>Simple Implementation:</strong> Straightforward hash function logic</li>
+                        <li><strong>Uniform Distribution:</strong> Good hash functions distribute data evenly</li>
+                        <li><strong>Dynamic Growth:</strong> Extendable and Linear hashing adapt to data size</li>
+                        <li><strong>No Reordering:</strong> Records don't need to maintain sorted order</li>
+                    </ul>
+                </div>
+
+                <div class="disadvantages-list" style="margin-top: 30px;">
+                    <h3 style="color: #ef4444;">✗ Disadvantages of Hash-Based Indexing</h3>
+                    <ul style="font-size: 1.6em; margin-top: 20px;">
+                        <li><strong>No Range Queries:</strong> Cannot efficiently support range searches (e.g., age > 25)</li>
+                        <li><strong>No Ordering:</strong> Cannot retrieve records in sorted order</li>
+                        <li><strong>Collision Overhead:</strong> Performance degrades with poor hash functions</li>
+                        <li><strong>Space Wastage:</strong> Empty buckets in static hashing</li>
+                        <li><strong>Complex Maintenance:</strong> Dynamic hashing requires split/merge operations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: Hash vs Tree Indexing -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>When to Use: Hash vs Tree Indexing</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Use Hash-Based Indexing When:</h3>
+                <div class="advantages-list">
+                    <ul style="font-size: 1.7em;">
+                        <li>Queries are primarily <strong>equality searches</strong> (exact match)</li>
+                        <li>No requirement for <strong>ordered retrieval</strong> or sorting</li>
+                        <li>No <strong>range queries</strong> needed</li>
+                        <li>Fast single-record access is critical</li>
+                        <li>Example: <code style="background: white; padding: 5px;">SELECT * FROM Students WHERE StudentID = 12345</code></li>
+                    </ul>
+                </div>
+
+                <h3 style="margin-top: 40px;">Use Tree-Based Indexing (B+Tree) When:</h3>
+                <div style="background: #dbeafe; border-left: 5px solid #3b82f6; padding: 25px; margin-top: 20px;">
+                    <ul style="font-size: 1.7em;">
+                        <li>Need to support <strong>range queries</strong> (e.g., salary BETWEEN 50000 AND 80000)</li>
+                        <li>Ordered traversal required (e.g., ORDER BY)</li>
+                        <li>Prefix matching (e.g., name LIKE 'John%')</li>
+                        <li>Multi-attribute indexing with ordering</li>
+                        <li>Example: <code style="background: white; padding: 5px;">SELECT * FROM Employees WHERE Age > 30 AND Age < 50</code></li>
+                    </ul>
+                </div>
+
+                <div class="formula" style="margin-top: 30px;">
+                    <strong>Key Decision:</strong> Equality Queries → Hash | Range/Order Queries → B+Tree
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: Collision Resolution Techniques -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Collision Resolution Techniques</h2>
+            </div>
+            <div class="slide-content">
+                <h3>1. Chaining (Separate Chaining)</h3>
+                <ul>
+                    <li>Each bucket maintains a <strong>linked list</strong> of all records that hash to it</li>
+                    <li>Most common in database systems</li>
+                    <li>Allows unlimited records per bucket (limited by memory)</li>
+                </ul>
+
+                <h3>2. Open Addressing</h3>
+                <ul>
+                    <li><strong>Linear Probing:</strong> Search sequentially for next empty slot</li>
+                    <li><strong>Quadratic Probing:</strong> Use quadratic function to find next slot</li>
+                    <li><strong>Double Hashing:</strong> Use second hash function for probing</li>
+                    <li>Less common in database systems due to deletion complexity</li>
+                </ul>
+
+                <h3>3. Overflow Buckets</h3>
+                <ul>
+                    <li>Primary bucket points to <strong>overflow area</strong> when full</li>
+                    <li>Used in static hashing</li>
+                    <li>Can create long overflow chains affecting performance</li>
+                </ul>
+
+                <div class="formula">
+                    Good Hash Function Properties: Uniform Distribution + Low Collision Rate
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Performance Analysis -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Performance Analysis</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Time Complexity Comparison</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Operation</th>
+                            <th>Hash Index</th>
+                            <th>B+Tree Index</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Equality Search</strong></td>
+                            <td>O(1) average</td>
+                            <td>O(log n)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Range Search</strong></td>
+                            <td>O(n) - Not supported</td>
+                            <td>O(log n + k)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Insert</strong></td>
+                            <td>O(1) average</td>
+                            <td>O(log n)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Delete</strong></td>
+                            <td>O(1) average</td>
+                            <td>O(log n)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ordered Traversal</strong></td>
+                            <td>O(n log n) - Not supported</td>
+                            <td>O(n)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="margin-top: 40px;">Space Complexity</h3>
+                <ul style="font-size: 1.7em;">
+                    <li><strong>Static Hashing:</strong> O(N) where N = number of buckets</li>
+                    <li><strong>Extendable Hashing:</strong> O(2<sup>d</sup>) for directory + O(N) for buckets</li>
+                    <li><strong>Linear Hashing:</strong> O(N) where N = current number of buckets</li>
+                    <li><strong>B+Tree:</strong> O(N) where N = number of nodes</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 18: Real-World Applications -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Real-World Applications</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Database Systems Using Hash Indexing</h3>
+                <ul>
+                    <li><strong>PostgreSQL:</strong> Hash indexes for equality comparisons</li>
+                    <li><strong>Oracle:</strong> Hash clusters for frequently accessed tables</li>
+                    <li><strong>MySQL:</strong> Hash indexes in MEMORY storage engine</li>
+                    <li><strong>NoSQL Databases:</strong> DynamoDB, Cassandra use consistent hashing</li>
+                </ul>
+
+                <h3 style="margin-top: 35px;">Common Use Cases</h3>
+                <div class="step-box">
+                    <strong>1. Primary Key Lookups:</strong> Student records by ID, Employee by SSN
+                </div>
+                <div class="step-box">
+                    <strong>2. Join Operations:</strong> Hash joins in query processing
+                </div>
+                <div class="step-box">
+                    <strong>3. Duplicate Detection:</strong> Finding duplicate records efficiently
+                </div>
+                <div class="step-box">
+                    <strong>4. Cache Implementation:</strong> Database buffer cache, query cache
+                </div>
+                <div class="step-box">
+                    <strong>5. Distributed Systems:</strong> Consistent hashing for data partitioning
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 19: Best Practices -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Best Practices & Design Guidelines</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Choosing Hash Function</h3>
+                <ul>
+                    <li>Select hash function that provides <strong>uniform distribution</strong></li>
+                    <li>Avoid functions that create clustering</li>
+                    <li>Common choices: Division method, Multiplication method, Universal hashing</li>
+                </ul>
+
+                <h3>Configuration Guidelines</h3>
+                <div class="step-box">
+                    <strong>Static Hashing:</strong> Estimate data growth and allocate 30-40% extra buckets
+                </div>
+                <div class="step-box">
+                    <strong>Extendable Hashing:</strong> Set appropriate global depth based on expected maximum records
+                </div>
+                <div class="step-box">
+                    <strong>Linear Hashing:</strong> Set load factor threshold between 0.7-0.8 for optimal performance
+                </div>
+
+                <h3 style="margin-top: 35px;">When NOT to Use Hashing</h3>
+                <div class="disadvantages-list">
+                    <ul style="font-size: 1.6em;">
+                        <li>Primary access pattern involves range queries</li>
+                        <li>Need sorted output frequently</li>
+                        <li>Partial key searches required</li>
+                        <li>Data has high skew (non-uniform distribution)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: Summary -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Summary: Hash-Based Indexing</h2>
+            </div>
+            <div class="slide-content">
+                <h3>Key Takeaways</h3>
+                <div class="step-box">
+                    <strong>1. Static Hashing:</strong> Simple but suffers from fixed size and overflow chains
+                </div>
+                <div class="step-box">
+                    <strong>2. Extendable Hashing:</strong> Uses directory structure, doubles when needed, handles overflow elegantly
+                </div>
+                <div class="step-box">
+                    <strong>3. Linear Hashing:</strong> No directory, grows linearly, uses multiple hash functions
+                </div>
+                <div class="step-box">
+                    <strong>4. Performance:</strong> O(1) for equality searches but cannot handle range queries
+                </div>
+                <div class="step-box">
+                    <strong>5. Choice:</strong> Hash for equality, B+Tree for range and ordering
+                </div>
+
+                <div class="formula" style="margin-top: 40px; font-size: 1.8em;">
+                    Hash Indexing = Fast Equality Searches + Simple Implementation<br>
+                    - Range Query Support - Ordered Access
+                </div>
+
+                <h3 style="margin-top: 50px; text-align: center; color: #667eea;">
+                    Understanding the trade-offs is key to choosing the right indexing technique!
+                </h3>
+            </div>
+        </div>
+
+        <!-- Slide 21: Questions -->
+        <div class="slide title-slide">
+            <h1>Questions?</h1>
+            <h2 style="margin-top: 60px;">Hash-Based Indexing</h2>
+            <div class="instructor-info" style="margin-top: 80px;">
+                <p><strong>Dr. Mohsin Dar</strong></p>
+                <p>Assistant Professor</p>
+                <p>SOCS | UPES</p>
+                <p style="margin-top: 40px; font-size: 1.6em;">
+                    Next: Tree-Based Indexing Deep Dive
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">21</span>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" id="prev-btn" onclick="previousSlide()">← Previous</button>
+        <button class="nav-btn" id="next-btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+            
+            document.getElementById('prev-btn').disabled = currentSlide === 0;
+            document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousSlide();
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>
