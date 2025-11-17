@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PL/SQL Experiments - Database Systems</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .instructor-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 3px solid #667eea;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 20px 30px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            margin-bottom: -3px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .experiment {
+            display: none;
+        }
+
+        .experiment.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .exp-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .exp-header h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .exp-header .objective {
+            font-size: 1.1em;
+            font-style: italic;
+            opacity: 0.95;
+        }
+
+        .question {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 5px;
+        }
+
+        .question h3 {
+            color: #2a5298;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .code-container {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #444;
+        }
+
+        .code-label {
+            color: #4ec9b0;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+
+        .copy-btn.copied {
+            background: #28a745;
+        }
+
+        pre {
+            margin: 0;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .keyword { color: #569cd6; }
+        .string { color: #ce9178; }
+        .comment { color: #6a9955; font-style: italic; }
+        .function { color: #dcdcaa; }
+        .number { color: #b5cea8; }
+        .operator { color: #d4d4d4; }
+
+        .output-box {
+            background: #f0f8ff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .output-box h4 {
+            color: #2a5298;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .output-box pre {
+            color: #333;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .concept-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .concept-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .concept-box p {
+            color: #856404;
+            line-height: 1.6;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .info-box h4 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #0c5460;
+        }
+
+        .info-box li {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .tab {
+                padding: 15px 20px;
+                font-size: 0.95em;
+            }
+
+            .code-container {
+                padding: 15px;
+            }
+
+            pre {
+                font-size: 0.85em;
+            }
+        }
+
+        .footer {
+            background: #2a5298;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Database Systems - PL/SQL Experiments</h1>
+            <p>MTech First Semester | Cloud & Software Operations Cluster</p>
+            <div class="instructor-info">
+                <strong>Instructor:</strong> Dr. Mohsin Dar<br>
+                <strong>Designation:</strong> Assistant Professor<br>
+                <strong>Institution:</strong> SOCS | UPES
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showExperiment(0)">Experiment 13</button>
+            <button class="tab" onclick="showExperiment(1)">Experiment 14</button>
+            <button class="tab" onclick="showExperiment(2)">Experiment 15</button>
+        </div>
+
+        <div class="content">
+            <!-- EXPERIMENT 13 -->
+            <div class="experiment active">
+                <div class="exp-header">
+                    <h2>EXPERIMENT 13</h2>
+                    <h3>Understanding PL/SQL Programming Concepts</h3>
+                    <p class="objective"><strong>Objective:</strong> Students will be able to implement the basic concepts of PL/SQL</p>
+                </div>
+
+                <div class="concept-box">
+                    <h4>📚 What is PL/SQL?</h4>
+                    <p>PL/SQL (Procedural Language/Structured Query Language) is Oracle's procedural extension for SQL. It combines the data manipulation power of SQL with the processing power of procedural language. PL/SQL includes procedural language elements like conditions, loops, variables, functions, and procedures.</p>
+                </div>
+
+                <div class="info-box">
+                    <h4>🔑 Key PL/SQL Concepts Covered:</h4>
+                    <ul>
+                        <li><strong>Variables & Data Types:</strong> Declaration and initialization</li>
+                        <li><strong>Control Structures:</strong> IF-THEN-ELSE, loops</li>
+                        <li><strong>Loops:</strong> Simple loops, FOR loops, WHILE loops</li>
+                        <li><strong>Arithmetic Operations:</strong> Mathematical computations</li>
+                    </ul>
+                </div>
+
+                <!-- Question 1 -->
+                <div class="question">
+                    <h3>Q1. Compare Three Numbers (A, B, C) - Display the Greatest</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">PL/SQL Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- PL/SQL Block to find greatest of three numbers</span>
+<span class="keyword">DECLARE</span>
+    <span class="comment">-- Variable declarations</span>
+    a <span class="keyword">NUMBER</span>;
+    b <span class="keyword">NUMBER</span>;
+    c <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Accept values from user</span>
+    a := <span class="operator">&</span>a;
+    b := <span class="operator">&</span>b;
+    c := <span class="operator">&</span>c;
+    
+    <span class="comment">-- Display input values</span>
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'A = '</span> <span class="operator">||</span> a);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'B = '</span> <span class="operator">||</span> b);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'C = '</span> <span class="operator">||</span> c);
+    
+    <span class="comment">-- Compare and find greatest</span>
+    <span class="keyword">IF</span> (a <span class="operator">&gt;</span> b) <span class="keyword">AND</span> (a <span class="operator">&gt;</span> c) <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'A is the greatest: '</span> <span class="operator">||</span> a);
+    <span class="keyword">ELSIF</span> (b <span class="operator">&gt;</span> a) <span class="keyword">AND</span> (b <span class="operator">&gt;</span> c) <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'B is the greatest: '</span> <span class="operator">||</span> b);
+    <span class="keyword">ELSE</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'C is the greatest: '</span> <span class="operator">||</span> c);
+    <span class="keyword">END IF</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="output-box">
+                        <h4>📤 Expected Output (Example: A=15, B=27, C=19):</h4>
+                        <pre>A = 15
+B = 27
+C = 19
+B is the greatest: 27</pre>
+                    </div>
+                </div>
+
+                <!-- Question 2 -->
+                <div class="question">
+                    <h3>Q2. Simple Loop - Display Message 20 Times</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">PL/SQL Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Simple loop to display message 20 times</span>
+<span class="keyword">DECLARE</span>
+    counter <span class="keyword">NUMBER</span> := <span class="number">1</span>;
+<span class="keyword">BEGIN</span>
+    <span class="keyword">LOOP</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(counter <span class="operator">||</span> <span class="string">'. Welcome to PL/SQL Programming'</span>);
+        counter := counter <span class="operator">+</span> <span class="number">1</span>;
+        
+        <span class="comment">-- Exit condition</span>
+        <span class="keyword">EXIT WHEN</span> counter <span class="operator">&gt;</span> <span class="number">20</span>;
+    <span class="keyword">END LOOP</span>;
+    
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Loop completed successfully!'</span>);
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="output-box">
+                        <h4>📤 Expected Output:</h4>
+                        <pre>1. Welcome to PL/SQL Programming
+2. Welcome to PL/SQL Programming
+3. Welcome to PL/SQL Programming
+...
+20. Welcome to PL/SQL Programming
+Loop completed successfully!</pre>
+                    </div>
+                </div>
+
+                <!-- Question 3 -->
+                <div class="question">
+                    <h3>Q3. Calculate Factorial of a Number</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">PL/SQL Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Calculate factorial of a number</span>
+<span class="keyword">DECLARE</span>
+    num <span class="keyword">NUMBER</span>;
+    fact <span class="keyword">NUMBER</span> := <span class="number">1</span>;
+    i <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Accept number from user</span>
+    num := <span class="operator">&</span>num;
+    
+    <span class="comment">-- Check for negative number</span>
+    <span class="keyword">IF</span> num <span class="operator">&lt;</span> <span class="number">0</span> <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Factorial is not defined for negative numbers'</span>);
+    <span class="keyword">ELSIF</span> num <span class="operator">=</span> <span class="number">0</span> <span class="keyword">OR</span> num <span class="operator">=</span> <span class="number">1</span> <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Factorial of '</span> <span class="operator">||</span> num <span class="operator">||</span> <span class="string">' is: 1'</span>);
+    <span class="keyword">ELSE</span>
+        <span class="comment">-- Calculate factorial using FOR loop</span>
+        <span class="keyword">FOR</span> i <span class="keyword">IN</span> <span class="number">1</span>..<span class="operator">num</span> <span class="keyword">LOOP</span>
+            fact := fact <span class="operator">*</span> i;
+        <span class="keyword">END LOOP</span>;
+        
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Factorial of '</span> <span class="operator">||</span> num <span class="operator">||</span> <span class="string">' is: '</span> <span class="operator">||</span> fact);
+    <span class="keyword">END IF</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="output-box">
+                        <h4>📤 Expected Output (Example: num=5):</h4>
+                        <pre>Factorial of 5 is: 120
+
+Explanation: 5! = 5 × 4 × 3 × 2 × 1 = 120</pre>
+                    </div>
+                </div>
+
+                <!-- Question 4 -->
+                <div class="question">
+                    <h3>Q4. Generate Fibonacci Series</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">PL/SQL Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Generate Fibonacci series up to n terms</span>
+<span class="keyword">DECLARE</span>
+    n <span class="keyword">NUMBER</span>;
+    first <span class="keyword">NUMBER</span> := <span class="number">0</span>;
+    second <span class="keyword">NUMBER</span> := <span class="number">1</span>;
+    next <span class="keyword">NUMBER</span>;
+    i <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Accept number of terms</span>
+    n := <span class="operator">&</span>n;
+    
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Fibonacci Series up to '</span> <span class="operator">||</span> n <span class="operator">||</span> <span class="string">' terms:'</span>);
+    
+    <span class="keyword">IF</span> n <span class="operator">&gt;=</span> <span class="number">1</span> <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT</span>(<span class="operator">first</span> <span class="operator">||</span> <span class="string">' '</span>);
+    <span class="keyword">END IF</span>;
+    
+    <span class="keyword">IF</span> n <span class="operator">&gt;=</span> <span class="number">2</span> <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT</span>(<span class="operator">second</span> <span class="operator">||</span> <span class="string">' '</span>);
+    <span class="keyword">END IF</span>;
+    
+    <span class="comment">-- Generate remaining terms</span>
+    <span class="keyword">FOR</span> i <span class="keyword">IN</span> <span class="number">3</span>..<span class="operator">n</span> <span class="keyword">LOOP</span>
+        next := first <span class="operator">+</span> second;
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT</span>(<span class="operator">next</span> <span class="operator">||</span> <span class="string">' '</span>);
+        first := second;
+        second := next;
+    <span class="keyword">END LOOP</span>;
+    
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">NEW_LINE</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="output-box">
+                        <h4>📤 Expected Output (Example: n=10):</h4>
+                        <pre>Fibonacci Series up to 10 terms:
+0 1 1 2 3 5 8 13 21 34</pre>
+                    </div>
+                </div>
+
+                <!-- Question 5 -->
+                <div class="question">
+                    <h3>Q5. Sum of First N Natural Numbers</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">PL/SQL Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Calculate sum of first N natural numbers</span>
+<span class="keyword">DECLARE</span>
+    n <span class="keyword">NUMBER</span>;
+    sum_result <span class="keyword">NUMBER</span> := <span class="number">0</span>;
+    i <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Accept value of N</span>
+    n := <span class="operator">&</span>n;
+    
+    <span class="comment">-- Calculate sum using FOR loop</span>
+    <span class="keyword">FOR</span> i <span class="keyword">IN</span> <span class="number">1</span>..<span class="operator">n</span> <span class="keyword">LOOP</span>
+        sum_result := sum_result <span class="operator">+</span> i;
+    <span class="keyword">END LOOP</span>;
+    
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Sum of first '</span> <span class="operator">||</span> n <span class="operator">||</span> <span class="string">' natural numbers is: '</span> <span class="operator">||</span> sum_result);
+    
+    <span class="comment">-- Alternative: Using formula n(n+1)/2</span>
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Verification using formula: '</span> <span class="operator">||</span> (n<span class="operator">*</span>(n<span class="operator">+</span><span class="number">1</span>)<span class="operator">/</span><span class="number">2</span>));
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="output-box">
+                        <h4>📤 Expected Output (Example: n=10):</h4>
+                        <pre>Sum of first 10 natural numbers is: 55
+Verification using formula: 55
+
+Explanation: 1+2+3+4+5+6+7+8+9+10 = 55</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EXPERIMENT 14 -->
+            <div class="experiment">
+                <div class="exp-header">
+                    <h2>EXPERIMENT 14</h2>
+                    <h3>Functions and Procedures in PL/SQL</h3>
+                    <p class="objective"><strong>Objective:</strong> Students will be able to implement PL/SQL programs using functions and procedures</p>
+                </div>
+
+                <div class="concept-box">
+                    <h4>📚 Functions vs Procedures</h4>
+                    <p><strong>Procedure:</strong> A stored program that performs an action. It can have IN, OUT, and IN OUT parameters but doesn't return a value directly.<br><br>
+                    <strong>Function:</strong> A stored program that computes and returns a value. It must have a RETURN statement and returns exactly one value.</p>
+                </div>
+
+                <div class="info-box">
+                    <h4>🔑 Key Differences:</h4>
+                    <ul>
+                        <li><strong>Functions</strong> must return a value; <strong>Procedures</strong> are optional</li>
+                        <li><strong>Functions</strong> can be called in SQL statements; <strong>Procedures</strong> cannot</li>
+                        <li><strong>Procedures</strong> can return multiple values using OUT parameters</li>
+                        <li><strong>Functions</strong> are used for calculations; <strong>Procedures</strong> for performing actions</li>
+                    </ul>
+                </div>
+
+                <!-- Q1: Greatest of Three - Function -->
+                <div class="question">
+                    <h3>Q1. Compare Three Numbers - Using Function</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Function Creation</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Create function to find greatest of three numbers</span>
+<span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">find_greatest</span>(
+    a <span class="keyword">IN NUMBER</span>,
+    b <span class="keyword">IN NUMBER</span>,
+    c <span class="keyword">IN NUMBER</span>
+) <span class="keyword">RETURN NUMBER</span>
+<span class="keyword">IS</span>
+    greatest <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="keyword">IF</span> (a <span class="operator">&gt;</span> b) <span class="keyword">AND</span> (a <span class="operator">&gt;</span> c) <span class="keyword">THEN</span>
+        greatest := a;
+    <span class="keyword">ELSIF</span> (b <span class="operator">&gt;</span> a) <span class="keyword">AND</span> (b <span class="operator">&gt;</span> c) <span class="keyword">THEN</span>
+        greatest := b;
+    <span class="keyword">ELSE</span>
+        greatest := c;
+    <span class="keyword">END IF</span>;
+    
+    <span class="keyword">RETURN</span> greatest;
+<span class="keyword">END</span>;
+<span class="operator">/</span>
+
+<span class="comment">-- Call the function</span>
+<span class="keyword">DECLARE</span>
+    result <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    result := <span class="function">find_greatest</span>(<span class="number">15</span>, <span class="number">27</span>, <span class="number">19</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'The greatest number is: '</span> <span class="operator">||</span> result);
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Procedure Version</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Create procedure to find greatest of three numbers</span>
+<span class="keyword">CREATE OR REPLACE PROCEDURE</span> <span class="function">find_greatest_proc</span>(
+    a <span class="keyword">IN NUMBER</span>,
+    b <span class="keyword">IN NUMBER</span>,
+    c <span class="keyword">IN NUMBER</span>,
+    greatest <span class="keyword">OUT NUMBER</span>
+)
+<span class="keyword">IS</span>
+<span class="keyword">BEGIN</span>
+    <span class="keyword">IF</span> (a <span class="operator">&gt;</span> b) <span class="keyword">AND</span> (a <span class="operator">&gt;</span> c) <span class="keyword">THEN</span>
+        greatest := a;
+    <span class="keyword">ELSIF</span> (b <span class="operator">&gt;</span> a) <span class="keyword">AND</span> (b <span class="operator">&gt;</span> c) <span class="keyword">THEN</span>
+        greatest := b;
+    <span class="keyword">ELSE</span>
+        greatest := c;
+    <span class="keyword">END IF</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span>
+
+<span class="comment">-- Call the procedure</span>
+<span class="keyword">DECLARE</span>
+    result <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="function">find_greatest_proc</span>(<span class="number">15</span>, <span class="number">27</span>, <span class="number">19</span>, result);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'The greatest number is: '</span> <span class="operator">||</span> result);
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+                </div>
+
+                <!-- Q2: Loop Message - Procedure -->
+                <div class="question">
+                    <h3>Q2. Display Welcome Message 20 Times - Using Procedure</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Procedure Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Create procedure to display message N times</span>
+<span class="keyword">CREATE OR REPLACE PROCEDURE</span> <span class="function">display_welcome</span>(
+    times <span class="keyword">IN NUMBER DEFAULT 20</span>
+)
+<span class="keyword">IS</span>
+    counter <span class="keyword">NUMBER</span> := <span class="number">1</span>;
+<span class="keyword">BEGIN</span>
+    <span class="keyword">LOOP</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(counter <span class="operator">||</span> <span class="string">'. Welcome to PL/SQL Programming'</span>);
+        counter := counter <span class="operator">+</span> <span class="number">1</span>;
+        <span class="keyword">EXIT WHEN</span> counter <span class="operator">&gt;</span> times;
+    <span class="keyword">END LOOP</span>;
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Loop completed successfully!'</span>);
+<span class="keyword">END</span>;
+<span class="operator">/</span>
+
+<span class="comment">-- Call the procedure</span>
+<span class="keyword">BEGIN</span>
+    <span class="function">display_welcome</span>(<span class="number">20</span>);
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+                </div>
+
+                <!-- Q3: Factorial - Function -->
+                <div class="question">
+                    <h3>Q3. Calculate Factorial - Using Function</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Function Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Create function to calculate factorial</span>
+<span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">calculate_factorial</span>(
+    num <span class="keyword">IN NUMBER</span>
+) <span class="keyword">RETURN NUMBER</span>
+<span class="keyword">IS</span>
+    fact <span class="keyword">NUMBER</span> := <span class="number">1</span>;
+    i <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="keyword">IF</span> num <span class="operator">&lt;</span> <span class="number">0</span> <span class="keyword">THEN</span>
+        <span class="keyword">RETURN</span> <span class="operator">-</span><span class="number">1</span>; <span class="comment">-- Error indicator</span>
+    <span class="keyword">ELSIF</span> num <span class="operator">=</span> <span class="number">0</span> <span class="keyword">OR</span> num <span class="operator">=</span> <span class="number">1</span> <span class="keyword">THEN</span>
+        <span class="keyword">RETURN</span> <span class="number">1</span>;
+    <span class="keyword">ELSE</span>
+        <span class="keyword">FOR</span> i <span class="keyword">IN</span> <span class="number">1</span>..<span class="operator">num</span> <span class="keyword">LOOP</span>
+            fact := fact <span class="operator">*</span> i;
+        <span class="keyword">END LOOP</span>;
+        <span class="keyword">RETURN</span> fact;
+    <span class="keyword">END IF</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span>
+
+<span class="comment">-- Call the function</span>
+<span class="keyword">DECLARE</span>
+    result <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    result := <span class="function">calculate_factorial</span>(<span class="number">5</span>);
+    <span class="keyword">IF</span> result <span class="operator">=</span> <span class="operator">-</span><span class="number">1</span> <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Error: Factorial undefined for negative numbers'</span>);
+    <span class="keyword">ELSE</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Factorial is: '</span> <span class="operator">||</span> result);
+    <span class="keyword">END IF</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+                </div>
+
+                <!-- Q4: Fibonacci - Procedure -->
+                <div class="question">
+                    <h3>Q4. Generate Fibonacci Series - Using Procedure</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Procedure Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Create procedure to generate Fibonacci series</span>
+<span class="keyword">CREATE OR REPLACE PROCEDURE</span> <span class="function">generate_fibonacci</span>(
+    n <span class="keyword">IN NUMBER</span>
+)
+<span class="keyword">IS</span>
+    first <span class="keyword">NUMBER</span> := <span class="number">0</span>;
+    second <span class="keyword">NUMBER</span> := <span class="number">1</span>;
+    next <span class="keyword">NUMBER</span>;
+    i <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Fibonacci Series up to '</span> <span class="operator">||</span> n <span class="operator">||</span> <span class="string">' terms:'</span>);
+    
+    <span class="keyword">IF</span> n <span class="operator">&gt;=</span> <span class="number">1</span> <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT</span>(<span class="operator">first</span> <span class="operator">||</span> <span class="string">' '</span>);
+    <span class="keyword">END IF</span>;
+    
+    <span class="keyword">IF</span> n <span class="operator">&gt;=</span> <span class="number">2</span> <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT</span>(<span class="operator">second</span> <span class="operator">||</span> <span class="string">' '</span>);
+    <span class="keyword">END IF</span>;
+    
+    <span class="keyword">FOR</span> i <span class="keyword">IN</span> <span class="number">3</span>..<span class="operator">n</span> <span class="keyword">LOOP</span>
+        next := first <span class="operator">+</span> second;
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT</span>(<span class="operator">next</span> <span class="operator">||</span> <span class="string">' '</span>);
+        first := second;
+        second := next;
+    <span class="keyword">END LOOP</span>;
+    
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">NEW_LINE</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span>
+
+<span class="comment">-- Call the procedure</span>
+<span class="keyword">BEGIN</span>
+    <span class="function">generate_fibonacci</span>(<span class="number">10</span>);
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+                </div>
+
+                <!-- Q5: Sum - Function -->
+                <div class="question">
+                    <h3>Q5. Sum of First N Numbers - Using Function</h3>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Function Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Create function to calculate sum of first N numbers</span>
+<span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">sum_of_n_numbers</span>(
+    n <span class="keyword">IN NUMBER</span>
+) <span class="keyword">RETURN NUMBER</span>
+<span class="keyword">IS</span>
+    sum_result <span class="keyword">NUMBER</span> := <span class="number">0</span>;
+    i <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="keyword">FOR</span> i <span class="keyword">IN</span> <span class="number">1</span>..<span class="operator">n</span> <span class="keyword">LOOP</span>
+        sum_result := sum_result <span class="operator">+</span> i;
+    <span class="keyword">END LOOP</span>;
+    
+    <span class="keyword">RETURN</span> sum_result;
+<span class="keyword">END</span>;
+<span class="operator">/</span>
+
+<span class="comment">-- Call the function</span>
+<span class="keyword">DECLARE</span>
+    result <span class="keyword">NUMBER</span>;
+    n <span class="keyword">NUMBER</span> := <span class="number">10</span>;
+<span class="keyword">BEGIN</span>
+    result := <span class="function">sum_of_n_numbers</span>(n);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Sum of first '</span> <span class="operator">||</span> n <span class="operator">||</span> <span class="string">' numbers is: '</span> <span class="operator">||</span> result);
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EXPERIMENT 15 -->
+            <div class="experiment">
+                <div class="exp-header">
+                    <h2>EXPERIMENT 15</h2>
+                    <h3>Implicit and Explicit Cursors</h3>
+                    <p class="objective"><strong>Objective:</strong> Students will be able to implement the concept of implicit and explicit cursor</p>
+                </div>
+
+                <div class="concept-box">
+                    <h4>📚 Understanding Cursors</h4>
+                    <p><strong>Cursor:</strong> A cursor is a pointer to a context area that holds the rows returned by a SQL statement. It allows you to process query results row by row.<br><br>
+                    <strong>Implicit Cursor:</strong> Automatically created by Oracle for all DML statements (INSERT, UPDATE, DELETE) and SELECT INTO statements.<br><br>
+                    <strong>Explicit Cursor:</strong> Programmer-defined cursor for queries returning multiple rows. Provides more control over the context area.</p>
+                </div>
+
+                <div class="info-box">
+                    <h4>🔑 Cursor Attributes:</h4>
+                    <ul>
+                        <li><strong>%FOUND:</strong> Returns TRUE if DML statement affected one or more rows</li>
+                        <li><strong>%NOTFOUND:</strong> Returns TRUE if DML statement affected no rows</li>
+                        <li><strong>%ROWCOUNT:</strong> Returns number of rows affected by DML statement</li>
+                        <li><strong>%ISOPEN:</strong> Returns TRUE if cursor is open (explicit cursors only)</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h4>📋 Explicit Cursor Operations:</h4>
+                    <ul>
+                        <li><strong>DECLARE:</strong> Define the cursor with a SELECT statement</li>
+                        <li><strong>OPEN:</strong> Execute the query and establish the result set</li>
+                        <li><strong>FETCH:</strong> Retrieve rows from the result set one at a time</li>
+                        <li><strong>CLOSE:</strong> Release the cursor and free resources</li>
+                    </ul>
+                </div>
+
+                <!-- Question 1: Implicit Cursor -->
+                <div class="question">
+                    <h3>Q1. Update Salary Using Implicit Cursor</h3>
+                    <p><strong>Task:</strong> Update salary by 10% increase for all EMPLOYEES and display number of records updated. Display "No Change" if no records exist.</p>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Setup: Create EMPLOYEES Table</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Create EMPLOYEES table for demonstration</span>
+<span class="keyword">CREATE TABLE</span> EMPLOYEES (
+    employee_id <span class="keyword">NUMBER PRIMARY KEY</span>,
+    first_name <span class="keyword">VARCHAR2</span>(<span class="number">50</span>),
+    last_name <span class="keyword">VARCHAR2</span>(<span class="number">50</span>),
+    salary <span class="keyword">NUMBER</span>(<span class="number">10</span>,<span class="number">2</span>)
+);
+
+<span class="comment">-- Insert sample data</span>
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span>(<span class="number">101</span>, <span class="string">'John'</span>, <span class="string">'Doe'</span>, <span class="number">5000</span>);
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span>(<span class="number">102</span>, <span class="string">'Jane'</span>, <span class="string">'Smith'</span>, <span class="number">6000</span>);
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span>(<span class="number">103</span>, <span class="string">'Mike'</span>, <span class="string">'Johnson'</span>, <span class="number">4500</span>);
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span>(<span class="number">104</span>, <span class="string">'Sarah'</span>, <span class="string">'Williams'</span>, <span class="number">7000</span>);
+<span class="keyword">COMMIT</span>;</code></pre>
+                    </div>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Implicit Cursor Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Use implicit cursor to update salary</span>
+<span class="keyword">DECLARE</span>
+    rows_updated <span class="keyword">NUMBER</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Update all employee salaries by 10%</span>
+    <span class="keyword">UPDATE</span> EMPLOYEES
+    <span class="keyword">SET</span> salary = salary <span class="operator">*</span> <span class="number">1.10</span>;
+    
+    <span class="comment">-- SQL%ROWCOUNT is an implicit cursor attribute</span>
+    rows_updated := <span class="keyword">SQL%ROWCOUNT</span>;
+    
+    <span class="comment">-- Check if any rows were updated</span>
+    <span class="keyword">IF</span> rows_updated <span class="operator">=</span> <span class="number">0</span> <span class="keyword">THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'No Change'</span>);
+    <span class="keyword">ELSE</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Number of records updated: '</span> <span class="operator">||</span> rows_updated);
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'All salaries increased by 10%'</span>);
+    <span class="keyword">END IF</span>;
+    
+    <span class="keyword">COMMIT</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="output-box">
+                        <h4>📤 Expected Output:</h4>
+                        <pre>Number of records updated: 4
+All salaries increased by 10%</pre>
+                    </div>
+                </div>
+
+                <!-- Question 2: Explicit Cursor - Fetch -->
+                <div class="question">
+                    <h3>Q2. Fetch Employee Details Using Explicit Cursor</h3>
+                    <p><strong>Task:</strong> Fetch employee_name, employee_id, and salary from EMPLOYEES table using explicit cursor.</p>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Explicit Cursor Code</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Fetch employee details using explicit cursor</span>
+<span class="keyword">DECLARE</span>
+    <span class="comment">-- Declare cursor</span>
+    <span class="keyword">CURSOR</span> emp_cursor <span class="keyword">IS</span>
+        <span class="keyword">SELECT</span> employee_id, first_name, last_name, salary
+        <span class="keyword">FROM</span> EMPLOYEES
+        <span class="keyword">ORDER BY</span> employee_id;
+    
+    <span class="comment">-- Variables to hold cursor data</span>
+    v_emp_id EMPLOYEES.employee_id<span class="operator">%</span><span class="keyword">TYPE</span>;
+    v_first_name EMPLOYEES.first_name<span class="operator">%</span><span class="keyword">TYPE</span>;
+    v_last_name EMPLOYEES.last_name<span class="operator">%</span><span class="keyword">TYPE</span>;
+    v_salary EMPLOYEES.salary<span class="operator">%</span><span class="keyword">TYPE</span>;
+    
+<span class="keyword">BEGIN</span>
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Employee Details:'</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'=================='</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">''</span>);
+    
+    <span class="comment">-- Open the cursor</span>
+    <span class="keyword">OPEN</span> emp_cursor;
+    
+    <span class="comment">-- Fetch rows in a loop</span>
+    <span class="keyword">LOOP</span>
+        <span class="keyword">FETCH</span> emp_cursor <span class="keyword">INTO</span> v_emp_id, v_first_name, v_last_name, v_salary;
+        
+        <span class="comment">-- Exit when no more rows</span>
+        <span class="keyword">EXIT WHEN</span> emp_cursor<span class="operator">%</span><span class="keyword">NOTFOUND</span>;
+        
+        <span class="comment">-- Display employee information</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Employee ID: '</span> <span class="operator">||</span> v_emp_id);
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Name: '</span> <span class="operator">||</span> v_first_name <span class="operator">||</span> <span class="string">' '</span> <span class="operator">||</span> v_last_name);
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Salary: </span> <span class="operator">||</span> v_salary);
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'------------------'</span>);
+    <span class="keyword">END LOOP</span>;
+    
+    <span class="comment">-- Display total records processed</span>
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">''</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Total records fetched: '</span> <span class="operator">||</span> emp_cursor<span class="operator">%</span><span class="keyword">ROWCOUNT</span>);
+    
+    <span class="comment">-- Close the cursor</span>
+    <span class="keyword">CLOSE</span> emp_cursor;
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="output-box">
+                        <h4>📤 Expected Output:</h4>
+                        <pre>Employee Details:
+==================
+
+Employee ID: 101
+Name: John Doe
+Salary: $5500
+------------------
+Employee ID: 102
+Name: Jane Smith
+Salary: $6600
+------------------
+Employee ID: 103
+Name: Mike Johnson
+Salary: $4950
+------------------
+Employee ID: 104
+Name: Sarah Williams
+Salary: $7700
+------------------
+
+Total records fetched: 4</pre>
+                    </div>
+                </div>
+
+                <!-- Question 3: Explicit Cursor - Insert -->
+                <div class="question">
+                    <h3>Q3. Insert High-Salary Employees into TEMP_EMP Using Explicit Cursor</h3>
+                    <p><strong>Task:</strong> Insert records from EMPLOYEES where salary > 2500 into TEMP_EMP table using explicit cursor.</p>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Create TEMP_EMP Table</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Create TEMP_EMP table</span>
+<span class="keyword">CREATE TABLE</span> TEMP_EMP (
+    employee_id <span class="keyword">NUMBER</span>,
+    last_name <span class="keyword">VARCHAR2</span>(<span class="number">50</span>),
+    salary <span class="keyword">NUMBER</span>(<span class="number">10</span>,<span class="number">2</span>)
+);</code></pre>
+                    </div>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Explicit Cursor with Insert</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Insert high-salary employees using explicit cursor</span>
+<span class="keyword">DECLARE</span>
+    <span class="comment">-- Declare cursor for employees with salary > 2500</span>
+    <span class="keyword">CURSOR</span> high_salary_cursor <span class="keyword">IS</span>
+        <span class="keyword">SELECT</span> employee_id, last_name, salary
+        <span class="keyword">FROM</span> EMPLOYEES
+        <span class="keyword">WHERE</span> salary <span class="operator">&gt;</span> <span class="number">2500</span>
+        <span class="keyword">ORDER BY</span> salary <span class="keyword">DESC</span>;
+    
+    <span class="comment">-- Record variable to hold cursor data</span>
+    emp_rec high_salary_cursor<span class="operator">%</span><span class="keyword">ROWTYPE</span>;
+    records_inserted <span class="keyword">NUMBER</span> := <span class="number">0</span>;
+    
+<span class="keyword">BEGIN</span>
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Inserting high-salary employees into TEMP_EMP...'</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'================================================'</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">''</span>);
+    
+    <span class="comment">-- Open the cursor</span>
+    <span class="keyword">OPEN</span> high_salary_cursor;
+    
+    <span class="comment">-- Fetch and insert records</span>
+    <span class="keyword">LOOP</span>
+        <span class="keyword">FETCH</span> high_salary_cursor <span class="keyword">INTO</span> emp_rec;
+        
+        <span class="comment">-- Exit when no more rows</span>
+        <span class="keyword">EXIT WHEN</span> high_salary_cursor<span class="operator">%</span><span class="keyword">NOTFOUND</span>;
+        
+        <span class="comment">-- Insert into TEMP_EMP table</span>
+        <span class="keyword">INSERT INTO</span> TEMP_EMP (employee_id, last_name, salary)
+        <span class="keyword">VALUES</span> (emp_rec.employee_id, emp_rec.last_name, emp_rec.salary);
+        
+        records_inserted := records_inserted <span class="operator">+</span> <span class="number">1</span>;
+        
+        <span class="comment">-- Display inserted record</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Inserted: ID='</span> <span class="operator">||</span> emp_rec.employee_id <span class="operator">||</span> 
+                                      <span class="string">', Name='</span> <span class="operator">||</span> emp_rec.last_name <span class="operator">||</span> 
+                                      <span class="string">', Salary=</span> <span class="operator">||</span> emp_rec.salary);
+    <span class="keyword">END LOOP</span>;
+    
+    <span class="comment">-- Close the cursor</span>
+    <span class="keyword">CLOSE</span> high_salary_cursor;
+    
+    <span class="comment">-- Commit the transaction</span>
+    <span class="keyword">COMMIT</span>;
+    
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">''</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'================================================'</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Total records inserted into TEMP_EMP: '</span> <span class="operator">||</span> records_inserted);
+    
+<span class="keyword">EXCEPTION</span>
+    <span class="keyword">WHEN OTHERS THEN</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Error: '</span> <span class="operator">||</span> <span class="keyword">SQLERRM</span>);
+        <span class="keyword">ROLLBACK</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+
+                    <div class="output-box">
+                        <h4>📤 Expected Output:</h4>
+                        <pre>Inserting high-salary employees into TEMP_EMP...
+================================================
+
+Inserted: ID=104, Name=Williams, Salary=$7700
+Inserted: ID=102, Name=Smith, Salary=$6600
+Inserted: ID=101, Name=Doe, Salary=$5500
+Inserted: ID=103, Name=Johnson, Salary=$4950
+
+================================================
+Total records inserted into TEMP_EMP: 4</pre>
+                    </div>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Verify TEMP_EMP Data</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Verify the inserted data</span>
+<span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> TEMP_EMP <span class="keyword">ORDER BY</span> salary <span class="keyword">DESC</span>;</code></pre>
+                    </div>
+                </div>
+
+                <div class="concept-box">
+                    <h4>💡 Cursor Best Practices</h4>
+                    <p>
+                    <strong>1. Always close cursors:</strong> Free up memory and resources<br>
+                    <strong>2. Use %ROWTYPE:</strong> Automatically matches table structure<br>
+                    <strong>3. Handle exceptions:</strong> Use EXCEPTION blocks for error handling<br>
+                    <strong>4. Check %NOTFOUND:</strong> Always check before processing data<br>
+                    <strong>5. Use FOR loops:</strong> Simplifies cursor handling (auto open/close)
+                    </p>
+                </div>
+
+                <div class="question">
+                    <h3>Bonus: Cursor FOR Loop Example</h3>
+                    <p>A simplified way to use explicit cursors with automatic opening, fetching, and closing.</p>
+                    
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="code-label">Cursor FOR Loop</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                        </div>
+                        <pre><code><span class="comment">-- Simplified cursor handling with FOR loop</span>
+<span class="keyword">DECLARE</span>
+    <span class="keyword">CURSOR</span> emp_cursor <span class="keyword">IS</span>
+        <span class="keyword">SELECT</span> employee_id, first_name, last_name, salary
+        <span class="keyword">FROM</span> EMPLOYEES;
+<span class="keyword">BEGIN</span>
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'Employee List (Using FOR Loop):'</span>);
+    <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(<span class="string">'================================'</span>);
+    
+    <span class="comment">-- Cursor FOR loop automatically opens, fetches, and closes</span>
+    <span class="keyword">FOR</span> emp_rec <span class="keyword">IN</span> emp_cursor <span class="keyword">LOOP</span>
+        <span class="function">DBMS_OUTPUT</span>.<span class="function">PUT_LINE</span>(
+            emp_rec.employee_id <span class="operator">||</span> <span class="string">' - '</span> <span class="operator">||</span> 
+            emp_rec.first_name <span class="operator">||</span> <span class="string">' '</span> <span class="operator">||</span> 
+            emp_rec.last_name <span class="operator">||</span> <span class="string">' - </span> <span class="operator">||</span> 
+            emp_rec.salary
+        );
+    <span class="keyword">END LOOP</span>;
+<span class="keyword">END</span>;
+<span class="operator">/</span></code></pre>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h4>📊 Comparison: Implicit vs Explicit Cursors</h4>
+                    <ul>
+                        <li><strong>Implicit:</strong> Automatic, used for single row operations, less control</li>
+                        <li><strong>Explicit:</strong> Manual control, used for multiple rows, more flexible</li>
+                        <li><strong>Use Implicit when:</strong> Working with single row DML operations</li>
+                        <li><strong>Use Explicit when:</strong> Processing multiple rows, need fine control over fetching</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Database Systems - PL/SQL Experiments | MTech First Semester</p>
+            <p>Dr. Mohsin Dar | Assistant Professor | SOCS | UPES</p>
+            <p>&copy; 2025 - Educational Material for Academic Use</p>
+        </div>
+    </div>
+
+    <script>
+        function showExperiment(index) {
+            // Hide all experiments
+            const experiments = document.querySelectorAll('.experiment');
+            experiments.forEach(exp => exp.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected experiment
+            experiments[index].classList.add('active');
+            tabs[index].classList.add('active');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function copyCode(button) {
+            // Find the code element
+            const codeContainer = button.closest('.code-container');
+            const codeElement = codeContainer.querySelector('pre code');
+            const codeText = codeElement.innerText;
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(codeText).then(() => {
+                // Change button text temporarily
+                const originalText = button.innerText;
+                button.innerText = 'Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerText = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy code. Please copy manually.');
+            });
+        }
+
+        // Enable DBMS_OUTPUT equivalent for demonstration
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('PL/SQL Experiments Presentation Loaded');
+            console.log('Navigate between experiments using the tabs above');
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            const tabs = document.querySelectorAll('.tab');
+            const activeIndex = Array.from(tabs).findIndex(tab => tab.classList.contains('active'));
+            
+            if (e.key === 'ArrowRight' && activeIndex < tabs.length - 1) {
+                showExperiment(activeIndex + 1);
+            } else if (e.key === 'ArrowLeft' && activeIndex > 0) {
+                showExperiment(activeIndex - 1);
+            }
+        });
+
+        // Add smooth scrolling for all internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Print functionality
+        function printPresentation() {
+            window.print();
+        }
+
+        // Add keyboard shortcut for printing (Ctrl+P)
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                printPresentation();
+            }
+        });
+    </script>
+</body>
+</html>
