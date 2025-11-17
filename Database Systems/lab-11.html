@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXPERIMENT-11: SQL Indexes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .instructor-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .instructor-info p {
+            color: #333;
+            margin: 5px 0;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            background: #667eea;
+            color: white;
+        }
+
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .slide {
+            display: none;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideIn 0.5s ease;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .slide h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        .slide p, .slide li {
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .slide ul {
+            margin-left: 25px;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .code-header {
+            background: #1e1e1e;
+            color: #aaa;
+            padding: 8px 15px;
+            border-radius: 10px 10px 0 0;
+            margin: -20px -20px 15px -20px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .keyword {
+            color: #ff79c6;
+        }
+
+        .string {
+            color: #50fa7b;
+        }
+
+        .function {
+            color: #8be9fd;
+        }
+
+        .comment {
+            color: #6272a4;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 5px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .info-box h4 {
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .success-box h4 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .schema-diagram {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #dee2e6;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .interactive-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 25px 0;
+        }
+
+        .quiz-option {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .quiz-option.incorrect {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .slide-counter {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .slide {
+                padding: 20px;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 EXPERIMENT-11</h1>
+            <div class="subtitle">Understanding and Implementing SQL Indexes</div>
+            <div class="instructor-info">
+                <p><strong>Instructor:</strong> Dr. Mohsin Dar</p>
+                <p><strong>Position:</strong> Assistant Professor, Cloud & Software Operations Cluster (SOCS)</p>
+                <p><strong>Institution:</strong> UPES</p>
+                <p><strong>Course:</strong> Database Systems - MTech First Semester</p>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <button class="nav-btn active" onclick="showSlide(0)">Introduction</button>
+            <button class="nav-btn" onclick="showSlide(1)">Table Creation</button>
+            <button class="nav-btn" onclick="showSlide(2)">Basic Indexes</button>
+            <button class="nav-btn" onclick="showSlide(3)">Unique Index</button>
+            <button class="nav-btn" onclick="showSlide(4)">Function-based Index</button>
+            <button class="nav-btn" onclick="showSlide(5)">Index Management</button>
+            <button class="nav-btn" onclick="showSlide(6)">Quiz</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+
+        <!-- Slide 0: Introduction -->
+        <div class="slide active" id="slide0">
+            <h2>📚 Introduction to SQL Indexes</h2>
+            
+            <h3>What is a Database Index?</h3>
+            <p>An index is a database object that improves the speed of data retrieval operations on a database table. It works similarly to an index in a book, allowing the database to find data without having to scan the entire table.</p>
+
+            <div class="info-box">
+                <h4>💡 Key Benefits of Indexes</h4>
+                <ul>
+                    <li><strong>Faster Searches:</strong> Quickly locate data without scanning the entire table</li>
+                    <li><strong>Improved Performance:</strong> Speed up SELECT queries and WHERE clauses</li>
+                    <li><strong>Efficient Sorting:</strong> Speed up ORDER BY operations</li>
+                    <li><strong>Primary Key Enforcement:</strong> Automatically created for PRIMARY KEY and UNIQUE constraints</li>
+                </ul>
+            </div>
+
+            <h3>EMPLOYEES Table Schema</h3>
+            <div class="schema-diagram">
+                <h4>Table: EMPLOYEES</h4>
+                <table>
+                    <tr>
+                        <th>Column Name</th>
+                        <th>Data Type</th>
+                        <th>Width</th>
+                        <th>Attributes</th>
+                    </tr>
+                    <tr>
+                        <td>Employee_id</td>
+                        <td>CHAR</td>
+                        <td>10</td>
+                        <td>PRIMARY KEY</td>
+                    </tr>
+                    <tr>
+                        <td>First_Name</td>
+                        <td>VARCHAR</td>
+                        <td>30</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>Last_Name</td>
+                        <td>VARCHAR</td>
+                        <td>30</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>DOB</td>
+                        <td>DATE</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Salary</td>
+                        <td>NUMBER</td>
+                        <td>25</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>Department_id</td>
+                        <td>CHAR</td>
+                        <td>10</td>
+                        <td>-</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="warning-box">
+                <h4>⚠️ Important Notes</h4>
+                <ul>
+                    <li>Indexes improve read performance but can slow down write operations (INSERT, UPDATE, DELETE)</li>
+                    <li>Use indexes on columns frequently used in WHERE, JOIN, and ORDER BY clauses</li>
+                    <li>Avoid over-indexing as it consumes additional storage space</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 1: Table Creation -->
+        <div class="slide" id="slide1">
+            <h2>📝 Creating the EMPLOYEES Table</h2>
+            
+            <h3>Table Creation SQL</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE TABLE</span> EMPLOYEES (
+    Employee_id <span class="keyword">CHAR</span>(10) <span class="keyword">PRIMARY KEY</span>,
+    First_Name <span class="keyword">VARCHAR</span>(30) <span class="keyword">NOT NULL</span>,
+    Last_Name <span class="keyword">VARCHAR</span>(30) <span class="keyword">NOT NULL</span>,
+    DOB <span class="keyword">DATE</span>,
+    Salary <span class="keyword">NUMBER</span>(25) <span class="keyword">NOT NULL</span>,
+    Department_id <span class="keyword">CHAR</span>(10)
+);</pre>
+            </div>
+
+            <h3>Inserting Sample Data</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Inserting sample data into EMPLOYEES table</span>
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> (<span class="string">'E1001'</span>, <span class="string">'John'</span>, <span class="string">'Doe'</span>, <span class="string">'1990-05-15'</span>, 75000, <span class="string">'D101'</span>);
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> (<span class="string">'E1002'</span>, <span class="string">'Jane'</span>, <span class="string">'Smith'</span>, <span class="string">'1985-08-22'</span>, 85000, <span class="string">'D101'</span>);
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> (<span class="string">'E1003'</span>, <span class="string">'Robert'</span>, <span class="string">'Johnson'</span>, <span class="string">'1992-03-10'</span>, 65000, <span class="string">'D102'</span>);
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> (<span class="string">'E1004'</span>, <span class="string">'Emily'</span>, <span class="string">'Williams'</span>, <span class="string">'1988-11-05'</span>, 90000, <span class="string">'D103'</span>);
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> (<span class="string">'E1005'</span>, <span class="string">'Michael'</span>, <span class="string">'Brown'</span>, <span class="string">'1991-07-18'</span>, 72000, <span class="string">'D102'</span>);
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> (<span class="string">'E1006'</span>, <span class="string">'Sarah'</span>, <span class="string">'Davis'</span>, <span class="string">'1993-09-25'</span>, 78000, <span class="string">'D101'</span>);</pre>
+            </div>
+
+            <div class="info-box">
+                <h4>📋 Table Created Successfully</h4>
+                <p>The EMPLOYEES table has been created with 6 sample records. This table will be used to demonstrate different types of indexes in the following sections.</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Basic Indexes -->
+        <div class="slide" id="slide2">
+            <h2>🔍 Creating Basic Indexes</h2>
+            
+            <h3>1. Creating a Simple Index</h3>
+            <p>Let's create an index on the Last_Name and Department_id columns to speed up searches on these columns.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Create an index on Last_Name and Department_id columns</span>
+<span class="keyword">CREATE INDEX</span> employee_idx <span class="keyword">ON</span> EMPLOYEES(Last_Name, Department_id);</pre>
+            </div>
+
+            <h3>2. Finding ROWID</h3>
+            <p>ROWID is a pseudo-column that returns the address of each row in the database table. Let's find the ROWID for our EMPLOYEES table.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Query to find ROWID for the EMPLOYEES table</span>
+<span class="keyword">SELECT</span> ROWID, Employee_id, First_Name, Last_Name 
+<span class="keyword">FROM</span> EMPLOYEES;</pre>
+            </div>
+
+            <div class="info-box">
+                <h4>💡 About ROWID</h4>
+                <ul>
+                    <li>ROWID is a unique identifier for each row in a database</li>
+                    <li>It represents the physical location of a row</li>
+                    <li>ROWID is the fastest way to access a single row</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 3: Unique Index -->
+        <div class="slide" id="slide3">
+            <h2>🔑 Unique and Reverse Indexes</h2>
+            
+            <h3>1. Creating a Unique Index</h3>
+            <p>Let's create a unique index on the Employee_id column to ensure there are no duplicate employee IDs.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Create a unique index on Employee_id</span>
+<span class="keyword">CREATE UNIQUE INDEX</span> emp_id_idx <span class="keyword">ON</span> EMPLOYEES(Employee_id);</pre>
+            </div>
+
+            <h3>2. Creating a Reverse Key Index</h3>
+            <p>A reverse key index stores the bytes of the indexed column in reverse order. This is useful for columns with sequential values to avoid I/O bottlenecks.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Create a reverse key index on Employee_id</span>
+<span class="keyword">CREATE INDEX</span> emp_id_reverse_idx <span class="keyword">ON</span> EMPLOYEES(Employee_id) <span class="keyword">REVERSE</span>;</pre>
+            </div>
+
+            <h3>3. Creating a Composite Unique Index</h3>
+            <p>Let's create a composite unique index on multiple columns to ensure the combination is unique.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Create a composite unique index on First_Name and Last_Name</span>
+<span class="keyword">CREATE UNIQUE INDEX</span> emp_name_unique_idx <span class="keyword">ON</span> EMPLOYEES(First_Name, Last_Name);</pre>
+            </div>
+
+            <div class="warning-box">
+                <h4>⚠️ Note on Unique Indexes</h4>
+                <p>Attempting to insert duplicate values in columns with a unique index will result in an error. For example, trying to insert another employee with the same Employee_id will fail.</p>
+            </div>
+        </div>
+
+        <!-- Slide 4: Function-based Index -->
+        <div class="slide" id="slide4">
+            <h2>🔧 Function-based Indexes</h2>
+            
+            <h3>1. Creating a Function-based Index</h3>
+            <p>Function-based indexes allow you to create indexes on the results of functions or expressions. This is useful for case-insensitive searches.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Create a function-based index for case-insensitive search on Last_Name</span>
+<span class="keyword">CREATE INDEX</span> emp_lastname_upper_idx <span class="keyword">ON</span> EMPLOYEES(<span class="function">UPPER</span>(Last_Name));</pre>
+            </div>
+
+            <h3>2. Using the Function-based Index</h3>
+            <p>Now you can perform case-insensitive searches efficiently:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- This query will use the function-based index</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> EMPLOYEES 
+<span class="keyword">WHERE</span> <span class="function">UPPER</span>(Last_Name) = <span class="string">'SMITH'</span>;</pre>
+            </div>
+
+            <div class="info-box">
+                <h4>💡 When to Use Function-based Indexes</h4>
+                <ul>
+                    <li>Case-insensitive searches</li>
+                    <li>Searching with string functions (e.g., UPPER, LOWER, SUBSTR)</li>
+                    <li>Mathematical expressions in WHERE clauses</li>
+                    <li>Date manipulations in queries</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 5: Index Management -->
+        <div class="slide" id="slide5">
+            <h2>🛠️ Managing Indexes</h2>
+            
+            <h3>1. Viewing Existing Indexes</h3>
+            <p>Let's see all the indexes we've created on the EMPLOYEES table.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (Oracle)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- For Oracle</span>
+<span class="keyword">SELECT</span> index_name, index_type, uniqueness, status
+<span class="keyword">FROM</span> user_indexes
+<span class="keyword">WHERE</span> table_name = <span class="string">'EMPLOYEES'</span>;</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (MySQL)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- For MySQL</span>
+<span class="keyword">SHOW</span> <span class="keyword">INDEX</span> <span class="keyword">FROM</span> EMPLOYEES;</pre>
+            </div>
+
+            <h3>2. Dropping an Index</h3>
+            <p>Let's drop the function-based index we created earlier.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Drop the function-based index</span>
+<span class="keyword">DROP INDEX</span> emp_lastname_upper_idx;</pre>
+            </div>
+
+            <h3>3. Checking Index Usage</h3>
+            <p>It's important to monitor whether your indexes are being used effectively.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (Oracle)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Check if indexes are being used (Oracle)</span>
+<span class="keyword">SELECT</span> name, used 
+<span class="keyword">FROM</span> v$object_usage 
+<span class="keyword">WHERE</span> index_name = <span class="string">'EMPLOYEE_IDX'</span>;</pre>
+            </div>
+
+            <div class="success-box">
+                <h4>✅ Best Practices for Index Management</h4>
+                <ul>
+                    <li>Regularly monitor and remove unused indexes</li>
+                    <li>Rebuild or reorganize fragmented indexes</li>
+                    <li>Consider the overhead of indexes on DML operations</li>
+                    <li>Use the EXPLAIN PLAN to verify index usage</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 6: Quiz -->
+        <div class="slide" id="slide6">
+            <h2>🧠 Knowledge Check Quiz</h2>
+            
+            <div class="interactive-section">
+                <h3>Question 1: What is the purpose of a database index?</h3>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    <strong>A.</strong> To improve the speed of data retrieval operations
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>B.</strong> To store additional data about tables
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>C.</strong> To create relationships between tables
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>D.</strong> To back up table data
+                </div>
+
+                <h3>Question 2: Which of the following statements creates a function-based index?</h3>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>A.</strong> CREATE INDEX idx_name ON employees(last_name);
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    <strong>B.</strong> CREATE INDEX idx_upper_name ON employees(UPPER(last_name));
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>C.</strong> CREATE UNIQUE INDEX idx_id ON employees(employee_id);
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>D.</strong> CREATE INDEX idx_dept ON employees(department_id) REVERSE;
+                </div>
+
+                <h3>Question 3: What is the main disadvantage of having too many indexes?</h3>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>A.</strong> They take up too much disk space
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>B.</strong> They slow down SELECT queries
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    <strong>C.</strong> They slow down INSERT, UPDATE, and DELETE operations
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>D.</strong> They make the database harder to back up
+                </div>
+
+                <button class="nav-btn" style="margin-top: 20px;" onclick="showQuizResults()">Check Answers</button>
+                <div id="quizResult" style="margin-top: 20px; font-weight: bold; min-height: 24px;"></div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Summary -->
+        <div class="slide" id="slide7">
+            <h2>📚 Summary & Best Practices</h2>
+            
+            <h3>Key Takeaways</h3>
+            <ul>
+                <li>Indexes are database objects that improve the speed of data retrieval operations</li>
+                <li>Different types of indexes serve different purposes (B-tree, Bitmap, Function-based, etc.)</li>
+                <li>Indexes should be created on columns frequently used in WHERE, JOIN, and ORDER BY clauses</li>
+                <li>While indexes speed up SELECT queries, they can slow down INSERT, UPDATE, and DELETE operations</li>
+                <li>Regular maintenance of indexes is important for optimal database performance</li>
+            </ul>
+
+            <h3>Best Practices</h3>
+            <div class="info-box">
+                <h4>When to Create Indexes</h4>
+                <ul>
+                    <li>On columns used in WHERE, JOIN, and ORDER BY clauses</li>
+                    <li>On foreign key columns</li>
+                    <li>On columns with high cardinality (many unique values)</li>
+                    <li>For columns used in search conditions with operators like =, >, <, BETWEEN, etc.</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <h4>When to Avoid Indexes</h4>
+                <ul>
+                    <li>On small tables</li>
+                    <li>On columns with few unique values (low cardinality)</li>
+                    <li>On columns that are frequently updated</li>
+                    <li>On tables with frequent bulk data loads</li>
+                </ul>
+            </div>
+
+            <h3>Additional Resources</h3>
+            <ul>
+                <li><a href="https://docs.oracle.com/cd/B19306_01/server.102/b14211/data_acc.htm" target="_blank">Oracle Database Performance Tuning Guide</a></li>
+                <li><a href="https://dev.mysql.com/doc/refman/8.0/en/mysql-indexes.html" target="_blank">MySQL Index Documentation</a></li>
+                <li><a href="https://www.postgresql.org/docs/current/indexes.html" target="_blank">PostgreSQL Index Documentation</a></li>
+            </ul>
+        </div>
+
+        <div class="slide-counter" id="slideCounter">Slide 1 of 8</div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        // Initialize first slide
+        showSlide(0);
+
+        function showSlide(index) {
+            // Hide all slides
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+            });
+            
+            // Show the selected slide
+            slides[index].classList.add('active');
+            currentSlide = index;
+            
+            // Update progress bar
+            updateProgress();
+            
+            // Update slide counter
+            document.getElementById('slideCounter').textContent = `Slide ${index + 1} of ${totalSlides}`;
+            
+            // Update active navigation button
+            const navButtons = document.querySelectorAll('.nav-btn');
+            navButtons.forEach((btn, i) => {
+                if (i === index) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function updateProgress() {
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        function copyCode(button) {
+            const codeBlock = button.parentElement.nextElementSibling;
+            const code = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                // Change button text temporarily
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = '#28a745';
+                
+                // Revert back after 2 seconds
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        function checkAnswer(element, isCorrect) {
+            // Remove any existing highlights
+            const options = element.parentElement.querySelectorAll('.quiz-option');
+            options.forEach(opt => {
+                opt.classList.remove('correct', 'incorrect');
+            });
+            
+            // Highlight the selected option
+            if (isCorrect) {
+                element.classList.add('correct');
+            } else {
+                element.classList.add('incorrect');
+                // Find and highlight the correct answer
+                const correctOption = Array.from(options).find(opt => 
+                    opt.textContent.trim().startsWith(element.textContent.trim().charAt(0)) === false &&
+                    opt.onclick.toString().includes('true')
+                );
+                if (correctOption) {
+                    correctOption.classList.add('correct');
+                }
+            }
+        }
+
+        function showQuizResults() {
+            const correctAnswers = document.querySelectorAll('.quiz-option.correct');
+            const totalQuestions = document.querySelectorAll('.interactive-section h3').length;
+            const resultDiv = document.getElementById('quizResult');
+            
+            // Count correct answers
+            let score = 0;
+            correctAnswers.forEach(opt => {
+                if (opt.onclick && opt.onclick.toString().includes('true')) {
+                    score++;
+                }
+            });
+            
+            // Display result
+            const percentage = Math.round((score / totalQuestions) * 100);
+            resultDiv.textContent = `You scored ${score} out of ${totalQuestions} (${percentage}%)`;
+            
+            if (percentage >= 80) {
+                resultDiv.style.color = '#28a745';
+                resultDiv.textContent += ' 🎉 Excellent work!';
+            } else if (percentage >= 50) {
+                resultDiv.style.color = '#ffc107';
+                resultDiv.textContent += ' 👍 Good job!';
+            } else {
+                resultDiv.style.color = '#dc3545';
+                resultDiv.textContent += ' 📚 Review the material and try again!';
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            } else if (e.key === 'ArrowLeft' && currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            } else if (e.key >= '1' && e.key <= '9' && (parseInt(e.key) - 1) < totalSlides) {
+                showSlide(parseInt(e.key) - 1);
+            }
+        });
+    </script>
+</body>
+</html>

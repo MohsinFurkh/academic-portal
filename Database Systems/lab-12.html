@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXPERIMENT-12: SQL Sequences</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .instructor-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .instructor-info p {
+            color: #333;
+            margin: 5px 0;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            background: #667eea;
+            color: white;
+        }
+
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .slide {
+            display: none;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideIn 0.5s ease;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .slide h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        .slide p, .slide li {
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .slide ul {
+            margin-left: 25px;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .code-header {
+            background: #1e1e1e;
+            color: #aaa;
+            padding: 8px 15px;
+            border-radius: 10px 10px 0 0;
+            margin: -20px -20px 15px -20px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .keyword {
+            color: #ff79c6;
+        }
+
+        .string {
+            color: #50fa7b;
+        }
+
+        .function {
+            color: #8be9fd;
+        }
+
+        .comment {
+            color: #6272a4;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 5px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .info-box h4 {
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .success-box h4 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .schema-diagram {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #dee2e6;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .interactive-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 25px 0;
+        }
+
+        .quiz-option {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .quiz-option.incorrect {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .slide-counter {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .slide {
+                padding: 20px;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔢 EXPERIMENT-12</h1>
+            <div class="subtitle">Understanding and Implementing SQL Sequences</div>
+            <div class="instructor-info">
+                <p><strong>Instructor:</strong> Dr. Mohsin Dar</p>
+                <p><strong>Position:</strong> Assistant Professor, Cloud & Software Operations Cluster (SOCS)</p>
+                <p><strong>Institution:</strong> UPES</p>
+                <p><strong>Course:</strong> Database Systems - MTech First Semester</p>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <button class="nav-btn active" onclick="showSlide(0)">Introduction</button>
+            <button class="nav-btn" onclick="showSlide(1)">Basic Sequence</button>
+            <button class="nav-btn" onclick="showSlide(2)">Sequence Status</button>
+            <button class="nav-btn" onclick="showSlide(3)">Modifying Sequence</button>
+            <button class="nav-btn" onclick="showSlide(4)">Using in Tables</button>
+            <button class="nav-btn" onclick="showSlide(5)">Reverse Sequence</button>
+            <button class="nav-btn" onclick="showSlide(6)">Quiz</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+
+        <!-- Slide 0: Introduction -->
+        <div class="slide active" id="slide0">
+            <h2>📚 Introduction to SQL Sequences</h2>
+            
+            <h3>What is a Sequence?</h3>
+            <p>A sequence is a database object that generates a sequence of numbers in ascending or descending order. It's commonly used to generate unique identifiers for primary key columns in database tables.</p>
+
+            <div class="info-box">
+                <h4>💡 Key Characteristics of Sequences</h4>
+                <ul>
+                    <li><strong>Automatic Numbering:</strong> Generates sequential numbers automatically</li>
+                    <li><strong>Shared Object:</strong> Can be used by multiple tables</li>
+                    <li><strong>Efficient:</strong> Improves performance by reducing table locking</li>
+                    <li><strong>Configurable:</strong> Can be set to increment or decrement by any value</li>
+                </ul>
+            </div>
+
+            <h3>Common Use Cases</h3>
+            <ul>
+                <li>Generating primary key values</li>
+                <li>Creating unique identifiers across multiple tables</li>
+                <li>Generating invoice numbers, order numbers, etc.</li>
+                <li>Creating test data with sequential values</li>
+            </ul>
+
+            <div class="warning-box">
+                <h4>⚠️ Important Notes</h4>
+                <ul>
+                    <li>Sequences are not tied to any specific table</li>
+                    <li>Sequence values can have gaps (due to rollbacks or caching)</li>
+                    <li>Sequences can be shared across multiple users without causing conflicts</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 1: Basic Sequence Creation -->
+        <div class="slide" id="slide1">
+            <h2>1️⃣ Creating a Basic Sequence</h2>
+            
+            <h3>Creating EMPID_SEQ Sequence</h3>
+            <p>Let's create a sequence named EMPID_SEQ that starts at 100 and increments by 1.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE SEQUENCE</span> empid_seq
+    <span class="keyword">START WITH</span> <span class="number">100</span>
+    <span class="keyword">INCREMENT BY</span> <span class="number">1</span>;</pre>
+            </div>
+
+            <div class="info-box">
+                <h4>💡 Sequence Parameters</h4>
+                <ul>
+                    <li><strong>START WITH:</strong> The first value in the sequence (default: 1)</li>
+                    <li><strong>INCREMENT BY:</strong> The step value (can be positive or negative)</li>
+                    <li><strong>MINVALUE:</strong> The minimum value (default: 1 or -10^26)</li>
+                    <li><strong>MAXVALUE:</strong> The maximum value (default: 10^27 or -1)</li>
+                    <li><strong>CYCLE | NOCYCLE:</strong> Whether to restart after reaching max/min</li>
+                    <li><strong>CACHE:</strong> Number of sequence values to pre-allocate in memory</li>
+                </ul>
+            </div>
+
+            <h3>Verifying Sequence Creation</h3>
+            <p>To verify that the sequence was created successfully:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (Oracle)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">SELECT</span> sequence_name, min_value, max_value, 
+       increment_by, last_number, cache_size
+<span class="keyword">FROM</span> user_sequences
+<span class="keyword">WHERE</span> sequence_name = <span class="string">'EMPID_SEQ'</span>;</pre>
+            </div>
+        </div>
+
+        <!-- Slide 2: Sequence Status -->
+        <div class="slide" id="slide2">
+            <h2>2️⃣ Checking Sequence Status</h2>
+            
+            <h3>Viewing Current and Next Values</h3>
+            <p>To check the current and next values of a sequence, you can use the following commands:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (Oracle)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Get the next value without consuming it</span>
+<span class="keyword">SELECT</span> empid_seq.NEXTVAL <span class="keyword">FROM</span> dual;
+
+<span class="comment">-- Get the current value (without incrementing)</span>
+<span class="keyword">SELECT</span> empid_seq.CURRVAL <span class="keyword">FROM</span> dual;
+
+<span class="comment">-- View sequence details</span>
+<span class="keyword">SELECT</span> sequence_name, last_number, cache_size, 
+       increment_by, min_value, max_value
+<span class="keyword">FROM</span> user_sequences
+<span class="keyword">WHERE</span> sequence_name = <span class="string">'EMPID_SEQ'</span>;</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (PostgreSQL)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Get the next value</span>
+<span class="keyword">SELECT</span> nextval(<span class="string">'empid_seq'</span>);
+
+<span class="comment">-- Get the current value</span>
+<span class="keyword">SELECT</span> currval(<span class="string">'empid_seq'</span>);
+
+<span class="comment">-- View sequence details</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> information_schema.sequences 
+<span class="keyword">WHERE</span> sequence_name = <span class="string">'empid_seq'</span>;</pre>
+            </div>
+
+            <div class="info-box">
+                <h4>💡 NEXTVAL vs CURRVAL</h4>
+                <ul>
+                    <li><strong>NEXTVAL:</strong> Returns the next available sequence number and increments the sequence</li>
+                    <li><strong>CURRVAL:</strong> Returns the current value of the sequence (doesn't increment)</li>
+                    <li><strong>Important:</strong> You must call NEXTVAL before CURRVAL in a session</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 3: Modifying Sequence -->
+        <div class="slide" id="slide3">
+            <h2>3️⃣ Modifying a Sequence</h2>
+            
+            <h3>Changing Sequence Properties</h3>
+            <p>Let's modify the EMPID_SEQ to change its cache value to 20 and set the maximum value to 1000.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">ALTER SEQUENCE</span> empid_seq
+    <span class="keyword">CACHE</span> <span class="number">20</span>
+    <span class="keyword">MAXVALUE</span> <span class="number">1000</span>;</pre>
+            </div>
+
+            <h3>Verifying the Changes</h3>
+            <p>Let's verify that our changes were applied successfully:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (Oracle)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">SELECT</span> sequence_name, cache_size, max_value, 
+       last_number, increment_by
+<span class="keyword">FROM</span> user_sequences
+<span class="keyword">WHERE</span> sequence_name = <span class="string">'EMPID_SEQ'</span>;</pre>
+            </div>
+
+            <div class="warning-box">
+                <h4>⚠️ Important Notes on ALTER SEQUENCE</h4>
+                <ul>
+                    <li>You must have the ALTER privilege on the sequence</li>
+                    <li>You cannot change the START WITH value of an existing sequence</li>
+                    <li>Changing the INCREMENT BY value affects only future sequence numbers</li>
+                    <li>Be cautious when modifying sequences used by production applications</li>
+                </ul>
+            </div>
+
+            <h3>Common Sequence Modifications</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Change increment value</span>
+<span class="keyword">ALTER SEQUENCE</span> empid_seq <span class="keyword">INCREMENT BY</span> <span class="number">5</span>;
+
+<span class="comment">-- Enable/disable cycling</span>
+<span class="keyword">ALTER SEQUENCE</span> empid_seq <span class="keyword">CYCLE</span>;  <span class="comment">-- Start over after reaching max</span>
+<span class="keyword">ALTER SEQUENCE</span> empid_seq <span class="keyword">NOCYCLE</span>;  <span class="comment">-- Default, stops at max</span>
+
+<span class="comment">-- Restart sequence (Oracle 12c+)</span>
+<span class="keyword">ALTER SEQUENCE</span> empid_seq <span class="keyword">RESTART START WITH</span> <span class="number">1</span>;</pre>
+            </div>
+        </div>
+
+        <!-- Slide 4: Using Sequences in Tables -->
+        <div class="slide" id="slide4">
+            <h2>4️⃣ Using Sequences with Tables</h2>
+            
+            <h3>Creating a Table with Sequence-Generated IDs</h3>
+            <p>Let's create an EMPLOYEES table that uses our sequence for the employee_id column.</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE TABLE</span> employees (
+    employee_id   <span class="keyword">NUMBER</span> <span class="keyword">PRIMARY KEY</span>,
+    first_name    <span class="keyword">VARCHAR2</span>(50),
+    last_name     <span class="keyword">VARCHAR2</span>(50),
+    email         <span class="keyword">VARCHAR2</span>(100),
+    hire_date     <span class="keyword">DATE</span> <span class="keyword">DEFAULT</span> <span class="function">SYSDATE</span>
+);</pre>
+            </div>
+
+            <h3>Inserting Data Using the Sequence</h3>
+            <p>Now let's insert some records using our sequence:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Insert a single record</span>
+<span class="keyword">INSERT INTO</span> employees (employee_id, first_name, last_name, email)
+<span class="keyword">VALUES</span> (empid_seq.NEXTVAL, <span class="string">'John'</span>, <span class="string">'Doe'</span>, <span class="string">'john.doe@example.com'</span>);
+
+<span class="comment">-- Insert multiple records</span>
+<span class="keyword">INSERT ALL</span>
+    <span class="keyword">INTO</span> employees (employee_id, first_name, last_name, email)
+        <span class="keyword">VALUES</span> (empid_seq.NEXTVAL, <span class="string">'Jane'</span>, <span class="string">'Smith'</span>, <span class="string">'jane.smith@example.com'</span>)
+    <span class="keyword">INTO</span> employees (employee_id, first_name, last_name, email)
+        <span class="keyword">VALUES</span> (empid_seq.NEXTVAL, <span class="string">'Robert'</span>, <span class="string">'Johnson'</span>, <span class="string">'robert.j@example.com'</span>)
+<span class="keyword">SELECT</span> <span class="number">1</span> <span class="keyword">FROM</span> dual;</pre>
+            </div>
+
+            <h3>Using Sequence as Default Value (Oracle 12c+)</h3>
+            <p>In Oracle 12c and later, you can set a sequence as the default value for a column:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (Oracle 12c+)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE TABLE</span> employees (
+    employee_id   <span class="keyword">NUMBER</span> <span class="keyword">DEFAULT</span> empid_seq.NEXTVAL <span class="keyword">PRIMARY KEY</span>,
+    first_name    <span class="keyword">VARCHAR2</span>(50),
+    last_name     <span class="keyword">VARCHAR2</span>(50),
+    email         <span class="keyword">VARCHAR2</span>(100),
+    hire_date     <span class="keyword">DATE</span> <span class="keyword">DEFAULT</span> <span class="function">SYSDATE</span>
+);
+
+<span class="comment">-- Now you can insert without specifying employee_id</span>
+<span class="keyword">INSERT INTO</span> employees (first_name, last_name, email)
+<span class="keyword">VALUES</span> (<span class="string">'Alice'</span>, <span class="string">'Williams'</span>, <span class="string">'alice.w@example.com'</span>);</pre>
+            </div>
+
+            <div class="info-box">
+                <h4>💡 Sequence Gaps</h4>
+                <p>Sequence values may have gaps in the following scenarios:</p>
+                <ul>
+                    <li>When a transaction that generated sequence numbers is rolled back</li>
+                    <li>When the database crashes and recovers (cached sequence values are lost)</li>
+                    <li>When sequence values are explicitly set or reset</li>
+                </ul>
+                <p>This is normal behavior and generally not a problem for most applications.</p>
+            </div>
+        </div>
+
+        <!-- Slide 5: Dropping and Creating Reverse Sequence -->
+        <div class="slide" id="slide5">
+            <h2>5️⃣ Dropping and Creating a Reverse Sequence</h2>
+            
+            <h3>Dropping a Sequence</h3>
+            <p>Let's drop the EMPID_SEQ sequence we created earlier:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">DROP SEQUENCE</span> empid_seq;</pre>
+            </div>
+
+            <h3>Creating a Reverse Sequence</h3>
+            <p>Now, let's create a new sequence called REVERSE that counts down from 10000 to 1000 in steps of 5:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE SEQUENCE</span> reverse_seq
+    <span class="keyword">START WITH</span> <span class="number">10000</span>
+    <span class="keyword">INCREMENT BY</span> -<span class="number">5</span>
+    <span class="keyword">MINVALUE</span> <span class="number">1000</span>
+    <span class="keyword">MAXVALUE</span> <span class="number">10000</span>
+    <span class="keyword">NOCYCLE</span>;  <span class="comment">-- Stop after reaching 1000</span></pre>
+            </div>
+
+            <h3>Testing the Reverse Sequence</h3>
+            <p>Let's generate some values from our reverse sequence:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Generate 5 values from the reverse sequence</span>
+<span class="keyword">SELECT</span> reverse_seq.NEXTVAL <span class="keyword">AS</span> sequence_value
+<span class="keyword">FROM</span> dual
+<span class="keyword">CONNECT BY</span> <span class="keyword">LEVEL</span> <= <span class="number">5</span>;</pre>
+            </div>
+
+            <div class="info-box">
+                <h4>💡 Use Cases for Reverse Sequences</h4>
+                <ul>
+                    <li>Generating temporary reference numbers that decrease over time</li>
+                    <li>Creating test data with specific value ranges</li>
+                    <li>Implementing countdowns or reverse numbering systems</li>
+                    <li>Allocating blocks of numbers in reverse order</li>
+                </ul>
+            </div>
+
+            <h3>Viewing Sequence Metadata</h3>
+            <p>To view all sequences in your schema and their properties:</p>
+            
+            <div class="code-block">
+                <div class="code-header">
+                    <span>SQL (Oracle)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">SELECT</span> sequence_name, min_value, max_value, 
+       increment_by, cycle_flag, cache_size, last_number
+<span class="keyword">FROM</span> user_sequences
+<span class="keyword">ORDER BY</span> sequence_name;</pre>
+            </div>
+        </div>
+
+        <!-- Slide 6: Quiz -->
+        <div class="slide" id="slide6">
+            <h2>🧠 Knowledge Check Quiz</h2>
+            
+            <div class="interactive-section">
+                <h3>Question 1: What is the purpose of a database sequence?</h3>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    <strong>A.</strong> To generate a sequence of unique numbers
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>B.</strong> To store a list of values in order
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>C.</strong> To sort query results
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>D.</strong> To create relationships between tables
+                </div>
+
+                <h3>Question 2: Which SQL statement correctly creates a sequence that starts at 1, increments by 1, and has a maximum value of 1000?</h3>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>A.</strong> CREATE SEQUENCE seq1 MAXVALUE 1000;
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>B.</strong> CREATE SEQUENCE seq1 START 1 INCREMENT 1 MAX 1000;
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    <strong>C.</strong> CREATE SEQUENCE seq1 START WITH 1 INCREMENT BY 1 MAXVALUE 1000;
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>D.</strong> CREATE SEQUENCE seq1 BEGIN 1 STEP 1 MAXIMUM 1000;
+                </div>
+
+                <h3>Question 3: What happens when you call NEXTVAL on a sequence in Oracle?</h3>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>A.</strong> It returns the current sequence value without incrementing it
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    <strong>B.</strong> It increments the sequence and returns the new value
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>C.</strong> It resets the sequence to its starting value
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>D.</strong> It returns the last value used in the current session
+                </div>
+
+                <h3>Question 4: How do you modify an existing sequence to change its increment value to 5?</h3>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>A.</strong> MODIFY SEQUENCE my_sequence INCREMENT BY 5;
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    <strong>B.</strong> ALTER SEQUENCE my_sequence INCREMENT BY 5;
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>C.</strong> UPDATE SEQUENCE my_sequence SET INCREMENT = 5;
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>D.</strong> CHANGE SEQUENCE my_sequence INCREMENT 5;
+                </div>
+
+                <h3>Question 5: What is the purpose of the CACHE clause when creating a sequence?</h3>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>A.</strong> It specifies how many sequence values to store on disk
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>B.</strong> It limits the total number of sequence values that can be generated
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    <strong>C.</strong> It specifies how many sequence values to pre-allocate in memory for faster access
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    <strong>D.</strong> It determines how many sequence values to skip before starting
+                </div>
+
+                <button class="nav-btn" style="margin-top: 20px;" onclick="showQuizResults()">Check Answers</button>
+                <div id="quizResult" style="margin-top: 20px; font-weight: bold; min-height: 24px;"></div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Summary -->
+        <div class="slide" id="slide7">
+            <h2>📚 Summary & Best Practices</h2>
+            
+            <h3>Key Takeaways</h3>
+            <ul>
+                <li>Sequences are database objects that generate sequential numbers</li>
+                <li>They are commonly used to generate unique identifiers for primary keys</li>
+                <li>Sequences can be configured with various parameters like START WITH, INCREMENT BY, MINVALUE, MAXVALUE, etc.</li>
+                <li>NEXTVAL retrieves the next value and increments the sequence</li>
+                <li>CURRVAL returns the current value of the sequence in the current session</li>
+                <li>Sequences can be altered to change their properties (except START WITH in most databases)</li>
+                <li>Reverse sequences can be created by using a negative INCREMENT BY value</li>
+            </ul>
+
+            <h3>Best Practices</h3>
+            <div class="info-box">
+                <h4>When Working with Sequences</h4>
+                <ul>
+                    <li>Use meaningful names for sequences (e.g., tablename_id_seq)</li>
+                    <li>Consider using CACHE for better performance in high-concurrency environments</li>
+                    <li>Be aware that sequence values may have gaps (this is normal)</li>
+                    <li>Use NOCYCLE (the default) for primary key sequences to avoid duplicates</li>
+                    <li>Consider using identity columns (in databases that support them) as a simpler alternative</li>
+                </ul>
+            </div>
+
+            <h3>Common Pitfalls to Avoid</h3>
+            <div class="warning-box">
+                <h4>⚠️ Watch Out For</h4>
+                <ul>
+                    <li>Calling CURRVAL before NEXTVAL in a session (will cause an error)</li>
+                    <li>Assuming sequence values will always be consecutive (they may have gaps)</li>
+                    <li>Using sequences in multi-master replication without proper configuration</li>
+                    <li>Setting CACHE too high (can lead to large gaps if the database is restarted)</li>
+                </ul>
+            </div>
+
+            <h3>Additional Resources</h3>
+            <ul>
+                <li><a href="https://docs.oracle.com/cd/B19306_01/server.102/b14200/statements_6015.htm" target="_blank">Oracle CREATE SEQUENCE Documentation</a></li>
+                <li><a href="https://www.postgresql.org/docs/current/sql-createsequence.html" target="_blank">PostgreSQL CREATE SEQUENCE Documentation</a></li>
+                <li><a href="https://dev.mysql.com/doc/refman/8.0/en/example-auto-increment.html" target="_blank">MySQL Auto-Increment Documentation</a></li>
+            </ul>
+        </div>
+
+        <div class="slide-counter" id="slideCounter">Slide 1 of 8</div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        // Initialize first slide
+        showSlide(0);
+
+        function showSlide(index) {
+            // Hide all slides
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+            });
+            
+            // Show the selected slide
+            slides[index].classList.add('active');
+            currentSlide = index;
+            
+            // Update progress bar
+            updateProgress();
+            
+            // Update slide counter
+            document.getElementById('slideCounter').textContent = `Slide ${index + 1} of ${totalSlides}`;
+            
+            // Update active navigation button
+            const navButtons = document.querySelectorAll('.nav-btn');
+            navButtons.forEach((btn, i) => {
+                if (i === index) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function updateProgress() {
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        function copyCode(button) {
+            const codeBlock = button.parentElement.nextElementSibling;
+            const code = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                // Change button text temporarily
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = '#28a745';
+                
+                // Revert back after 2 seconds
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        function checkAnswer(element, isCorrect) {
+            // Remove any existing highlights
+            const options = element.parentElement.querySelectorAll('.quiz-option');
+            options.forEach(opt => {
+                opt.classList.remove('correct', 'incorrect');
+            });
+            
+            // Highlight the selected option
+            if (isCorrect) {
+                element.classList.add('correct');
+            } else {
+                element.classList.add('incorrect');
+                // Find and highlight the correct answer
+                const correctOption = Array.from(options).find(opt => 
+                    opt.textContent.trim().startsWith(element.textContent.trim().charAt(0)) === false &&
+                    opt.onclick.toString().includes('true')
+                );
+                if (correctOption) {
+                    correctOption.classList.add('correct');
+                }
+            }
+        }
+
+        function showQuizResults() {
+            const correctAnswers = document.querySelectorAll('.quiz-option.correct');
+            const totalQuestions = document.querySelectorAll('.interactive-section h3').length - 1; // Subtract 1 for the heading
+            
+            // Count correct answers
+            let score = 0;
+            correctAnswers.forEach(opt => {
+                if (opt.onclick && opt.onclick.toString().includes('true')) {
+                    score++;
+                }
+            });
+            
+            // Display result
+            const percentage = Math.round((score / totalQuestions) * 100);
+            const resultDiv = document.getElementById('quizResult');
+            resultDiv.textContent = `You scored ${score} out of ${totalQuestions} (${percentage}%)`;
+            
+            if (percentage >= 80) {
+                resultDiv.style.color = '#28a745';
+                resultDiv.textContent += ' 🎉 Excellent work!';
+            } else if (percentage >= 50) {
+                resultDiv.style.color = '#ffc107';
+                resultDiv.textContent += ' 👍 Good job!';
+            } else {
+                resultDiv.style.color = '#dc3545';
+                resultDiv.textContent += ' 📚 Review the material and try again!';
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            } else if (e.key === 'ArrowLeft' && currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            } else if (e.key >= '1' && e.key <= '9' && (parseInt(e.key) - 1) < totalSlides) {
+                showSlide(parseInt(e.key) - 1);
+            }
+        });
+    </script>
+</body>
+</html>

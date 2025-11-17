@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Views - Experiment 9</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .presentation-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+
+        .instructor-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+            font-size: 0.95em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-title {
+            color: #2a5298;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: "▶";
+            margin-right: 15px;
+            color: #667eea;
+        }
+
+        .objective-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .objective-box h3 {
+            margin-bottom: 10px;
+            font-size: 1.4em;
+        }
+
+        .concept-box {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+
+        .concept-box h4 {
+            color: #2a5298;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .sql-code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            overflow-x: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .sql-code::before {
+            content: "SQL";
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+
+        .keyword {
+            color: #ff79c6;
+            font-weight: bold;
+        }
+
+        .string {
+            color: #50fa7b;
+        }
+
+        .comment {
+            color: #6272a4;
+            font-style: italic;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .query-section {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            transition: all 0.3s ease;
+        }
+
+        .query-section:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .query-title {
+            color: #2a5298;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .note-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .note-box strong {
+            color: #856404;
+        }
+
+        .advantages-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .advantage-item {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .advantage-item strong {
+            color: #2a5298;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .footer {
+            background: #2a5298;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+
+        .sample-data {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="header">
+            <h1>EXPERIMENT-9</h1>
+            <h2>Understanding Database Views</h2>
+            <div class="subtitle">Database Systems | MTech First Semester</div>
+            <div class="instructor-info">
+                <strong>Instructor:</strong> Dr. Mohsin Dar<br>
+                <strong>Designation:</strong> Assistant Professor<br>
+                <strong>Department:</strong> Cloud & Software Operations Cluster | SOCS | UPES
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Objective Section -->
+            <div class="section">
+                <div class="objective-box">
+                    <h3>🎯 Objective</h3>
+                    <p>Students will be able to implement the concept of views and understand their practical applications in database management systems.</p>
+                </div>
+            </div>
+
+            <!-- What is a View Section -->
+            <div class="section">
+                <h2 class="section-title">What is a Database View?</h2>
+                <div class="concept-box">
+                    <h4>Definition</h4>
+                    <p>A <strong>view</strong> is a virtual table based on the result set of an SQL statement. It contains rows and columns, just like a real table, but it doesn't store data physically. Instead, it dynamically retrieves data from one or more base tables.</p>
+                </div>
+
+                <div class="concept-box">
+                    <h4>Key Characteristics</h4>
+                    <div class="advantages-list">
+                        <div class="advantage-item">
+                            <strong>Virtual Table</strong>
+                            No physical storage of data
+                        </div>
+                        <div class="advantage-item">
+                            <strong>Security</strong>
+                            Restrict access to sensitive data
+                        </div>
+                        <div class="advantage-item">
+                            <strong>Simplicity</strong>
+                            Simplify complex queries
+                        </div>
+                        <div class="advantage-item">
+                            <strong>Abstraction</strong>
+                            Hide database complexity
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Create Table -->
+            <div class="section">
+                <h2 class="section-title">Step 1: Creating the EMPLOYEES Table</h2>
+                
+                <h3 style="color: #2a5298; margin: 20px 0;">Table Structure</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column Name</th>
+                            <th>Data Type</th>
+                            <th>Width</th>
+                            <th>Attributes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Employee_id</td>
+                            <td>Character</td>
+                            <td>10</td>
+                            <td>Primary Key (PK)</td>
+                        </tr>
+                        <tr>
+                            <td>First_Name</td>
+                            <td>Character</td>
+                            <td>30</td>
+                            <td>Not Null (NN)</td>
+                        </tr>
+                        <tr>
+                            <td>Last_Name</td>
+                            <td>Character</td>
+                            <td>30</td>
+                            <td>Not Null (NN)</td>
+                        </tr>
+                        <tr>
+                            <td>DOB</td>
+                            <td>Date</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>Salary</td>
+                            <td>Number</td>
+                            <td>25</td>
+                            <td>Not Null (NN)</td>
+                        </tr>
+                        <tr>
+                            <td>Department_id</td>
+                            <td>Character</td>
+                            <td>10</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="color: #2a5298; margin: 20px 0;">SQL Query to Create Table</h3>
+                <div class="sql-code">
+<span class="keyword">CREATE TABLE</span> EMPLOYEES (
+    Employee_id <span class="keyword">VARCHAR</span>(10) <span class="keyword">PRIMARY KEY</span>,
+    First_Name <span class="keyword">VARCHAR</span>(30) <span class="keyword">NOT NULL</span>,
+    Last_Name <span class="keyword">VARCHAR</span>(30) <span class="keyword">NOT NULL</span>,
+    DOB <span class="keyword">DATE</span>,
+    Salary <span class="keyword">NUMBER</span>(25) <span class="keyword">NOT NULL</span>,
+    Department_id <span class="keyword">VARCHAR</span>(10)
+);
+                </div>
+
+                <h3 style="color: #2a5298; margin: 20px 0;">Sample Data Insertion (6 Rows)</h3>
+                <div class="sql-code">
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> 
+    (<span class="string">'EMP001'</span>, <span class="string">'Rajesh'</span>, <span class="string">'Kumar'</span>, <span class="keyword">TO_DATE</span>(<span class="string">'1985-05-15'</span>, <span class="string">'YYYY-MM-DD'</span>), 75000, <span class="string">'10'</span>);
+
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> 
+    (<span class="string">'EMP002'</span>, <span class="string">'Priya'</span>, <span class="string">'Sharma'</span>, <span class="keyword">TO_DATE</span>(<span class="string">'1990-08-22'</span>, <span class="string">'YYYY-MM-DD'</span>), 82000, <span class="string">'20'</span>);
+
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> 
+    (<span class="string">'EMP003'</span>, <span class="string">'Amit'</span>, <span class="string">'Verma'</span>, <span class="keyword">TO_DATE</span>(<span class="string">'1988-03-10'</span>, <span class="string">'YYYY-MM-DD'</span>), 68000, <span class="string">'20'</span>);
+
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> 
+    (<span class="string">'EMP004'</span>, <span class="string">'Sneha'</span>, <span class="string">'Patel'</span>, <span class="keyword">TO_DATE</span>(<span class="string">'1992-11-05'</span>, <span class="string">'YYYY-MM-DD'</span>), 90000, <span class="string">'30'</span>);
+
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> 
+    (<span class="string">'EMP005'</span>, <span class="string">'Vikram'</span>, <span class="string">'Singh'</span>, <span class="keyword">TO_DATE</span>(<span class="string">'1987-07-18'</span>, <span class="string">'YYYY-MM-DD'</span>), 72000, <span class="string">'20'</span>);
+
+<span class="keyword">INSERT INTO</span> EMPLOYEES <span class="keyword">VALUES</span> 
+    (<span class="string">'EMP006'</span>, <span class="string">'Anjali'</span>, <span class="string">'Gupta'</span>, <span class="keyword">TO_DATE</span>(<span class="string">'1991-12-30'</span>, <span class="string">'YYYY-MM-DD'</span>), 85000, <span class="string">'10'</span>);
+
+<span class="keyword">COMMIT</span>;
+                </div>
+            </div>
+
+            <!-- Step 2: View Operations -->
+            <div class="section">
+                <h2 class="section-title">Step 2: View Operations</h2>
+
+                <!-- Query 1 -->
+                <div class="query-section">
+                    <div class="query-title">
+                        <span class="step-number">1</span>Create View emp_view
+                    </div>
+                    <p style="margin: 10px 0;"><strong>Objective:</strong> Create a view showing only Employee_id, Last_Name, Salary, and Department_id</p>
+                    <div class="sql-code">
+<span class="keyword">CREATE VIEW</span> emp_view <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> Employee_id, Last_Name, Salary, Department_id
+<span class="keyword">FROM</span> EMPLOYEES;
+
+<span class="comment">-- Verify the view</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> emp_view;
+                    </div>
+                    <div class="note-box">
+                        <strong>Note:</strong> This view provides a restricted view of the EMPLOYEES table, hiding sensitive information like First_Name and DOB.
+                    </div>
+                </div>
+
+                <!-- Query 2 -->
+                <div class="query-section">
+                    <div class="query-title">
+                        <span class="step-number">2</span>Insert Values into View
+                    </div>
+                    <p style="margin: 10px 0;"><strong>Objective:</strong> Insert data through the view after removing NOT NULL constraint</p>
+                    
+                    <h4 style="color: #2a5298; margin: 15px 0;">Step 2a: Modify Table to Allow NULLs</h4>
+                    <div class="sql-code">
+<span class="comment">-- Remove NOT NULL constraint from First_Name</span>
+<span class="keyword">ALTER TABLE</span> EMPLOYEES 
+<span class="keyword">MODIFY</span> First_Name <span class="keyword">VARCHAR</span>(30) <span class="keyword">NULL</span>;
+
+<span class="comment">-- Remove NOT NULL constraint from Salary if needed</span>
+<span class="keyword">ALTER TABLE</span> EMPLOYEES 
+<span class="keyword">MODIFY</span> Salary <span class="keyword">NUMBER</span>(25) <span class="keyword">NULL</span>;
+                    </div>
+
+                    <h4 style="color: #2a5298; margin: 15px 0;">Step 2b: Insert into View</h4>
+                    <div class="sql-code">
+<span class="comment">-- This will insert NULL for columns not in the view</span>
+<span class="keyword">INSERT INTO</span> emp_view (Employee_id, Last_Name, Salary, Department_id)
+<span class="keyword">VALUES</span> (<span class="string">'EMP007'</span>, <span class="string">'Reddy'</span>, 78000, <span class="string">'30'</span>);
+
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- Verify insertion in both view and base table</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> emp_view;
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> EMPLOYEES <span class="keyword">WHERE</span> Employee_id = <span class="string">'EMP007'</span>;
+                    </div>
+                    <div class="note-box">
+                        <strong>Important:</strong> Inserting through a view affects the underlying base table. Columns not in the view will be set to NULL (if allowed).
+                    </div>
+                </div>
+
+                <!-- Query 3 -->
+                <div class="query-section">
+                    <div class="query-title">
+                        <span class="step-number">3</span>Modify, Delete, and Drop Operations on View
+                    </div>
+                    
+                    <h4 style="color: #2a5298; margin: 15px 0;">Modify (UPDATE) Operation</h4>
+                    <div class="sql-code">
+<span class="comment">-- Update salary through the view</span>
+<span class="keyword">UPDATE</span> emp_view
+<span class="keyword">SET</span> Salary = 95000
+<span class="keyword">WHERE</span> Employee_id = <span class="string">'EMP004'</span>;
+
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- Verify the update</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> emp_view <span class="keyword">WHERE</span> Employee_id = <span class="string">'EMP004'</span>;
+                    </div>
+
+                    <h4 style="color: #2a5298; margin: 15px 0;">Delete Operation</h4>
+                    <div class="sql-code">
+<span class="comment">-- Delete a record through the view</span>
+<span class="keyword">DELETE FROM</span> emp_view
+<span class="keyword">WHERE</span> Employee_id = <span class="string">'EMP007'</span>;
+
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- Verify deletion</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> EMPLOYEES <span class="keyword">WHERE</span> Employee_id = <span class="string">'EMP007'</span>;
+                    </div>
+
+                    <h4 style="color: #2a5298; margin: 15px 0;">Drop View Operation</h4>
+                    <div class="sql-code">
+<span class="comment">-- Drop the view (base table remains intact)</span>
+<span class="keyword">DROP VIEW</span> emp_view;
+
+<span class="comment">-- Verify view is dropped (this will give an error)</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> emp_view;
+
+<span class="comment">-- Base table still exists</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> EMPLOYEES;
+                    </div>
+                    <div class="note-box">
+                        <strong>Key Point:</strong> Dropping a view does NOT delete the underlying base table or its data. Only the view definition is removed.
+                    </div>
+                </div>
+
+                <!-- Query 4 -->
+                <div class="query-section">
+                    <div class="query-title">
+                        <span class="step-number">4</span>Create salary_view for Department 20
+                    </div>
+                    <p style="margin: 10px 0;"><strong>Objective:</strong> Create a view showing employees in department 20 with their annual salary</p>
+                    <div class="sql-code">
+<span class="keyword">CREATE VIEW</span> salary_view <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    Employee_id,
+    First_Name,
+    Last_Name,
+    Salary <span class="keyword">AS</span> Monthly_Salary,
+    (Salary * 12) <span class="keyword">AS</span> Annual_Salary,
+    Department_id
+<span class="keyword">FROM</span> EMPLOYEES
+<span class="keyword">WHERE</span> Department_id = <span class="string">'20'</span>;
+
+<span class="comment">-- Query the view</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> salary_view;
+                    </div>
+
+                    <h4 style="color: #2a5298; margin: 15px 0;">Expected Output</h4>
+                    <div class="sample-data">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Employee_id</th>
+                                    <th>First_Name</th>
+                                    <th>Last_Name</th>
+                                    <th>Monthly_Salary</th>
+                                    <th>Annual_Salary</th>
+                                    <th>Department_id</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>EMP002</td>
+                                    <td>Priya</td>
+                                    <td>Sharma</td>
+                                    <td>82000</td>
+                                    <td>984000</td>
+                                    <td>20</td>
+                                </tr>
+                                <tr>
+                                    <td>EMP003</td>
+                                    <td>Amit</td>
+                                    <td>Verma</td>
+                                    <td>68000</td>
+                                    <td>816000</td>
+                                    <td>20</td>
+                                </tr>
+                                <tr>
+                                    <td>EMP005</td>
+                                    <td>Vikram</td>
+                                    <td>Singh</td>
+                                    <td>72000</td>
+                                    <td>864000</td>
+                                    <td>20</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advantages of Views -->
+            <div class="section">
+                <h2 class="section-title">Advantages of Using Views</h2>
+                <div class="concept-box">
+                    <h4>1. Security & Access Control</h4>
+                    <p>Views can restrict user access to specific columns and rows, ensuring sensitive data remains protected.</p>
+                </div>
+                <div class="concept-box">
+                    <h4>2. Simplification</h4>
+                    <p>Complex queries involving multiple joins can be encapsulated in a view, making them easier to use.</p>
+                </div>
+                <div class="concept-box">
+                    <h4>3. Data Abstraction</h4>
+                    <p>Views hide the complexity of the database structure from end users and applications.</p>
+                </div>
+                <div class="concept-box">
+                    <h4>4. Logical Data Independence</h4>
+                    <p>Applications can continue using views even if the underlying table structure changes.</p>
+                </div>
+            </div>
+
+            <!-- Key Takeaways -->
+            <div class="section">
+                <h2 class="section-title">Key Takeaways</h2>
+                <div class="objective-box">
+                    <ul style="list-style-position: inside; line-height: 2;">
+                        <li>Views are virtual tables that don't store data physically</li>
+                        <li>DML operations (INSERT, UPDATE, DELETE) on simple views affect the base table</li>
+                        <li>Dropping a view doesn't affect the underlying base table</li>
+                        <li>Views can perform calculations and aggregate data</li>
+                        <li>Views enhance security by limiting data exposure</li>
+                        <li>Complex queries can be simplified using views</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>Cloud & Software Operations Cluster | SOCS | UPES</strong></p>
+            <p>Database Systems - MTech First Semester</p>
+            <p>© 2024 Dr. Mohsin Dar</p>
+        </div>
+    </div>
+</body>
+</html>

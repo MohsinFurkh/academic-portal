@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXPERIMENT-10: SQL Views</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .instructor-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .instructor-info p {
+            color: #333;
+            margin: 5px 0;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            background: #667eea;
+            color: white;
+        }
+
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .slide {
+            display: none;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideIn 0.5s ease;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .slide h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        .slide p, .slide li {
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .slide ul {
+            margin-left: 25px;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .code-header {
+            background: #1e1e1e;
+            color: #aaa;
+            padding: 8px 15px;
+            border-radius: 10px 10px 0 0;
+            margin: -20px -20px 15px -20px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .keyword {
+            color: #ff79c6;
+        }
+
+        .string {
+            color: #50fa7b;
+        }
+
+        .function {
+            color: #8be9fd;
+        }
+
+        .comment {
+            color: #6272a4;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 5px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .info-box h4 {
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .success-box h4 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .schema-diagram {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #dee2e6;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .interactive-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 25px 0;
+        }
+
+        .quiz-option {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .quiz-option.incorrect {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .slide-counter {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .slide {
+                padding: 20px;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗄️ EXPERIMENT-10</h1>
+            <div class="subtitle">Creating SQL Views on COMPANY Database</div>
+            <div class="instructor-info">
+                <p><strong>Instructor:</strong> Dr. Mohsin Dar</p>
+                <p><strong>Position:</strong> Assistant Professor, Cloud & Software Operations Cluster (SOCS)</p>
+                <p><strong>Institution:</strong> UPES</p>
+                <p><strong>Course:</strong> Database Systems - MTech First Semester</p>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <button class="nav-btn active" onclick="showSlide(0)">Introduction</button>
+            <button class="nav-btn" onclick="showSlide(1)">View 1</button>
+            <button class="nav-btn" onclick="showSlide(2)">View 2</button>
+            <button class="nav-btn" onclick="showSlide(3)">View 3</button>
+            <button class="nav-btn" onclick="showSlide(4)">View 4</button>
+            <button class="nav-btn" onclick="showSlide(5)">Summary</button>
+            <button class="nav-btn" onclick="showSlide(6)">Quiz</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+
+        <!-- Slide 0: Introduction -->
+        <div class="slide active" id="slide0">
+            <h2>📚 Introduction to SQL Views</h2>
+            
+            <h3>What is a View?</h3>
+            <p>A view is a virtual table based on the result-set of an SQL query. It contains rows and columns just like a real table, but the fields in a view are fields from one or more real tables in the database.</p>
+
+            <div class="info-box">
+                <h4>💡 Key Characteristics of Views</h4>
+                <ul>
+                    <li><strong>Virtual Table:</strong> Views don't store data physically</li>
+                    <li><strong>Dynamic:</strong> Data is retrieved from base tables when queried</li>
+                    <li><strong>Security:</strong> Can hide sensitive columns from users</li>
+                    <li><strong>Simplification:</strong> Simplify complex queries</li>
+                    <li><strong>Consistency:</strong> Provide consistent interface to data</li>
+                </ul>
+            </div>
+
+            <h3>COMPANY Database Schema (Experiment 2)</h3>
+            <div class="schema-diagram">
+                <h4>Core Tables:</h4>
+                <ul>
+                    <li><strong>EMPLOYEE</strong>: Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary, Super_ssn, Dno</li>
+                    <li><strong>DEPARTMENT</strong>: Dname, Dnumber, Mgr_ssn, Mgr_start_date</li>
+                    <li><strong>PROJECT</strong>: Pname, Pnumber, Plocation, Dnum</li>
+                    <li><strong>WORKS_ON</strong>: Essn, Pno, Hours</li>
+                    <li><strong>DEPENDENT</strong>: Essn, Dependent_name, Sex, Bdate, Relationship</li>
+                    <li><strong>DEPT_LOCATIONS</strong>: Dnumber, Dlocation</li>
+                </ul>
+            </div>
+
+            <h3>Objectives of This Experiment</h3>
+            <p>In this lab, we will create four different views that demonstrate:</p>
+            <ol>
+                <li>Joining tables to create meaningful departmental information</li>
+                <li>Filtering data based on specific criteria</li>
+                <li>Using aggregate functions with GROUP BY</li>
+                <li>Applying HAVING clause for filtered aggregation</li>
+            </ol>
+
+            <div class="slide-counter">Slide 1 of 7</div>
+        </div>
+
+        <!-- Slide 1: View 1 -->
+        <div class="slide" id="slide1">
+            <h2>🏢 View 1: Department Management Information</h2>
+            
+            <h3>Requirement</h3>
+            <p>Create a view that displays the department name, manager name, and manager salary for every department.</p>
+
+            <div class="info-box">
+                <h4>📋 Tables Involved</h4>
+                <ul>
+                    <li><strong>DEPARTMENT</strong>: Contains department name and manager SSN</li>
+                    <li><strong>EMPLOYEE</strong>: Contains employee details including salary</li>
+                </ul>
+            </div>
+
+            <h3>SQL Solution</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>View 1: DEPT_MANAGER_INFO</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE VIEW</span> DEPT_MANAGER_INFO <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    D.Dname <span class="keyword">AS</span> Department_Name,
+    <span class="function">CONCAT</span>(E.Fname, <span class="string">' '</span>, E.Minit, <span class="string">' '</span>, E.Lname) <span class="keyword">AS</span> Manager_Name,
+    E.Salary <span class="keyword">AS</span> Manager_Salary
+<span class="keyword">FROM</span> 
+    DEPARTMENT D
+<span class="keyword">INNER JOIN</span> 
+    EMPLOYEE E <span class="keyword">ON</span> D.Mgr_ssn = E.Ssn;</pre>
+            </div>
+
+            <h3>Step-by-Step Explanation</h3>
+            <div class="interactive-section">
+                <ol>
+                    <li><strong>CREATE VIEW:</strong> Defines a new view named DEPT_MANAGER_INFO</li>
+                    <li><strong>SELECT Clause:</strong> Specifies the columns to include in the view
+                        <ul>
+                            <li>D.Dname: Department name from DEPARTMENT table</li>
+                            <li>CONCAT function: Combines manager's first, middle, and last names</li>
+                            <li>E.Salary: Manager's salary from EMPLOYEE table</li>
+                        </ul>
+                    </li>
+                    <li><strong>FROM & JOIN:</strong> Joins DEPARTMENT with EMPLOYEE tables</li>
+                    <li><strong>ON Clause:</strong> Matches manager SSN (Mgr_ssn) with employee SSN (Ssn)</li>
+                </ol>
+            </div>
+
+            <h3>Query the View</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>Querying the View</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> DEPT_MANAGER_INFO;</pre>
+            </div>
+
+            <h3>Expected Output Sample</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Department_Name</th>
+                            <th>Manager_Name</th>
+                            <th>Manager_Salary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Research</td>
+                            <td>Franklin T Wong</td>
+                            <td>40000</td>
+                        </tr>
+                        <tr>
+                            <td>Administration</td>
+                            <td>Jennifer S Wallace</td>
+                            <td>43000</td>
+                        </tr>
+                        <tr>
+                            <td>Headquarters</td>
+                            <td>James E Borg</td>
+                            <td>55000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="slide-counter">Slide 2 of 7</div>
+        </div>
+
+        <!-- Slide 2: View 2 -->
+        <div class="slide" id="slide2">
+            <h2>🔬 View 2: Research Department Employees</h2>
+            
+            <h3>Requirement</h3>
+            <p>Create a view that displays the employee name, supervisor name, and employee salary for each employee who works in the 'Research' department.</p>
+
+            <div class="warning-box">
+                <h4>⚠️ Important Considerations</h4>
+                <ul>
+                    <li>Need to join EMPLOYEE table with itself for supervisor information (self-join)</li>
+                    <li>Filter results to only include Research department employees</li>
+                    <li>Handle employees who may not have supervisors (NULL values)</li>
+                </ul>
+            </div>
+
+            <h3>SQL Solution</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>View 2: RESEARCH_DEPT_EMP</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE VIEW</span> RESEARCH_DEPT_EMP <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    <span class="function">CONCAT</span>(E.Fname, <span class="string">' '</span>, E.Minit, <span class="string">' '</span>, E.Lname) <span class="keyword">AS</span> Employee_Name,
+    <span class="function">CONCAT</span>(S.Fname, <span class="string">' '</span>, S.Minit, <span class="string">' '</span>, S.Lname) <span class="keyword">AS</span> Supervisor_Name,
+    E.Salary <span class="keyword">AS</span> Employee_Salary
+<span class="keyword">FROM</span> 
+    EMPLOYEE E
+<span class="keyword">LEFT JOIN</span> 
+    EMPLOYEE S <span class="keyword">ON</span> E.Super_ssn = S.Ssn
+<span class="keyword">INNER JOIN</span> 
+    DEPARTMENT D <span class="keyword">ON</span> E.Dno = D.Dnumber
+<span class="keyword">WHERE</span> 
+    D.Dname = <span class="string">'Research'</span>;</pre>
+            </div>
+
+            <h3>Detailed Breakdown</h3>
+            <div class="interactive-section">
+                <h4>1. Self-Join Technique</h4>
+                <p>The EMPLOYEE table is joined with itself using table aliases (E for employee, S for supervisor):</p>
+                <ul>
+                    <li><strong>E</strong>: Represents the employee record</li>
+                    <li><strong>S</strong>: Represents the supervisor record</li>
+                    <li><strong>LEFT JOIN</strong>: Ensures employees without supervisors are included</li>
+                </ul>
+
+                <h4>2. Department Filter</h4>
+                <p>The WHERE clause filters for only Research department employees:</p>
+                <ul>
+                    <li>Joins with DEPARTMENT table using Dno (department number)</li>
+                    <li>Checks Dname = 'Research'</li>
+                </ul>
+            </div>
+
+            <h3>Alternative Syntax (Using Subquery)</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>Alternative Approach</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE VIEW</span> RESEARCH_DEPT_EMP_V2 <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    <span class="function">CONCAT</span>(E.Fname, <span class="string">' '</span>, E.Minit, <span class="string">' '</span>, E.Lname) <span class="keyword">AS</span> Employee_Name,
+    <span class="function">CONCAT</span>(S.Fname, <span class="string">' '</span>, S.Minit, <span class="string">' '</span>, S.Lname) <span class="keyword">AS</span> Supervisor_Name,
+    E.Salary <span class="keyword">AS</span> Employee_Salary
+<span class="keyword">FROM</span> 
+    EMPLOYEE E
+<span class="keyword">LEFT JOIN</span> 
+    EMPLOYEE S <span class="keyword">ON</span> E.Super_ssn = S.Ssn
+<span class="keyword">WHERE</span> 
+    E.Dno = (<span class="keyword">SELECT</span> Dnumber <span class="keyword">FROM</span> DEPARTMENT <span class="keyword">WHERE</span> Dname = <span class="string">'Research'</span>);</pre>
+            </div>
+
+            <h3>Expected Output Sample</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee_Name</th>
+                            <th>Supervisor_Name</th>
+                            <th>Employee_Salary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>John B Smith</td>
+                            <td>Franklin T Wong</td>
+                            <td>30000</td>
+                        </tr>
+                        <tr>
+                            <td>Franklin T Wong</td>
+                            <td>James E Borg</td>
+                            <td>40000</td>
+                        </tr>
+                        <tr>
+                            <td>Ramesh K Narayan</td>
+                            <td>Franklin T Wong</td>
+                            <td>38000</td>
+                        </tr>
+                        <tr>
+                            <td>Joyce A English</td>
+                            <td>Franklin T Wong</td>
+                            <td>25000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="slide-counter">Slide 3 of 7</div>
+        </div>
+
+        <!-- Slide 3: View 3 -->
+        <div class="slide" id="slide3">
+            <h2>📊 View 3: Project Statistics (All Projects)</h2>
+            
+            <h3>Requirement</h3>
+            <p>Create a view showing project name, controlling department name, number of employees, and total hours worked per week on the project for each project.</p>
+
+            <div class="info-box">
+                <h4>📈 Aggregate Functions Required</h4>
+                <ul>
+                    <li><strong>COUNT()</strong>: Count number of employees per project</li>
+                    <li><strong>SUM()</strong>: Calculate total hours worked on each project</li>
+                    <li><strong>GROUP BY</strong>: Group results by project</li>
+                </ul>
+            </div>
+
+            <h3>SQL Solution</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>View 3: PROJECT_STATS</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE VIEW</span> PROJECT_STATS <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    P.Pname <span class="keyword">AS</span> Project_Name,
+    D.Dname <span class="keyword">AS</span> Controlling_Department,
+    <span class="function">COUNT</span>(W.Essn) <span class="keyword">AS</span> Number_Of_Employees,
+    <span class="function">SUM</span>(W.Hours) <span class="keyword">AS</span> Total_Hours_Per_Week
+<span class="keyword">FROM</span> 
+    PROJECT P
+<span class="keyword">INNER JOIN</span> 
+    DEPARTMENT D <span class="keyword">ON</span> P.Dnum = D.Dnumber
+<span class="keyword">LEFT JOIN</span> 
+    WORKS_ON W <span class="keyword">ON</span> P.Pnumber = W.Pno
+<span class="keyword">GROUP BY</span> 
+    P.Pnumber, P.Pname, D.Dname;</pre>
+            </div>
+
+            <h3>Comprehensive Explanation</h3>
+            <div class="interactive-section">
+                <h4>1. Table Relationships</h4>
+                <ul>
+                    <li><strong>PROJECT (P)</strong>: Main table containing project details</li>
+                    <li><strong>DEPARTMENT (D)</strong>: Joined to get controlling department name</li>
+                    <li><strong>WORKS_ON (W)</strong>: Contains employee-project assignments and hours</li>
+                </ul>
+
+                <h4>2. Why LEFT JOIN for WORKS_ON?</h4>
+                <p>Using LEFT JOIN ensures that projects with no employees assigned are still displayed:</p>
+                <ul>
+                    <li>Projects with employees: Shows actual count and hours</li>
+                    <li>Projects without employees: Shows 0 count and NULL (or 0) hours</li>
+                </ul>
+
+                <h4>3. GROUP BY Clause</h4>
+                <p>Groups results by project to allow aggregate functions:</p>
+                <ul>
+                    <li>P.Pnumber: Primary grouping identifier</li>
+                    <li>P.Pname & D.Dname: Included to display in SELECT</li>
+                </ul>
+
+                <h4>4. Aggregate Functions</h4>
+                <ul>
+                    <li><strong>COUNT(W.Essn)</strong>: Counts distinct employees (SSNs)</li>
+                    <li><strong>SUM(W.Hours)</strong>: Sums all hours worked on the project</li>
+                </ul>
+            </div>
+
+            <h3>Enhanced Version (With COALESCE)</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>Handling NULL Values</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE VIEW</span> PROJECT_STATS_ENHANCED <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    P.Pname <span class="keyword">AS</span> Project_Name,
+    D.Dname <span class="keyword">AS</span> Controlling_Department,
+    <span class="function">COUNT</span>(W.Essn) <span class="keyword">AS</span> Number_Of_Employees,
+    <span class="function">COALESCE</span>(<span class="function">SUM</span>(W.Hours), <span class="string">0</span>) <span class="keyword">AS</span> Total_Hours_Per_Week
+<span class="keyword">FROM</span> 
+    PROJECT P
+<span class="keyword">INNER JOIN</span> 
+    DEPARTMENT D <span class="keyword">ON</span> P.Dnum = D.Dnumber
+<span class="keyword">LEFT JOIN</span> 
+    WORKS_ON W <span class="keyword">ON</span> P.Pnumber = W.Pno
+<span class="keyword">GROUP BY</span> 
+    P.Pnumber, P.Pname, D.Dname;</pre>
+            </div>
+
+            <h3>Expected Output Sample</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Project_Name</th>
+                            <th>Controlling_Department</th>
+                            <th>Number_Of_Employees</th>
+                            <th>Total_Hours_Per_Week</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ProductX</td>
+                            <td>Research</td>
+                            <td>3</td>
+                            <td>52.5</td>
+                        </tr>
+                        <tr>
+                            <td>ProductY</td>
+                            <td>Research</td>
+                            <td>2</td>
+                            <td>37.5</td>
+                        </tr>
+                        <tr>
+                            <td>ProductZ</td>
+                            <td>Research</td>
+                            <td>2</td>
+                            <td>50.0</td>
+                        </tr>
+                        <tr>
+                            <td>Computerization</td>
+                            <td>Headquarters</td>
+                            <td>1</td>
+                            <td>10.0</td>
+                        </tr>
+                        <tr>
+                            <td>Reorganization</td>
+                            <td>Headquarters</td>
+                            <td>1</td>
+                            <td>10.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="slide-counter">Slide 4 of 7</div>
+        </div>
+
+        <!-- Slide 4: View 4 -->
+        <div class="slide" id="slide4">
+            <h2>👥 View 4: Multi-Employee Project Statistics</h2>
+            
+            <h3>Requirement</h3>
+            <p>Create a view showing project name, controlling department name, number of employees, and total hours worked per week on the project for projects with <strong>more than one employee</strong> working on it.</p>
+
+            <div class="warning-box">
+                <h4>🔍 Key Difference from View 3</h4>
+                <p>This view adds a HAVING clause to filter only projects with multiple employees (> 1 employee).</p>
+            </div>
+
+            <h3>SQL Solution</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>View 4: MULTI_EMP_PROJECT_STATS</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="keyword">CREATE VIEW</span> MULTI_EMP_PROJECT_STATS <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    P.Pname <span class="keyword">AS</span> Project_Name,
+    D.Dname <span class="keyword">AS</span> Controlling_Department,
+    <span class="function">COUNT</span>(W.Essn) <span class="keyword">AS</span> Number_Of_Employees,
+    <span class="function">SUM</span>(W.Hours) <span class="keyword">AS</span> Total_Hours_Per_Week
+<span class="keyword">FROM</span> 
+    PROJECT P
+<span class="keyword">INNER JOIN</span> 
+    DEPARTMENT D <span class="keyword">ON</span> P.Dnum = D.Dnumber
+<span class="keyword">INNER JOIN</span> 
+    WORKS_ON W <span class="keyword">ON</span> P.Pnumber = W.Pno
+<span class="keyword">GROUP BY</span> 
+    P.Pnumber, P.Pname, D.Dname
+<span class="keyword">HAVING</span> 
+    <span class="function">COUNT</span>(W.Essn) > <span class="string">1</span>;</pre>
+            </div>
+
+            <h3>WHERE vs HAVING: Critical Distinction</h3>
+            <div class="interactive-section">
+                <h4>Understanding the Difference</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>WHERE Clause</th>
+                            <th>HAVING Clause</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>When Applied</strong></td>
+                            <td>Before grouping</td>
+                            <td>After grouping</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Filters</strong></td>
+                            <td>Individual rows</td>
+                            <td>Grouped results</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Can Use Aggregates</strong></td>
+                            <td>No</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Example</strong></td>
+                            <td>WHERE Salary > 30000</td>
+                            <td>HAVING COUNT(*) > 1</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Why INNER JOIN Instead of LEFT JOIN?</h4>
+                <p>In this view, we use INNER JOIN for WORKS_ON because:</p>
+                <ul>
+                    <li>We only want projects that have employees assigned</li>
+                    <li>Projects with zero employees cannot have "more than one employee"</li>
+                    <li>INNER JOIN automatically excludes projects without assignments</li>
+                </ul>
+            </div>
+
+            <h3>Step-by-Step Execution Flow</h3>
+            <div class="info-box">
+                <h4>Query Processing Order</h4>
+                <ol>
+                    <li><strong>FROM & JOIN:</strong> Combine PROJECT, DEPARTMENT, and WORKS_ON tables</li>
+                    <li><strong>GROUP BY:</strong> Group results by project</li>
+                    <li><strong>Aggregate Functions:</strong> Calculate COUNT and SUM for each group</li>
+                    <li><strong>HAVING:</strong> Filter groups to only those with COUNT(Essn) > 1</li>
+                    <li><strong>SELECT:</strong> Display the final columns</li>
+                </ol>
+            </div>
+
+            <h3>Comparison with View 3</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>Side-by-Side Comparison</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- View 3: All Projects (uses LEFT JOIN)</span>
+<span class="keyword">LEFT JOIN</span> WORKS_ON W <span class="keyword">ON</span> P.Pnumber = W.Pno
+<span class="comment">-- No HAVING clause</span>
+
+<span class="comment">-- View 4: Multi-Employee Projects (uses INNER JOIN)</span>
+<span class="keyword">INNER JOIN</span> WORKS_ON W <span class="keyword">ON</span> P.Pnumber = W.Pno
+<span class="keyword">HAVING</span> <span class="function">COUNT</span>(W.Essn) > <span class="string">1</span></pre>
+            </div>
+
+            <h3>Expected Output Sample</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Project_Name</th>
+                            <th>Controlling_Department</th>
+                            <th>Number_Of_Employees</th>
+                            <th>Total_Hours_Per_Week</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ProductX</td>
+                            <td>Research</td>
+                            <td>3</td>
+                            <td>52.5</td>
+                        </tr>
+                        <tr>
+                            <td>ProductY</td>
+                            <td>Research</td>
+                            <td>2</td>
+                            <td>37.5</td>
+                        </tr>
+                        <tr>
+                            <td>ProductZ</td>
+                            <td>Research</td>
+                            <td>2</td>
+                            <td>50.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="success-box">
+                <h4>✅ Notice the Difference</h4>
+                <p>Projects like "Computerization" and "Reorganization" (which have only 1 employee each) are excluded from this view, whereas they appeared in View 3.</p>
+            </div>
+
+            <div class="slide-counter">Slide 5 of 7</div>
+        </div>
+
+        <!-- Slide 5: Summary -->
+        <div class="slide" id="slide5">
+            <h2>📝 Summary & Best Practices</h2>
+            
+            <h3>Complete View Statements</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>All Four Views - Complete Script</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- View 1: Department Manager Information</span>
+<span class="keyword">CREATE VIEW</span> DEPT_MANAGER_INFO <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    D.Dname <span class="keyword">AS</span> Department_Name,
+    <span class="function">CONCAT</span>(E.Fname, <span class="string">' '</span>, E.Minit, <span class="string">' '</span>, E.Lname) <span class="keyword">AS</span> Manager_Name,
+    E.Salary <span class="keyword">AS</span> Manager_Salary
+<span class="keyword">FROM</span> DEPARTMENT D
+<span class="keyword">INNER JOIN</span> EMPLOYEE E <span class="keyword">ON</span> D.Mgr_ssn = E.Ssn;
+
+<span class="comment">-- View 2: Research Department Employees</span>
+<span class="keyword">CREATE VIEW</span> RESEARCH_DEPT_EMP <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    <span class="function">CONCAT</span>(E.Fname, <span class="string">' '</span>, E.Minit, <span class="string">' '</span>, E.Lname) <span class="keyword">AS</span> Employee_Name,
+    <span class="function">CONCAT</span>(S.Fname, <span class="string">' '</span>, S.Minit, <span class="string">' '</span>, S.Lname) <span class="keyword">AS</span> Supervisor_Name,
+    E.Salary <span class="keyword">AS</span> Employee_Salary
+<span class="keyword">FROM</span> EMPLOYEE E
+<span class="keyword">LEFT JOIN</span> EMPLOYEE S <span class="keyword">ON</span> E.Super_ssn = S.Ssn
+<span class="keyword">INNER JOIN</span> DEPARTMENT D <span class="keyword">ON</span> E.Dno = D.Dnumber
+<span class="keyword">WHERE</span> D.Dname = <span class="string">'Research'</span>;
+
+<span class="comment">-- View 3: All Project Statistics</span>
+<span class="keyword">CREATE VIEW</span> PROJECT_STATS <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    P.Pname <span class="keyword">AS</span> Project_Name,
+    D.Dname <span class="keyword">AS</span> Controlling_Department,
+    <span class="function">COUNT</span>(W.Essn) <span class="keyword">AS</span> Number_Of_Employees,
+    <span class="function">SUM</span>(W.Hours) <span class="keyword">AS</span> Total_Hours_Per_Week
+<span class="keyword">FROM</span> PROJECT P
+<span class="keyword">INNER JOIN</span> DEPARTMENT D <span class="keyword">ON</span> P.Dnum = D.Dnumber
+<span class="keyword">LEFT JOIN</span> WORKS_ON W <span class="keyword">ON</span> P.Pnumber = W.Pno
+<span class="keyword">GROUP BY</span> P.Pnumber, P.Pname, D.Dname;
+
+<span class="comment">-- View 4: Multi-Employee Project Statistics</span>
+<span class="keyword">CREATE VIEW</span> MULTI_EMP_PROJECT_STATS <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> 
+    P.Pname <span class="keyword">AS</span> Project_Name,
+    D.Dname <span class="keyword">AS</span> Controlling_Department,
+    <span class="function">COUNT</span>(W.Essn) <span class="keyword">AS</span> Number_Of_Employees,
+    <span class="function">SUM</span>(W.Hours) <span class="keyword">AS</span> Total_Hours_Per_Week
+<span class="keyword">FROM</span> PROJECT P
+<span class="keyword">INNER JOIN</span> DEPARTMENT D <span class="keyword">ON</span> P.Dnum = D.Dnumber
+<span class="keyword">INNER JOIN</span> WORKS_ON W <span class="keyword">ON</span> P.Pnumber = W.Pno
+<span class="keyword">GROUP BY</span> P.Pnumber, P.Pname, D.Dname
+<span class="keyword">HAVING</span> <span class="function">COUNT</span>(W.Essn) > <span class="string">1</span>;</pre>
+            </div>
+
+            <h3>Key Concepts Covered</h3>
+            <div class="interactive-section">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Concept</th>
+                            <th>View(s)</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>INNER JOIN</strong></td>
+                            <td>1, 2, 4</td>
+                            <td>Retrieves matching rows from both tables</td>
+                        </tr>
+                        <tr>
+                            <td><strong>LEFT JOIN</strong></td>
+                            <td>2, 3</td>
+                            <td>Includes all rows from left table, even without matches</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Self-Join</strong></td>
+                            <td>2</td>
+                            <td>Joining a table with itself (for hierarchical data)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>GROUP BY</strong></td>
+                            <td>3, 4</td>
+                            <td>Groups rows for aggregate calculations</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HAVING</strong></td>
+                            <td>4</td>
+                            <td>Filters grouped results using aggregate conditions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aggregate Functions</strong></td>
+                            <td>3, 4</td>
+                            <td>COUNT(), SUM() for calculations</td>
+                        </tr>
+                        <tr>
+                            <td><strong>String Functions</strong></td>
+                            <td>1, 2</td>
+                            <td>CONCAT() for name formatting</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>View Management Commands</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>Useful View Operations</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><span class="comment">-- Show all views in database</span>
+<span class="keyword">SHOW FULL TABLES WHERE</span> Table_type = <span class="string">'VIEW'</span>;
+
+<span class="comment">-- Describe view structure</span>
+<span class="keyword">DESCRIBE</span> DEPT_MANAGER_INFO;
+
+<span class="comment">-- Show view definition</span>
+<span class="keyword">SHOW CREATE VIEW</span> DEPT_MANAGER_INFO;
+
+<span class="comment">-- Drop a view</span>
+<span class="keyword">DROP VIEW IF EXISTS</span> DEPT_MANAGER_INFO;
+
+<span class="comment">-- Modify an existing view</span>
+<span class="keyword">CREATE OR REPLACE VIEW</span> DEPT_MANAGER_INFO <span class="keyword">AS</span>
+<span class="keyword">SELECT</span> <span class="comment">/* new definition */</span>;</pre>
+            </div>
+
+            <h3>Best Practices</h3>
+            <div class="info-box">
+                <h4>✨ View Design Guidelines</h4>
+                <ol>
+                    <li><strong>Meaningful Names:</strong> Use descriptive names that indicate content</li>
+                    <li><strong>Column Aliases:</strong> Always use clear AS aliases for readability</li>
+                    <li><strong>Documentation:</strong> Add comments explaining complex views</li>
+                    <li><strong>Performance:</strong> Avoid overly complex views with many joins</li>
+                    <li><strong>Security:</strong> Use views to hide sensitive columns</li>
+                    <li><strong>Maintenance:</strong> Keep view definitions simple and focused</li>
+                    <li><strong>Testing:</strong> Test views with various data scenarios</li>
+                    <li><strong>Dependencies:</strong> Be aware of view dependencies on base tables</li>
+                </ol>
+            </div>
+
+            <h3>Common Pitfalls to Avoid</h3>
+            <div class="warning-box">
+                <h4>⚠️ Watch Out For</h4>
+                <ul>
+                    <li><strong>Circular Dependencies:</strong> Don't create views that reference each other</li>
+                    <li><strong>SELECT *:</strong> Avoid using SELECT * in view definitions</li>
+                    <li><strong>Missing GROUP BY:</strong> Include all non-aggregated columns in GROUP BY</li>
+                    <li><strong>NULL Handling:</strong> Consider using COALESCE for NULL values</li>
+                    <li><strong>WHERE vs HAVING:</strong> Use WHERE for row filtering, HAVING for group filtering</li>
+                    <li><strong>Performance:</strong> Complex views can slow down queries significantly</li>
+                </ul>
+            </div>
+
+            <div class="slide-counter">Slide 6 of 7</div>
+        </div>
+
+        <!-- Slide 6: Quiz -->
+        <div class="slide" id="slide6">
+            <h2>🎯 Knowledge Check Quiz</h2>
+            
+            <div class="interactive-section">
+                <h3>Question 1</h3>
+                <p><strong>What is the main difference between View 3 and View 4?</strong></p>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    A) View 3 uses INNER JOIN while View 4 uses LEFT JOIN
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    B) View 3 doesn't use GROUP BY while View 4 does
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    C) View 4 includes a HAVING clause to filter projects with more than one employee
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    D) View 3 shows employee names while View 4 shows project names
+                </div>
+            </div>
+
+            <div class="interactive-section">
+                <h3>Question 2</h3>
+                <p><strong>Why do we use LEFT JOIN when joining EMPLOYEE with itself in View 2?</strong></p>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    A) To improve query performance
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    B) To include employees who don't have supervisors
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    C) To avoid duplicate rows
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    D) LEFT JOIN is not used in View 2
+                </div>
+            </div>
+
+            <div class="interactive-section">
+                <h3>Question 3</h3>
+                <p><strong>Which clause is used to filter grouped results in SQL?</strong></p>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    A) WHERE
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    B) HAVING
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    C) FILTER
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    D) GROUP FILTER
+                </div>
+            </div>
+
+            <div class="interactive-section">
+                <h3>Question 4</h3>
+                <p><strong>What does COUNT(W.Essn) do in the project statistics views?</strong></p>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    A) Counts the number of employees working on each project
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    B) Counts the total hours worked on the project
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    C) Counts the number of projects each employee works on
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    D) Counts the number of departments in the company
+                </div>
+            </div>
+
+            <div class="interactive-section">
+                <h3>Question 5</h3>
+                <p><strong>What is a view in SQL?</strong></p>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    A) A physical table that stores data permanently
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">
+                    B) A virtual table based on a SELECT query that doesn't store data
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    C) A backup copy of a table
+                </div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">
+                    D) A special type of index for faster queries
+                </div>
+            </div>
+
+            <div class="success-box" style="display:none;" id="quizResults">
+                <h4>🎉 Quiz Completed!</h4>
+                <p id="scoreText"></p>
+            </div>
+
+            <div class="slide-counter">Slide 7 of 7</div>
+        </div>
+
+        <!-- Slide 7: Additional Resources -->
+        <div class="slide" id="slide7">
+            <h2>📚 Additional Resources & Practice</h2>
+            
+            <h3>Practice Exercises</h3>
+            <div class="interactive-section">
+                <h4>Exercise 1: Create Your Own View</h4>
+                <p>Create a view that shows employee names and their total hours worked across all projects.</p>
+                
+                <h4>Exercise 2: Modify Existing View</h4>
+                <p>Modify View 1 to also include the manager's start date and the number of employees in each department.</p>
+                
+                <h4>Exercise 3: Complex View</h4>
+                <p>Create a view that shows department name, average employee salary, and number of projects controlled by that department.</p>
+                
+                <h4>Exercise 4: View with Subquery</h4>
+                <p>Create a view showing employees who work more total hours than the company average.</p>
+            </div>
+
+            <h3>Real-World Applications</h3>
+            <div class="info-box">
+                <h4>💼 When to Use Views</h4>
+                <ul>
+                    <li><strong>Reporting:</strong> Create standardized reports that multiple users can access</li>
+                    <li><strong>Security:</strong> Limit access to sensitive data by exposing only necessary columns</li>
+                    <li><strong>Simplification:</strong> Hide complex joins from end users</li>
+                    <li><strong>Data Abstraction:</strong> Provide a consistent interface even if underlying schema changes</li>
+                    <li><strong>Calculated Fields:</strong> Pre-compute derived values for easier querying</li>
+                    <li><strong>Legacy Support:</strong> Maintain compatibility when restructuring databases</li>
+                </ul>
+            </div>
+
+            <h3>Performance Considerations</h3>
+            <div class="warning-box">
+                <h4>⚡ Optimization Tips</h4>
+                <ul>
+                    <li><strong>Indexing:</strong> Ensure base tables have appropriate indexes</li>
+                    <li><strong>Materialized Views:</strong> Consider materialized views for expensive computations</li>
+                    <li><strong>Avoid Nesting:</strong> Don't create views based on other views excessively</li>
+                    <li><strong>Limit Joins:</strong> Too many joins in a view can slow performance</li>
+                    <li><strong>Monitor Usage:</strong> Track which views are actually used</li>
+                </ul>
+            </div>
+
+            <h3>Further Reading</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>Recommended Topics</span>
+                </div>
+                <pre>1. Materialized Views
+   - When and how to use them
+   - Refresh strategies
+
+2. Updatable Views
+   - Conditions for updating data through views
+   - WITH CHECK OPTION
+
+3. Indexed Views
+   - Creating indexes on views
+   - Performance benefits
+
+4. View Security
+   - GRANT permissions on views
+   - Role-based access control
+
+5. View Dependencies
+   - Managing dependencies
+   - Impact of table schema changes</pre>
+            </div>
+
+            <h3>Lab Submission Checklist</h3>
+            <div class="success-box">
+                <h4>✅ Before Submitting</h4>
+                <ol>
+                    <li>All four views created successfully</li>
+                    <li>Test each view with SELECT * statements</li>
+                    <li>Verify output matches expected results</li>
+                    <li>Document any assumptions made</li>
+                    <li>Include screenshots or query results</li>
+                    <li>Comment your code appropriately</li>
+                    <li>Test edge cases (NULL values, empty results)</li>
+                    <li>Verify view definitions with SHOW CREATE VIEW</li>
+                </ol>
+            </div>
+
+            <h3>Contact Information</h3>
+            <div class="instructor-info">
+                <p><strong>For Questions or Clarifications:</strong></p>
+                <p>Dr. Mohsin Dar</p>
+                <p>Assistant Professor, SOCS | UPES</p>
+                <p>Office Hours: [To be announced]</p>
+            </div>
+
+            <div class="slide-counter">Slide 8 of 8 (Bonus)</div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        let quizScore = 0;
+        let quizAnswered = 0;
+        const totalSlides = 8;
+
+        function showSlide(index) {
+            const slides = document.querySelectorAll('.slide');
+            const buttons = document.querySelectorAll('.nav-btn');
+            
+            slides.forEach(slide => slide.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            slides[index].classList.add('active');
+            buttons[index].classList.add('active');
+            
+            currentSlide = index;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        function copyCode(button) {
+            const codeBlock = button.closest('.code-block').querySelector('pre');
+            const code = codeBlock.innerText;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = 'Copied!';
+                button.style.background = '#28a745';
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.style.background = '#667eea';
+                }, 2000);
+            });
+        }
+
+        function checkAnswer(element, isCorrect) {
+            const options = element.parentElement.querySelectorAll('.quiz-option');
+            options.forEach(opt => {
+                opt.style.pointerEvents = 'none';
+            });
+
+            if (isCorrect) {
+                element.classList.add('correct');
+                quizScore++;
+            } else {
+                element.classList.add('incorrect');
+                options.forEach(opt => {
+                    if (opt.onclick.toString().includes('true')) {
+                        opt.classList.add('correct');
+                    }
+                });
+            }
+
+            quizAnswered++;
+            if (quizAnswered === 5) {
+                showQuizResults();
+            }
+        }
+
+        function showQuizResults() {
+            const resultsBox = document.getElementById('quizResults');
+            const scoreText = document.getElementById('scoreText');
+            
+            let message = '';
+            const percentage = (quizScore / 5) * 100;
+            
+            if (percentage === 100) {
+                message = 'Perfect score! Excellent understanding of SQL views! 🌟';
+            } else if (percentage >= 80) {
+                message = 'Great job! You have a solid grasp of the concepts. 👏';
+            } else if (percentage >= 60) {
+                message = 'Good effort! Review the slides for better understanding. 📖';
+            } else {
+                message = 'Keep practicing! Review the material and try again. 💪';
+            }
+            
+            scoreText.innerHTML = `You scored ${quizScore} out of 5 (${percentage}%). ${message}`;
+            resultsBox.style.display = 'block';
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            } else if (e.key === 'ArrowLeft' && currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        });
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>
