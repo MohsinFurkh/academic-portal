@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETL Processing & Aggregates - UPES Database Systems</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 60px 80px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            margin-bottom: 30px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            font-size: 3.5rem;
+            margin-bottom: 40px;
+            color: #ffd700;
+            border-bottom: 4px solid #ffd700;
+            padding-bottom: 20px;
+        }
+
+        h3 {
+            font-size: 2.8rem;
+            margin: 30px 0 20px 0;
+            color: #ffeb99;
+        }
+
+        p, li {
+            font-size: 2rem;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            list-style: none;
+            margin-left: 40px;
+        }
+
+        ul li {
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 25px;
+        }
+
+        ul li:before {
+            content: "▶";
+            position: absolute;
+            left: 0;
+            color: #ffd700;
+            font-size: 1.8rem;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 5px solid #ffd700;
+            padding: 30px;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.8rem;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .diagram-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid #ffd700;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .flow-diagram {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 40px 0;
+        }
+
+        .flow-box {
+            background: rgba(255, 215, 0, 0.2);
+            border: 3px solid #ffd700;
+            border-radius: 10px;
+            padding: 30px 40px;
+            font-size: 2rem;
+            font-weight: bold;
+            min-width: 200px;
+        }
+
+        .arrow {
+            font-size: 3rem;
+            color: #ffd700;
+            margin: 0 20px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: rgba(255, 215, 0, 0.3);
+            border: 2px solid #ffd700;
+            color: #fff;
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 215, 0, 0.5);
+            transform: scale(1.05);
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            font-size: 1.8rem;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 2px solid #ffd700;
+        }
+
+        .subtitle {
+            font-size: 2.2rem;
+            color: #a8daff;
+            margin-bottom: 40px;
+        }
+
+        .highlight {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin: 30px 0;
+        }
+
+        .column-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 215, 0, 0.5);
+        }
+
+        table {
+            width: 100%;
+            margin: 30px 0;
+            border-collapse: collapse;
+            font-size: 1.6rem;
+        }
+
+        th, td {
+            padding: 20px;
+            text-align: left;
+            border: 2px solid #ffd700;
+        }
+
+        th {
+            background: rgba(255, 215, 0, 0.3);
+            font-size: 1.8rem;
+        }
+
+        .footer {
+            position: fixed;
+            top: 20px;
+            right: 30px;
+            font-size: 1.4rem;
+            color: #a8daff;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="footer">UPES - Database Systems | Unit V: Dimensional Database Design</div>
+
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <h1>ETL Processing & Aggregates</h1>
+            <p class="subtitle">Dimensional Database Design - Unit V</p>
+            <div style="margin-top: 60px;">
+                <p style="font-size: 2.5rem;"><strong>Dr. Mohsin Dar</strong></p>
+                <p style="font-size: 2rem; color: #a8daff;">Assistant Professor</p>
+                <p style="font-size: 2rem; color: #a8daff;">Cloud & Software Operations Cluster | SOCS</p>
+                <p style="font-size: 2rem; color: #a8daff;">University of Petroleum and Energy Studies (UPES)</p>
+            </div>
+            <div style="margin-top: 80px;">
+                <p style="font-size: 1.8rem; color: #ffeb99;">MTech - Database Systems | First Semester</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Agenda -->
+        <div class="slide">
+            <h2>Today's Agenda</h2>
+            <ul style="font-size: 2.3rem;">
+                <li>ETL Processing Fundamentals</li>
+                <li>ETL Workflow Architecture</li>
+                <li>Slowly Changing Dimensions (SCD Types)</li>
+                <li>Surrogate Keys and their Importance</li>
+                <li>Aggregates and Materialized Views</li>
+                <li>Hierarchies and Rollups</li>
+                <li>Precomputed Aggregates</li>
+            </ul>
+        </div>
+
+        <!-- Slide 3: ETL Introduction -->
+        <div class="slide">
+            <h2>What is ETL?</h2>
+            <h3>Extract, Transform, Load</h3>
+            <ul>
+                <li><span class="highlight">Extract:</span> Retrieve data from source systems (OLTP, files, APIs, etc.)</li>
+                <li><span class="highlight">Transform:</span> Cleanse, validate, and restructure data for analysis</li>
+                <li><span class="highlight">Load:</span> Insert transformed data into the data warehouse</li>
+            </ul>
+            <div class="diagram-box" style="margin-top: 50px;">
+                <p style="font-size: 2rem; color: #ffd700;">ETL is the backbone of data warehousing, ensuring data quality and consistency for business intelligence and analytics.</p>
+            </div>
+        </div>
+
+        <!-- Slide 4: ETL Workflow -->
+        <div class="slide">
+            <h2>ETL Workflow Architecture</h2>
+            <div class="flow-diagram">
+                <div class="flow-box">Source Systems</div>
+                <div class="arrow">→</div>
+                <div class="flow-box">Extract</div>
+                <div class="arrow">→</div>
+                <div class="flow-box">Staging Area</div>
+            </div>
+            <div class="flow-diagram">
+                <div class="flow-box">Staging Area</div>
+                <div class="arrow">→</div>
+                <div class="flow-box">Transform</div>
+                <div class="arrow">→</div>
+                <div class="flow-box">Data Warehouse</div>
+            </div>
+            <ul style="margin-top: 40px;">
+                <li>Source systems remain operational during extraction</li>
+                <li>Staging area provides temporary storage for raw data</li>
+                <li>Transformation rules applied in staging environment</li>
+                <li>Final data loaded into dimensional model</li>
+            </ul>
+        </div>
+
+        <!-- Slide 5: ETL Workflow Details -->
+        <div class="slide">
+            <h2>ETL Workflow Steps</h2>
+            <h3>1. Extract Phase</h3>
+            <ul>
+                <li>Full extraction vs. Incremental extraction</li>
+                <li>Change Data Capture (CDC) techniques</li>
+                <li>Timestamp-based extraction</li>
+                <li>Log-based extraction</li>
+            </ul>
+            <h3 style="margin-top: 40px;">2. Transform Phase</h3>
+            <ul>
+                <li>Data cleansing and validation</li>
+                <li>Data type conversions</li>
+                <li>Business rule application</li>
+                <li>Deduplication and aggregation</li>
+            </ul>
+        </div>
+
+        <!-- Slide 6: ETL Workflow Load -->
+        <div class="slide">
+            <h2>ETL Workflow - Load Phase</h2>
+            <h3>3. Load Phase Strategies</h3>
+            <ul>
+                <li><span class="highlight">Initial Load:</span> First-time population of data warehouse</li>
+                <li><span class="highlight">Incremental Load:</span> Regular updates with new/changed data</li>
+                <li><span class="highlight">Full Refresh:</span> Complete replacement of target data</li>
+            </ul>
+            <div class="code-block" style="margin-top: 40px;">
+-- Example: Incremental Load Strategy
+INSERT INTO DimCustomer
+SELECT * FROM StagingCustomer
+WHERE LastModifiedDate > 
+    (SELECT MAX(LoadDate) FROM ETLControl);
+            </div>
+        </div>
+
+        <!-- Slide 7: SCD Introduction -->
+        <div class="slide">
+            <h2>Slowly Changing Dimensions (SCD)</h2>
+            <p style="font-size: 2.2rem; margin-bottom: 40px;">Methods to handle changes in dimensional attributes over time</p>
+            <ul>
+                <li><span class="highlight">Type 0:</span> Retain Original (No changes allowed)</li>
+                <li><span class="highlight">Type 1:</span> Overwrite (No history maintained)</li>
+                <li><span class="highlight">Type 2:</span> Add New Row (Full history tracking)</li>
+                <li><span class="highlight">Type 3:</span> Add New Column (Limited history)</li>
+                <li><span class="highlight">Type 4:</span> History Table (Separate historical records)</li>
+                <li><span class="highlight">Type 6:</span> Hybrid (Combination of Types 1+2+3)</li>
+            </ul>
+        </div>
+
+        <!-- Slide 8: SCD Type 1 -->
+        <div class="slide">
+            <h2>SCD Type 1: Overwrite</h2>
+            <div class="two-column">
+                <div class="column-box">
+                    <h3 style="font-size: 2.2rem;">Characteristics</h3>
+                    <ul style="font-size: 1.8rem;">
+                        <li>Simplest approach</li>
+                        <li>No history maintained</li>
+                        <li>Old values overwritten</li>
+                        <li>Minimal storage</li>
+                    </ul>
+                </div>
+                <div class="column-box">
+                    <h3 style="font-size: 2.2rem;">Use Cases</h3>
+                    <ul style="font-size: 1.8rem;">
+                        <li>Correcting data errors</li>
+                        <li>Non-significant changes</li>
+                        <li>Current value analysis only</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="code-block" style="margin-top: 30px;">
+-- Example: Update customer address
+UPDATE DimCustomer
+SET City = 'New Delhi', 
+    State = 'Delhi'
+WHERE CustomerKey = 12345;
+            </div>
+        </div>
+
+        <!-- Slide 9: SCD Type 2 -->
+        <div class="slide">
+            <h2>SCD Type 2: Add New Row</h2>
+            <p style="font-size: 2rem; margin-bottom: 30px;">Most commonly used approach for maintaining complete history</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>CustomerKey</th>
+                        <th>CustomerID</th>
+                        <th>City</th>
+                        <th>StartDate</th>
+                        <th>EndDate</th>
+                        <th>IsCurrent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1001</td>
+                        <td>C123</td>
+                        <td>Mumbai</td>
+                        <td>2020-01-01</td>
+                        <td>2023-05-31</td>
+                        <td>N</td>
+                    </tr>
+                    <tr>
+                        <td>1002</td>
+                        <td>C123</td>
+                        <td>Bangalore</td>
+                        <td>2023-06-01</td>
+                        <td>9999-12-31</td>
+                        <td>Y</td>
+                    </tr>
+                </tbody>
+            </table>
+            <ul style="margin-top: 30px;">
+                <li>New row inserted for each change</li>
+                <li>Tracks complete historical changes</li>
+                <li>Enables point-in-time analysis</li>
+            </ul>
+        </div>
+
+        <!-- Slide 10: SCD Type 3 -->
+        <div class="slide">
+            <h2>SCD Type 3: Add New Column</h2>
+            <p style="font-size: 2rem; margin-bottom: 30px;">Maintains limited history using additional columns</p>
+            <table style="font-size: 1.5rem;">
+                <thead>
+                    <tr>
+                        <th>CustomerKey</th>
+                        <th>CustomerID</th>
+                        <th>CurrentCity</th>
+                        <th>PreviousCity</th>
+                        <th>EffectiveDate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1001</td>
+                        <td>C123</td>
+                        <td>Bangalore</td>
+                        <td>Mumbai</td>
+                        <td>2023-06-01</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="two-column" style="margin-top: 40px;">
+                <div class="column-box">
+                    <h3 style="font-size: 2rem;">Advantages</h3>
+                    <ul style="font-size: 1.6rem;">
+                        <li>Simple queries</li>
+                        <li>Limited storage</li>
+                        <li>Easy comparison</li>
+                    </ul>
+                </div>
+                <div class="column-box">
+                    <h3 style="font-size: 2rem;">Limitations</h3>
+                    <ul style="font-size: 1.6rem;">
+                        <li>Fixed history depth</li>
+                        <li>Not scalable</li>
+                        <li>Multiple changes limited</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Surrogate Keys -->
+        <div class="slide">
+            <h2>Surrogate Keys</h2>
+            <h3>Definition</h3>
+            <p style="font-size: 2rem;">System-generated unique identifiers that have no business meaning</p>
+            <h3 style="margin-top: 40px;">Why Use Surrogate Keys?</h3>
+            <ul>
+                <li><span class="highlight">Independence:</span> Isolated from source system changes</li>
+                <li><span class="highlight">Performance:</span> Integer keys provide faster joins</li>
+                <li><span class="highlight">History Tracking:</span> Enable SCD Type 2 implementation</li>
+                <li><span class="highlight">Integration:</span> Merge data from multiple sources</li>
+                <li><span class="highlight">Consistency:</span> Uniform key structure across dimensions</li>
+            </ul>
+        </div>
+
+        <!-- Slide 12: Surrogate Key Example -->
+        <div class="slide">
+            <h2>Surrogate Keys - Example</h2>
+            <div class="two-column">
+                <div class="column-box">
+                    <h3 style="font-size: 2rem;">Natural Key</h3>
+                    <div class="code-block" style="font-size: 1.5rem; margin-top: 20px;">
+CustomerID: "CUST-2024-001"
+ProductCode: "PROD-ELC-2024"
+OrderNumber: "ORD/2024/12345"
+                    </div>
+                    <ul style="font-size: 1.6rem; margin-top: 20px;">
+                        <li>Business meaning</li>
+                        <li>Can change</li>
+                        <li>Complex structure</li>
+                    </ul>
+                </div>
+                <div class="column-box">
+                    <h3 style="font-size: 2rem;">Surrogate Key</h3>
+                    <div class="code-block" style="font-size: 1.5rem; margin-top: 20px;">
+CustomerKey: 1001
+ProductKey: 5023
+OrderKey: 789456
+                    </div>
+                    <ul style="font-size: 1.6rem; margin-top: 20px;">
+                        <li>No business meaning</li>
+                        <li>Never changes</li>
+                        <li>Simple integer</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="diagram-box" style="margin-top: 40px;">
+                <p style="font-size: 1.8rem;">Fact tables reference dimensions using surrogate keys, ensuring data warehouse stability and performance.</p>
+            </div>
+        </div>
+
+        <!-- Slide 13: Aggregates Introduction -->
+        <div class="slide">
+            <h2>Aggregates & Materialized Views</h2>
+            <h3>What are Aggregates?</h3>
+            <p style="font-size: 2rem;">Pre-calculated summary data stored to improve query performance</p>
+            <ul style="margin-top: 40px;">
+                <li><span class="highlight">Purpose:</span> Speed up analytical queries</li>
+                <li><span class="highlight">Trade-off:</span> Storage space vs. Query performance</li>
+                <li><span class="highlight">Maintenance:</span> Must be refreshed when base data changes</li>
+                <li><span class="highlight">Transparency:</span> Often invisible to end users</li>
+            </ul>
+            <div class="diagram-box" style="margin-top: 50px;">
+                <p style="font-size: 1.9rem;">Queries that might take minutes on raw data can execute in seconds using aggregates</p>
+            </div>
+        </div>
+
+        <!-- Slide 14: Materialized Views -->
+        <div class="slide">
+            <h2>Materialized Views</h2>
+            <h3>Definition</h3>
+            <p style="font-size: 2rem;">Database objects containing query results stored as physical tables</p>
+            <div class="code-block" style="margin-top: 40px;">
+CREATE MATERIALIZED VIEW MV_SalesByMonth AS
+SELECT 
+    d.Year,
+    d.Month,
+    p.Category,
+    SUM(f.SalesAmount) AS TotalSales,
+    COUNT(f.OrderKey) AS OrderCount
+FROM FactSales f
+JOIN DimDate d ON f.DateKey = d.DateKey
+JOIN DimProduct p ON f.ProductKey = p.ProductKey
+GROUP BY d.Year, d.Month, p.Category;
+            </div>
+            <ul style="margin-top: 30px;">
+                <li>Physically stored aggregated results</li>
+                <li>Automatically refreshed (configurable)</li>
+                <li>Query rewrite optimization</li>
+            </ul>
+        </div>
+
+        <!-- Slide 15: Hierarchies -->
+        <div class="slide">
+            <h2>Hierarchies in Data Warehousing</h2>
+            <h3>Definition</h3>
+            <p style="font-size: 2rem;">Logical structures organizing data from detailed to summarized levels</p>
+            <h3 style="margin-top: 40px;">Common Hierarchies</h3>
+            <div class="two-column">
+                <div class="column-box">
+                    <h3 style="font-size: 1.9rem;">Time Hierarchy</h3>
+                    <div style="font-size: 1.8rem; text-align: center; margin-top: 20px;">
+                        <div style="margin: 15px 0;">Year</div>
+                        <div style="color: #ffd700;">↓</div>
+                        <div style="margin: 15px 0;">Quarter</div>
+                        <div style="color: #ffd700;">↓</div>
+                        <div style="margin: 15px 0;">Month</div>
+                        <div style="color: #ffd700;">↓</div>
+                        <div style="margin: 15px 0;">Day</div>
+                    </div>
+                </div>
+                <div class="column-box">
+                    <h3 style="font-size: 1.9rem;">Geography Hierarchy</h3>
+                    <div style="font-size: 1.8rem; text-align: center; margin-top: 20px;">
+                        <div style="margin: 15px 0;">Country</div>
+                        <div style="color: #ffd700;">↓</div>
+                        <div style="margin: 15px 0;">State</div>
+                        <div style="color: #ffd700;">↓</div>
+                        <div style="margin: 15px 0;">City</div>
+                        <div style="color: #ffd700;">↓</div>
+                        <div style="margin: 15px 0;">Store</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: Rollups -->
+        <div class="slide">
+            <h2>Rollups (Drill-Up)</h2>
+            <h3>Concept</h3>
+            <p style="font-size: 2rem;">Aggregating data to higher levels in a hierarchy</p>
+            <div class="diagram-box" style="margin-top: 40px;">
+                <div style="font-size: 1.9rem; line-height: 2.5;">
+                    <p><span class="highlight">Daily Sales</span> → Roll up to → <span class="highlight">Monthly Sales</span></p>
+                    <p style="margin-top: 20px;"><span class="highlight">Monthly Sales</span> → Roll up to → <span class="highlight">Quarterly Sales</span></p>
+                    <p style="margin-top: 20px;"><span class="highlight">Quarterly Sales</span> → Roll up to → <span class="highlight">Yearly Sales</span></p>
+                </div>
+            </div>
+            <h3 style="margin-top: 50px;">Benefits</h3>
+            <ul>
+                <li>Reduces data volume at higher levels</li>
+                <li>Faster query performance for summary reports</li>
+                <li>Enables top-down analysis</li>
+            </ul>
+        </div>
+
+        <!-- Slide 17: Drill-Down -->
+        <div class="slide">
+            <h2>Drill-Down Operations</h2>
+            <p style="font-size: 2rem; margin-bottom: 40px;">Opposite of rollup - navigating from summary to detailed data</p>
+            <div class="code-block">
+-- Example: Drilling down from Year to Month
+SELECT 
+    Year, Quarter, Month,
+    SUM(SalesAmount) AS TotalSales
+FROM FactSales f
+JOIN DimDate d ON f.DateKey = d.DateKey
+WHERE Year = 2024
+GROUP BY Year, Quarter, Month
+ORDER BY Year, Quarter, Month;
+            </div>
+            <ul style="margin-top: 40px;">
+                <li>Enables root cause analysis</li>
+                <li>Provides detailed insights</li>
+                <li>Interactive business intelligence</li>
+            </ul>
+        </div>
+
+        <!-- Slide 18: Precomputed Aggregates -->
+        <div class="slide">
+            <h2>Precomputed Aggregates</h2>
+            <h3>Strategy</h3>
+            <p style="font-size: 2rem;">Calculate and store aggregates during ETL process rather than query time</p>
+            <h3 style="margin-top: 40px;">Types of Precomputed Aggregates</h3>
+            <ul>
+                <li><span class="highlight">Summary Tables:</span> Permanent aggregate tables</li>
+                <li><span class="highlight">Aggregate Fact Tables:</span> Fact tables at higher grain</li>
+                <li><span class="highlight">OLAP Cubes:</span> Multidimensional aggregates</li>
+                <li><span class="highlight">Indexed Views:</span> Database-managed aggregates</li>
+            </ul>
+        </div>
+
+        <!-- Slide 19: Aggregate Design -->
+        <div class="slide">
+            <h2>Designing Aggregate Tables</h2>
+            <h3>Best Practices</h3>
+            <ul>
+                <li><span class="highlight">Identify Common Queries:</span> Analyze query patterns</li>
+                <li><span class="highlight">Select Appropriate Grain:</span> Choose aggregation level</li>
+                <li><span class="highlight">Balance Storage:</span> Cost vs. performance benefit</li>
+                <li><span class="highlight">Maintain Consistency:</span> Synchronize with base tables</li>
+            </ul>
+            <div class="code-block" style="margin-top: 40px;">
+-- Example: Monthly Sales Aggregate Table
+CREATE TABLE FactSalesMonthly AS
+SELECT 
+    d.YearMonth,
+    p.CategoryKey,
+    s.RegionKey,
+    SUM(f.SalesAmount) AS TotalSales,
+    SUM(f.Quantity) AS TotalQuantity,
+    COUNT(*) AS OrderCount
+FROM FactSales f
+JOIN DimDate d ON f.DateKey = d.DateKey
+JOIN DimProduct p ON f.ProductKey = p.ProductKey
+JOIN DimStore s ON f.StoreKey = s.StoreKey
+GROUP BY d.YearMonth, p.CategoryKey, s.RegionKey;
+            </div>
+        </div>
+
+        <!-- Slide 20: Aggregate Refresh Strategies -->
+        <div class="slide">
+            <h2>Aggregate Refresh Strategies</h2>
+            <h3>1. Complete Refresh</h3>
+            <ul>
+                <li>Drop and rebuild entire aggregate</li>
+                <li>Simple but resource-intensive</li>
+                <li>Used for small to medium aggregates</li>
+            </ul>
+            <h3 style="margin-top: 40px;">2. Incremental Refresh</h3>
+            <ul>
+                <li>Update only changed portions</li>
+                <li>More complex logic required</li>
+                <li>Efficient for large aggregates</li>
+            </ul>
+            <h3 style="margin-top: 40px;">3. On-Demand Refresh</h3>
+            <ul>
+                <li>Update when queried (lazy evaluation)</li>
+                <li>First query pays performance cost</li>
+            </ul>
+        </div>
+
+        <!-- Slide 21: Aggregate Navigation -->
+        <div class="slide">
+            <h2>Aggregate Navigation</h2>
+            <h3>Concept</h3>
+            <p style="font-size: 2rem;">Query optimizer automatically routes queries to appropriate aggregate tables</p>
+            <div class="diagram-box" style="margin-top: 40px;">
+                <div style="font-size: 1.9rem;">
+                    <p>User Query → Query Optimizer → Select Best Aggregate</p>
+                    <p style="margin-top: 30px; color: #ffeb99;">Transparent to end users - they query base tables, system uses aggregates</p>
+                </div>
+            </div>
+            <h3 style="margin-top: 50px;">Benefits</h3>
+            <ul>
+                <li>Automatic query optimization</li>
+                <li>No application code changes needed</li>
+                <li>Consistent query results</li>
+                <li>Significant performance improvements</li>
+            </ul>
+        </div>
+
+        <!-- Slide 22: ETL Best Practices -->
+        <div class="slide">
+            <h2>ETL Best Practices</h2>
+            <ul>
+                <li><span class="highlight">Data Quality:</span> Implement validation at each stage</li>
+                <li><span class="highlight">Error Handling:</span> Log errors and failed records</li>
+                <li><span class="highlight">Incremental Loading:</span> Use CDC for efficiency</li>
+                <li><span class="highlight">Parallel Processing:</span> Leverage multiple threads/processes</li>
+                <li><span class="highlight">Idempotency:</span> Ensure processes can be safely rerun</li>
+                <li><span class="highlight">Monitoring:</span> Track ETL job performance and failures</li>
+                <li><span class="highlight">Documentation:</span> Maintain clear data lineage</li>
+            </ul>
+        </div>
+
+        <!-- Slide 23: Performance Optimization -->
+        <div class="slide">
+            <h2>Performance Optimization Strategies</h2>
+            <div class="two-column">
+                <div class="column-box">
+                    <h3 style="font-size: 2.2rem;">ETL Optimization</h3>
+                    <ul style="font-size: 1.8rem;">
+                        <li>Bulk loading operations</li>
+                        <li>Disable indexes during load</li>
+                        <li>Partition large tables</li>
+                        <li>Use staging areas</li>
+                        <li>Parallel extraction</li>
+                    </ul>
+                </div>
+                <div class="column-box">
+                    <h3 style="font-size: 2.2rem;">Query Optimization</h3>
+                    <ul style="font-size: 1.8rem;">
+                        <li>Create appropriate indexes</li>
+                        <li>Use aggregate tables</li>
+                        <li>Implement partitioning</li>
+                        <li>Materialized views</li>
+                        <li>Query result caching</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 24: Real-World Example -->
+        <div class="slide">
+            <h2>Real-World Example: Retail Analytics</h2>
+            <h3>Scenario</h3>
+            <p style="font-size: 2rem;">Large retail chain with 500+ stores analyzing daily sales</p>
+            <div class="code-block" style="margin-top: 30px; font-size: 1.6rem;">
+-- Base Fact Table: 10 million rows/day
+FactSales (OrderKey, DateKey, StoreKey, ProductKey, 
+           Quantity, SalesAmount, CostAmount)
+
+-- Monthly Aggregate: Reduces to 50,000 rows/month
+FactSalesMonthly (YearMonth, StoreKey, CategoryKey,
+                  TotalSales, TotalCost, TotalQuantity)
+
+-- Performance Improvement:
+-- Query on base table: 45 seconds
+-- Query on aggregate: 0.8 seconds
+-- Speed improvement: 56x faster!
+            </div>
+        </div>
+
+        <!-- Slide 25: Aggregate Storage Hierarchy -->
+        <div class="slide">
+            <h2>Aggregate Storage Hierarchy</h2>
+            <div style="text-align: center; font-size: 1.9rem; margin-top: 50px;">
+                <div class="flow-box" style="display: inline-block; margin: 20px;">Detailed Fact Table (Largest)</div>
+                <div class="arrow" style="display: block; margin: 10px 0;">↓</div>
+                <div class="flow-box" style="display: inline-block; margin: 20px;">Daily Aggregates</div>
+                <div class="arrow" style="display: block; margin: 10px 0;">↓</div>
+                <div class="flow-box" style="display: inline-block; margin: 20px;">Weekly Aggregates</div>
+                <div class="arrow" style="display: block; margin: 10px 0;">↓</div>
+                <div class="flow-box" style="display: inline-block; margin: 20px;">Monthly Aggregates</div>
+                <div class="arrow" style="display: block; margin: 10px 0;">↓</div>
+                <div class="flow-box" style="display: inline-block; margin: 20px;">Yearly Aggregates (Smallest)</div>
+            </div>
+            <p style="font-size: 2rem; margin-top: 50px; text-align: center; color: #ffd700;">
+                Each level provides faster access for queries at that granularity
+            </p>
+        </div>
+
+        <!-- Slide 26: Tools & Technologies -->
+        <div class="slide">
+            <h2>ETL & Data Warehousing Tools</h2>
+            <div class="two-column">
+                <div class="column-box">
+                    <h3 style="font-size: 2.2rem;">ETL Tools</h3>
+                    <ul style="font-size: 1.8rem;">
+                        <li>Informatica PowerCenter</li>
+                        <li>Microsoft SSIS</li>
+                        <li>Talend</li>
+                        <li>Apache NiFi</li>
+                        <li>AWS Glue</li>
+                        <li>Azure Data Factory</li>
+                    </ul>
+                </div>
+                <div class="column-box">
+                    <h3 style="font-size: 2.2rem;">Data Warehouse Platforms</h3>
+                    <ul style="font-size: 1.8rem;">
+                        <li>Snowflake</li>
+                        <li>Amazon Redshift</li>
+                        <li>Google BigQuery</li>
+                        <li>Microsoft Azure Synapse</li>
+                        <li>Oracle Exadata</li>
+                        <li>Teradata</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 27: Challenges & Solutions -->
+        <div class="slide">
+            <h2>Common Challenges & Solutions</h2>
+            <table style="font-size: 1.5rem;">
+                <thead>
+                    <tr>
+                        <th>Challenge</th>
+                        <th>Solution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Data Quality Issues</td>
+                        <td>Implement data profiling and validation rules</td>
+                    </tr>
+                    <tr>
+                        <td>Long ETL Windows</td>
+                        <td>Use incremental loads and parallel processing</td>
+                    </tr>
+                    <tr>
+                        <td>Aggregate Maintenance</td>
+                        <td>Automate refresh schedules, use incremental updates</td>
+                    </tr>
+                    <tr>
+                        <td>Source System Changes</td>
+                        <td>Implement change detection mechanisms</td>
+                    </tr>
+                    <tr>
+                        <td>Storage Costs</td>
+                        <td>Balance aggregate levels, implement data archiving</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Slide 28: Key Takeaways -->
+        <div class="slide">
+            <h2>Key Takeaways</h2>
+            <ul style="font-size: 2.2rem;">
+                <li>ETL is the foundation of data warehousing - Extract, Transform, Load</li>
+                <li>SCD Types manage dimensional changes over time (Type 2 most common)</li>
+                <li>Surrogate keys provide stability and enable history tracking</li>
+                <li>Aggregates dramatically improve query performance</li>
+                <li>Hierarchies enable drill-down and roll-up analysis</li>
+                <li>Precomputed aggregates trade storage for query speed</li>
+                <li>Proper design balances performance, storage, and maintenance</li>
+            </ul>
+        </div>
+
+        <!-- Slide 29: Discussion Topics -->
+        <div class="slide">
+            <h2>Discussion & Questions</h2>
+            <h3>Topics for Further Exploration</h3>
+            <ul>
+                <li>How would you design an ETL process for a multi-source environment?</li>
+                <li>When would you choose SCD Type 1 vs Type 2?</li>
+                <li>What factors influence aggregate table design?</li>
+                <li>How do cloud platforms change ETL strategies?</li>
+                <li>Real-time vs Batch ETL - trade-offs?</li>
+            </ul>
+            <div class="diagram-box" style="margin-top: 80px;">
+                <p style="font-size: 2.3rem; color: #ffd700;">Questions?</p>
+                <p style="font-size: 1.8rem; margin-top: 20px;">Dr. Mohsin Dar | UPES</p>
+            </div>
+        </div>
+
+        <!-- Slide 30: References -->
+        <div class="slide">
+            <h2>References & Further Reading</h2>
+            <ul style="font-size: 1.9rem;">
+                <li>Kimball, R., & Ross, M. - "The Data Warehouse Toolkit"</li>
+                <li>Inmon, W. H. - "Building the Data Warehouse"</li>
+                <li>Rainardi, V. - "Building a Data Warehouse: With Examples in SQL Server"</li>
+                <li>Mundy, J., Thornthwaite, W. - "The Microsoft Data Warehouse Toolkit"</li>
+                <li>Oracle Documentation - "Data Warehousing Guide"</li>
+                <li>Microsoft Docs - "ETL Best Practices"</li>
+            </ul>
+            <div style="margin-top: 80px; text-align: center;">
+                <p style="font-size: 2.2rem; color: #ffd700;">Thank You!</p>
+                <p style="font-size: 1.8rem; margin-top: 20px;">Dr. Mohsin Dar</p>
+                <p style="font-size: 1.6rem; color: #a8daff;">Cloud & Software Operations Cluster | SOCS | UPES</p>
+            </div>
+        </div>
+
+        <div class="slide-counter">
+            <span id="current-slide">1</span> / <span id="total-slides">30</span>
+        </div>
+
+        <div class="navigation">
+            <button class="nav-btn" onclick="previousSlide()">← Previous</button>
+            <button class="nav-btn" onclick="nextSlide()">Next →</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function previousSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight' || event.key === ' ') {
+                event.preventDefault();
+                nextSlide();
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                previousSlide();
+            } else if (event.key === 'Home') {
+                event.preventDefault();
+                showSlide(0);
+            } else if (event.key === 'End') {
+                event.preventDefault();
+                showSlide(totalSlides - 1);
+            }
+        });
+
+        // Click on slide to advance (except on buttons)
+        document.querySelector('.presentation-container').addEventListener('click', function(event) {
+            if (!event.target.classList.contains('nav-btn')) {
+                nextSlide();
+            }
+        });
+
+        // Prevent text selection during rapid clicking
+        document.querySelector('.presentation-container').addEventListener('mousedown', function(event) {
+            if (event.detail > 1) {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
