@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Preprocessor & Macros - Lecture 23</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide {
+            width: 90%;
+            height: 85%;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 60px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: none;
+            flex-direction: column;
+            color: #1a1a1a;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide-header {
+            border-bottom: 4px solid #2a5298;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        .slide-number {
+            font-size: 1.2em;
+            color: #2a5298;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            color: #1e3c72;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 2.8em;
+            color: #1e3c72;
+            margin-bottom: 30px;
+        }
+
+        h3 {
+            font-size: 2.2em;
+            color: #2a5298;
+            margin: 25px 0 15px 0;
+        }
+
+        .subtitle {
+            font-size: 1.8em;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        .instructor-info {
+            margin-top: 40px;
+            font-size: 1.5em;
+            color: #444;
+            line-height: 1.8;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 1.6em;
+            line-height: 1.8;
+        }
+
+        .content ul, .content ol {
+            margin-left: 40px;
+            margin-top: 20px;
+        }
+
+        .content li {
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #856404;
+        }
+
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.3em;
+            margin: 20px 0;
+            overflow-x: auto;
+            line-height: 1.6;
+        }
+
+        .code-block .keyword {
+            color: #c678dd;
+        }
+
+        .code-block .string {
+            color: #98c379;
+        }
+
+        .code-block .comment {
+            color: #5c6370;
+            font-style: italic;
+        }
+
+        .code-block .function {
+            color: #61afef;
+        }
+
+        .code-block .preprocessor {
+            color: #e06c75;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 1.4em;
+        }
+
+        .comparison-table th {
+            background: #2a5298;
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-size: 1.1em;
+        }
+
+        .comparison-table td {
+            padding: 20px;
+            border: 2px solid #ddd;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .box {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 5px solid #2a5298;
+        }
+
+        .box h4 {
+            font-size: 1.8em;
+            color: #2a5298;
+            margin-bottom: 15px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #2a5298;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.3em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-btn:hover {
+            background: #1e3c72;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-indicator {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(42, 82, 152, 0.9);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .important-note {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #155724;
+            font-size: 1.1em;
+        }
+
+        .warning-note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #856404;
+            font-size: 1.1em;
+        }
+
+        strong {
+            color: #1e3c72;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="slide-header">
+                <div class="slide-number">Lecture 23 | Unit VI</div>
+                <h1>Preprocessor & Directives, Macro, Macro vs Functions</h1>
+                <div class="subtitle">C Programming for BTech First Semester</div>
+            </div>
+            <div class="instructor-info">
+                <p><strong>Instructor:</strong> Mohsin F. Dar</p>
+                <p><strong>Designation:</strong> Assistant Professor</p>
+                <p><strong>Department:</strong> Cloud & Software Operations Cluster | SOCS</p>
+                <p><strong>University:</strong> UPES</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: What is Preprocessor? -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>What is a Preprocessor?</h2>
+            </div>
+            <div class="content">
+                <ul>
+                    <li>The <span class="highlight">preprocessor</span> is a program that processes the source code <strong>before compilation</strong></li>
+                    <li>It performs <strong>textual substitution</strong> and <strong>file inclusion</strong></li>
+                    <li>All preprocessor directives begin with <span class="highlight">#</span> symbol</li>
+                    <li>Preprocessor directives are <strong>not C statements</strong> - they don't end with semicolon</li>
+                    <li>The output of preprocessing is an <strong>expanded source code</strong> which is then passed to the compiler</li>
+                </ul>
+                <div class="code-block"><pre>
+<span class="preprocessor">#include</span> <span class="string">&lt;stdio.h&gt;</span>     <span class="comment">// Preprocessor directive</span>
+<span class="preprocessor">#define</span> PI 3.14159      <span class="comment">// Preprocessor directive</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="function">printf</span>(<span class="string">"Value: %f"</span>, PI);  <span class="comment">// PI will be replaced with 3.14159</span>
+    <span class="keyword">return</span> 0;
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Preprocessor Directives Overview -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Types of Preprocessor Directives</h2>
+            </div>
+            <div class="content">
+                <div class="two-column">
+                    <div class="box">
+                        <h4>File Inclusion</h4>
+                        <ul>
+                            <li><strong>#include</strong></li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>Macro Definition</h4>
+                        <ul>
+                            <li><strong>#define</strong></li>
+                            <li><strong>#undef</strong></li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>Conditional Compilation</h4>
+                        <ul>
+                            <li><strong>#if, #elif, #else, #endif</strong></li>
+                            <li><strong>#ifdef, #ifndef</strong></li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>Other Directives</h4>
+                        <ul>
+                            <li><strong>#pragma</strong></li>
+                            <li><strong>#error</strong></li>
+                            <li><strong>#line</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: #include Directive -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>#include Directive</h2>
+            </div>
+            <div class="content">
+                <h3>Purpose: File Inclusion</h3>
+                <p>Used to include the contents of a file into the source code</p>
+                
+                <h3 style="margin-top: 30px;">Two Forms:</h3>
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#include</span> <span class="string">&lt;filename.h&gt;</span>    <span class="comment">// System header files (standard library)</span>
+<span class="preprocessor">#include</span> <span class="string">"filename.h"</span>    <span class="comment">// User-defined header files</span>
+                    </pre>
+                </div>
+
+                <div class="important-note">
+                    <strong>Difference:</strong><br>
+                    • <strong>&lt;filename.h&gt;</strong> - Searches in system directories<br>
+                    • <strong>"filename.h"</strong> - Searches in current directory first, then system directories
+                </div>
+
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#include</span> <span class="string">&lt;stdio.h&gt;</span>      <span class="comment">// Standard I/O</span>
+<span class="preprocessor">#include</span> <span class="string">&lt;stdlib.h&gt;</span>     <span class="comment">// Standard library</span>
+<span class="preprocessor">#include</span> <span class="string">"myheader.h"</span>   <span class="comment">// Custom header</span>
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Creating User-defined Header Files -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Creating User-defined Header Files</h2>
+            </div>
+            <div class="content">
+                <h3>Example: math_utils.h</h3>
+                <div class="code-block">
+                    <pre>
+<span class="comment">// math_utils.h - Header file with mathematical utilities</span>
+<span class="preprocessor">#ifndef</span> MATH_UTILS_H
+<span class="preprocessor">#define</span> MATH_UTILS_H
+
+<span class="comment">// Function declarations</span>
+<span class="keyword">int</span> <span class="function">add</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b);
+<span class="keyword">int</span> <span class="function">subtract</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b);
+<span class="keyword">double</span> <span class="function">calculate_circle_area</span>(<span class="keyword">double</span> radius);
+
+<span class="comment">// Constant definition</span>
+<span class="preprocessor">#define</span> PI 3.14159
+
+<span class="preprocessor">#endif</span> <span class="comment">// MATH_UTILS_H</span></pre>
+                </div>
+
+                <h3>math_utils.c - Implementation</h3>
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#include</span> <span class="string">"math_utils.h"</span>
+
+<span class="keyword">int</span> <span class="function">add</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) {
+    <span class="keyword">return</span> a + b;
+}
+
+<span class="keyword">int</span> <span class="function">subtract</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) {
+    <span class="keyword">return</span> a - b;
+}
+
+<span class="keyword">double</span> <span class="function">calculate_circle_area</span>(<span class="keyword">double</span> radius) {
+    <span class="keyword">return</span> PI * radius * radius;
+}</pre>
+                </div>
+
+                <div class="important-note">
+                    <strong>Key Points:</strong><br>
+                    • Use <strong>#ifndef</strong> and <strong>#define</strong> for include guards<br>
+                    • Only put function declarations and macro definitions in header files<br>
+                    • Keep the implementation in corresponding .c files<br>
+                    • Include the header in both the implementation and files that use these functions
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Using User-defined Headers -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Using User-defined Headers</h2>
+            </div>
+            <div class="content">
+                <h3>main.c - Using our math_utils.h</h3>
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+<span class="preprocessor">#include</span> <span class="string">"math_utils.h"</span>  <span class="comment">// Note the quotes for user headers</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> x = 10, y = 5;
+    
+    <span class="function">printf</span>(<span class="string">"%d + %d = %d\n"</span>, x, y, <span class="function">add</span>(x, y));
+    <span class="function">printf</span>(<span class="string">"%d - %d = %d\n"</span>, x, y, <span class="function">subtract</span>(x, y));
+    
+    <span class="keyword">double</span> radius = 3.0;
+    <span class="function">printf</span>(<span class="string">"Area of circle with radius %.1f = %.2f\n"</span>, 
+           radius, <span class="function">calculate_circle_area</span>(radius));
+    
+    <span class="function">printf</span>(<span class="string">"Value of PI: %f\n"</span>, PI);
+    
+    <span class="keyword">return</span> 0;
+}</pre>
+                </div>
+
+                <h3>Compilation</h3>
+                <div class="code-block">
+                    <pre>
+# Compile all source files together
+gcc main.c math_utils.c -o program
+
+# Run the program
+./program</pre>
+                </div>
+
+                <div class="important-note">
+                    <strong>Best Practices:</strong><br>
+                    • Keep header files in the same directory as your source files<br>
+                    • Use descriptive names for header guards (e.g., MATH_UTILS_H)<br>
+                    • Document your header files with comments<br>
+                    • Group related functions in the same header file
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: #define Directive - Object-like Macros -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>#define Directive - Object-like Macros</h2>
+            </div>
+            <div class="content">
+                <h3>Syntax:</h3>
+                <div class="code-block">
+                    <pre><span class="preprocessor">#define</span> MACRO_NAME replacement_text</pre>
+                </div>
+
+                <h3>Examples:</h3>
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#define</span> PI 3.14159
+<span class="preprocessor">#define</span> MAX_SIZE 100
+<span class="preprocessor">#define</span> NEWLINE '\n'
+<span class="preprocessor">#define</span> MESSAGE <span class="string">"Hello, World!"</span>
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> arr[MAX_SIZE];           <span class="comment">// Becomes: int arr[100];</span>
+    <span class="keyword">double</span> area = PI * r * r;  <span class="comment">// PI replaced with 3.14159</span>
+    <span class="function">printf</span>(<span class="string">"%s%c"</span>, MESSAGE, NEWLINE);
+    <span class="keyword">return</span> 0;
+}
+                    </pre>
+                </div>
+
+                <div class="important-note">
+                    <strong>Note:</strong> Macro names are conventionally written in UPPERCASE to distinguish them from variables
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: #define Directive - Function-like Macros -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>#define Directive - Function-like Macros</h2>
+            </div>
+            <div class="content">
+                <h3>Syntax:</h3>
+                <div class="code-block">
+                    <pre><span class="preprocessor">#define</span> MACRO_NAME(parameters) replacement_text</pre>
+                </div>
+
+                <h3>Examples:</h3>
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#define</span> SQUARE(x) ((x) * (x))
+<span class="preprocessor">#define</span> MAX(a, b) ((a) > (b) ? (a) : (b))
+<span class="preprocessor">#define</span> IS_EVEN(n) ((n) % 2 == 0)
+<span class="preprocessor">#define</span> ABS(x) ((x) < 0 ? -(x) : (x))
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> num = 5;
+    <span class="function">printf</span>(<span class="string">"Square: %d\n"</span>, SQUARE(num));      <span class="comment">// ((5) * (5))</span>
+    <span class="function">printf</span>(<span class="string">"Max: %d\n"</span>, MAX(10, 20));         <span class="comment">// ((10) > (20) ? (10) : (20))</span>
+    <span class="function">printf</span>(<span class="string">"Is Even: %d\n"</span>, IS_EVEN(num));   <span class="comment">// ((5) % 2 == 0)</span>
+    <span class="keyword">return</span> 0;
+}
+                    </pre>
+                </div>
+
+                <div class="warning-note">
+                    <strong>Important:</strong> Use parentheses around parameters to avoid precedence issues!
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Macro Pitfalls -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Common Macro Pitfalls</h2>
+            </div>
+            <div class="content">
+                <h3>1. Missing Parentheses Problem</h3>
+                <div class="code-block">
+                    <pre>
+<span class="comment">// WRONG - No parentheses</span>
+<span class="preprocessor">#define</span> SQUARE(x) x * x
+
+<span class="keyword">int</span> result = SQUARE(2 + 3);    <span class="comment">// Expands to: 2 + 3 * 2 + 3 = 11 (WRONG!)</span>
+
+<span class="comment">// CORRECT - With parentheses</span>
+<span class="preprocessor">#define</span> SQUARE(x) ((x) * (x))
+
+<span class="keyword">int</span> result = SQUARE(2 + 3);    <span class="comment">// Expands to: ((2 + 3) * (2 + 3)) = 25 (CORRECT!)</span>
+                    </pre>
+                </div>
+
+                <h3>2. Side Effects Problem</h3>
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#define</span> SQUARE(x) ((x) * (x))
+
+<span class="keyword">int</span> a = 5;
+<span class="keyword">int</span> result = SQUARE(a++);    <span class="comment">// Expands to: ((a++) * (a++))</span>
+                                  <span class="comment">// a gets incremented TWICE!</span>
+                    </pre>
+                </div>
+
+                <div class="warning-note">
+                    <strong>Warning:</strong> Never use increment/decrement operators with macro arguments!
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Conditional Compilation -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Conditional Compilation Directives</h2>
+            </div>
+            <div class="content">
+                <h3>Purpose: Compile code conditionally</h3>
+                
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#define</span> DEBUG 1
+
+<span class="preprocessor">#ifdef</span> DEBUG
+    <span class="function">printf</span>(<span class="string">"Debug mode is ON\n"</span>);
+<span class="preprocessor">#endif</span>
+
+<span class="preprocessor">#ifndef</span> MAX_SIZE
+    <span class="preprocessor">#define</span> MAX_SIZE 100
+<span class="preprocessor">#endif</span>
+
+<span class="preprocessor">#if</span> DEBUG == 1
+    <span class="function">printf</span>(<span class="string">"Debugging level 1\n"</span>);
+<span class="preprocessor">#elif</span> DEBUG == 2
+    <span class="function">printf</span>(<span class="string">"Debugging level 2\n"</span>);
+<span class="preprocessor">#else</span>
+    <span class="function">printf</span>(<span class="string">"No debugging\n"</span>);
+<span class="preprocessor">#endif</span>
+                    </pre>
+                </div>
+
+                <div class="important-note">
+                    <strong>Use Cases:</strong><br>
+                    • Platform-specific code<br>
+                    • Debug vs Release builds<br>
+                    • Feature toggling<br>
+                    • Header guard implementation
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: #undef and Predefined Macros -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>#undef and Predefined Macros</h2>
+            </div>
+            <div class="content">
+                <h3>#undef - Undefine a Macro</h3>
+                <div class="code-block">
+                    <pre>
+<span class="preprocessor">#define</span> TEMP 100
+<span class="function">printf</span>(<span class="string">"%d"</span>, TEMP);    <span class="comment">// Prints 100</span>
+
+<span class="preprocessor">#undef</span> TEMP
+<span class="preprocessor">#define</span> TEMP 200
+<span class="function">printf</span>(<span class="string">"%d"</span>, TEMP);    <span class="comment">// Prints 200</span>
+                    </pre>
+                </div>
+
+                <h3>Standard Predefined Macros</h3>
+                <div class="code-block">
+                    <pre>
+<span class="function">printf</span>(<span class="string">"File: %s\n"</span>, __FILE__);        <span class="comment">// Current filename</span>
+<span class="function">printf</span>(<span class="string">"Line: %d\n"</span>, __LINE__);        <span class="comment">// Current line number</span>
+<span class="function">printf</span>(<span class="string">"Date: %s\n"</span>, __DATE__);        <span class="comment">// Compilation date</span>
+<span class="function">printf</span>(<span class="string">"Time: %s\n"</span>, __TIME__);        <span class="comment">// Compilation time</span>
+<span class="function">printf</span>(<span class="string">"ANSI: %d\n"</span>, __STDC__);        <span class="comment">// 1 if ANSI C</span>
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Macros vs Functions - Comparison Table -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Macros vs Functions: Detailed Comparison</h2>
+            </div>
+            <div class="content">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Macros</th>
+                            <th>Functions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Processing</strong></td>
+                            <td>Processed by preprocessor (before compilation)</td>
+                            <td>Processed by compiler</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Execution</strong></td>
+                            <td>Code is expanded inline (no function call)</td>
+                            <td>Function call overhead exists</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Speed</strong></td>
+                            <td>Faster (no call overhead)</td>
+                            <td>Slightly slower (function call overhead)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Code Size</strong></td>
+                            <td>Increases code size (code duplication)</td>
+                            <td>Code is reused (single copy)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Type Checking</strong></td>
+                            <td>No type checking</td>
+                            <td>Strict type checking</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 11: Macros vs Functions - Continued -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Macros vs Functions: Comparison (Continued)</h2>
+            </div>
+            <div class="content">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Macros</th>
+                            <th>Functions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Debugging</strong></td>
+                            <td>Difficult to debug (expanded code)</td>
+                            <td>Easy to debug</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Side Effects</strong></td>
+                            <td>Prone to side effects (e.g., a++)</td>
+                            <td>No side effects issue</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Recursion</strong></td>
+                            <td>Not possible</td>
+                            <td>Possible</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Memory</strong></td>
+                            <td>No separate memory allocation</td>
+                            <td>Uses stack memory</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Flexibility</strong></td>
+                            <td>Works with any data type</td>
+                            <td>Type-specific</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 12: When to Use Macros vs Functions -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>When to Use Macros vs Functions?</h2>
+            </div>
+            <div class="content">
+                <div class="two-column">
+                    <div class="box" style="border-left-color: #28a745;">
+                        <h4>Use Macros When:</h4>
+                        <ul style="font-size: 0.9em;">
+                            <li>Simple operations needed</li>
+                            <li>Performance is critical</li>
+                            <li>Type-generic code required</li>
+                            <li>Constants definition</li>
+                            <li>Code must work with different types</li>
+                            <li>Conditional compilation needed</li>
+                        </ul>
+                        <div class="code-block" style="font-size: 0.8em;">
+                            <pre>
+<span class="preprocessor">#define</span> MAX(a,b) ((a)>(b)?(a):(b))
+<span class="preprocessor">#define</span> PI 3.14159
+<span class="preprocessor">#define</span> SIZE 100
+                            </pre>
+                        </div>
+                    </div>
+                    <div class="box" style="border-left-color: #007bff;">
+                        <h4>Use Functions When:</h4>
+                        <ul style="font-size: 0.9em;">
+                            <li>Complex operations needed</li>
+                            <li>Type safety is important</li>
+                            <li>Debugging is required</li>
+                            <li>Code reusability matters</li>
+                            <li>Recursion is needed</li>
+                            <li>Multiple statements involved</li>
+                        </ul>
+                        <div class="code-block" style="font-size: 0.8em;">
+<pre><code><span class="keyword">int</span> <span class="function">factorial</span>(<span class="keyword">int</span> n) {
+    <span class="keyword">if</span>(n <= 1) <span class="keyword">return</span> 1;
+    <span class="keyword">return</span> n * <span class="function">factorial</span>(n-1);
+}
+</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Practical Example -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Practical Example: Complete Program</h2>
+            </div>
+            <div class="content">
+                <div class="code-block" style="font-size: 1.1em;">
+<pre><code><span class="preprocessor">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+<span class="comment">// Object-like macros</span>
+<span class="preprocessor">#define</span> PI 3.14159
+<span class="preprocessor">#define</span> MAX_SIZE 10
+
+<span class="comment">// Function-like macros</span>
+<span class="preprocessor">#define</span> SQUARE(x) ((x) * (x))
+<span class="preprocessor">#define</span> CIRCLE_AREA(r) (PI * SQUARE(r))
+<span class="preprocessor">#define</span> MAX(a, b) ((a) > (b) ? (a) : (b))
+
+<span class="comment">// Conditional compilation</span>
+<span class="preprocessor">#define</span> DEBUG 1
+
+<span class="keyword">int</span> <span class="function">main</span>() {
+    <span class="keyword">int</span> radius = 5;
+    <span class="keyword">double</span> area = CIRCLE_AREA(radius);
+    
+    <span class="function">printf</span>(<span class="string">"Area of circle with radius %d: %.2f\n"</span>, radius, area);
+    <span class="function">printf</span>(<span class="string">"Square of %d: %d\n"</span>, radius, <span class="function">SQUARE</span>(radius));
+    <span class="function">printf</span>(<span class="string">"Max of %d and 10: %d\n\n"</span>, radius, <span class="function">MAX</span>(radius, 10));
+    
+    <span class="preprocessor">#ifdef</span> DEBUG
+        <span class="function">printf</span>(<span class="string">"[DEBUG] File: %s, Line: %d\n"</span>, __FILE__, __LINE__);
+        <span class="function">printf</span>(<span class="string">"[DEBUG] Compiled on: %s at %s\n"</span>, __DATE__, __TIME__);
+    <span class="preprocessor">#endif</span>
+    
+    <span class="keyword">return</span> 0;
+}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Summary -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Summary</h2>
+            </div>
+            <div class="content">
+                <ul style="font-size: 1.2em; line-height: 1.8;">
+                    <li>The <strong>preprocessor</strong> processes source code before compilation</li>
+                    <li><strong>#include</strong> is used for file inclusion</li>
+                    <li><strong>#define</strong> creates macros (object-like and function-like)</li>
+                    <li>Macros are powerful but require careful handling to avoid pitfalls</li>
+                    <li>Use <strong>parentheses</strong> in macro definitions to ensure correct evaluation</li>
+                    <li><strong>Conditional compilation</strong> allows platform-specific or debug code</li>
+                    <li>Choose between <strong>macros and functions</strong> based on requirements</li>
+                    <li>Standard predefined macros provide useful debugging information</li>
+                </ul>
+                
+                <div class="important-note" style="margin-top: 30px;">
+                    <strong>Remember:</strong> Macros are not functions - they are text substitutions that happen before compilation!
+                </div>
+            </div>
+        </div>
+
+       
+    </div>
+
+    <!-- Navigation Controls -->
+    <button class="nav-btn prev-btn" id="prevBtn">❮ Previous</button>
+    <button class="nav-btn next-btn" id="nextBtn">Next ❯</button>
+    
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(index) {
+            // Hide all slides
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+            });
+            
+            // Show current slide
+            slides[index].classList.add('active');
+            currentSlide = index;
+            
+            // Update URL hash
+            window.location.hash = `slide-${index + 1}`;
+            
+            // Update button states
+            document.getElementById('prevBtn').disabled = (index === 0);
+            document.getElementById('nextBtn').disabled = (index === totalSlides - 1);
+        }
+
+        // Navigation functions
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('nextBtn').addEventListener('click', nextSlide);
+        document.getElementById('prevBtn').addEventListener('click', prevSlide);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Initialize first slide
+        showSlide(0);
+
+        // Check for hash on load
+        window.addEventListener('load', () => {
+            const hash = window.location.hash;
+            if (hash) {
+                const slideNum = parseInt(hash.replace('#slide-', '')) - 1;
+                if (!isNaN(slideNum) && slideNum >= 0 && slideNum < totalSlides) {
+                    showSlide(slideNum);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
