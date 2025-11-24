@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star & Snowflake Schema Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide {
+            display: none;
+            width: 90%;
+            height: 90%;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 60px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            color: #333;
+            overflow-y: auto;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 56px;
+            color: #1e3c72;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 48px;
+            color: #2a5298;
+            margin-bottom: 25px;
+            border-bottom: 4px solid #2a5298;
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            font-size: 36px;
+            color: #1e3c72;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+
+        p, li {
+            font-size: 28px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        .subtitle {
+            font-size: 32px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .professor-info {
+            text-align: center;
+            margin-top: 60px;
+            font-size: 28px;
+            color: #555;
+        }
+
+        .professor-info strong {
+            color: #1e3c72;
+            font-size: 32px;
+        }
+
+        .schema-diagram {
+            background: #f8f9fa;
+            border: 3px solid #2a5298;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .fact-table {
+            background: #4CAF50;
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            display: inline-block;
+            margin: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .dimension-table {
+            background: #2196F3;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            display: inline-block;
+            margin: 15px;
+            font-size: 22px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .sub-dimension {
+            background: #FF9800;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 10px;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 24px;
+        }
+
+        .comparison-table th {
+            background: #2a5298;
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-size: 28px;
+        }
+
+        .comparison-table td {
+            padding: 18px;
+            border: 2px solid #ddd;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+
+        .advantage {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .disadvantage {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        ul {
+            margin-left: 40px;
+            margin-top: 20px;
+        }
+
+        li {
+            margin-bottom: 20px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #2a5298;
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            font-size: 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-btn:hover {
+            background: #1e3c72;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(42, 82, 152, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        .key-point {
+            background: #fff3cd;
+            border-left: 6px solid #ffc107;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 8px;
+            font-size: 26px;
+        }
+
+        .example-box {
+            background: #e8f5e9;
+            border: 3px solid #4CAF50;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+
+        .schema-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .arrow {
+            color: #2a5298;
+            font-size: 36px;
+            margin: 0 10px;
+        }
+
+        .code-box {
+            background: #263238;
+            color: #aed581;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .highlight {
+            background: #ffeb3b;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <h1>Star Schema & Snowflake Schema</h1>
+            <p class="subtitle">Dimensional Modeling in Data Warehousing</p>
+            <div class="professor-info">
+                <p><strong>Dr. Mohsin Dar</strong></p>
+                <p>Assistant Professor</p>
+                <p>Cloud & Software Operations Cluster | SOCS</p>
+                <p>University of Petroleum and Energy Studies (UPES)</p>
+                <p style="margin-top: 40px; font-size: 30px; color: #2a5298;">Database Systems - MTech First Semester</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Introduction to Dimensional Modeling -->
+        <div class="slide">
+            <h2>Introduction to Dimensional Modeling</h2>
+            <div class="key-point">
+                <strong>What is Dimensional Modeling?</strong><br>
+                A design technique used in data warehousing to organize data for efficient querying and analysis.
+            </div>
+            <h3>Key Components:</h3>
+            <ul>
+                <li><strong>Fact Tables:</strong> Store quantitative data (measures) about business processes</li>
+                <li><strong>Dimension Tables:</strong> Store descriptive attributes related to facts</li>
+                <li><strong>Keys:</strong> Primary and foreign keys that establish relationships</li>
+                <li><strong>Measures:</strong> Numeric values that can be aggregated (sum, count, avg)</li>
+            </ul>
+            <div class="key-point" style="margin-top: 40px;">
+                <strong>Primary Schemas:</strong> Star Schema and Snowflake Schema
+            </div>
+        </div>
+
+        <!-- Slide 3: Star Schema Overview -->
+        <div class="slide">
+            <h2>Star Schema</h2>
+            <h3>Definition:</h3>
+            <p>A star schema is a database organizational structure where a central <span class="highlight">fact table</span> is surrounded by <span class="highlight">denormalized dimension tables</span>, resembling a star shape.</p>
+            
+            <div class="schema-diagram">
+                <h3 style="color: #1e3c72; margin-bottom: 30px;">Star Schema Structure</h3>
+                <div class="schema-container">
+                    <div class="dimension-table">Dimension 1<br>(Customer)</div>
+                    <div class="dimension-table">Dimension 2<br>(Product)</div>
+                </div>
+                <div style="text-align: center; margin: 20px 0;">
+                    <div class="arrow">↓</div>
+                </div>
+                <div class="fact-table">FACT TABLE<br>(Sales)</div>
+                <div style="text-align: center; margin: 20px 0;">
+                    <div class="arrow">↓</div>
+                </div>
+                <div class="schema-container">
+                    <div class="dimension-table">Dimension 3<br>(Time)</div>
+                    <div class="dimension-table">Dimension 4<br>(Location)</div>
+                </div>
+            </div>
+
+            <h3>Characteristics:</h3>
+            <ul>
+                <li>Simple, denormalized structure</li>
+                <li>One level of relationship between fact and dimensions</li>
+                <li>Dimension tables are not normalized</li>
+            </ul>
+        </div>
+
+        <!-- Slide 4: Snowflake Schema Overview -->
+        <div class="slide">
+            <h2>Snowflake Schema</h2>
+            <h3>Definition:</h3>
+            <p>A snowflake schema is an extension of the star schema where <span class="highlight">dimension tables are normalized</span> into multiple related tables, creating a snowflake-like pattern.</p>
+            
+            <div class="schema-diagram">
+                <h3 style="color: #1e3c72; margin-bottom: 30px;">Snowflake Schema Structure</h3>
+                <div class="schema-container">
+                    <div>
+                        <div class="dimension-table">Customer</div>
+                        <div class="arrow">↓</div>
+                        <div class="sub-dimension">City</div>
+                        <div class="arrow">↓</div>
+                        <div class="sub-dimension">Country</div>
+                    </div>
+                    <div>
+                        <div class="dimension-table">Product</div>
+                        <div class="arrow">↓</div>
+                        <div class="sub-dimension">Category</div>
+                        <div class="arrow">↓</div>
+                        <div class="sub-dimension">Supplier</div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin: 20px 0;">
+                    <div class="arrow">↓</div>
+                </div>
+                <div class="fact-table">FACT TABLE (Sales)</div>
+            </div>
+
+            <h3>Characteristics:</h3>
+            <ul>
+                <li>Normalized dimension tables</li>
+                <li>Multiple levels of relationships</li>
+                <li>Reduced data redundancy</li>
+            </ul>
+        </div>
+
+        <!-- Slide 5: Advantages and Disadvantages -->
+        <div class="slide">
+            <h2>Comparison: Advantages & Disadvantages</h2>
+            <table class="comparison-table">
+                <tr>
+                    <th>Aspect</th>
+                    <th>Star Schema</th>
+                    <th>Snowflake Schema</th>
+                </tr>
+                <tr>
+                    <td><strong>Query Performance</strong></td>
+                    <td class="advantage">✓ Faster (fewer joins)</td>
+                    <td class="disadvantage">✗ Slower (more joins)</td>
+                </tr>
+                <tr>
+                    <td><strong>Storage Space</strong></td>
+                    <td class="disadvantage">✗ More space (redundancy)</td>
+                    <td class="advantage">✓ Less space (normalized)</td>
+                </tr>
+                <tr>
+                    <td><strong>Query Complexity</strong></td>
+                    <td class="advantage">✓ Simple queries</td>
+                    <td class="disadvantage">✗ Complex queries</td>
+                </tr>
+                <tr>
+                    <td><strong>Data Integrity</strong></td>
+                    <td class="disadvantage">✗ Lower (redundancy)</td>
+                    <td class="advantage">✓ Higher (normalized)</td>
+                </tr>
+                <tr>
+                    <td><strong>Maintenance</strong></td>
+                    <td class="disadvantage">✗ More updates needed</td>
+                    <td class="advantage">✓ Easier maintenance</td>
+                </tr>
+                <tr>
+                    <td><strong>ETL Complexity</strong></td>
+                    <td class="advantage">✓ Simpler ETL process</td>
+                    <td class="disadvantage">✗ Complex ETL process</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Slide 6: Star Schema Advantages -->
+        <div class="slide">
+            <h2>Star Schema - Advantages</h2>
+            <ul>
+                <li><strong class="advantage">Simplified Queries:</strong> Fewer joins required, making SQL queries easier to write and understand</li>
+                <li><strong class="advantage">Better Query Performance:</strong> Faster query execution due to denormalized structure</li>
+                <li><strong class="advantage">Easier to Understand:</strong> Intuitive structure for business users and analysts</li>
+                <li><strong class="advantage">Optimized for OLAP:</strong> Ideal for analytical processing and reporting</li>
+                <li><strong class="advantage">Faster Aggregations:</strong> Dimension attributes directly available without additional joins</li>
+                <li><strong class="advantage">Simpler ETL Process:</strong> Less complex data transformation logic</li>
+            </ul>
+            <div class="key-point">
+                <strong>Best Use Case:</strong> When query performance is critical and storage is not a major concern
+            </div>
+        </div>
+
+        <!-- Slide 7: Star Schema Disadvantages -->
+        <div class="slide">
+            <h2>Star Schema - Disadvantages</h2>
+            <ul>
+                <li><strong class="disadvantage">Data Redundancy:</strong> Duplicate data in dimension tables increases storage requirements</li>
+                <li><strong class="disadvantage">Higher Storage Costs:</strong> Denormalized tables consume more disk space</li>
+                <li><strong class="disadvantage">Data Integrity Issues:</strong> Redundancy can lead to inconsistencies during updates</li>
+                <li><strong class="disadvantage">Complex Updates:</strong> Updating dimension attributes requires changes in multiple rows</li>
+                <li><strong class="disadvantage">Limited Flexibility:</strong> Not ideal for complex hierarchical relationships</li>
+                <li><strong class="disadvantage">Insertion Anomalies:</strong> Can occur when adding new dimension members</li>
+            </ul>
+            <div class="key-point">
+                <strong>Trade-off:</strong> Performance vs. Storage and Data Integrity
+            </div>
+        </div>
+
+        <!-- Slide 8: Snowflake Schema Advantages -->
+        <div class="slide">
+            <h2>Snowflake Schema - Advantages</h2>
+            <ul>
+                <li><strong class="advantage">Reduced Storage Space:</strong> Normalization eliminates data redundancy</li>
+                <li><strong class="advantage">Better Data Integrity:</strong> Normalized structure reduces update anomalies</li>
+                <li><strong class="advantage">Easier Maintenance:</strong> Changes to dimension attributes affect fewer records</li>
+                <li><strong class="advantage">Improved Data Quality:</strong> Less chance of inconsistent data</li>
+                <li><strong class="advantage">Supports Complex Hierarchies:</strong> Natural representation of hierarchical relationships</li>
+                <li><strong class="advantage">Flexible Structure:</strong> Easier to add new hierarchical levels</li>
+            </ul>
+            <div class="key-point">
+                <strong>Best Use Case:</strong> When data integrity and storage efficiency are priorities
+            </div>
+        </div>
+
+        <!-- Slide 9: Snowflake Schema Disadvantages -->
+        <div class="slide">
+            <h2>Snowflake Schema - Disadvantages</h2>
+            <ul>
+                <li><strong class="disadvantage">Complex Queries:</strong> Multiple joins required increase query complexity</li>
+                <li><strong class="disadvantage">Slower Query Performance:</strong> More joins lead to longer execution times</li>
+                <li><strong class="disadvantage">Difficult to Understand:</strong> Complex structure harder for business users</li>
+                <li><strong class="disadvantage">Complex ETL:</strong> More sophisticated data transformation required</li>
+                <li><strong class="disadvantage">Query Optimization Challenges:</strong> Database optimizer has more work to do</li>
+                <li><strong class="disadvantage">Increased Development Time:</strong> More complex to design and implement</li>
+            </ul>
+            <div class="key-point">
+                <strong>Trade-off:</strong> Storage Efficiency vs. Query Performance and Complexity
+            </div>
+        </div>
+
+        <!-- Slide 10: Performance Considerations -->
+        <div class="slide">
+            <h2>Performance Considerations</h2>
+            
+            <h3>Star Schema Performance:</h3>
+            <ul>
+                <li><strong>Query Speed:</strong> Typically 2-3x faster than snowflake for complex queries</li>
+                <li><strong>Join Operations:</strong> Fewer joins (1 join per dimension)</li>
+                <li><strong>Index Strategy:</strong> Simple indexing on foreign keys</li>
+                <li><strong>Aggregation:</strong> Faster due to denormalized dimensions</li>
+            </ul>
+
+            <h3>Snowflake Schema Performance:</h3>
+            <ul>
+                <li><strong>Query Speed:</strong> Slower due to multiple joins</li>
+                <li><strong>Join Operations:</strong> Multiple joins (hierarchical relationships)</li>
+                <li><strong>Index Strategy:</strong> Complex indexing across normalized tables</li>
+                <li><strong>Aggregation:</strong> Requires traversing hierarchy levels</li>
+            </ul>
+
+            <div class="key-point">
+                <strong>Performance Optimization:</strong> Use materialized views, partitioning, and proper indexing strategies
+            </div>
+        </div>
+
+        <!-- Slide 11: When to Use Which Schema -->
+        <div class="slide">
+            <h2>Decision Criteria: Which Schema to Use?</h2>
+            
+            <div class="example-box">
+                <h3>Use Star Schema When:</h3>
+                <ul>
+                    <li>Query performance is the top priority</li>
+                    <li>Storage space is not a constraint</li>
+                    <li>Dimension tables are relatively small</li>
+                    <li>Users need simple, fast reporting</li>
+                    <li>OLAP and BI tools are primary consumers</li>
+                    <li>Data warehouse is read-intensive</li>
+                </ul>
+            </div>
+
+            <div class="example-box" style="background: #e3f2fd; border-color: #2196F3;">
+                <h3>Use Snowflake Schema When:</h3>
+                <ul>
+                    <li>Storage optimization is critical</li>
+                    <li>Complex hierarchical dimensions exist</li>
+                    <li>Data integrity is paramount</li>
+                    <li>Dimension tables are very large</li>
+                    <li>Frequent dimension updates occur</li>
+                    <li>Normalized data is required for compliance</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 12: Example - Star Schema Design -->
+        <div class="slide">
+            <h2>Example: Retail Sales Star Schema</h2>
+            
+            <div class="example-box">
+                <h3>Business Scenario:</h3>
+                <p>A retail company wants to analyze sales data across products, customers, time, and stores.</p>
+            </div>
+
+            <h3>Fact Table: SALES_FACT</h3>
+            <div class="code-box">
+<strong>Primary Keys (Composite):</strong>
+- sale_id (Surrogate Key)
+
+<strong>Foreign Keys:</strong>
+- product_key → PRODUCT_DIM
+- customer_key → CUSTOMER_DIM
+- time_key → TIME_DIM
+- store_key → STORE_DIM
+
+<strong>Measures:</strong>
+- quantity_sold (Additive)
+- sales_amount (Additive)
+- discount_amount (Additive)
+- profit_amount (Additive)
+- unit_price (Non-additive)
+            </div>
+        </div>
+
+        <!-- Slide 13: Star Schema - Dimension Tables -->
+        <div class="slide">
+            <h2>Star Schema - Dimension Tables</h2>
+            
+            <div class="schema-container" style="display: block;">
+                <div class="dimension-table" style="display: block; margin: 20px auto; max-width: 800px;">
+                    <strong>PRODUCT_DIM</strong><br>
+                    PK: product_key<br>
+                    Attributes: product_id, product_name, category, subcategory, brand, supplier_name, supplier_city, supplier_country, unit_cost
+                </div>
+
+                <div class="dimension-table" style="display: block; margin: 20px auto; max-width: 800px;">
+                    <strong>CUSTOMER_DIM</strong><br>
+                    PK: customer_key<br>
+                    Attributes: customer_id, customer_name, age, gender, email, phone, address, city, state, country, postal_code, customer_segment
+                </div>
+
+                <div class="dimension-table" style="display: block; margin: 20px auto; max-width: 800px;">
+                    <strong>TIME_DIM</strong><br>
+                    PK: time_key<br>
+                    Attributes: date, day, month, quarter, year, day_of_week, week_of_year, is_weekend, is_holiday, fiscal_period
+                </div>
+
+                <div class="dimension-table" style="display: block; margin: 20px auto; max-width: 800px;">
+                    <strong>STORE_DIM</strong><br>
+                    PK: store_key<br>
+                    Attributes: store_id, store_name, store_type, manager_name, address, city, state, country, region, store_size, opening_date
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Star Schema - Visual Diagram -->
+        <div class="slide">
+            <h2>Star Schema - Complete Visual</h2>
+            
+            <div class="schema-diagram" style="padding: 40px;">
+                <div style="display: flex; justify-content: space-around; margin-bottom: 30px;">
+                    <div class="dimension-table">
+                        <strong>PRODUCT_DIM</strong><br>
+                        product_key (PK)<br>
+                        product_name<br>
+                        category<br>
+                        brand<br>
+                        supplier_name
+                    </div>
+                    <div class="dimension-table">
+                        <strong>CUSTOMER_DIM</strong><br>
+                        customer_key (PK)<br>
+                        customer_name<br>
+                        city<br>
+                        state<br>
+                        country
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <div class="fact-table" style="font-size: 20px;">
+                        <strong>SALES_FACT</strong><br>
+                        sale_id (PK)<br>
+                        product_key (FK)<br>
+                        customer_key (FK)<br>
+                        time_key (FK)<br>
+                        store_key (FK)<br>
+                        ─────────────<br>
+                        quantity_sold<br>
+                        sales_amount<br>
+                        profit_amount
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-around; margin-top: 30px;">
+                    <div class="dimension-table">
+                        <strong>TIME_DIM</strong><br>
+                        time_key (PK)<br>
+                        date<br>
+                        month<br>
+                        quarter<br>
+                        year
+                    </div>
+                    <div class="dimension-table">
+                        <strong>STORE_DIM</strong><br>
+                        store_key (PK)<br>
+                        store_name<br>
+                        city<br>
+                        region<br>
+                        store_type
+                    </div>
+                </div>
+            </div>
+
+            <div class="key-point">
+                <strong>Note:</strong> All dimensions connect directly to the fact table with single-level relationships
+            </div>
+        </div>
+
+        <!-- Slide 15: Example - Snowflake Schema Design -->
+        <div class="slide">
+            <h2>Example: Retail Sales Snowflake Schema</h2>
+            
+            <div class="example-box">
+                <h3>Same Business Scenario - Normalized Approach</h3>
+                <p>Same retail company with normalized dimension tables to reduce redundancy.</p>
+            </div>
+
+            <h3>Fact Table: SALES_FACT (Same as Star Schema)</h3>
+            <div class="code-box">
+<strong>Keys and Measures remain identical</strong>
+
+<strong>Difference:</strong> Dimension tables are normalized into multiple related tables
+            </div>
+
+            <h3>Key Changes:</h3>
+            <ul>
+                <li>Dimension attributes split into normalized tables</li>
+                <li>Hierarchical relationships explicitly modeled</li>
+                <li>Reduced redundancy in dimension storage</li>
+            </ul>
+        </div>
+
+        <!-- Slide 16: Snowflake Schema - Normalized Dimensions -->
+        <div class="slide">
+            <h2>Snowflake Schema - Normalized Dimensions</h2>
+            
+            <h3>PRODUCT Hierarchy:</h3>
+            <div class="schema-container" style="display: block;">
+                <div class="dimension-table" style="display: inline-block;">
+                    PRODUCT<br>product_key (PK)<br>category_key (FK)<br>supplier_key (FK)
+                </div>
+                <span class="arrow">→</span>
+                <div class="sub-dimension" style="display: inline-block;">
+                    CATEGORY<br>category_key (PK)<br>category_name<br>subcategory
+                </div>
+                <span class="arrow">→</span>
+                <div class="sub-dimension" style="display: inline-block;">
+                    SUPPLIER<br>supplier_key (PK)<br>supplier_name<br>city_key (FK)
+                </div>
+            </div>
+
+            <h3>CUSTOMER Hierarchy:</h3>
+            <div class="schema-container" style="display: block; margin-top: 30px;">
+                <div class="dimension-table" style="display: inline-block;">
+                    CUSTOMER<br>customer_key (PK)<br>customer_name<br>city_key (FK)
+                </div>
+                <span class="arrow">→</span>
+                <div class="sub-dimension" style="display: inline-block;">
+                    CITY<br>city_key (PK)<br>city_name<br>state_key (FK)
+                </div>
+                <span class="arrow">→</span>
+                <div class="sub-dimension" style="display: inline-block;">
+                    STATE<br>state_key (PK)<br>state_name<br>country_key (FK)
+                </div>
+                <span class="arrow">→</span>
+                <div class="sub-dimension" style="display: inline-block;">
+                    COUNTRY<br>country_key (PK)<br>country_name
+                </div>
+            </div>
+
+            <h3>STORE Hierarchy:</h3>
+            <div class="schema-container" style="display: block; margin-top: 30px;">
+                <div class="dimension-table" style="display: inline-block;">
+                    STORE<br>store_key (PK)<br>store_name<br>city_key (FK)
+                </div>
+                <span class="arrow">→</span>
+                <div class="sub-dimension" style="display: inline-block;">
+                    CITY<br>(Shared with Customer)
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Snowflake Schema - Visual Diagram -->
+        <div class="slide">
+            <h2>Snowflake Schema - Complete Visual</h2>
+            
+            <div class="schema-diagram" style="padding: 30px; font-size: 16px; text-align: center;">
+                <!-- Fact Table at Center -->
+                <div style="margin: 30px 0;">
+                    <div class="fact-table" style="display: inline-block; margin: 0 auto;">
+                        <strong>SALES_FACT</strong><br>
+                        sale_id (PK)<br>
+                        product_key (FK)<br>
+                        customer_key (FK)<br>
+                        store_key (FK)<br>
+                        time_key (FK)<br>
+                        quantity_sold<br>
+                        total_amount
+                    </div>
+                </div>
+
+                <!-- Dimension Tables in a circle around the fact table -->
+                <div style="display: flex; justify-content: space-around; flex-wrap: wrap; margin: 30px 0;">
+                    <!-- Product Dimension -->
+                    <div style="margin: 10px; text-align: center;">
+                        <div class="dimension-table">
+                            <strong>PRODUCT</strong><br>
+                            product_key (PK)<br>
+                            product_name<br>
+                            category_key (FK)<br>
+                            supplier_key (FK)
+                        </div>
+                        <div style="display: flex; justify-content: center; margin-top: 10px;">
+                            <div style="margin: 0 15px;">
+                                <div class="sub-dimension">
+                                    <strong>CATEGORY</strong><br>
+                                    category_key (PK)<br>
+                                    category_name<br>
+                                    subcategory
+                                </div>
+                            </div>
+                            <div style="margin: 0 15px;">
+                                <div class="sub-dimension">
+                                    <strong>SUPPLIER</strong><br>
+                                    supplier_key (PK)<br>
+                                    supplier_name<br>
+                                    city_key (FK)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Dimension -->
+                    <div style="margin: 10px; text-align: center;">
+                        <div class="dimension-table">
+                            <strong>CUSTOMER</strong><br>
+                            customer_key (PK)<br>
+                            customer_name<br>
+                            city_key (FK)
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="sub-dimension">
+                            <strong>CITY</strong><br>
+                            city_key (PK)<br>
+                            city_name<br>
+                            state_key (FK)
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="sub-dimension">
+                            <strong>STATE</strong><br>
+                            state_key (PK)<br>
+                            state_name<br>
+                            country_key (FK)
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="sub-dimension">
+                            <strong>COUNTRY</strong><br>
+                            country_key (PK)<br>
+                            country_name
+                        </div>
+                    </div>
+
+                    <!-- Store Dimension -->
+                    <div style="margin: 10px; text-align: center;">
+                        <div class="dimension-table">
+                            <strong>STORE</strong><br>
+                            store_key (PK)<br>
+                            store_name<br>
+                            city_key (FK)
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="sub-dimension">
+                            <strong>CITY</strong><br>
+                            (Shared with Customer)
+                        </div>
+                    </div>
+
+                    <!-- Time Dimension -->
+                    <div style="margin: 10px; text-align: center;">
+                        <div class="dimension-table">
+                            <strong>TIME</strong><br>
+                            time_key (PK)<br>
+                            date<br>
+                            day_of_week<br>
+                            month<br>
+                            quarter<br>
+                            year<br>
+                            is_holiday
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: Summary and Conclusion -->
+        <div class="slide">
+            <h2>Summary and Key Takeaways</h2>
+            
+            <div class="summary-points">
+                <h3>Star Schema</h3>
+                <ul>
+                    <li>Simple and denormalized structure</li>
+                    <li>Single fact table connected to dimension tables</li>
+                    <li>Faster query performance for analytical queries</li>
+                    <li>Higher storage requirements due to data redundancy</li>
+                </ul>
+
+                <h3>Snowflake Schema</h3>
+                <ul>
+                    <li>Normalized dimension tables</li>
+                    <li>Reduced data redundancy and storage requirements</li>
+                    <li>More complex queries due to multiple joins</li>
+                    <li>Better for complex hierarchies and slowly changing dimensions</li>
+                </ul>
+
+                <h3>Choosing the Right Schema</h3>
+                <ul>
+                    <li>Use <strong>Star Schema</strong> for:
+                        <ul>
+                            <li>Read-heavy analytical workloads</li>
+                            <li>Simpler data models</li>
+                            <li>When query performance is critical</li>
+                        </ul>
+                    </li>
+                    <li>Use <strong>Snowflake Schema</strong> when:
+                        <ul>
+                            <li>Storage optimization is important</li>
+                            <li>Working with complex hierarchies</li>
+                            <li>Data integrity is a top priority</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <div class="conclusion" style="margin-top: 30px; padding: 20px; background-color: #f0f8ff; border-radius: 10px;">
+                    <h3>Final Thoughts</h3>
+                    <p>Both star and snowflake schemas have their place in data warehousing. The choice depends on your specific requirements for query performance, storage efficiency, and data complexity. Understanding these schemas is crucial for designing effective data warehouses that meet your organization's analytical needs.</p>
+                </div>
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div style="position: fixed; bottom: 30px; width: 100%; display: flex; justify-content: space-between; padding: 0 50px; box-sizing: border-box;">
+                <button class="nav-btn" id="prev-btn" onclick="prevSlide()">← Previous</button>
+                <span id="slide-number" style="color: #333; font-size: 18px; align-self: center;">Slide 18 of 18</span>
+                <button class="nav-btn" id="next-btn" onclick="nextSlide()">Next →</button>
+            </div>
+        </div>
+
+        <script>
+            let currentSlide = 0;
+            const slides = document.querySelectorAll('.slide');
+            const totalSlides = slides.length;
+            const slideNumber = document.getElementById('slide-number');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            function showSlide(n) {
+                if (n >= slides.length) n = 0;
+                if (n < 0) n = slides.length - 1;
+                
+                // Hide all slides
+                slides.forEach(slide => {
+                    slide.classList.remove('active');
+                });
+                
+                // Show current slide
+                slides[n].classList.add('active');
+                currentSlide = n;
+                
+                // Update slide number
+                slideNumber.textContent = `Slide ${currentSlide + 1} of ${totalSlides}`;
+                
+                // Update button states
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+            }
+
+            function nextSlide() {
+                showSlide(currentSlide + 1);
+            }
+
+            function prevSlide() {
+                showSlide(currentSlide - 1);
+            }
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', () => {
+                showSlide(0);
+                
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') {
+                        nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        prevSlide();
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>
