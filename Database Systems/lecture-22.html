@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 22: Real-World Database Applications</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+            font-size: 28px;
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 95vw;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 15px;
+            padding: 60px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            color: #1e3c72;
+            font-size: 6rem;
+            margin-bottom: 25px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            font-size: 3.2rem;
+            color: #2a5298;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .instructor-info {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 35px;
+            border-radius: 15px;
+            margin-top: 35px;
+            font-size: 2.4rem;
+            font-weight: 500;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            padding: 30px 45px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.8rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            color: #1e3c72;
+            min-width: 250px;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 30px;
+            padding: 60px;
+            margin-bottom: 50px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-title {
+            font-size: 4rem;
+            color: #1e3c72;
+            margin-bottom: 40px;
+            text-align: center;
+            font-weight: bold;
+            position: relative;
+            padding-bottom: 20px;
+        }
+
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 5px;
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            border-radius: 5px;
+        }
+
+        h2 {
+            font-size: 3.2rem;
+            color: #2a5298;
+            margin: 50px 0 25px;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 2.6rem;
+            color: #1e3c72;
+            margin: 40px 0 20px;
+            font-weight: 600;
+        }
+
+        p, ul, ol {
+            margin-bottom: 25px;
+            font-size: 2.2rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            padding-left: 50px;
+        }
+
+        li {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        li:before {
+            content: '•';
+            color: #1e3c72;
+            font-weight: bold;
+            position: absolute;
+            left: -30px;
+            font-size: 2.5rem;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            border-left: 6px solid #1e3c72;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 40px 0;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-weight: 600;
+            color: #0d47a1;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 30px;
+            border-radius: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 30px 0;
+            overflow-x: auto;
+            font-size: 1.8rem;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .code-block:before {
+            content: 'SQL';
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #1e3c72;
+            color: white;
+            padding: 5px 15px;
+            font-size: 1.4rem;
+            border-bottom-left-radius: 5px;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .example-box {
+            background: #f8f9fa;
+            border: 2px dashed #1e3c72;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px 0;
+            position: relative;
+        }
+
+        .example-box:before {
+            content: 'EXAMPLE';
+            position: absolute;
+            top: -12px;
+            left: 30px;
+            background: #1e3c72;
+            color: white;
+            padding: 0 15px;
+            font-size: 1.6rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .interactive-btn {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 30px auto;
+            display: block;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(30, 60, 114, 0.3);
+        }
+
+        .interactive-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(30, 60, 114, 0.4);
+        }
+
+        .interactive-btn:active {
+            transform: translateY(1px);
+        }
+
+        .fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 2.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fullscreen-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 13px;
+            margin: 50px 0;
+            height: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 1.6rem;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .case-study {
+            background: #f5f7ff;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px 0;
+            border-left: 5px solid #1e3c72;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .case-study h3 {
+            color: #1e3c72;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .case-study h3:before {
+            content: '📊';
+            font-size: 2.5rem;
+        }
+
+        .requirements {
+            background: #e8f5e9;
+            border-left: 5px solid #43a047;
+        }
+
+        .challenges {
+            background: #fff3e0;
+            border-left: 5px solid #fb8c00;
+        }
+
+        .solutions {
+            background: #e3f2fd;
+            border-left: 5px solid #1976d2;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 2rem;
+        }
+
+        th, td {
+            padding: 20px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #1e3c72;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: #f1f3f5;
+        }
+
+        .activity-box {
+            background: #fff8e1;
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 50px 0;
+            position: relative;
+        }
+
+        .activity-box:before {
+            content: 'CLASS ACTIVITY';
+            position: absolute;
+            top: -12px;
+            left: 30px;
+            background: #ffc107;
+            color: #333;
+            padding: 0 15px;
+            font-size: 1.6rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 4rem;
+            }
+            
+            .subtitle {
+                font-size: 2.4rem;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .tab-btn {
+                width: 100%;
+                margin-bottom: 15px;
+            }
+            
+            .tab-content {
+                padding: 30px 20px;
+            }
+            
+            .section-title {
+                font-size: 3rem;
+            }
+            
+            h2 {
+                font-size: 2.6rem;
+            }
+            
+            h3 {
+                font-size: 2.2rem;
+            }
+            
+            p, ul, ol, li {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">📺</button>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Database Management Systems</h1>
+            <div class="subtitle">Lecture 22: Real-World Database Applications</div>
+            <div class="instructor-info">
+                Instructor: Mohsin Dar | School of Computer Science | UPES
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-text" id="progressText">0% Complete</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('introduction')">Introduction</button>
+            <button class="tab-btn" onclick="showTab('concepts')">Key Concepts</button>
+            <button class="tab-btn" onclick="showTab('design')">Design Process</button>
+            <button class="tab-btn" onclick="showTab('examples')">Worked Examples</button>
+            <button class="tab-btn" onclick="showTab('case-studies')">Case Studies</button>
+            <button class="tab-btn" onclick="showTab('summary')">Summary</button>
+        </div>
+
+        <!-- Introduction Tab -->
+        <div id="introduction" class="tab-content active">
+            <div class="section-title">Introduction to Real-World Database Applications</div>
+            
+            <p>In today's digital age, databases are the backbone of nearly every major system we interact with daily. From online banking to healthcare systems, databases enable structured data storage, retrieval, and processing at an unprecedented scale.</p>
+            
+            <div class="highlight-box">
+                <h3>Why This Matters</h3>
+                <p>Understanding how to design and implement database solutions for real-world applications is a critical skill for database professionals. This lecture bridges the gap between theoretical database concepts and practical implementation.</p>
+            </div>
+            
+            <h2>Learning Objectives</h2>
+            <ul>
+                <li>Understand the complete database project lifecycle</li>
+                <li>Learn to translate business requirements into database designs</li>
+                <li>Explore real-world case studies of database implementations</li>
+                <li>Develop skills for designing scalable and reliable database systems</li>
+                <li>Understand the importance of data integrity and security</li>
+            </ul>
+            
+            <div class="example-box">
+                <h3>Real-World Database Examples</h3>
+                <ul>
+                    <li>Banking & Financial Systems</li>
+                    <li>Hospital Management Systems</li>
+                    <li>E-commerce Platforms</li>
+                    <li>University Management Systems</li>
+                    <li>Social Media Networks</li>
+                    <li>Government & E-Governance</li>
+                </ul>
+            </div>
+            
+            <button class="interactive-btn" onclick="markSectionComplete('introduction')">Mark Section as Complete</button>
+        </div>
+
+        <!-- Key Concepts Tab -->
+        <div id="concepts" class="tab-content">
+            <div class="section-title">Key Concepts in Real-World Database Applications</div>
+            
+            <h2>Core Components</h2>
+            
+            <div class="case-study">
+                <h3>Database Project Lifecycle</h3>
+                <p>The systematic approach to designing and implementing a database system:</p>
+                <ol>
+                    <li><strong>Requirement Analysis</strong>: Understanding business needs</li>
+                    <li><strong>Conceptual Design</strong>: Creating ER models</li>
+                    <li><strong>Logical Design</strong>: Converting to relational schema</li>
+                    <li><strong>Physical Design</strong>: Implementation decisions</li>
+                    <li><strong>Implementation</strong>: Creating the database</li>
+                    <li><strong>Testing & Optimization</strong>: Ensuring performance</li>
+                    <li><strong>Deployment & Maintenance</strong>: Going live and beyond</li>
+                </ol>
+            </div>
+            
+            <div class="case-study requirements">
+                <h3>Business Rules & Data Integrity</h3>
+                <p>Essential for maintaining data quality and consistency:</p>
+                <ul>
+                    <li><strong>Primary Keys</strong>: Uniquely identify records</li>
+                    <li><strong>Foreign Keys</strong>: Maintain relationships</li>
+                    <li><strong>Constraints</strong>: Enforce data rules</li>
+                    <li><strong>Validation Rules</strong>: Ensure data quality</li>
+                </ul>
+            </div>
+            
+            <div class="case-study challenges">
+                <h3>Scalability & Performance</h3>
+                <p>Critical considerations for growing applications:</p>
+                <ul>
+                    <li><strong>Vertical Scaling</strong>: Adding more power to existing hardware</li>
+                    <li><strong>Horizontal Scaling</strong>: Adding more servers</li>
+                    <li><strong>Indexing</strong>: For faster searches</li>
+                    <li><strong>Partitioning</strong>: For better data management</li>
+                    <li><strong>Caching</strong>: For improved performance</li>
+                </ul>
+            </div>
+            
+            <button class="interactive-btn" onclick="markSectionComplete('concepts')">Mark Section as Complete</button>
+        </div>
+
+        <!-- Design Process Tab -->
+        <div id="design" class="tab-content">
+            <div class="section-title">Database Design Process</div>
+            
+            <h2>Step-by-Step Design Approach</h2>
+            
+            <div class="design-step">
+                <h3>1. Problem Identification</h3>
+                <p>Define the real-world scenario and identify stakeholders.</p>
+                <div class="example-box">
+                    <h4>Example: Hospital Management System</h4>
+                    <p><strong>Stakeholders:</strong> Doctors, Patients, Admin Staff, Pharmacists</p>
+                    <p><strong>Key Requirements:</strong> Patient records, Appointments, Billing, Doctor schedules</p>
+                </div>
+            </div>
+            
+            <div class="design-step">
+                <h3>2. Requirement Analysis</h3>
+                <p>Gather both functional and non-functional requirements.</p>
+                <div class="highlight-box">
+                    <h4>Key Questions:</h4>
+                    <ul>
+                        <li>What data needs to be stored?</li>
+                        <li>Who will access the data?</li>
+                        <li>What are the performance requirements?</li>
+                        <li>What are the security considerations?</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="design-step">
+                <h3>3. Conceptual Design (ER Modeling)</h3>
+                <p>Create an Entity-Relationship diagram to represent the data model.</p>
+                <div class="example-box">
+                    <h4>Example Entities:</h4>
+                    <ul>
+                        <li><strong>Patient</strong> (PatientID, Name, DOB, Contact)</li>
+                        <li><strong>Doctor</strong> (DoctorID, Name, Specialization)</li>
+                        <li><strong>Appointment</strong> (AppID, PatientID, DoctorID, Date, Time)</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="design-step">
+                <h3>4. Logical Design</h3>
+                <p>Convert the ER model into a relational schema.</p>
+                <div class="code-block">
+                    <pre>
+                    -- Patient Table
+                    CREATE TABLE Patient (
+                        PatientID INT PRIMARY KEY,
+                        Name VARCHAR(100) NOT NULL,
+                        DOB DATE,
+                        Contact VARCHAR(50),
+                        Address TEXT,
+                        InsuranceID VARCHAR(50)
+                    );
+                    
+                    -- Doctor Table
+                    CREATE TABLE Doctor (
+                        DoctorID INT PRIMARY KEY,
+                        Name VARCHAR(100) NOT NULL,
+                        Specialization VARCHAR(100),
+                        Contact VARCHAR(50),
+                        Department VARCHAR(50)
+                    );
+                    
+                    -- Appointment Table
+                    CREATE TABLE Appointment (
+                        AppID INT PRIMARY KEY,
+                        PatientID INT,
+                        DoctorID INT,
+                        AppDate DATE NOT NULL,
+                        AppTime TIME NOT NULL,
+                        Status VARCHAR(20) DEFAULT 'Scheduled',
+                        FOREIGN KEY (PatientID) REFERENCES Patient(PatientID),
+                        FOREIGN KEY (DoctorID) REFERENCES Doctor(DoctorID)
+                    );
+                    </pre>
+                </div>
+            </div>
+            
+            <div class="design-step">
+                <h3>5. Physical Design</h3>
+                <p>Make implementation decisions for performance and scalability.</p>
+                <div class="highlight-box">
+                    <h4>Key Considerations:</h4>
+                    <ul>
+                        <li><strong>Indexing</strong>: Create indexes on frequently queried columns</li>
+                        <li><strong>Partitioning</strong>: For large tables</li>
+                        <li><strong>Storage Engines</strong>: Choose based on requirements</li>
+                        <li><strong>Backup Strategy</strong>: Regular backups and recovery plans</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <button class="interactive-btn" onclick="showDesignExample()">View Complete Design Example</button>
+            <button class="interactive-btn" onclick="markSectionComplete('design')">Mark Section as Complete</button>
+        </div>
+
+        <!-- Worked Examples Tab -->
+        <div id="examples" class="tab-content">
+            <div class="section-title">Worked Examples</div>
+            
+            <h2>Example 1: Online Shopping Database</h2>
+            
+            <div class="case-study">
+                <h3>Database Schema</h3>
+                <div class="code-block">
+                    <pre>
+                    -- Customer Table
+                    CREATE TABLE Customer (
+                        CustomerID INT PRIMARY KEY,
+                        Name VARCHAR(100) NOT NULL,
+                        Email VARCHAR(100) UNIQUE,
+                        JoinDate DATE DEFAULT CURRENT_DATE,
+                        LastLogin DATETIME
+                    );
+                    
+                    -- Product Table
+                    CREATE TABLE Product (
+                        ProductID INT PRIMARY KEY,
+                        Name VARCHAR(200) NOT NULL,
+                        Description TEXT,
+                        Price DECIMAL(10,2) NOT NULL,
+                        StockQuantity INT DEFAULT 0,
+                        CategoryID INT
+                    );
+                    
+                    -- Order Table
+                    CREATE TABLE Orders (
+                        OrderID INT PRIMARY KEY,
+                        CustomerID INT,
+                        OrderDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        Status VARCHAR(50),
+                        TotalAmount DECIMAL(12,2),
+                        FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
+                    );
+                    
+                    -- Order_Item Table
+                    CREATE TABLE Order_Item (
+                        OrderID INT,
+                        ProductID INT,
+                        Quantity INT NOT NULL,
+                        UnitPrice DECIMAL(10,2) NOT NULL,
+                        PRIMARY KEY (OrderID, ProductID),
+                        FOREIGN KEY (OrderID) REFERENCES Orders(OrderID),
+                        FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+                    );
+                    </pre>
+                </div>
+                
+                <h3>Key Operations</h3>
+                <div class="code-block">
+                    <pre>
+                    -- Add a new product
+                    INSERT INTO Product (ProductID, Name, Description, Price, StockQuantity, CategoryID)
+                    VALUES (1, 'Wireless Mouse', 'Ergonomic wireless mouse with 2.4GHz connectivity', 29.99, 100, 5);
+                    
+                    -- Create a new order
+                    INSERT INTO Orders (OrderID, CustomerID, Status, TotalAmount)
+                    VALUES (1001, 42, 'Processing', 89.97);
+                    
+                    -- Add items to order
+                    INSERT INTO Order_Item (OrderID, ProductID, Quantity, UnitPrice)
+                    VALUES (1001, 1, 3, 29.99);
+                    
+                    -- Update stock
+                    UPDATE Product 
+                    SET StockQuantity = StockQuantity - 3 
+                    WHERE ProductID = 1;
+                    </pre>
+                </div>
+            </div>
+            
+            <h2>Example 2: University Management System</h2>
+            
+            <div class="case-study">
+                <h3>Database Schema</h3>
+                <div class="code-block">
+                    <pre>
+                    -- Student Table
+                    CREATE TABLE Student (
+                        StudentID INT PRIMARY KEY,
+                        Name VARCHAR(100) NOT NULL,
+                        Email VARCHAR(100) UNIQUE,
+                        EnrollmentDate DATE,
+                        Program VARCHAR(100)
+                    );
+                    
+                    -- Course Table
+                    CREATE TABLE Course (
+                        CourseID VARCHAR(20) PRIMARY KEY,
+                        Title VARCHAR(200) NOT NULL,
+                        Credits INT,
+                        DepartmentID INT,
+                        Description TEXT
+                    );
+                    
+                    -- Enrollment Table
+                    CREATE TABLE Enrollment (
+                        EnrollmentID INT PRIMARY KEY,
+                        StudentID INT,
+                        CourseID VARCHAR(20),
+                        Semester VARCHAR(20),
+                        Year INT,
+                        Grade VARCHAR(2),
+                        FOREIGN KEY (StudentID) REFERENCES Student(StudentID),
+                        FOREIGN KEY (CourseID) REFERENCES Course(CourseID)
+                    );
+                    
+                    -- Instructor Table
+                    CREATE TABLE Instructor (
+                        InstructorID INT PRIMARY KEY,
+                        Name VARCHAR(100) NOT NULL,
+                        DepartmentID INT,
+                        Email VARCHAR(100) UNIQUE
+                    );
+                    
+                    -- Course_Section Table
+                    CREATE TABLE Course_Section (
+                        SectionID INT PRIMARY KEY,
+                        CourseID VARCHAR(20),
+                        InstructorID INT,
+                        Semester VARCHAR(20),
+                        Year INT,
+                        Room VARCHAR(20),
+                        Schedule VARCHAR(100),
+                        FOREIGN KEY (CourseID) REFERENCES Course(CourseID),
+                        FOREIGN KEY (InstructorID) REFERENCES Instructor(InstructorID)
+                    );
+                    </pre>
+                </div>
+                
+                <h3>Common Queries</h3>
+                <div class="code-block">
+                    <pre>
+                    -- Find all courses a student is enrolled in
+                    SELECT c.Title, e.Semester, e.Year, e.Grade
+                    FROM Enrollment e
+                    JOIN Course c ON e.CourseID = c.CourseID
+                    WHERE e.StudentID = 12345
+                    ORDER BY e.Year, 
+                        CASE e.Semester 
+                            WHEN 'Fall' THEN 1 
+                            WHEN 'Spring' THEN 2 
+                            WHEN 'Summer' THEN 3 
+                            ELSE 4 
+                        END;
+                    
+                    -- Get class roster for a course section
+                    SELECT s.Name, s.Email
+                    FROM Enrollment e
+                    JOIN Student s ON e.StudentID = s.StudentID
+                    WHERE e.CourseID = 'CS101' 
+                    AND e.Semester = 'Fall' 
+                    AND e.Year = 2023;
+                    
+                    -- Calculate student GPA
+                    SELECT 
+                        s.StudentID,
+                        s.Name,
+                        ROUND(SUM(
+                            CASE 
+                                WHEN e.Grade = 'A' THEN 4.0
+                                WHEN e.Grade = 'A-' THEN 3.7
+                                WHEN e.Grade = 'B+' THEN 3.3
+                                WHEN e.Grade = 'B' THEN 3.0
+                                WHEN e.Grade = 'B-' THEN 2.7
+                                WHEN e.Grade = 'C+' THEN 2.3
+                                WHEN e.Grade = 'C' THEN 2.0
+                                WHEN e.Grade = 'C-' THEN 1.7
+                                WHEN e.Grade = 'D+' THEN 1.3
+                                WHEN e.Grade = 'D' THEN 1.0
+                                ELSE 0
+                            END * c.Credits) / SUM(c.Credits), 2) AS GPA
+                    FROM Student s
+                    JOIN Enrollment e ON s.StudentID = e.StudentID
+                    JOIN Course c ON e.CourseID = c.CourseID
+                    WHERE s.StudentID = 12345
+                    AND e.Grade IS NOT NULL
+                    GROUP BY s.StudentID, s.Name;
+                    </pre>
+                </div>
+            </div>
+            
+            <button class="interactive-btn" onclick="markSectionComplete('examples')">Mark Section as Complete</button>
+        </div>
+
+        <!-- Case Studies Tab -->
+        <div id="case-studies" class="tab-content">
+            <div class="section-title">Real-World Case Studies</div>
+            
+            <div class="case-study">
+                <h3>🏥 Hospital Management System</h3>
+                
+                <div class="requirements">
+                    <h4>Requirements:</h4>
+                    <ul>
+                        <li>Comprehensive patient records management</li>
+                        <li>Appointment scheduling</li>
+                        <li>Doctor and staff management</li>
+                        <li>Pharmacy and inventory management</li>
+                        <li>Billing and insurance processing</li>
+                        <li>Laboratory test tracking</li>
+                    </ul>
+                </div>
+                
+                <div class="challenges">
+                    <h4>Challenges:</h4>
+                    <ul>
+                        <li>Handling sensitive patient data (HIPAA compliance)</li>
+                        <li>High availability (24/7 operation)</li>
+                        <li>Data integrity and accuracy</li>
+                        <li>Integration with medical devices</li>
+                        <li>Backup and disaster recovery</li>
+                    </ul>
+                </div>
+                
+                <div class="solutions">
+                    <h4>Database Solution:</h4>
+                    <ul>
+                        <li><strong>RDBMS</strong>: PostgreSQL with advanced security features</li>
+                        <li><strong>Data Model</strong>: Normalized schema with proper relationships</li>
+                        <li><strong>Security</strong>: Role-based access control, data encryption</li>
+                        <li><strong>Performance</strong>: Indexing on frequently queried columns</li>
+                        <li><strong>Availability</strong>: High-availability cluster with failover</li>
+                        <li><strong>Backup</strong>: Automated daily backups with point-in-time recovery</li>
+                    </ul>
+                </div>
+                
+                <div class="code-block">
+                    <pre>
+                    -- Example: Patient Billing View
+                    CREATE VIEW PatientBillingView AS
+                    SELECT 
+                        p.PatientID,
+                        p.Name AS PatientName,
+                        a.AdmissionDate,
+                        r.RoomNumber,
+                        r.RatePerDay,
+                        DATEDIFF(day, a.AdmissionDate, COALESCE(a.DischargeDate, GETDATE())) AS DaysStayed,
+                        DATEDIFF(day, a.AdmissionDate, COALESCE(a.DischargeDate, GETDATE())) * r.RatePerDay AS RoomCharges,
+                        (SELECT SUM(Amount) FROM MedicalProcedures WHERE AdmissionID = a.AdmissionID) AS ProcedureCharges,
+                        (SELECT SUM(Quantity * UnitPrice) FROM Prescriptions WHERE PatientID = p.PatientID) AS PharmacyCharges
+                    FROM Patients p
+                    JOIN Admissions a ON p.PatientID = a.PatientID
+                    LEFT JOIN Rooms r ON a.RoomID = r.RoomID
+                    WHERE a.DischargeDate IS NULL OR a.DischargeDate >= DATEADD(month, -1, GETDATE());
+                    </pre>
+                </div>
+            </div>
+            
+            <div class="case-study">
+                <h3>🏛️ E-Governance Portal</h3>
+                
+                <div class="requirements">
+                    <h4>Requirements:</h4>
+                    <ul>
+                        <li>Citizen registration and authentication</li>
+                        <li>Document submission and tracking</li>
+                        <li>Service request management</li>
+                        <li>Payment processing</li>
+                        <li>Notification system</li>
+                        <li>Analytics and reporting</li>
+                    </ul>
+                </div>
+                
+                <div class="challenges">
+                    <h4>Challenges:</h4>
+                    <ul>
+                        <li>Handling high traffic volumes</li>
+                        <li>Ensuring data security and privacy</li>
+                        <li>Integration with multiple government systems</li>
+                        <li>Audit trails for compliance</li>
+                        <li>Scalability for growing user base</li>
+                    </ul>
+                </div>
+                
+                <div class="solutions">
+                    <h4>Database Solution:</h4>
+                    <ul>
+                        <li><strong>Database</strong>: Distributed PostgreSQL with read replicas</li>
+                        <li><strong>Cache</strong>: Redis for frequently accessed data</li>
+                        <li><strong>Search</strong>: Elasticsearch for document search</li>
+                        <li><strong>Audit</strong>: Comprehensive logging of all transactions</li>
+                        <li><strong>Security</strong>: Multi-factor authentication, data encryption</li>
+                        <li><strong>Scalability</strong>: Horizontal scaling with sharding</li>
+                    </ul>
+                </div>
+                
+                <div class="code-block">
+                    <pre>
+                    -- Example: Service Request Tracking
+                    CREATE TABLE ServiceRequests (
+                        RequestID BIGSERIAL PRIMARY KEY,
+                        CitizenID BIGINT NOT NULL,
+                        ServiceType VARCHAR(100) NOT NULL,
+                        RequestDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        Status VARCHAR(50) DEFAULT 'Submitted',
+                        Priority VARCHAR(20) DEFAULT 'Normal',
+                        AssignedTo BIGINT,
+                        CompletionDate TIMESTAMP,
+                        ResolutionNotes TEXT,
+                        FOREIGN KEY (CitizenID) REFERENCES Citizens(CitizenID),
+                        FOREIGN KEY (AssignedTo) REFERENCES GovernmentEmployees(EmployeeID)
+                    );
+                    
+                    -- Index for performance
+                    CREATE INDEX idx_service_requests_status ON ServiceRequests(Status);
+                    CREATE INDEX idx_service_requests_citizen ON ServiceRequests(CitizenID);
+                    CREATE INDEX idx_service_requests_date ON ServiceRequests(RequestDate);
+                    </pre>
+                </div>
+            </div>
+            
+            <div class="case-study">
+                <h3>🛍️ E-Commerce Platform</h3>
+                
+                <div class="requirements">
+                    <h4>Requirements:</h4>
+                    <ul>
+                        <li>Product catalog with categories and attributes</li>
+                        <li>User accounts and profiles</li>
+                        <li>Shopping cart functionality</li>
+                        <li>Order processing and tracking</li>
+                        <li>Payment gateway integration</li>
+                        <li>Inventory management</li>
+                        <li>Recommendation engine</li>
+                    </ul>
+                </div>
+                
+                <div class="challenges">
+                    <h4>Challenges:</h4>
+                    <ul>
+                        <li>Handling high traffic, especially during sales</li>
+                        <li>Managing inventory in real-time</li>
+                        <li>Personalized recommendations</li>
+                        <li>Secure payment processing</li>
+                        <li>Scalability for growing product catalog</li>
+                    </ul>
+                </div>
+                
+                <div class="solutions">
+                    <h4>Database Solution:</h4>
+                    <ul>
+                        <li><strong>OLTP Database</strong>: PostgreSQL for transactional data</li>
+                        <li><strong>Search</strong>: Elasticsearch for product search</li>
+                        <li><strong>Cache</strong>: Redis for sessions and frequently accessed data</li>
+                        <li><strong>Analytics</strong>: Columnar database for reporting</li>
+                        <li><strong>Content Delivery</strong>: CDN for product images</li>
+                        <li><strong>Microservices</strong>: Separate services for different functions</li>
+                    </ul>
+                </div>
+                
+                <div class="code-block">
+                    <pre>
+                    -- Example: Inventory Management
+                    CREATE TABLE Products (
+                        ProductID BIGSERIAL PRIMARY KEY,
+                        SKU VARCHAR(50) UNIQUE NOT NULL,
+                        Name VARCHAR(255) NOT NULL,
+                        Description TEXT,
+                        Price DECIMAL(10,2) NOT NULL,
+                        Cost DECIMAL(10,2),
+                        CategoryID INT,
+                        IsActive BOOLEAN DEFAULT true,
+                        CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    
+                    CREATE TABLE Inventory (
+                        InventoryID BIGSERIAL PRIMARY KEY,
+                        ProductID BIGINT NOT NULL,
+                        WarehouseID INT NOT NULL,
+                        QuantityOnHand INT NOT NULL DEFAULT 0,
+                        QuantityReserved INT NOT NULL DEFAULT 0,
+                        ReorderPoint INT,
+                        LastStockUpdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ProductID) REFERENCES Products(ProductID),
+                        UNIQUE (ProductID, WarehouseID)
+                    );
+                    
+                    -- Function to check stock availability
+                    CREATE OR REPLACE FUNCTION check_stock_availability(
+                        p_product_id BIGINT,
+                        p_warehouse_id INT,
+                        p_quantity INT
+                    ) RETURNS BOOLEAN AS $$
+                    DECLARE
+                        v_available INT;
+                    BEGIN
+                        SELECT (QuantityOnHand - QuantityReserved) INTO v_available
+                        FROM Inventory
+                        WHERE ProductID = p_product_id AND WarehouseID = p_warehouse_id;
+                        
+                        RETURN COALESCE(v_available, 0) >= p_quantity;
+                    END;
+                    $$ LANGUAGE plpgsql;
+                    </pre>
+                </div>
+            </div>
+            
+            <button class="interactive-btn" onclick="markSectionComplete('case-studies')">Mark Section as Complete</button>
+        </div>
+
+        <!-- Summary Tab -->
+        <div id="summary" class="tab-content">
+            <div class="section-title">Summary & Key Takeaways</div>
+            
+            <div class="highlight-box">
+                <h2>Key Concepts</h2>
+                <ul>
+                    <li>Real-world database applications are complex systems that require careful planning and design.</li>
+                    <li>The database project lifecycle provides a structured approach to development.</li>
+                    <li>Understanding business requirements is crucial for effective database design.</li>
+                    <li>Scalability, performance, and security must be considered from the beginning.</li>
+                    <li>Different types of applications require different database solutions.</li>
+                </ul>
+            </div>
+            
+            <h2>Best Practices</h2>
+            <div class="case-study">
+                <h3>Design Phase</h3>
+                <ul>
+                    <li>Start with thorough requirements gathering</li>
+                    <li>Create detailed ER diagrams</li>
+                    <li>Normalize your data model (but denormalize when necessary for performance)</li>
+                    <li>Plan for growth and scalability</li>
+                </ul>
+                
+                <h3>Implementation</h3>
+                <ul>
+                    <li>Use appropriate data types and constraints</li>
+                    <li>Implement proper indexing strategies</li>
+                    <li>Write efficient SQL queries</li>
+                    <li>Implement proper security measures</li>
+                </ul>
+                
+                <h3>Maintenance</h3>
+                <ul>
+                    <li>Regularly monitor and optimize performance</li>
+                    <li>Keep statistics up to date</li>
+                    <li>Implement a robust backup and recovery strategy</li>
+                    <li>Document all database objects and processes</li>
+                </ul>
+            </div>
+            
+            <div class="activity-box">
+                <h2>Classroom Activity</h2>
+                <p><strong>Objective:</strong> Design a database for a Library Management System</p>
+                
+                <h3>Requirements:</h3>
+                <ol>
+                    <li>Identify the main entities and their attributes</li>
+                    <li>Define the relationships between entities</li>
+                    <li>Create an ER diagram</li>
+                    <li>Convert the ER diagram to a relational schema</li>
+                    <li>Write SQL statements to create the database</li>
+                    <li>Create sample queries to demonstrate functionality</li>
+                </ol>
+                
+                <h3>Deliverables:</h3>
+                <ul>
+                    <li>ER Diagram</li>
+                    <li>Relational Schema</li>
+                    <li>SQL CREATE TABLE statements</li>
+                    <li>Sample queries with expected results</li>
+                </ul>
+                
+                <h3>Hints:</h3>
+                <ul>
+                    <li>Consider entities like Book, Member, Loan, Author, Publisher, etc.</li>
+                    <li>Think about constraints (e.g., a member can't borrow more than 5 books)</li>
+                    <li>Consider tracking book copies vs. book titles</li>
+                    <li>Think about late returns and fines</li>
+                </ul>
+                
+                <button class="interactive-btn" onclick="showLibraryExample()">Show Example Solution</button>
+            </div>
+            
+            <h2>Additional Resources</h2>
+            <ul>
+                <li>Database Design for Mere Mortals by Michael J. Hernandez</li>
+                <li>SQL Antipatterns by Bill Karwin</li>
+                <li>Database System Concepts by Abraham Silberschatz, Henry F. Korth, and S. Sudarshan</li>
+                <li>Online courses on database design and implementation</li>
+                <li>Documentation for your chosen database management system</li>
+            </ul>
+            
+            <div class="highlight-box" style="text-align: center; margin-top: 50px;">
+                <h2>Thank You!</h2>
+                <p>This concludes Lecture 22: Real-World Database Applications</p>
+                <p>Feel free to review any section using the navigation tabs above.</p>
+            </div>
+            
+            <button class="interactive-btn" onclick="markSectionComplete('summary')">Mark Section as Complete</button>
+        </div>
+    </div>
+
+    <script>
+        // Track completed sections
+        let completedSections = new Set();
+        
+        // Show the selected tab content
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+            
+            // Deactivate all tab buttons
+            const tabButtons = document.getElementsByClassName('tab-btn');
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove('active');
+            }
+            
+            // Show the selected tab content and activate the button
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            // Update progress
+            updateProgress();
+        }
+        
+        // Mark a section as complete
+        function markSectionComplete(section) {
+            completedSections.add(section);
+            updateProgress();
+            showNotification(`Section marked as complete!`);
+        }
+        
+        // Update progress bar and text
+        function updateProgress() {
+            const totalSections = 6; // Number of tabs
+            const completed = completedSections.size;
+            const percentage = Math.round((completed / totalSections) * 100);
+            
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressBar.style.width = percentage + '%';
+            progressText.textContent = percentage + '% Complete';
+            
+            // Change color based on completion
+            if (percentage < 30) {
+                progressBar.style.background = '#e74c3c';
+            } else if (percentage < 70) {
+                progressBar.style.background = '#f39c12';
+            } else {
+                progressBar.style.background = '#2ecc71';
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            // Simple notification - could be enhanced with a proper notification system
+            alert(message);
+        }
+        
+        // Toggle fullscreen mode
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+        
+        // Show design example
+        function showDesignExample() {
+            // This could be expanded to show a modal with a complete design example
+            alert('Complete design example would be displayed here with detailed schema and relationships.');
+        }
+        
+        // Show library example solution
+        function showLibraryExample() {
+            // This could be expanded to show a modal with the library example solution
+            alert('Library Management System example solution would be displayed here.');
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mark introduction as complete by default when page loads
+            markSectionComplete('introduction');
+            
+            // Add click handlers for all tab buttons to update progress
+            const tabButtons = document.getElementsByClassName('tab-btn');
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].addEventListener('click', function() {
+                    const tabName = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    // Don't mark as complete, just show the tab
+                    const tabContents = document.getElementsByClassName('tab-content');
+                    for (let i = 0; i < tabContents.length; i++) {
+                        tabContents[i].classList.remove('active');
+                    }
+                    document.getElementById(tabName).classList.add('active');
+                });
+            }
+            
+            // Initialize the first tab as active
+            document.querySelector('.tab-btn').click();
+        });
+    </script>
+</body>
+</html>
