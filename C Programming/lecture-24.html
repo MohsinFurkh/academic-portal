@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Standard Library - Lecture 24</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            width: 90%;
+            max-width: 1400px;
+            margin: 2% auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 60px 80px;
+            flex-grow: 1;
+            overflow-y: auto;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 3.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            font-size: 2.8em;
+            color: #667eea;
+            margin-bottom: 30px;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            font-size: 2.2em;
+            color: #764ba2;
+            margin: 30px 0 20px 0;
+        }
+
+        p, li {
+            font-size: 1.8em;
+            line-height: 1.8;
+            color: #34495e;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            font-size: 1.6em;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: -10px;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 25px 0;
+            border-left: 6px solid #667eea;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 30px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.6em;
+            line-height: 1.6;
+            margin: 25px 0;
+            overflow-x: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .code-block .comment {
+            color: #95a5a6;
+        }
+
+        .code-block .keyword {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .code-block .function {
+            color: #3498db;
+        }
+
+        .code-block .string {
+            color: #2ecc71;
+        }
+
+        ul {
+            margin-left: 40px;
+        }
+
+        li {
+            margin-bottom: 20px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin: 30px 0;
+        }
+
+        .function-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 5px solid #764ba2;
+            transition: transform 0.3s ease;
+        }
+
+        .function-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .function-name {
+            font-size: 2em;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .function-desc {
+            font-size: 1.6em;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: white;
+            border: none;
+            padding: 18px 35px;
+            font-size: 1.4em;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            background: #667eea;
+            color: white;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #ffd60a 0%, #ffd60a 100%);
+            background-repeat: no-repeat;
+            background-size: 100% 40%;
+            background-position: 0 80%;
+            padding: 0 5px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 1.6em;
+        }
+
+        th, td {
+            padding: 20px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-size: 1.8em;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .header-logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .upes-header {
+            font-size: 1.4em;
+            color: #764ba2;
+            margin-bottom: 10px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 6px solid #ffc107;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 6px solid #28a745;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="slide-counter">
+            <span id="currentSlide">1</span> / <span id="totalSlides">15</span>
+        </div>
+
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="header-logo">
+                <p class="upes-header">UPES - School of Computer Science</p>
+                <p class="upes-header">Cloud & Software Operations Cluster</p>
+            </div>
+            <h1>C Standard Library</h1>
+            <p class="subtitle">stdio.h, ctype.h, stdlib.h, assert.h, stdarg.h, time.h</p>
+            <div style="text-align: center; margin-top: 80px;">
+                <h3>Unit VI: Preprocessor, Macro, Static and Shared Library</h3>
+                <p style="font-size: 2em; margin-top: 50px;">Lecture 24</p>
+                <p style="font-size: 1.8em; margin-top: 40px; color: #764ba2;">
+                    <strong>Instructor:</strong> Mohsin F. Dar<br>
+                    Assistant Professor<br>
+                    BTech First Semester - C Programming
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Introduction -->
+        <div class="slide">
+            <h2>📚 What is the C Standard Library?</h2>
+            <div class="info-box">
+                <p>The <span class="highlight">C Standard Library</span> is a collection of pre-written functions, macros, and type definitions that come with every C compiler.</p>
+            </div>
+            <h3>Key Characteristics:</h3>
+            <ul>
+                <li><strong>Pre-compiled:</strong> Functions are already compiled and ready to use</li>
+                <li><strong>Portable:</strong> Works across different platforms and compilers</li>
+                <li><strong>Efficient:</strong> Optimized implementations of common tasks</li>
+                <li><strong>Standard:</strong> Defined by ANSI/ISO C standards</li>
+            </ul>
+            <div class="success-box">
+                <p><strong>💡 Remember:</strong> You don't need to write these functions yourself - just include the appropriate header file!</p>
+            </div>
+        </div>
+
+        <!-- Slide 3: Header Files Overview -->
+        <div class="slide">
+            <h2>📂 C Standard Library Headers</h2>
+            <table>
+                <tr>
+                    <th>Header File</th>
+                    <th>Purpose</th>
+                </tr>
+                <tr>
+                    <td><strong>stdio.h</strong></td>
+                    <td>Standard Input/Output operations</td>
+                </tr>
+                <tr>
+                    <td><strong>ctype.h</strong></td>
+                    <td>Character type testing and conversion</td>
+                </tr>
+                <tr>
+                    <td><strong>stdlib.h</strong></td>
+                    <td>General utilities: memory, conversions, etc.</td>
+                </tr>
+                <tr>
+                    <td><strong>string.h</strong></td>
+                    <td>String manipulation functions</td>
+                </tr>
+                <tr>
+                    <td><strong>math.h</strong></td>
+                    <td>Mathematical functions</td>
+                </tr>
+                <tr>
+                    <td><strong>time.h</strong></td>
+                    <td>Date and time functions</td>
+                </tr>
+                <tr>
+                    <td><strong>assert.h</strong></td>
+                    <td>Debugging assertions</td>
+                </tr>
+                <tr>
+                    <td><strong>stdarg.h</strong></td>
+                    <td>Variable argument lists</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Slide 4: stdio.h Part 1 -->
+        <div class="slide">
+            <h2>📝 stdio.h - Standard Input/Output</h2>
+            <p>Most commonly used header file for input and output operations.</p>
+            
+            <h3>Common Functions:</h3>
+            <div class="function-card">
+                <div class="function-name">printf()</div>
+                <div class="function-desc">Formatted output to console</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">scanf()</div>
+                <div class="function-desc">Formatted input from console</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">fprintf(), fscanf()</div>
+                <div class="function-desc">Formatted I/O with files</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">fopen(), fclose()</div>
+                <div class="function-desc">Open and close files</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">fread(), fwrite()</div>
+                <div class="function-desc">Binary file operations</div>
+            </div>
+        </div>
+
+        <!-- Slide 5: stdio.h Example -->
+        <div class="slide">
+            <h2>💻 stdio.h - Code Example</h2>
+            <div class="code-block">
+                <pre>
+                <span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+
+                <span class="keyword">int</span> <span class="function">main</span>() {
+                    <span class="keyword">FILE</span> *fp;
+                    <span class="keyword">char</span> name[50];
+                    <span class="keyword">int</span> age;
+                    
+                    <span class="comment">// Console I/O</span>
+                    <span class="function">printf</span>(<span class="string">"Enter name: "</span>);
+                    <span class="function">scanf</span>(<span class="string">"%s"</span>, name);
+                    
+                    <span class="comment">// File operations</span>
+                    fp = <span class="function">fopen</span>(<span class="string">"data.txt"</span>, <span class="string">"w"</span>);
+                    <span class="keyword">if</span>(fp != NULL) {
+                        <span class="function">fprintf</span>(fp, <span class="string">"Name: %s\n"</span>, name);
+                        <span class="function">fclose</span>(fp);
+                    }
+                    
+                    <span class="keyword">return</span> 0;
+                }
+                </pre>
+            </div>
+        </div>
+
+        <!-- Slide 6: ctype.h -->
+        <div class="slide">
+            <h2>🔤 ctype.h - Character Type Functions</h2>
+            <p>Functions for testing and converting character types.</p>
+            
+            <div class="two-column">
+                <div>
+                    <h3>Testing Functions:</h3>
+                    <div class="function-card">
+                        <div class="function-name">isalpha()</div>
+                        <div class="function-desc">Check if alphabetic</div>
+                    </div>
+                    <div class="function-card">
+                        <div class="function-name">isdigit()</div>
+                        <div class="function-desc">Check if digit (0-9)</div>
+                    </div>
+                    <div class="function-card">
+                        <div class="function-name">isalnum()</div>
+                        <div class="function-desc">Check if alphanumeric</div>
+                    </div>
+                    <div class="function-card">
+                        <div class="function-name">isspace()</div>
+                        <div class="function-desc">Check if whitespace</div>
+                    </div>
+                </div>
+                <div>
+                    <h3>Conversion Functions:</h3>
+                    <div class="function-card">
+                        <div class="function-name">toupper()</div>
+                        <div class="function-desc">Convert to uppercase</div>
+                    </div>
+                    <div class="function-card">
+                        <div class="function-name">tolower()</div>
+                        <div class="function-desc">Convert to lowercase</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: ctype.h Example -->
+        <div class="slide">
+            <h2>💻 ctype.h - Code Example</h2>
+            <div class="code-block">
+                <pre>
+                <span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+                <span class="keyword">#include</span> <span class="string">&lt;ctype.h&gt;</span>
+
+                <span class="keyword">int</span> <span class="function">main</span>() {
+                    <span class="keyword">char</span> ch = <span class="string">'a'</span>;
+                    <span class="keyword">char</span> str[] = <span class="string">"Hello123"</span>;
+                    
+                    <span class="comment">// Testing characters</span>
+                    <span class="keyword">if</span>(<span class="function">isalpha</span>(ch))
+                        <span class="function">printf</span>(<span class="string">"'%c' is alphabetic\n"</span>, ch);
+                    
+                    <span class="comment">// Converting case</span>
+                    <span class="function">printf</span>(<span class="string">"Uppercase: %c\n"</span>, <span class="function">toupper</span>(ch));
+                    
+                    <span class="comment">// Checking string characters</span>
+                    <span class="keyword">for</span>(<span class="keyword">int</span> i = 0; str[i] != <span class="string">'\0'</span>; i++) {
+                        <span class="keyword">if</span>(<span class="function">isdigit</span>(str[i]))
+                            <span class="function">printf</span>(<span class="string">"%c is a digit\n"</span>, str[i]);
+                    }
+                    
+                    <span class="keyword">return</span> 0;
+                }
+                </pre>
+            </div>
+        </div>
+
+        <!-- Slide 8: stdlib.h Part 1 -->
+        <div class="slide">
+            <h2>🛠️ stdlib.h - General Utilities</h2>
+            <p>Provides general purpose functions including memory management, conversions, and more.</p>
+            
+            <h3>Memory Management:</h3>
+            <div class="function-card">
+                <div class="function-name">malloc()</div>
+                <div class="function-desc">Allocate memory dynamically</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">calloc()</div>
+                <div class="function-desc">Allocate and initialize memory to zero</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">realloc()</div>
+                <div class="function-desc">Resize previously allocated memory</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">free()</div>
+                <div class="function-desc">Deallocate memory</div>
+            </div>
+        </div>
+
+        <!-- Slide 9: stdlib.h Part 2 -->
+        <div class="slide">
+            <h2>🛠️ stdlib.h - More Functions</h2>
+            
+            <h3>String Conversion:</h3>
+            <div class="function-card">
+                <div class="function-name">atoi()</div>
+                <div class="function-desc">Convert string to integer</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">atof()</div>
+                <div class="function-desc">Convert string to float</div>
+            </div>
+            
+            <h3>Random Numbers:</h3>
+            <div class="function-card">
+                <div class="function-name">rand()</div>
+                <div class="function-desc">Generate random number</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">srand()</div>
+                <div class="function-desc">Seed random number generator</div>
+            </div>
+            
+            <h3>Program Control:</h3>
+            <div class="function-card">
+                <div class="function-name">exit()</div>
+                <div class="function-desc">Terminate program</div>
+            </div>
+        </div>
+
+        <!-- Slide 10: stdlib.h Example -->
+        <div class="slide">
+            <h2>💻 stdlib.h - Code Example</h2>
+            <div class="code-block">
+                <pre>
+                <span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+                <span class="keyword">#include</span> <span class="string">&lt;stdlib.h&gt;</span>
+
+                <span class="keyword">int</span> <span class="function">main</span>() {
+                    <span class="comment">// Dynamic memory allocation</span>
+                    <span class="keyword">int</span> *arr = (<span class="keyword">int</span>*)<span class="function">malloc</span>(5 * <span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+                    
+                    <span class="keyword">if</span>(arr == NULL) {
+                        <span class="function">printf</span>(<span class="string">"Memory allocation failed\n"</span>);
+                        <span class="function">exit</span>(1);
+                    }
+                    
+                    <span class="comment">// String to integer conversion</span>
+                    <span class="keyword">char</span> str[] = <span class="string">"123"</span>;
+                    <span class="keyword">int</span> num = <span class="function">atoi</span>(str);
+                    <span class="function">printf</span>(<span class="string">"Number: %d\n"</span>, num);
+                    
+                    <span class="comment">// Random number generation</span>
+                    <span class="function">srand</span>(<span class="function">time</span>(NULL));
+                    <span class="function">printf</span>(<span class="string">"Random: %d\n"</span>, <span class="function">rand</span>() % 100);
+                    
+                    <span class="function">free</span>(arr);  <span class="comment">// Free allocated memory</span>
+                    <span class="keyword">return</span> 0;
+                }
+                </pre>
+            </div>
+        </div>
+
+        <!-- Slide 11: assert.h -->
+        <div class="slide">
+            <h2>🐛 assert.h - Debugging Assertions</h2>
+            <p>Used for debugging by testing assumptions in your code.</p>
+            
+            <div class="info-box">
+                <h3>What is an Assertion?</h3>
+                <p>An assertion is a statement that a condition must be true at a certain point in your program. If the condition is false, the program terminates with an error message.</p>
+            </div>
+            
+            <div class="function-card">
+                <div class="function-name">assert(expression)</div>
+                <div class="function-desc">If expression is false, program terminates with diagnostic information</div>
+            </div>
+            
+            <div class="warning-box">
+                <p><strong>⚠️ Important:</strong> Assertions are typically disabled in production code by defining <code>NDEBUG</code></p>
+            </div>
+        </div>
+
+        <!-- Slide 12: assert.h Example -->
+        <div class="slide">
+            <h2>💻 assert.h - Code Example</h2>
+            <div class="code-block">
+                <pre>
+                <span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+                <span class="keyword">#include</span> <span class="string">&lt;assert.h&gt;</span>
+
+                <span class="keyword">int</span> <span class="function">divide</span>(<span class="keyword">int</span> a, <span class="keyword">int</span> b) {
+                    <span class="comment">// Assert that divisor is not zero</span>
+                    <span class="function">assert</span>(b != 0);
+                    <span class="keyword">return</span> a / b;
+                }
+
+                <span class="keyword">int</span> <span class="function">main</span>() {
+                    <span class="keyword">int</span> x = 10, y = 2;
+                    
+                    <span class="comment">// This will work fine</span>
+                    <span class="function">printf</span>(<span class="string">"Result: %d\n"</span>, <span class="function">divide</span>(x, y));
+                    
+                    <span class="comment">// This will trigger assertion failure</span>
+                    <span class="comment">// printf("Result: %d\n", divide(x, 0));</span>
+                    
+                    <span class="keyword">return</span> 0;
+                }
+                </pre>
+
+                <span class="comment">// Output if assertion fails:</span>
+                <span class="comment">// Assertion failed: b != 0, file test.c, line 5</span>
+            </div>
+        </div>
+
+        <!-- Slide 13: stdarg.h -->
+        <div class="slide">
+            <h2>📋 stdarg.h - Variable Argument Lists</h2>
+            <p>Allows functions to accept a variable number of arguments.</p>
+            
+            <h3>Key Macros:</h3>
+            <div class="function-card">
+                <div class="function-name">va_list</div>
+                <div class="function-desc">Type for storing variable argument information</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">va_start()</div>
+                <div class="function-desc">Initialize the va_list</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">va_arg()</div>
+                <div class="function-desc">Retrieve next argument</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">va_end()</div>
+                <div class="function-desc">Clean up the va_list</div>
+            </div>
+            
+            <div class="info-box">
+                <p><strong>Example:</strong> The printf() function uses stdarg.h to accept variable number of arguments!</p>
+            </div>
+        </div>
+
+        <!-- Slide 14: stdarg.h Example -->
+        <div class="slide">
+            <h2>💻 stdarg.h - Code Example</h2>
+            <div class="code-block">
+                <pre>
+                <span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+                <span class="keyword">#include</span> <span class="string">&lt;stdarg.h&gt;</span>
+
+                <span class="comment">// Function to calculate sum of variable numbers</span>
+                <span class="keyword">int</span> <span class="function">sum</span>(<span class="keyword">int</span> count, ...) {
+                    <span class="keyword">va_list</span> args;
+                    <span class="keyword">int</span> total = 0;
+                    
+                    <span class="function">va_start</span>(args, count);  <span class="comment">// Initialize</span>
+                    
+                    <span class="keyword">for</span>(<span class="keyword">int</span> i = 0; i < count; i++) {
+                        total += <span class="function">va_arg</span>(args, <span class="keyword">int</span>);  <span class="comment">// Get next arg</span>
+                    }
+                    
+                    <span class="function">va_end</span>(args);  <span class="comment">// Clean up</span>
+                    <span class="keyword">return</span> total;
+                }
+
+                <span class="keyword">int</span> <span class="function">main</span>() {
+                    <span class="function">printf</span>(<span class="string">"Sum of 3 numbers: %d\n"</span>, <span class="function">sum</span>(3, 10, 20, 30));
+                    <span class="function">printf</span>(<span class="string">"Sum of 5 numbers: %d\n"</span>, <span class="function">sum</span>(5, 1, 2, 3, 4, 5));
+                    <span class="keyword">return</span> 0;
+                }
+                </pre>
+            </div>
+        </div>
+
+        <!-- Slide 15: time.h -->
+        <div class="slide">
+            <h2>⏰ time.h - Date and Time Functions</h2>
+            <p>Functions for manipulating and formatting dates and times.</p>
+            
+            <h3>Key Functions:</h3>
+            <div class="function-card">
+                <div class="function-name">time()</div>
+                <div class="function-desc">Get current calendar time</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">clock()</div>
+                <div class="function-desc">Get processor time</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">difftime()</div>
+                <div class="function-desc">Calculate difference between two times</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">localtime()</div>
+                <div class="function-desc">Convert time to local time structure</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">strftime()</div>
+                <div class="function-desc">Format time as string</div>
+            </div>
+        </div>
+
+        <!-- Slide 16: time.h Example -->
+        <div class="slide">
+            <h2>💻 time.h - Code Example</h2>
+            <div class="code-block">
+                <pre>
+                <span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+                <span class="keyword">#include</span> <span class="string">&lt;time.h&gt;</span>
+
+                <span class="keyword">int</span> <span class="function">main</span>() {
+                // Method 1: Using clock() to measure CPU time
+                clock_t start = clock();
+                
+                // Some operation to measure
+                long sum = 0;
+                for (int i = 0; i &lt; 1000000; i++) {
+                for (int i = 0; i < 1000000; i++) {
+                    sum += i;
+                }
+                
+                clock_t end = clock();
+                double cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+                
+                printf("Sum: %ld\n", sum);
+                printf("CPU time used: %f seconds\n", cpu_time_used);
+                
+                // Method 2: Using time() to get calendar time
+                time_t current_time;
+                time(&current_time);
+                printf("\nCurrent time: %s", ctime(&current_time));
+                
+                return 0;
+                }
+                </pre>
+            </div>
+        </div>
+        <!-- Slide 17: math.h -->
+        <div class="slide">
+            <h2>cmath - Math Functions</h2>
+            <p>Functions for mathematical operations.</p>
+            
+            <h3>Key Functions:</h3>
+            <div class="function-card">
+                <div class="function-name">abs()</div>
+                <div class="function-desc">Absolute value</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">sqrt()</div>
+                <div class="function-desc">Square root</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">pow()</div>
+                <div class="function-desc">Power function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">sin()</div>
+                <div class="function-desc">Sine function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">cos()</div>
+                <div class="function-desc">Cosine function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">tan()</div>
+                <div class="function-desc">Tangent function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">log()</div>
+                <div class="function-desc">Natural logarithm</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">exp()</div>
+                <div class="function-desc">Exponential function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">floor()</div>
+                <div class="function-desc">Floor value</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">ceil()</div>
+                <div class="function-desc">Ceiling value</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">round()</div>
+                <div class="function-desc">Round value</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">fmod()</div>
+                <div class="function-desc">Floating-point remainder</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">hypot()</div>
+                <div class="function-desc">Hypotenuse function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">erf()</div>
+                <div class="function-desc">Error function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">erfc()</div>
+                <div class="function-desc">Complementary error function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">lgamma()</div>
+                <div class="function-desc">Logarithmic gamma function</div>
+            </div>
+            <div class="function-card">
+                <div class="function-name">tgamma()</div>
+                <div class="function-desc">Gamma function</div>
+            </div>
+        </div>
+        <!-- Slide 18: math.h Example -->
+        <div class="slide">
+            <h2>💻 math.h - Code Example</h2>
+            <div class="code-block">
+                <pre>
+                <span class="keyword">#include</span> <span class="string">&lt;stdio.h&gt;</span>
+                <span class="keyword">#include</span> <span class="string">&lt;math.h&gt;</span>
+
+                <span class="keyword">int</span> <span class="function">main</span>() {
+                    <span class="keyword">double</span> x = <span class="number">-5.5</span>, y = <span class="number">3.2</span>;
+                    <span class="keyword">double</span> result;
+                    
+                    <span class="comment">// Absolute value</span>
+                    result = <span class="function">abs</span>(x);
+                    <span class="function">printf</span>(<span class="string">"abs(%f) = %f\n"</span>, x, result);
+                    
+                    <span class="comment">// Square root</span>
+                    result = <span class="function">sqrt</span>(y);
+                    <span class="function">printf</span>(<span class="string">"sqrt(%f) = %f\n"</span>, y, result);
+                    
+                    <span class="comment">// Power function</span>
+                    result = <span class="function">pow</span>(x, y);
+                    <span class="function">printf</span>(<span class="string">"pow(%f, %f) = %f\n"</span>, x, y, result);
+                    
+                    <span class="comment">// Sine function</span>
+                    result = <span class="function">sin</span>(x);
+                    <span class="function">printf</span>(<span class="string">"sin(%f) = %f\n"</span>, x, result);
+                    
+                    <span class="comment">// Cosine function</span>
+                    result = <span class="function">cos</span>(y);
+                    <span class="function">printf</span>(<span class="string">"cos(%f) = %f\n"</span>, y, result);
+                    
+                    <span class="comment">// Tangent function</span>
+                    result = <span class="function">tan</span>(x);
+                    <span class="function">printf</span>(<span class="string">"tan(%f) = %f\n"</span>, x, result);
+                    
+                    <span class="comment">// Natural logarithm</span>
+                    result = <span class="function">log</span>(y);
+                    <span class="function">printf</span>(<span class="string">"log(%f) = %f\n"</span>, y, result);
+                    
+                    <span class="comment">// Exponential function</span>
+                    result = <span class="function">exp</span>(x);
+                    <span class="function">printf</span>(<span class="string">"exp(%f) = %f\n"</span>, x, result);
+                    
+                    <span class="comment">// Floor value</span>
+                    result = <span class="function">floor</span>(y);
+                    <span class="function">printf</span>(<span class="string">"floor(%f) = %f\n"</span>, y, result);
+                    
+                    <span class="comment">// Ceiling value</span>
+                    result = <span class="function">ceil</span>(x);
+                    <span class="function">printf</span>(<span class="string">"ceil(%f) = %f\n"</span>, x, result);
+                    
+                    <span class="comment">// Round value</span>
+                    result = <span class="function">round</span>(y);
+                    <span class="function">printf</span>(<span class="string">"round(%f) = %f\n"</span>, y, result);
+                    
+                    <span class="comment">// Floating-point remainder</span>
+                    result = <span class="function">fmod</span>(x, y);
+                    <span class="function">printf</span>(<span class="string">"fmod(%f, %f) = %f\n"</span>, x, y, result);
+                    
+                    <span class="comment">// Hypotenuse function</span>
+                    result = <span class="function">hypot</span>(x, y);
+                    <span class="function">printf</span>(<span class="string">"hypot(%f, %f) = %f\n"</span>, x, y, result);
+                    
+                    <span class="comment">// Error function</span>
+                    result = <span class="function">erf</span>(x);
+                    <span class="function">printf</span>(<span class="string">"erf(%f) = %f\n"</span>, x, result);
+                    
+                    <span class="comment">// Complementary error function</span>
+                    result = <span class="function">erfc</span>(y);
+                    <span class="function">printf</span>(<span class="string">"erfc(%f) = %f\n"</span>, y, result);
+                    
+                    <span class="comment">// Logarithmic gamma function</span>
+                    result = <span class="function">lgamma</span>(x);
+                    <span class="function">printf</span>(<span class="string">"lgamma(%f) = %f\n"</span>, x, result);
+                    
+                    <span class="comment">// Gamma function</span>
+                    result = <span class="function">tgamma</span>(y);
+                    <span class="function">printf</span>(<span class="string">"tgamma(%f) = %f\n"</span>, y, result);
+                    
+                    <span class="keyword">return</span> <span class="number">0</span>;
+                }
+                </pre>
+            </div>
+        </div>
+
+        <!-- Slide 19: Summary -->
+        <div class="slide">
+        <h2>📝 Summary</h2>
+        <div class="summary-container">
+            <div class="summary-card">
+                <h3>stdio.h</h3>
+                <ul>
+                    <li>Input/Output operations</li>
+                    <li>File handling</li>
+                    <li>Formatted I/O functions</li>
+                </ul>
+            </div>
+            
+            <div class="summary-card">
+                <h3>stdlib.h</h3>
+                <ul>
+                    <li>Memory allocation</li>
+                    <li>String conversion</li>
+                    <li>Random number generation</li>
+                </ul>
+            </div>
+            
+            <div class="summary-card">
+                <h3>string.h</h3>
+                <ul>
+                    <li>String manipulation</li>
+                    <li>Memory operations</li>
+                    <li>String comparison</li>
+                </ul>
+            </div>
+            
+            <div class="summary-card">
+                <h3>math.h</h3>
+                <ul>
+                    <li>Mathematical functions</li>
+                    <li>Trigonometric functions</li>
+                    <li>Logarithmic functions</li>
+                </ul>
+            </div>
+            
+            <div class="summary-card">
+                <h3>time.h</h3>
+                <ul>
+                    <li>Date and time functions</li>
+                    <li>Time manipulation</li>
+                    <li>Format conversion</li>
+                </ul>
+            </div>
+            
+            <div class="summary-card">
+                <h3>ctype.h</h3>
+                <ul>
+                    <li>Character handling</li>
+                    <li>Type checking</li>
+                    <li>Case conversion</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="key-takeaways">
+            <h3>Key Takeaways</h3>
+            <ul>
+                <li>Standard Library provides essential functions for common tasks</li>
+                <li>Memory management is crucial in C programming</li>
+                <li>Always check return values for error handling</li>
+                <li>Use appropriate headers for required functionality</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const slides = document.querySelectorAll('.slide');
+            const totalSlides = slides.length;
+            let currentSlide = 0;
+            
+            // Update slide counter
+            document.getElementById('totalSlides').textContent = totalSlides;
+            
+            // Show first slide
+            showSlide(currentSlide);
+            
+            // Navigation functions
+            function showSlide(n) {
+                // Hide all slides
+                slides.forEach(slide => {
+                    slide.style.display = 'none';
+                    slide.style.opacity = '0';
+                    slide.style.transition = 'opacity 0.5s ease';
+                });
+                
+                // Handle wrap-around for slide index
+                if (n >= totalSlides) {
+                    currentSlide = 0;
+                } else if (n < 0) {
+                    currentSlide = totalSlides - 1;
+                } else {
+                    currentSlide = n;
+                }
+                
+                // Show current slide with fade-in effect
+                const currentSlideElement = slides[currentSlide];
+                currentSlideElement.style.display = 'block';
+                // Trigger reflow to ensure the display property is applied
+                void currentSlideElement.offsetHeight;
+                currentSlideElement.style.opacity = '1';
+                
+                // Update slide counter
+                document.getElementById('currentSlide').textContent = currentSlide + 1;
+            }
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                switch(e.key) {
+                    case 'ArrowLeft':
+                    case 'PageUp':
+                    case ' ':
+                        showSlide(currentSlide - 1);
+                        e.preventDefault();
+                        break;
+                    case 'ArrowRight':
+                    case 'PageDown':
+                    case 'Enter':
+                        showSlide(currentSlide + 1);
+                        e.preventDefault();
+                        break;
+                    case 'Home':
+                        showSlide(0);
+                        e.preventDefault();
+                        break;
+                    case 'End':
+                        showSlide(totalSlides - 1);
+                        e.preventDefault();
+                        break;
+                }
+            });
+            
+            // Touch events for mobile swipe
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            document.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, false);
+            
+            document.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, false);
+            
+            function handleSwipe() {
+                const swipeThreshold = 50; // Minimum distance for a swipe
+                
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    // Swipe left - next slide
+                    showSlide(currentSlide + 1);
+                }
+                
+                if (touchEndX > touchStartX + swipeThreshold) {
+                    // Swipe right - previous slide
+                    showSlide(currentSlide - 1);
+                }
+            }
+            
+            // Add navigation buttons
+            const navButtons = `
+                <div class="nav-buttons">
+                    <button id="prevBtn" class="nav-btn">❮ Previous</button>
+                    <button id="nextBtn" class="nav-btn">Next ❯</button>
+                </div>
+            `;
+            
+            document.querySelector('.presentation-container').insertAdjacentHTML('beforeend', navButtons);
+            
+            // Add button event listeners
+            document.getElementById('prevBtn').addEventListener('click', () => showSlide(currentSlide - 1));
+            document.getElementById('nextBtn').addEventListener('click', () => showSlide(currentSlide + 1));
+        });
+    </script>
+    
+    <style>
+        .summary-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .summary-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .summary-card h3 {
+            margin-top: 0;
+            color: #4fc3f7;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 8px;
+        }
+        
+        .summary-card ul {
+            padding-left: 20px;
+            margin: 10px 0 0 0;
+        }
+        
+        .summary-card li {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+        
+        .key-takeaways {
+            margin-top: 30px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #4fc3f7;
+        }
+        
+        .key-takeaways h3 {
+            margin-top: 0;
+            color: #4fc3f7;
+        }
+        
+        .key-takeaways ul {
+            padding-left: 20px;
+        }
+        
+        .key-takeaways li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+    </style>
+    
+    <style>
+        .nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+        }
+        
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .nav-btn:hover {
+            background: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+    </body>
+    </html>
