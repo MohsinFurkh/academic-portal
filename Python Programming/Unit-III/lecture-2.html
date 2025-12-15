@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 2: Directories and Exception Handling - Python Programming</title>
+    <meta name="description" content="Working with Directories, Applications of File Handling, Errors vs Exceptions, Exception Model, Exception Hierarchy">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../../css/style.css">
+    <style>
+        .code {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .note {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 6px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="../../index.html" class="logo">
+                <img src="../../images/icon.jpg" alt="University Logo" style="height: 40px;">
+                <div class="logo-text">
+                    <span class="logo-main">Mohsin Furkh Dar</span>
+                    <span class="logo-sub">PhD Candidate</span>
+                </div>
+            </a>
+            <button class="menu-toggle" aria-label="Toggle navigation" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul id="mainNav">
+                <li><a href="../../index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="../../index.html#courses"><i class="fas fa-book"></i> Courses</a></li>
+                <li><a href="../../index.html#lecture-notes"><i class="fas fa-file-alt"></i> Lecture Notes</a></li>
+                <li><a href="../../index.html#presentations"><i class="fas fa-chalkboard-teacher"></i> Presentations</a></li>
+                <li><a href="../../index.html#mcqs"><i class="fas fa-question-circle"></i> MCQs</a></li>
+                <li><a href="../../index.html#research"><i class="fas fa-flask"></i> Research</a></li>
+                <li><a href="../../index.html#contact"><i class="fas fa-envelope"></i> Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <main>
+            <section class="lecture-content">
+                <h1>Lecture 2: Directories and Exception Handling</h1>
+                
+                <div class="lecture-section">
+                    <h2>1. Working with Directories</h2>
+                    
+                    <h3>Using the <code>os</code> Module</h3>
+                    <div class="code">
+                        import os
+                        
+                        # Get current working directory
+                        current_dir = os.getcwd()
+                        print(f"Current directory: {current_dir}")
+                        
+                        # List directory contents
+                        print("\nDirectory contents:")
+                        for item in os.listdir('.'):
+                            print(f"- {item}")
+                        
+                        # Create a new directory
+                        os.mkdir('new_directory')
+                        
+                        # Create directories recursively
+                        os.makedirs('path/to/new/directory', exist_ok=True)
+                        
+                        # Remove a directory (must be empty)
+                        os.rmdir('new_directory')
+                        
+                        # Remove directory tree (use with caution!)
+                        import shutil
+                        shutil.rmtree('path/to/remove', ignore_errors=True)
+                    </div>
+                    
+                    <h3>File and Directory Operations</h3>
+                    <div class="code">
+                        import os
+                        import shutil
+                        
+                        # Check if path exists
+                        path = 'example.txt'
+                        if os.path.exists(path):
+                            print(f"{path} exists!")
+                        
+                        # Check if path is a file or directory
+                        if os.path.isfile(path):
+                            print(f"{path} is a file")
+                        elif os.path.isdir(path):
+                            print(f"{path} is a directory")
+                        
+                        # Get file size
+                        size = os.path.getsize(path)
+                        print(f"File size: {size} bytes")
+                        
+                        # Get file modification time
+                        mod_time = os.path.getmtime(path)
+                        from datetime import datetime
+                        print(f"Last modified: {datetime.fromtimestamp(mod_time)}")
+                        
+                        # Copy files
+                        shutil.copy('source.txt', 'destination.txt')
+                        
+                        # Move/rename files
+                        os.rename('old_name.txt', 'new_name.txt')
+                        
+                        # Delete a file
+                        os.remove('file_to_delete.txt')
+                    </div>
+                </div>
+
+                <div class="lecture-section">
+                    <h2>2. Walking Directory Trees</h2>
+                    
+                    <div class="code">
+                        import os
+                        
+                        def list_files(startpath):
+                            for root, dirs, files in os.walk(startpath):
+                                level = root.replace(startpath, '').count(os.sep)
+                                indent = ' ' * 4 * level
+                                print(f"{indent}{os.path.basename(root)}/")
+                                subindent = ' ' * 4 * (level + 1)
+                                for f in files:
+                                    print(f"{subindent}{f}")
+                        
+                        # Example usage
+                        list_files('.')
+                        
+                        # Find all .py files in a directory tree
+                        def find_py_files(directory):
+                            py_files = []
+                            for root, dirs, files in os.walk(directory):
+                                for file in files:
+                                    if file.endswith('.py'):
+                                        py_files.append(os.path.join(root, file))
+                            return py_files
+                        
+                        # Count lines of code in all Python files
+                        def count_lines(directory):
+                            total_lines = 0
+                            for py_file in find_py_files(directory):
+                                with open(py_file, 'r', encoding='utf-8') as f:
+                                    lines = f.readlines()
+                                    total_lines += len(lines)
+                                    print(f"{py_file}: {len(lines)} lines")
+                            print(f"\nTotal lines of Python code: {total_lines}")
+                    </div>
+                </div>
+
+                <div class="lecture-section">
+                    <h2>3. Errors vs Exceptions</h2>
+                    
+                    <div class="note">
+                        <h4>Key Differences:</h4>
+                        <ul>
+                            <li><strong>Errors</strong> are problems that a program should not try to handle (e.g., <code>SyntaxError</code>, <code>IndentationError</code>)</li>
+                            <li><strong>Exceptions</strong> are conditions that a program might want to handle (e.g., <code>FileNotFoundError</code>, <code>ZeroDivisionError</code>)</li>
+                        </ul>
+                    </div>
+                    
+                    <h3>Common Built-in Exceptions</h3>
+                    <table>
+                        <tr>
+                            <th>Exception</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td><code>Exception</code></td>
+                            <td>Base class for all exceptions</td>
+                        </tr>
+                        <tr>
+                            <td><code>ArithmeticError</code></td>
+                            <td>Base class for arithmetic errors</td>
+                        </tr>
+                        <tr>
+                            <td><code>ZeroDivisionError</code></td>
+                            <td>Division or modulo by zero</td>
+                        </tr>
+                        <tr>
+                            <td><code>FileNotFoundError</code></td>
+                            <td>File or directory doesn't exist</td>
+                        </tr>
+                        <tr>
+                            <td><code>PermissionError</code></td>
+                            <td>No permission to access a file</td>
+                        </tr>
+                        <tr>
+                            <td><code>ValueError</code></td>
+                            <td>Incorrect value passed to a function</td>
+                        </tr>
+                        <tr>
+                            <td><code>TypeError</code></td>
+                            <td>Operation on inappropriate type</td>
+                        </tr>
+                        <tr>
+                            <td><code>IndexError</code></td>
+                            <td>Sequence index out of range</td>
+                        </tr>
+                        <tr>
+                            <td><code>KeyError</code></td>
+                            <td>Dictionary key not found</td>
+                        </tr>
+                        <tr>
+                            <td><code>IOError</code></td>
+                            <td>I/O related errors</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="lecture-section">
+                    <h2>4. The Exception Hierarchy</h2>
+                    
+                    <div class="code">
+                        # View the built-in exception hierarchy
+                        def print_exception_hierarchy(exception_class, indent=0):
+                            print(' ' * indent + exception_class.__name__)
+                            for subclass in exception_class.__subclasses__():
+                                print_exception_hierarchy(subclass, indent + 4)
+                        
+                        # Print the hierarchy starting from BaseException
+                        print_exception_hierarchy(BaseException)
+                    </div>
+                    
+                    <div class="note">
+                        <h4>Key Points:</h4>
+                        <ul>
+                            <li><code>BaseException</code> is the root class for all exceptions</li>
+                            <li><code>Exception</code> is the base class for all built-in, non-system-exiting exceptions</li>
+                            <li>Most user-defined exceptions should inherit from <code>Exception</code></li>
+                            <li>System-exiting exceptions like <code>SystemExit</code> and <code>KeyboardInterrupt</code> inherit directly from <code>BaseException</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="lecture-section">
+                    <h2>5. Practical Example: Directory Cleanup Utility</h2>
+                    
+                    <div class="code">
+                        import os
+                        import shutil
+                        from datetime import datetime, timedelta
+                        
+                        def cleanup_directory(directory, days_old=30, extensions=None, dry_run=False):
+                            """
+                            Remove files older than specified days with given extensions.
+                            
+                            Args:
+                                directory (str): Directory to clean up
+                                days_old (int): Remove files older than this many days
+                                extensions (list): List of file extensions to consider (None means all)
+                                dry_run (bool): If True, only show what would be deleted
+                            """
+                            if not os.path.exists(directory):
+                                print(f"Error: Directory '{directory}' does not exist.")
+                                return
+                            
+                            if not os.path.isdir(directory):
+                                print(f"Error: '{directory}' is not a directory.")
+                                return
+                            
+                            cutoff_time = datetime.now() - timedelta(days=days_old)
+                            total_size = 0
+                            removed_count = 0
+                            
+                            print(f"Cleaning up directory: {directory}")
+                            print(f"Removing files older than: {cutoff_time}")
+                            if extensions:
+                                print(f"File extensions: {', '.join(extensions) if extensions else 'All'}")
+                            print("-" * 50)
+                            
+                            for root, dirs, files in os.walk(directory, topdown=False):
+                                for file in files:
+                                    if extensions and not any(file.lower().endswith(ext.lower()) for ext in extensions):
+                                        continue
+                                        
+                                    file_path = os.path.join(root, file)
+                                    try:
+                                        mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                                        if mod_time < cutoff_time:
+                                            file_size = os.path.getsize(file_path)
+                                            print(f"Removing: {file_path} (Last modified: {mod_time}, Size: {file_size} bytes)")
+                                            
+                                            if not dry_run:
+                                                try:
+                                                    if os.path.isfile(file_path):
+                                                        os.remove(file_path)
+                                                    elif os.path.isdir(file_path):
+                                                        shutil.rmtree(file_path)
+                                                    removed_count += 1
+                                                    total_size += file_size
+                                                except Exception as e:
+                                                    print(f"  Error removing {file_path}: {e}")
+                                    except Exception as e:
+                                        print(f"  Error processing {file_path}: {e}")
+                            
+                            print("-" * 50)
+                            print(f"Total files removed: {removed_count}")
+                            print(f"Total space freed: {total_size / (1024*1024):.2f} MB")
+                        
+                        # Example usage
+                        if __name__ == "__main__":
+                            import argparse
+                            
+                            parser = argparse.ArgumentParser(description='Clean up old files in a directory.')
+                            parser.add_argument('directory', help='Directory to clean up')
+                            parser.add_argument('--days', type=int, default=30, 
+                                              help='Remove files older than this many days (default: 30)')
+                            parser.add_argument('--ext', nargs='+', 
+                                              help='File extensions to include (e.g., .tmp .log)')
+                            parser.add_argument('--dry-run', action='store_true',
+                                              help='Show what would be deleted without actually deleting')
+                            
+                            args = parser.parse_args()
+                            
+                            cleanup_directory(
+                                args.directory, 
+                                days_old=args.days, 
+                                extensions=args.ext,
+                                dry_run=args.dry_run
+                            )
+                    </div>
+                </div>
+            </section>
+
+            <div class="lecture-navigation">
+                <a href="lecture-1.html" class="btn-prev"><i class="fas fa-arrow-left"></i> Previous</a>
+                <a href="lecture-3.html" class="btn-next">Next <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </main>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="../../index.html">Home</a></li>
+                    <li><a href="../../index.html#courses">Courses</a></li>
+                    <li><a href="../../index.html#lecture-notes">Lecture Notes</a></li>
+                    <li><a href="../../index.html#presentations">Presentations</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <div class="social-links">
+                    <a href="https://scholar.google.com" target="_blank" aria-label="Google Scholar"><i class="fab fa-google scholar-icon"></i></a>
+                    <a href="https://linkedin.com" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="https://github.com" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Dr. Mohsin Furkh Dar. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../../js/script.js"></script>
+</body>
+</html>
