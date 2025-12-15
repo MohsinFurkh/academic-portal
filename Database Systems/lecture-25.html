@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Processing in Distributed Databases</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide {
+            background: white;
+            width: 90%;
+            max-width: 1200px;
+            height: 85vh;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 60px;
+            display: none;
+            flex-direction: column;
+            position: relative;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        h1 {
+            color: #1e3c72;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            border-bottom: 4px solid #2a5298;
+            padding-bottom: 15px;
+        }
+
+        h2 {
+            color: #2a5298;
+            font-size: 2em;
+            margin-bottom: 25px;
+            margin-top: 20px;
+        }
+
+        h3 {
+            color: #1e3c72;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            margin-top: 15px;
+        }
+
+        p, li {
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        ul {
+            margin-left: 30px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        button {
+            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .slide-number {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: #2a5298;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .professor-info {
+            position: absolute;
+            bottom: 20px;
+            left: 30px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .diagram {
+            background: #f8f9fa;
+            border: 2px solid #2a5298;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .box {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            margin: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .arrow {
+            display: inline-block;
+            font-size: 2em;
+            color: #2a5298;
+            margin: 0 10px;
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #ffd89b 0%, #19547b 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .interactive-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .interactive-box:hover {
+            background: #bbdefb;
+            transform: translateX(5px);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide h1 {
+            font-size: 3em;
+            border: none;
+        }
+
+        .subtitle {
+            font-size: 1.5em;
+            color: #666;
+            margin: 20px 0;
+        }
+
+        .content-scroll {
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 10px;
+        }
+
+        .content-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .content-scroll::-webkit-scrollbar-thumb {
+            background: #2a5298;
+            border-radius: 10px;
+        }
+
+        .step-box {
+            background: white;
+            border: 2px solid #2a5298;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .step-number {
+            background: #2a5298;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #2a5298;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title -->
+        <div class="slide active title-slide">
+            <h1>Query Processing in Distributed Databases</h1>
+            <p class="subtitle">Query Decomposition, Data Localization,<br>Distributed Query Processing,<br>Transaction Management & Concurrency Control</p>
+            <p style="margin-top: 40px; font-size: 1.2em; color: #2a5298;">Database Systems | M.Tech First Semester</p>
+            <div class="professor-info">
+                <strong>Prof. Mohsin F. Dar</strong><br>
+                Assistant Professor, Cloud & Software Operations Cluster<br>
+                SOCS | UPES
+            </div>
+        </div>
+
+        <!-- Slide 2: Introduction -->
+        <div class="slide">
+            <div class="slide-number">2 / 15</div>
+            <h1>Introduction to Distributed Databases</h1>
+            <div class="content-scroll">
+                <h3>What is a Distributed Database?</h3>
+                <p>A distributed database is a collection of multiple, logically interrelated databases distributed over a computer network, appearing as a single database to users.</p>
+                
+                <h3>Key Characteristics:</h3>
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>📊 Data Distribution</h4>
+                        <p>Data is stored across multiple sites</p>
+                    </div>
+                    <div class="card">
+                        <h4>🔗 Network Connection</h4>
+                        <p>Sites connected via communication network</p>
+                    </div>
+                    <div class="card">
+                        <h4>🎯 Transparency</h4>
+                        <p>Users see it as one logical database</p>
+                    </div>
+                    <div class="card">
+                        <h4>⚡ Autonomy</h4>
+                        <p>Each site has local processing capability</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Query Processing Overview -->
+        <div class="slide">
+            <div class="slide-number">3 / 15</div>
+            <h1>Query Processing in Distributed Databases</h1>
+            <div class="content-scroll">
+                <h3>Query Processing Layers</h3>
+                <div class="diagram">
+                    <div class="box">Query Decomposition</div>
+                    <div class="arrow">↓</div>
+                    <div class="box">Data Localization</div>
+                    <div class="arrow">↓</div>
+                    <div class="box">Global Optimization</div>
+                    <div class="arrow">↓</div>
+                    <div class="box">Local Optimization</div>
+                </div>
+
+                <h3>Key Objectives:</h3>
+                <ul>
+                    <li><strong>Minimize data transfer</strong> across the network</li>
+                    <li><strong>Maximize parallel execution</strong> at different sites</li>
+                    <li><strong>Reduce response time</strong> for queries</li>
+                    <li><strong>Optimize resource utilization</strong> across all nodes</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 4: Query Decomposition - Part 1 -->
+        <div class="slide">
+            <div class="slide-number">4 / 15</div>
+            <h1>Query Decomposition</h1>
+            <div class="content-scroll">
+                <h3>Definition</h3>
+                <p>Query decomposition transforms a high-level query (SQL) into an algebraic query on global relations, independent of data distribution.</p>
+
+                <h3>Steps in Query Decomposition:</h3>
+                <div class="step-box">
+                    <span class="step-number">1</span>
+                    <strong>Normalization:</strong> Convert query to normalized form (eliminate redundancy)
+                </div>
+                <div class="step-box">
+                    <span class="step-number">2</span>
+                    <strong>Analysis:</strong> Detect and reject incorrect queries (type errors, semantic errors)
+                </div>
+                <div class="step-box">
+                    <span class="step-number">3</span>
+                    <strong>Simplification:</strong> Eliminate redundant predicates
+                </div>
+                <div class="step-box">
+                    <span class="step-number">4</span>
+                    <strong>Restructuring:</strong> Convert to relational algebra and optimize
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Query Decomposition - Example -->
+        <div class="slide">
+            <div class="slide-number">5 / 15</div>
+            <h1>Query Decomposition Example</h1>
+            <div class="content-scroll">
+                <h3>Original SQL Query:</h3>
+                <div class="code-block">
+SELECT E.Name, D.DeptName
+FROM Employee E, Department D
+WHERE E.DeptID = D.DeptID 
+  AND E.Salary > 50000 
+  AND D.Location = 'Mumbai'
+                </div>
+
+                <h3>Relational Algebra Expression:</h3>
+                <div class="code-block">
+π Name, DeptName (
+    σ Salary>50000 AND Location='Mumbai' (
+        Employee ⋈ DeptID Department
+    )
+)
+                </div>
+
+                <h3>Optimized (Push selections down):</h3>
+                <div class="code-block">
+π Name, DeptName (
+    (σ Salary>50000 (Employee)) 
+    ⋈ DeptID 
+    (σ Location='Mumbai' (Department))
+)
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Data Localization -->
+        <div class="slide">
+            <div class="slide-number">6 / 15</div>
+            <h1>Data Localization</h1>
+            <div class="content-scroll">
+                <h3>What is Data Localization?</h3>
+                <p>Data localization transforms global queries into fragment queries by determining which database fragments are involved in the query.</p>
+
+                <h3>Types of Fragmentation:</h3>
+                <table>
+                    <tr>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Horizontal</strong></td>
+                        <td>Rows distributed based on conditions</td>
+                        <td>Employees by region</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Vertical</strong></td>
+                        <td>Columns distributed across sites</td>
+                        <td>Employee personal vs salary data</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Hybrid</strong></td>
+                        <td>Combination of both</td>
+                        <td>Regional + departmental split</td>
+                    </tr>
+                </table>
+
+                <div class="interactive-box">
+                    <strong>💡 Key Concept:</strong> Localization reduces the search space by identifying only relevant fragments
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Data Localization Example -->
+        <div class="slide">
+            <div class="slide-number">7 / 15</div>
+            <h1>Data Localization Example</h1>
+            <div class="content-scroll">
+                <h3>Scenario: Employee Table Horizontally Fragmented</h3>
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>Fragment F1 (Site 1)</h4>
+                        <p>Employees where<br>Location = 'Mumbai'</p>
+                    </div>
+                    <div class="card">
+                        <h4>Fragment F2 (Site 2)</h4>
+                        <p>Employees where<br>Location = 'Delhi'</p>
+                    </div>
+                </div>
+
+                <h3>Query:</h3>
+                <div class="code-block">
+SELECT * FROM Employee 
+WHERE Location = 'Mumbai' AND Salary > 50000
+                </div>
+
+                <h3>Localized Query:</h3>
+                <p>The query only needs to access <span class="highlight">Fragment F1</span> at Site 1, eliminating unnecessary network communication with Site 2.</p>
+
+                <div class="code-block">
+SELECT * FROM F1 
+WHERE Salary > 50000
+-- Only executed at Site 1
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Distributed Query Processing -->
+        <div class="slide">
+            <div class="slide-number">8 / 15</div>
+            <h1>Distributed Query Processing</h1>
+            <div class="content-scroll">
+                <h3>Cost Factors in Distributed Queries</h3>
+                <ul>
+                    <li><strong>Communication Cost:</strong> Data transfer across network (typically dominates)</li>
+                    <li><strong>Local Processing Cost:</strong> CPU and I/O at each site</li>
+                    <li><strong>Memory Cost:</strong> Buffer allocation and management</li>
+                </ul>
+
+                <h3>Query Optimization Strategies:</h3>
+                <div class="step-box">
+                    <span class="step-number">1</span>
+                    <strong>Reduce Data Transfer:</strong> Apply selections and projections early
+                </div>
+                <div class="step-box">
+                    <span class="step-number">2</span>
+                    <strong>Parallel Execution:</strong> Execute independent operations simultaneously
+                </div>
+                <div class="step-box">
+                    <span class="step-number">3</span>
+                    <strong>Replicate vs. Transfer:</strong> Decide whether to move data or replicate it
+                </div>
+                <div class="step-box">
+                    <span class="step-number">4</span>
+                    <strong>Join Strategy:</strong> Choose appropriate join method (nested loop, semi-join, bloom join)
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Distributed Join Strategies -->
+        <div class="slide">
+            <div class="slide-number">9 / 15</div>
+            <h1>Distributed Join Strategies</h1>
+            <div class="content-scroll">
+                <h3>1. Ship Whole Relations</h3>
+                <p>Transfer one entire relation to the site of the other relation.</p>
+                <p><strong>Best when:</strong> One relation is small, network bandwidth is high</p>
+
+                <h3>2. Semi-Join</h3>
+                <p>Send only the joining attributes to reduce data transfer.</p>
+                <div class="code-block">
+-- Step 1: Send projection of R1.JoinKey to Site 2
+-- Step 2: Filter R2 using received keys
+-- Step 3: Send filtered R2 back to Site 1
+-- Step 4: Perform final join at Site 1
+                </div>
+                <p><strong>Advantage:</strong> Reduces network traffic significantly</p>
+
+                <h3>3. Bloom Join</h3>
+                <p>Uses bit vectors (Bloom filters) to filter tuples before transfer.</p>
+                <p><strong>Advantage:</strong> Even less data transfer than semi-join</p>
+            </div>
+        </div>
+
+        <!-- Slide 10: Distributed Transaction Management -->
+        <div class="slide">
+            <div class="slide-number">10 / 15</div>
+            <h1>Distributed Transaction Management</h1>
+            <div class="content-scroll">
+                <h3>ACID Properties in Distributed Environment</h3>
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>⚛️ Atomicity</h4>
+                        <p>All or nothing execution across all sites</p>
+                    </div>
+                    <div class="card">
+                        <h4>🔒 Consistency</h4>
+                        <p>Database integrity maintained globally</p>
+                    </div>
+                    <div class="card">
+                        <h4>🔐 Isolation</h4>
+                        <p>Transactions don't interfere across sites</p>
+                    </div>
+                    <div class="card">
+                        <h4>💾 Durability</h4>
+                        <p>Committed changes persist despite failures</p>
+                    </div>
+                </div>
+
+                <h3>Challenges in Distributed Transactions:</h3>
+                <ul>
+                    <li>Multiple sites must coordinate commit/abort decisions</li>
+                    <li>Network failures can partition the system</li>
+                    <li>Site failures require recovery mechanisms</li>
+                    <li>Ensuring global serializability is complex</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 11: Two-Phase Commit Protocol -->
+        <div class="slide">
+            <div class="slide-number">11 / 15</div>
+            <h1>Two-Phase Commit (2PC) Protocol</h1>
+            <div class="content-scroll">
+                <h3>Purpose:</h3>
+                <p>Ensures atomicity in distributed transactions - either all sites commit or all abort.</p>
+
+                <h3>Phase 1: Prepare/Voting Phase</h3>
+                <div class="step-box">
+                    <span class="step-number">1</span>
+                    Coordinator sends PREPARE message to all participants
+                </div>
+                <div class="step-box">
+                    <span class="step-number">2</span>
+                    Each participant votes YES (ready to commit) or NO (abort)
+                </div>
+                <div class="step-box">
+                    <span class="step-number">3</span>
+                    Participants write to log and wait for decision
+                </div>
+
+                <h3>Phase 2: Commit/Abort Phase</h3>
+                <div class="step-box">
+                    <span class="step-number">4</span>
+                    If all votes YES: Coordinator sends COMMIT to all
+                </div>
+                <div class="step-box">
+                    <span class="step-number">5</span>
+                    If any vote NO: Coordinator sends ABORT to all
+                </div>
+                <div class="step-box">
+                    <span class="step-number">6</span>
+                    Participants execute decision and send acknowledgment
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Concurrency Control -->
+        <div class="slide">
+            <div class="slide-number">12 / 15</div>
+            <h1>Distributed Concurrency Control</h1>
+            <div class="content-scroll">
+                <h3>Why is it Complex?</h3>
+                <p>Multiple transactions can access data at different sites simultaneously, requiring coordination to maintain consistency.</p>
+
+                <h3>Concurrency Control Techniques:</h3>
+                <table>
+                    <tr>
+                        <th>Technique</th>
+                        <th>Approach</th>
+                        <th>Advantage</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Locking</strong></td>
+                        <td>Use distributed locks</td>
+                        <td>Prevents conflicts proactively</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Timestamp</strong></td>
+                        <td>Assign global timestamps</td>
+                        <td>No deadlocks</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Optimistic</strong></td>
+                        <td>Validate at commit time</td>
+                        <td>High concurrency for read-heavy workloads</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Snapshot Isolation</strong></td>
+                        <td>Each transaction sees a snapshot</td>
+                        <td>Readers don't block writers</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 13: Distributed Locking -->
+        <div class="slide">
+            <div class="slide-number">13 / 15</div>
+            <h1>Distributed Locking Protocols</h1>
+            <div class="content-scroll">
+                <h3>1. Primary Copy Locking</h3>
+                <p>One site designated as primary for each data item and handles all lock requests for that item.</p>
+                <p><strong>Advantage:</strong> Simple implementation, easy to detect deadlocks</p>
+                <p><strong>Disadvantage:</strong> Primary site becomes bottleneck</p>
+
+                <h3>2. Distributed 2PL (Two-Phase Locking)</h3>
+                <p>Transactions acquire locks in growing phase, release in shrinking phase across all sites.</p>
+                
+                <div class="interactive-box">
+                    <strong>⚠️ Deadlock Challenge:</strong> Distributed deadlocks are harder to detect because cycle may span multiple sites
+                </div>
+
+                <h3>Deadlock Handling Approaches:</h3>
+                <ul>
+                    <li><strong>Prevention:</strong> Use timestamp ordering or wound-wait schemes</li>
+                    <li><strong>Detection:</strong> Maintain global wait-for graph</li>
+                    <li><strong>Timeout:</strong> Abort transactions that wait too long</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 14: Timestamp-Based Protocols -->
+        <div class="slide">
+            <div class="slide-number">14 / 15</div>
+            <h1>Timestamp-Based Concurrency Control</h1>
+            <div class="content-scroll">
+                <h3>How it Works:</h3>
+                <p>Each transaction T receives a unique timestamp TS(T) when it starts. System uses timestamps to ensure serializability.</p>
+
+                <h3>Timestamp Ordering Rules:</h3>
+                <div class="step-box">
+                    <strong>Read Rule:</strong> If TS(T) < write_timestamp(X), reject read and rollback T
+                </div>
+                <div class="step-box">
+                    <strong>Write Rule:</strong> If TS(T) < read_timestamp(X) or TS(T) < write_timestamp(X), reject write and rollback T
+                </div>
+
+                <h3>Generating Global Timestamps:</h3>
+                <ul>
+                    <li><strong>Centralized:</strong> Single timestamp authority (simple but bottleneck)</li>
+                    <li><strong>Lamport Timestamps:</strong> Each site maintains counter with message passing rules</li>
+                    <li><strong>Vector Clocks:</strong> Track causality relationships between events</li>
+                </ul>
+
+                <div class="interactive-box">
+                    <strong>✅ Advantage:</strong> No deadlocks possible!<br>
+                    <strong>⚠️ Disadvantage:</strong> May cause more transaction rollbacks
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: Summary -->
+        <div class="slide">
+            <div class="slide-number">15 / 15</div>
+            <h1>Summary & Key Takeaways</h1>
+            <div class="content-scroll">
+                <h3>Query Processing:</h3>
+                <ul>
+                    <li><strong>Query Decomposition:</strong> Transform SQL to optimized relational algebra</li>
+                    <li><strong>Data Localization:</strong> Identify relevant fragments to minimize data access</li>
+                    <li><strong>Distributed Optimization:</strong> Minimize network communication, maximize parallelism</li>
+                    <li><strong>Join Strategies:</strong> Semi-join and bloom join reduce data transfer</li>
+                </ul>
+
+                <h3>Transaction Management:</h3>
+                <ul>
+                    <li><strong>2PC Protocol:</strong> Ensures atomicity across distributed sites</li>
+                    <li><strong>Concurrency Control:</strong> Multiple approaches (locking, timestamp, optimistic)</li>
+                    <li><strong>Challenges:</strong> Network failures, deadlocks, global serializability</li>
+                </ul>
+
+                <div class="diagram">
+                    <h3 style="color: #1e3c72;">The Golden Rule</h3>
+                    <p style="font-size: 1.3em; color: #2a5298; font-weight: bold;">
+                        "Minimize data movement, maximize parallel execution"
+                    </p>
+                </div>
+
+                <div class="professor-info">
+                    <strong>Thank You!</strong><br>
+                    Questions & Discussion
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="prevSlide()">← Previous</button>
+        <button onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                const rect = window.innerWidth / 2;
+                if (e.clientX > rect) nextSlide();
+                else prevSlide();
+            }
+        });
+    </script>
+</body>
+</html>
