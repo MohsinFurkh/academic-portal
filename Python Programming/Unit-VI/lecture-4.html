@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit-VI: Advanced DataFrame Operations</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: #333; line-height: 1.6; }
+        .lecture-container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: white; padding: 25px; border-radius: 10px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .header h1 { color: #2c3e50; margin-bottom: 10px; }
+        .header p { color: #6c757d; margin-bottom: 10px; }
+        .section { background: white; border-radius: 10px; padding: 20px; margin-bottom: 25px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+        .section-header { font-size: 1.4em; color: #2c3e50; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #f0f0f0; }
+        .code-block { background: #f8f9fa; border-left: 4px solid #3498db; padding: 15px; margin: 15px 0; overflow-x: auto; position: relative; }
+        .copy-btn { position: absolute; top: 5px; right: 5px; background: #e9ecef; border: none; border-radius: 3px; padding: 3px 8px; cursor: pointer; font-size: 0.8em; }
+        .note { background: #e7f4ff; border-left: 4px solid #3498db; padding: 12px; margin: 15px 0; border-radius: 0 5px 5px 0; }
+        .warning { background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px; margin: 15px 0; border-radius: 0 5px 5px 0; }
+        .success { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 12px; margin: 15px 0; border-radius: 0 5px 5px 0; }
+        .navigation { display: flex; justify-content: space-between; margin-top: 25px; }
+        .btn { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; margin: 5px; transition: background 0.3s; }
+        .btn:hover { background: #2980b9; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.9em; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+        th { background-color: #f8f9fa; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        code { background: #f1f1f1; padding: 2px 5px; border-radius: 3px; font-family: 'Courier New', monospace; }
+        .tabs { display: flex; margin-bottom: -1px; flex-wrap: wrap; border-bottom: 1px solid #dee2e6; }
+        .tab { padding: 10px 15px; background: #f8f9fa; border: 1px solid #dee2e6; cursor: pointer; border-radius: 5px 5px 0 0; margin-right: 5px; margin-bottom: 0; white-space: nowrap; }
+        .tab:hover { background: #e9ecef; }
+        .tab.active { background: white; border-bottom: 1px solid white; color: #3498db; font-weight: 500; border-top: 3px solid #3498db; }
+        .tab-content { display: none; padding: 15px; border: 1px solid #dee2e6; border-radius: 0 0 5px 5px; background: white; margin-bottom: 20px; }
+        .tab-content.active { display: block; }
+        .dataframe { border-collapse: collapse; width: 100%; margin: 15px 0; font-size: 0.9em; }
+        .dataframe th, .dataframe td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .dataframe th { background-color: #f2f2f2; font-weight: 600; }
+        .dataframe tr:nth-child(even) { background-color: #f9f9f9; }
+        @media (max-width: 768px) { 
+            .lecture-container { padding: 10px; } 
+            .header, .section { padding: 15px; } 
+            .tabs { overflow-x: auto; flex-wrap: nowrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="lecture-container">
+        <!-- Header Section -->
+        <div class="header">
+            <h1>Unit-VI: Data Analysis with Python</h1>
+            <p>Lecture 4: Advanced DataFrame Operations</p>
+            <p><i class="fas fa-clock"></i> Estimated: 50-65 minutes</p>
+        </div>
+
+        <!-- 1. Data Cleaning -->
+        <div class="section">
+            <div class="section-header">1. Data Cleaning</div>
+            <div class="section-content">
+                <p>Handling missing data and cleaning datasets is a crucial step in data analysis.</p>
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="openTab(event, 'missing-data')">Missing Data</div>
+                    <div class="tab" onclick="openTab(event, 'duplicates')">Duplicates</div>
+                    <div class="tab" onclick="openTab(event, 'data-types')">Data Types</div>
+                </div>
+
+                <div id="missing-data" class="tab-content active">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code>import pandas as pd
+import numpy as np
+
+# Create a sample DataFrame with missing values
+data = {
+    'A': [1, 2, np.nan, 4],
+    'B': [5, np.nan, np.nan, 8],
+    'C': [9, 10, 11, 12]
+}
+df = pd.DataFrame(data)
+
+# Check for missing values
+print("Missing values:\n", df.isnull())
+print("\nCount of missing values:\n", df.isnull().sum())
+
+# Drop rows with any missing values
+df_dropped = df.dropna()
+print("\nAfter dropping rows with missing values:")
+print(df_dropped)
+
+# Fill missing values
+df_filled = df.fillna({
+    'A': df['A'].mean(),  # Fill with mean
+    'B': 0,                # Fill with 0
+    'C': df['C'].ffill()   # Forward fill
+})
+print("\nAfter filling missing values:")
+print(df_filled)</code></pre>
+                    </div>
+                </div>
+
+                <div id="duplicates" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Create a DataFrame with duplicates
+data = {
+    'Name': ['Alice', 'Bob', 'Alice', 'Charlie', 'Bob', 'David'],
+    'Age': [25, 30, 25, 35, 30, 40],
+    'City': ['NY', 'LA', 'NY', 'CHI', 'LA', 'SF']
+}
+df = pd.DataFrame(data)
+
+# Check for duplicates
+print("Duplicate rows (all columns):")
+print(df.duplicated())
+
+# Remove duplicates
+df_no_duplicates = df.drop_duplicates()
+print("\nAfter removing duplicates:")
+print(df_no_duplicates)
+
+# Keep specific duplicates based on columns
+df_specific = df.drop_duplicates(subset=['Name', 'Age'])
+print("\nKeep first occurrence based on Name and Age:")
+print(df_specific)</code></pre>
+                    </div>
+                </div>
+
+                <div id="data-types" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Create a sample DataFrame with mixed types
+data = {
+    'A': ['1', '2', '3', '4'],
+    'B': ['5.1', '6.2', '7.3', '8.4'],
+    'C': ['2023-01-01', '2023-02-01', '2023-03-01', '2023-04-01']
+}
+df = pd.DataFrame(data)
+
+# Check current data types
+print("Original data types:")
+print(df.dtypes)
+
+# Convert data types
+df['A'] = df['A'].astype(int)  # Convert to integer
+df['B'] = df['B'].astype(float)  # Convert to float
+df['C'] = pd.to_datetime(df['C'])  # Convert to datetime
+
+print("\nConverted data types:")
+print(df.dtypes)
+
+# Convert to categorical
+df['A'] = df['A'].astype('category')
+print("\nAfter converting to category:")
+print(df.dtypes)</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Data Transformation -->
+        <div class="section">
+            <div class="section-header">2. Data Transformation</div>
+            <div class="section-content">
+                <p>Transforming and manipulating data for analysis.</p>
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="openTab(event, 'apply')">Apply & Map</div>
+                    <div class="tab" onclick="openTab(event, 'pivot')">Pivot Tables</div>
+                    <div class="tab" onclick="openTab(event, 'melt')">Melting</div>
+                </div>
+
+                <div id="apply" class="tab-content active">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Sample data
+data = {
+    'Name': ['Alice', 'Bob', 'Charlie', 'David'],
+    'Salary': [75000, 85000, 90000, 65000],
+    'Experience': [3, 5, 7, 2]
+}
+df = pd.DataFrame(data)
+
+# Using apply with a lambda function
+df['Bonus'] = df['Salary'].apply(lambda x: x * 0.1)  # 10% bonus
+
+# Using apply with a defined function
+def experience_level(years):
+    if years < 3:
+        return 'Junior'
+    elif years < 5:
+        return 'Mid'
+    else:
+        return 'Senior'
+
+df['Level'] = df['Experience'].apply(experience_level)
+
+# Using map for element-wise transformations
+title_map = {'Alice': 'Ms.', 'Bob': 'Mr.', 'Charlie': 'Mr.', 'David': 'Mr.'}
+df['Title'] = df['Name'].map(title_map)
+
+print(df)</code></pre>
+                    </div>
+                </div>
+
+                <div id="pivot" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Sample sales data
+sales = {
+    'Date': ['2023-01-01', '2023-01-01', '2023-01-02', '2023-01-02', '2023-01-03'],
+    'Product': ['A', 'B', 'A', 'B', 'A'],
+    'Region': ['North', 'South', 'East', 'West', 'North'],
+    'Revenue': [100, 150, 200, 120, 180],
+    'Units': [10, 15, 20, 12, 18]
+}
+df = pd.DataFrame(sales)
+
+# Create a pivot table
+pivot = pd.pivot_table(
+    df,
+    values='Revenue',
+    index='Date',
+    columns='Product',
+    aggfunc='sum',
+    fill_value=0
+)
+print("Pivot Table - Revenue by Date and Product:")
+print(pivot)
+
+# Multi-level pivot
+pivot_multi = pd.pivot_table(
+    df,
+    values=['Revenue', 'Units'],
+    index=['Date', 'Region'],
+    columns='Product',
+    aggfunc={'Revenue': 'sum', 'Units': 'sum'},
+    fill_value=0
+)
+print("\nMulti-level Pivot Table:")
+print(pivot_multi)</code></pre>
+                    </div>
+                </div>
+
+                <div id="melt" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Sample wide-format data
+wide_data = {
+    'Country': ['USA', 'Canada', 'Mexico'],
+    '2020': [21.43, 1.99, 1.65],
+    '2021': [22.32, 2.10, 1.72],
+    '2022': [23.32, 2.20, 1.81]
+}
+df_wide = pd.DataFrame(wide_data)
+
+# Melt to long format
+df_long = pd.melt(
+    df_wide,
+    id_vars=['Country'],
+    value_vars=['2020', '2021', '2022'],
+    var_name='Year',
+    value_name='GDP (Trillions)'
+)
+print("Melted DataFrame (Long Format):")
+print(df_long)
+
+# Pivot back to wide format
+df_wide_again = df_long.pivot(
+    index='Country',
+    columns='Year',
+    values='GDP (Trillions)'
+).reset_index()
+print("\nBack to Wide Format:")
+print(df_wide_again)</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Grouping and Aggregation -->
+        <div class="section">
+            <div class="section-header">3. Grouping and Aggregation</div>
+            <div class="section-content">
+                <p>Grouping data and computing aggregate statistics.</p>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code># Sample sales data
+sales_data = {
+    'Date': pd.date_range(start='2023-01-01', periods=12, freq='M'),
+    'Region': ['North', 'South', 'East', 'West'] * 3,
+    'Product': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'],
+    'Revenue': [100, 150, 200, 120, 180, 90, 220, 130, 190, 110, 210, 140],
+    'Units': [10, 15, 20, 12, 18, 9, 22, 13, 19, 11, 21, 14]
+}
+df = pd.DataFrame(sales_data)
+
+# Basic grouping
+grouped = df.groupby('Region')
+print("Average revenue by region:")
+print(grouped['Revenue'].mean())
+
+# Multiple aggregations
+print("\nMultiple aggregations by region:")
+print(grouped.agg({
+    'Revenue': ['sum', 'mean', 'max', 'min'],
+    'Units': 'sum'
+}))
+
+# Group by multiple columns
+print("\nGroup by Region and Product:")
+multi_group = df.groupby(['Region', 'Product']).agg({
+    'Revenue': ['sum', 'mean'],
+    'Units': 'sum'
+})
+print(multi_group)
+
+# Using transform to create group-level statistics
+df['Region_Avg_Revenue'] = df.groupby('Region')['Revenue'].transform('mean')
+print("\nDataFrame with Region Average Revenue:")
+print(df[['Date', 'Region', 'Product', 'Revenue', 'Region_Avg_Revenue']])</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Time Series Operations -->
+        <div class="section">
+            <div class="section-header">4. Time Series Operations</div>
+            <div class="section-content">
+                <p>Working with time series data in Pandas.</p>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code># Create a time series
+date_rng = pd.date_range(start='2023-01-01', end='2023-12-31', freq='D')
+df = pd.DataFrame(date_rng, columns=['date'])
+df['data'] = np.random.randint(1, 100, size=(len(date_rng)))
+df.set_index('date', inplace=True)
+
+# Resample to monthly frequency
+monthly = df.resample('M').mean()
+print("Monthly averages:")
+print(monthly.head())
+
+# Rolling windows
+rolling_avg = df.rolling(window=7).mean()
+print("\n7-day rolling average:")
+print(rolling_avg.head(10))
+
+# Time shifting
+df['prev_day'] = df['data'].shift(1)  # Previous day's value
+df['next_day'] = df['data'].shift(-1)  # Next day's value
+print("\nOriginal data with shifted columns:")
+print(df.head())
+
+# Time zone handling
+df_tz = df.tz_localize('UTC').tz_convert('US/Eastern')
+print("\nTime zone converted data:")
+print(df_tz.head())</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Practice Exercise -->
+        <div class="section">
+            <div class="section-header">5. Practice Exercise</div>
+            <div class="section-content">
+                <p>Given the following sales dataset:</p>
+                
+                <div class="code-block">
+                    <pre><code>data = {
+    'Date': pd.date_range(start='2023-01-01', periods=20, freq='D'),
+    'Product': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 
+                'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'],
+    'Category': ['Electronics', 'Furniture'] * 10,
+    'Revenue': [100, 200, 150, 250, 120, 230, 180, 270, 200, 290,
+                220, 310, 180, 270, 160, 250, 140, 230, 120, 210],
+    'Units': [10, 5, 8, 6, 12, 7, 9, 8, 10, 9, 11, 10, 9, 8, 8, 7, 7, 6, 6, 5]
+}
+sales = pd.DataFrame(data)</code></pre>
+                </div>
+                
+                <p>Perform the following tasks:</p>
+                <ol style="margin: 10px 0 15px 25px;">
+                    <li>Calculate the total revenue and units sold for each product</li>
+                    <li>Find the average revenue per unit for each category</li>
+                    <li>Create a pivot table showing total revenue by product and category</li>
+                    <li>Add a 7-day moving average of revenue to the DataFrame</li>
+                    <li>Find the date with the highest revenue for each product</li>
+                </ol>
+                
+                <button class="btn" onclick="showSolution()">Show Solution</button>
+                <div id="solution" style="display: none; margin-top: 15px;">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code>import pandas as pd
+import numpy as np
+
+# Create the DataFrame
+data = {
+    'Date': pd.date_range(start='2023-01-01', periods=20, freq='D'),
+    'Product': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 
+                'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'],
+    'Category': ['Electronics', 'Furniture'] * 10,
+    'Revenue': [100, 200, 150, 250, 120, 230, 180, 270, 200, 290,
+                220, 310, 180, 270, 160, 250, 140, 230, 120, 210],
+    'Units': [10, 5, 8, 6, 12, 7, 9, 8, 10, 9, 11, 10, 9, 8, 8, 7, 7, 6, 6, 5]
+}
+sales = pd.DataFrame(data)
+
+# 1. Total revenue and units by product
+product_summary = sales.groupby('Product').agg({
+    'Revenue': 'sum',
+    'Units': 'sum'
+}).reset_index()
+print("1. Total revenue and units by product:")
+print(product_summary)
+
+# 2. Average revenue per unit by category
+sales['Revenue_Per_Unit'] = sales['Revenue'] / sales['Units']
+avg_rev_per_unit = sales.groupby('Category')['Revenue_Per_Unit'].mean()
+print("\n2. Average revenue per unit by category:")
+print(avg_rev_per_unit)
+
+# 3. Pivot table of total revenue by product and category
+pivot_table = pd.pivot_table(
+    sales,
+    values='Revenue',
+    index='Category',
+    columns='Product',
+    aggfunc='sum'
+)
+print("\n3. Pivot table - Total revenue by category and product:")
+print(pivot_table)
+
+# 4. Add 7-day moving average
+sales.set_index('Date', inplace=True)
+sales['7D_MA'] = sales['Revenue'].rolling(window=7).mean()
+print("\n4. DataFrame with 7-day moving average (first 10 rows):")
+print(sales.head(10))
+
+# 5. Date with highest revenue for each product
+max_rev_dates = sales.reset_index().loc[sales.reset_index().groupby('Product')['Revenue'].idxmax()]
+print("\n5. Date with highest revenue for each product:")
+print(max_rev_dates[['Date', 'Product', 'Revenue']])</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <a href="lecture-3.html" class="btn btn-secondary">← Previous: Pandas Basics</a>
+            <a href="lecture-5.html" class="btn">Next: Combining DataFrames →</a>
+        </div>
+    </div>
+
+    <script>
+        // Copy code button functionality
+        function copyCode(button) {
+            const codeBlock = button.nextElementSibling;
+            const code = codeBlock.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Tab functionality
+        function openTab(evt, tabName) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+            
+            // Remove active class from all tabs
+            const tabs = document.getElementsByClassName('tab');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            
+            // Show the current tab and add active class
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        // Show solution
+        function showSolution() {
+            const solution = document.getElementById('solution');
+            solution.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

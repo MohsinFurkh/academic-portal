@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit-VI: Combining DataFrames & CSV Operations</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: #333; line-height: 1.6; }
+        .lecture-container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: white; padding: 25px; border-radius: 10px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .header h1 { color: #2c3e50; margin-bottom: 10px; }
+        .header p { color: #6c757d; margin-bottom: 10px; }
+        .section { background: white; border-radius: 10px; padding: 20px; margin-bottom: 25px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+        .section-header { font-size: 1.4em; color: #2c3e50; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #f0f0f0; }
+        .code-block { background: #f8f9fa; border-left: 4px solid #3498db; padding: 15px; margin: 15px 0; overflow-x: auto; position: relative; }
+        .copy-btn { position: absolute; top: 5px; right: 5px; background: #e9ecef; border: none; border-radius: 3px; padding: 3px 8px; cursor: pointer; font-size: 0.8em; }
+        .note { background: #e7f4ff; border-left: 4px solid #3498db; padding: 12px; margin: 15px 0; border-radius: 0 5px 5px 0; }
+        .warning { background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px; margin: 15px 0; border-radius: 0 5px 5px 0; }
+        .success { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 12px; margin: 15px 0; border-radius: 0 5px 5px 0; }
+        .navigation { display: flex; justify-content: space-between; margin-top: 25px; }
+        .btn { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; margin: 5px; transition: background 0.3s; }
+        .btn:hover { background: #2980b9; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.9em; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+        th { background-color: #f8f9fa; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        code { background: #f1f1f1; padding: 2px 5px; border-radius: 3px; font-family: 'Courier New', monospace; }
+        .tabs { display: flex; margin-bottom: -1px; flex-wrap: wrap; border-bottom: 1px solid #dee2e6; }
+        .tab { padding: 10px 15px; background: #f8f9fa; border: 1px solid #dee2e6; cursor: pointer; border-radius: 5px 5px 0 0; margin-right: 5px; margin-bottom: 0; white-space: nowrap; }
+        .tab:hover { background: #e9ecef; }
+        .tab.active { background: white; border-bottom: 1px solid white; color: #3498db; font-weight: 500; border-top: 3px solid #3498db; }
+        .tab-content { display: none; padding: 15px; border: 1px solid #dee2e6; border-radius: 0 0 5px 5px; background: white; margin-bottom: 20px; }
+        .tab-content.active { display: block; }
+        .dataframe { border-collapse: collapse; width: 100%; margin: 15px 0; font-size: 0.9em; }
+        .dataframe th, .dataframe td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .dataframe th { background-color: #f2f2f2; font-weight: 600; }
+        .dataframe tr:nth-child(even) { background-color: #f9f9f9; }
+        @media (max-width: 768px) { 
+            .lecture-container { padding: 10px; } 
+            .header, .section { padding: 15px; } 
+            .tabs { overflow-x: auto; flex-wrap: nowrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="lecture-container">
+        <!-- Header Section -->
+        <div class="header">
+            <h1>Unit-VI: Data Analysis with Python</h1>
+            <p>Lecture 5: Combining DataFrames & CSV Operations</p>
+            <p><i class="fas fa-clock"></i> Estimated: 45-60 minutes</p>
+        </div>
+
+        <!-- 1. Concatenating DataFrames -->
+        <div class="section">
+            <div class="section-header">1. Concatenating DataFrames</div>
+            <div class="section-content">
+                <p>Combine DataFrames along a particular axis (rows or columns) with <code>pd.concat()</code>.</p>
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="openTab(event, 'concat-rows')">Row-wise</div>
+                    <div class="tab" onclick="openTab(event, 'concat-cols')">Column-wise</div>
+                    <div class="tab" onclick="openTab(event, 'concat-keys')">With Keys</div>
+                </div>
+
+                <div id="concat-rows" class="tab-content active">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code>import pandas as pd
+
+# Sample DataFrames
+df1 = pd.DataFrame({
+    'A': ['A0', 'A1', 'A2'],
+    'B': ['B0', 'B1', 'B2']
+})
+
+df2 = pd.DataFrame({
+    'A': ['A3', 'A4', 'A5'],
+    'B': ['B3', 'B4', 'B5']
+})
+
+# Concatenate row-wise (axis=0)
+result = pd.concat([df1, df2], axis=0)
+print("Row-wise concatenation:")
+print(result)</code></pre>
+                    </div>
+                </div>
+
+                <div id="concat-cols" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Sample DataFrames with different columns
+df3 = pd.DataFrame({
+    'C': ['C0', 'C1', 'C2'],
+    'D': ['D0', 'D1', 'D2']
+})
+
+# Concatenate column-wise (axis=1)
+result = pd.concat([df1, df3], axis=1)
+print("Column-wise concatenation:")
+print(result)</code></pre>
+                    </div>
+                </div>
+
+                <div id="concat-keys" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Concatenate with keys for hierarchical indexing
+result = pd.concat([df1, df2], keys=['df1', 'df2'])
+print("Concatenation with keys:")
+print(result)
+
+# Access data using the keys
+print("\nAccessing data with keys:")
+print("df1 data:")
+print(result.loc['df1'])
+
+# Reset index to convert keys to a column
+print("\nAfter reset_index():")
+print(result.reset_index())</code></pre>
+                    </div>
+                </div>
+
+                <div class="note">
+                    <strong>Note:</strong> When concatenating DataFrames with different columns, missing values will be filled with <code>NaN</code>.
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Merging DataFrames -->
+        <div class="section">
+            <div class="section-header">2. Merging DataFrames</div>
+            <div class="section-content">
+                <p>Merge DataFrames using database-style joins with <code>pd.merge()</code> or DataFrame's <code>merge()</code> method.</p>
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="openTab(event, 'inner')">Inner Join</div>
+                    <div class="tab" onclick="openTab(event, 'outer')">Outer Join</div>
+                    <div class="tab" onclick="openTab(event, 'left-right')">Left/Right Join</div>
+                    <div class="tab" onclick="openTab(event, 'merge-on')">Merge On</div>
+                </div>
+
+                <div id="inner" class="tab-content active">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Sample DataFrames
+left = pd.DataFrame({
+    'key': ['K0', 'K1', 'K2', 'K3'],
+    'A': ['A0', 'A1', 'A2', 'A3'],
+    'B': ['B0', 'B1', 'B2', 'B3']
+})
+
+right = pd.DataFrame({
+    'key': ['K1', 'K2', 'K3', 'K4'],
+    'C': ['C1', 'C2', 'C3', 'C4'],
+    'D': ['D1', 'D2', 'D3', 'D4']
+})
+
+# Inner join (default)
+result = pd.merge(left, right, on='key')
+print("Inner join (default):")
+print(result)</code></pre>
+                    </div>
+                </div>
+
+                <div id="outer" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Outer join (union of keys)
+result = pd.merge(left, right, on='key', how='outer')
+print("Outer join:")
+print(result)</code></pre>
+                    </div>
+                </div>
+
+                <div id="left-right" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Left join (all rows from left)
+left_join = pd.merge(left, right, on='key', how='left')
+print("Left join:")
+print(left_join)
+
+# Right join (all rows from right)
+right_join = pd.merge(left, right, on='key', how='right')
+print("\nRight join:")
+print(right_join)</code></pre>
+                    </div>
+                </div>
+
+                <div id="merge-on" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Merge on multiple columns
+left = pd.DataFrame({
+    'key1': ['K0', 'K0', 'K1', 'K2'],
+    'key2': ['K0', 'K1', 'K0', 'K1'],
+    'A': ['A0', 'A1', 'A2', 'A3'],
+    'B': ['B0', 'B1', 'B2', 'B3']
+})
+
+right = pd.DataFrame({
+    'key1': ['K0', 'K1', 'K1', 'K2'],
+    'key2': ['K0', 'K0', 'K0', 'K0'],
+    'C': ['C0', 'C1', 'C2', 'C3'],
+    'D': ['D0', 'D1', 'D2', 'D3']
+})
+
+# Merge on multiple columns
+result = pd.merge(left, right, on=['key1', 'key2'])
+print("Merge on multiple columns:")
+print(result)
+
+# Different column names
+left = left.rename(columns={'key1': 'lkey1', 'key2': 'lkey2'})
+right = right.rename(columns={'key1': 'rkey1', 'key2': 'rkey2'})
+
+# Merge with different column names
+result = pd.merge(left, right, left_on=['lkey1', 'lkey2'], right_on=['rkey1', 'rkey2'])
+print("\nMerge with different column names:")
+print(result)</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Joining DataFrames -->
+        <div class="section">
+            <div class="section-header">3. Joining DataFrames</div>
+            <div class="section-content">
+                <p>Join DataFrames using their indexes with the <code>join()</code> method.</p>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code># Sample DataFrames
+left = pd.DataFrame({
+    'A': ['A0', 'A1', 'A2', 'A3'],
+    'B': ['B0', 'B1', 'B2', 'B3']
+}, index=['K0', 'K1', 'K2', 'K3'])
+
+right = pd.DataFrame({
+    'C': ['C0', 'C1', 'C2'],
+    'D': ['D0', 'D1', 'D2']
+}, index=['K0', 'K2', 'K3'])
+
+# Join DataFrames using their indexes
+result = left.join(right)
+print("Join using indexes (left join by default):")
+print(result)
+
+# Different join types
+print("\nRight join:")
+print(left.join(right, how='right'))
+
+print("\nInner join:")
+print(left.join(right, how='inner'))
+
+print("\nOuter join:")
+print(left.join(right, how='outer'))
+
+# Join on a column instead of index
+left = left.reset_index()
+result = left.join(right, on='index', how='left')
+print("\nJoin on a column:")
+print(result)</code></pre>
+                </div>
+
+                <div class="note">
+                    <strong>Note:</strong> <code>join()</code> is a convenience method that uses <code>merge()</code> under the hood. It's generally more intuitive when working with indexes.
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Comparing DataFrames -->
+        <div class="section">
+            <div class="section-header">4. Comparing DataFrames</div>
+            <div class="section-content">
+                <p>Compare DataFrames to find differences or check for equality.</p>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code># Sample DataFrames
+df1 = pd.DataFrame({
+    'A': [1, 2, 3, 4],
+    'B': [5, 6, 7, 8]
+})
+
+df2 = pd.DataFrame({
+    'A': [1, 2, 3, 4],
+    'B': [5, 6, 7, 9]  # One value is different
+})
+
+# Check if DataFrames are equal
+print("Are DataFrames equal?", df1.equals(df2))
+
+# Find differences
+diff = df1 != df2
+print("\nElement-wise comparison (True means different):")
+print(diff)
+
+# Get the actual different values
+print("\nDifferent values:")
+print(df1[diff])
+print("\nvs\n")
+print(df2[diff])
+
+# Using compare() (Pandas 1.1.0+)
+try:
+    print("\nUsing compare() method:")
+    print(df1.compare(df2))
+except AttributeError:
+    print("\ncompare() method requires pandas 1.1.0 or later")</code></pre>
+                </div>
+
+                <div class="warning">
+                    <strong>Note:</strong> The <code>compare()</code> method provides a more detailed comparison but requires pandas 1.1.0 or later.
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Working with CSV Files -->
+        <div class="section">
+            <div class="section-header">5. Working with CSV Files</div>
+            <div class="section-content">
+                <p>Read from and write to CSV files using Pandas.</p>
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="openTab(event, 'read-csv')">Reading CSV</div>
+                    <div class="tab" onclick="openTab(event, 'write-csv')">Writing CSV</div>
+                    <div class="tab" onclick="openTab(event, 'csv-options')">CSV Options</div>
+                </div>
+
+                <div id="read-csv" class="tab-content active">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Basic CSV reading
+try:
+    # Try to read a CSV file (uncomment and modify the path as needed)
+    # df = pd.read_csv('data.csv')
+    # print(df.head())
+    
+    # For demonstration, create a CSV string and read it
+    from io import StringIO
+    
+    csv_data = """Name,Age,City
+Alice,25,New York
+Bob,30,Los Angeles
+Charlie,35,Chicago
+"""
+    df = pd.read_csv(StringIO(csv_data))
+    print("Read from CSV string:")
+    print(df)
+    
+except Exception as e:
+    print("Error:", e)
+    print("Make sure the file exists and the path is correct.")
+
+# Common parameters
+# df = pd.read_csv('data.csv', 
+#                 header=0,        # Row number to use as column names
+#                 index_col=0,     # Column to use as row labels
+#                 usecols=[0, 1, 2],  # Columns to read
+#                 nrows=10,        # Number of rows to read
+#                 skiprows=[0, 2], # Rows to skip
+#                 na_values=['NA', 'N/A']  # Additional strings to recognize as NA/NaN
+#                )</code></pre>
+                    </div>
+                </div>
+
+                <div id="write-csv" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Create a sample DataFrame
+data = {
+    'Name': ['Alice', 'Bob', 'Charlie'],
+    'Age': [25, 30, 35],
+    'City': ['New York', 'Los Angeles', 'Chicago']
+}
+df = pd.DataFrame(data)
+
+# Write to CSV (uncomment to save to file)
+# df.to_csv('output.csv', index=False)
+print("CSV content (not saved to file in this example):")
+print(df.to_csv(index=False))
+
+# Common parameters
+# df.to_csv('output.csv',
+#          index=False,        # Don't write row indices
+#          header=True,        # Write column names
+#          sep=',',           # Field delimiter
+#          na_rep='NA',       # String representation of NaN
+#          float_format='%.2f',# Format for floating point numbers
+#          columns=['Name', 'Age']  # Columns to write
+#         )</code></pre>
+                    </div>
+                </div>
+
+                <div id="csv-options" class="tab-content">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># Example with various CSV options
+from io import StringIO
+
+# Sample data with some missing values and special characters
+data = {
+    'Name': ['Alice', 'Bob', 'Charlie', 'David'],
+    'Age': [25, 30, None, 35],
+    'Salary': [75000.5, 85000.75, 90000.0, None],
+    'Department': ['IT', 'HR', 'IT', 'Finance'],
+    'Notes': ['Good employee', 'On vacation', 'Needs training', '']
+}
+df = pd.DataFrame(data)
+
+# Create a CSV string with various options
+csv_buffer = StringIO()
+df.to_csv(
+    csv_buffer,
+    index=False,          # Don't write row indices
+    sep='|',             # Use pipe as delimiter
+    na_rep='MISSING',    # Custom NA representation
+    float_format='%.1f', # Format floating point numbers
+    columns=['Name', 'Age', 'Salary', 'Department'],  # Select columns
+    encoding='utf-8',    # Specify encoding
+    quotechar='"',       # Quote character
+    quoting=1,           # 0=minimal, 1=all, 2=non-numeric, 3=none
+    line_terminator='\n'  # Line terminator
+)
+
+print("CSV with custom options:")
+print(csv_buffer.getvalue())</code></pre>
+                    </div>
+                </div>
+
+                <div class="note">
+                    <strong>Tip:</strong> For large CSV files, consider using the <code>chunksize</code> parameter in <code>read_csv()</code> to process the file in smaller chunks.
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Practice Exercise -->
+        <div class="section">
+            <div class="section-header">6. Practice Exercise</div>
+            <div class="section-content">
+                <p>You're working with sales data from an online store. The data is split across multiple DataFrames:</p>
+                
+                <div class="code-block">
+                    <pre><code># Customers DataFrame
+customers = pd.DataFrame({
+    'customer_id': [1, 2, 3, 4, 5],
+    'name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve'],
+    'email': ['alice@example.com', 'bob@example.com', 'charlie@example.com', 
+              'david@example.com', 'eve@example.com'],
+    'join_date': pd.to_datetime(['2023-01-15', '2023-02-20', '2023-01-05', 
+                               '2023-03-10', '2023-02-28'])
+})
+
+# Orders DataFrame
+orders = pd.DataFrame({
+    'order_id': [101, 102, 103, 104, 105, 106, 107],
+    'customer_id': [1, 2, 1, 3, 5, 2, 4],
+    'order_date': pd.to_datetime(['2023-03-01', '2023-03-02', '2023-03-03',
+                                '2023-03-03', '2023-03-04', '2023-03-05',
+                                '2023-03-06']),
+    'total_amount': [150.50, 89.99, 220.00, 45.99, 199.99, 75.50, 120.00]
+})
+
+# Products DataFrame
+products = pd.DataFrame({
+    'product_id': [1001, 1002, 1003, 1004, 1005],
+    'name': ['Laptop', 'Mouse', 'Keyboard', 'Monitor', 'Headphones'],
+    'category': ['Electronics', 'Accessories', 'Accessories', 'Electronics', 'Accessories'],
+    'price': [999.99, 29.99, 59.99, 199.99, 79.99]
+})
+
+# Order Items DataFrame
+order_items = pd.DataFrame({
+    'order_id': [101, 101, 102, 103, 104, 105, 106, 107],
+    'product_id': [1001, 1002, 1003, 1001, 1004, 1005, 1002, 1003],
+    'quantity': [1, 1, 2, 1, 1, 1, 3, 2],
+    'unit_price': [999.99, 29.99, 59.99, 999.99, 199.99, 79.99, 25.50, 59.99]
+})</code></pre>
+                </div>
+                
+                <p>Your tasks:</p>
+                <ol style="margin: 10px 0 15px 25px;">
+                    <li>Find all customers who have placed orders</li>
+                    <li>Calculate the total revenue from each customer</li>
+                    <li>Find the most popular product (by quantity sold)</li>
+                    <li>Calculate the average order value</li>
+                    <li>Find customers who haven't placed any orders yet</li>
+                    <li>Save the results to a CSV file</li>
+                </ol>
+                
+                <button class="btn" onclick="showSolution()">Show Solution</button>
+                <div id="solution" style="display: none; margin-top: 15px;">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code>import pandas as pd
+
+# 1. Find all customers who have placed orders
+customers_with_orders = pd.merge(
+    customers, 
+    orders[['customer_id']].drop_duplicates(), 
+    on='customer_id', 
+    how='inner'
+)
+print("1. Customers who have placed orders:")
+print(customers_with_orders[['customer_id', 'name']])
+
+# 2. Calculate total revenue from each customer
+customer_revenue = pd.merge(
+    customers[['customer_id', 'name']],
+    orders[['customer_id', 'total_amount']].groupby('customer_id').sum(),
+    on='customer_id',
+    how='left'
+).fillna(0)
+customer_revenue.rename(columns={'total_amount': 'total_revenue'}, inplace=True)
+print("\n2. Total revenue by customer:")
+print(customer_revenue)
+
+# 3. Find the most popular product (by quantity sold)
+product_sales = pd.merge(
+    order_items[['product_id', 'quantity']].groupby('product_id').sum(),
+    products[['product_id', 'name']],
+    on='product_id'
+).sort_values('quantity', ascending=False)
+most_popular = product_sales.iloc[0]
+print(f"\n3. Most popular product: {most_popular['name']} (Quantity sold: {most_popular['quantity']})")
+
+# 4. Calculate average order value
+aov = orders['total_amount'].mean()
+print(f"\n4. Average Order Value: ${aov:.2f}")
+
+# 5. Find customers who haven't placed any orders
+customers_no_orders = customers[~customers['customer_id'].isin(orders['customer_id'])]
+print("\n5. Customers who haven't placed any orders:")
+print(customers_no_orders[['customer_id', 'name']])
+
+# 6. Save results to CSV
+output = {
+    'customers_with_orders': customers_with_orders,
+    'customer_revenue': customer_revenue,
+    'product_sales': product_sales,
+    'average_order_value': pd.DataFrame({'AOV': [aov]}),
+    'inactive_customers': customers_no_orders
+}
+
+# Save each DataFrame to a different sheet in an Excel file
+# Uncomment to save to file
+# with pd.ExcelWriter('sales_analysis.xlsx') as writer:
+#     for sheet_name, df in output.items():
+#         df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+print("\n6. Results would be saved to 'sales_analysis.xlsx' (commented out)")
+
+# Print a sample of the output for verification
+print("\nSample of customer revenue data to be saved:")
+print(customer_revenue.head())</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <a href="lecture-4.html" class="btn btn-secondary">← Previous: DataFrame Operations</a>
+            <a href="lecture-6.html" class="btn">Next: Data Visualization →</a>
+        </div>
+    </div>
+
+    <script>
+        // Copy code button functionality
+        function copyCode(button) {
+            const codeBlock = button.nextElementSibling;
+            const code = codeBlock.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Tab functionality
+        function openTab(evt, tabName) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+            
+            // Remove active class from all tabs
+            const tabs = document.getElementsByClassName('tab');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            
+            // Show the current tab and add active class
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        // Show solution
+        function showSolution() {
+            const solution = document.getElementById('solution');
+            solution.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
