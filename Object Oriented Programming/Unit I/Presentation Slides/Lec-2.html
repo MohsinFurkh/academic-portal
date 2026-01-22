@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 2: JDK vs JRE vs JVM & Java Features</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: white;
+            display: none;
+            padding: 60px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .slide.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .slide-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .slide-header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .slide-header h2 {
+            color: #764ba2;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .slide-header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .concept-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .concept-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .concept-box p {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .image-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            border: 2px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: #764ba2;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .feature-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .highlight {
+            background: #fef5e7;
+            padding: 20px;
+            border-left: 4px solid #f39c12;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .diagram {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .diagram-box {
+            display: inline-block;
+            background: white;
+            border: 2px solid #667eea;
+            padding: 15px 25px;
+            margin: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .arrow {
+            font-size: 2em;
+            color: #764ba2;
+            margin: 0 10px;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 30px 20px;
+            }
+            
+            .two-column, .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .slide-header h1 {
+                font-size: 1.8em;
+            }
+            
+            .slide-header h2 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="slide-header">
+                <h1>Java Architecture & Features</h1>
+                <p>BTech 4th Semester - UPES</p>
+                <p style="margin-top: 20px; font-size: 1.3em; color: #764ba2;">Lecture 2: JDK vs JRE vs JVM & Java Programming Features</p>
+            </div>
+            <div class="content" style="text-align: center; margin-top: 80px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; border-radius: 20px; max-width: 800px; margin: 0 auto;">
+                    <h2 style="color: white; margin-bottom: 20px;">Instructor: Mohsin Dar</h2>
+                    <p style="font-size: 1.2em; line-height: 1.8; color: #f0f0f0;">
+                        Today's Session:<br>
+                        • Understanding Java Architecture<br>
+                        • JDK vs JRE vs JVM<br>
+                        • Key Features of Java<br>
+                        • Real-world Applications
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Java Architecture Overview -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Java Architecture Overview</h2>
+                <p>Understanding the Complete Java Ecosystem</p>
+            </div>
+            <div class="content">
+                <div class="concept-box">
+                    <h3>🏗️ What is Java Architecture?</h3>
+                    <p>Java architecture consists of three main components that work together to enable the "Write Once, Run Anywhere" capability of Java:</p>
+                    <ul>
+                        <li><strong>JDK (Java Development Kit)</strong> - Development tools</li>
+                        <li><strong>JRE (Java Runtime Environment)</strong> - Runtime environment</li>
+                        <li><strong>JVM (Java Virtual Machine)</strong> - Virtual machine</li>
+                    </ul>
+                </div>
+
+                <div class="diagram">
+                    <div style="margin-bottom: 20px;">
+                        <div class="diagram-box">Java Code (.java)</div>
+                        <span class="arrow">→</span>
+                        <div class="diagram-box">JDK Compiler</div>
+                        <span class="arrow">→</span>
+                        <div class="diagram-box">Bytecode (.class)</div>
+                    </div>
+                    <div>
+                        <div class="diagram-box">Bytecode (.class)</div>
+                        <span class="arrow">→</span>
+                        <div class="diagram-box">JVM</div>
+                        <span class="arrow">→</span>
+                        <div class="diagram-box">Machine Code</div>
+                    </div>
+                </div>
+
+                <div class="highlight">
+                    <strong>Key Concept:</strong> Java source code is compiled into bytecode, which is then interpreted or compiled by the JVM into native machine code for the specific platform.
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: JDK vs JRE vs JVM -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>JDK vs JRE vs JVM</h2>
+                <p>Understanding the Differences and Relationships</p>
+            </div>
+            <div class="content">
+                <table class="comparison-table">
+                    <tr>
+                        <th>Component</th>
+                        <th>Purpose</th>
+                        <th>Components</th>
+                        <th>Usage</th>
+                    </tr>
+                    <tr>
+                        <td><strong>JDK</strong><br>(Java Development Kit)</td>
+                        <td>Development</td>
+                        <td>JRE + Development Tools<br>(javac, jar, debugger, etc.)</td>
+                        <td>For developers to create Java applications</td>
+                    </tr>
+                    <tr>
+                        <td><strong>JRE</strong><br>(Java Runtime Environment)</td>
+                        <td>Execution</td>
+                        <td>JVM + Library Classes<br>(Java API, rt.jar, etc.)</td>
+                        <td>For users to run Java applications</td>
+                    </tr>
+                    <tr>
+                        <td><strong>JVM</strong><br>(Java Virtual Machine)</td>
+                        <td>Execution Engine</td>
+                        <td>Interpreter, JIT Compiler,<br>Garbage Collector</td>
+                        <td>Executes bytecode on specific platform</td>
+                    </tr>
+                </table>
+
+                <div class="image-container">
+                    <img src="jvm.png" alt="JVM Architecture" style="max-width: 600px;">
+                </div>
+
+                <div class="highlight">
+                    <strong>Relationship:</strong> JDK ⊃ JRE ⊃ JVM<br>
+                    JDK contains JRE, and JRE contains JVM. You need JDK to develop, JRE to run, and JVM to execute.
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: JDK in Detail -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Java Development Kit (JDK)</h2>
+                <p>The Complete Development Environment</p>
+            </div>
+            <div class="content">
+                <div class="two-column">
+                    <div class="concept-box">
+                        <h3>🛠️ What is JDK?</h3>
+                        <p>The JDK is a software development environment used for developing Java applications. It includes the JRE plus development tools.</p>
+                        
+                        <h4>Key Components:</h4>
+                        <ul>
+                            <li><strong>javac</strong> - Java compiler</li>
+                            <li><strong>java</strong> - Java launcher</li>
+                            <li><strong>jar</strong> - Archive tool</li>
+                            <li><strong>javadoc</strong> - Documentation generator</li>
+                            <li><strong>jdb</strong> - Debugger</li>
+                            <li><strong>javap</strong> - Disassembler</li>
+                        </ul>
+                    </div>
+
+                    <div class="concept-box">
+                        <h3>📦 JDK Structure</h3>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                            <strong>JDK</strong>
+                            <div style="margin-left: 20px;">
+                                ├── <strong>JRE</strong><br>
+                                │   ├── <strong>JVM</strong><br>
+                                │   └── <strong>Java API</strong><br>
+                                └── <strong>Development Tools</strong><br>
+                                    ├── javac<br>
+                                    ├── jar<br>
+                                    ├── javadoc<br>
+                                    └── jdb
+                            </div>
+                        </div>
+                        
+                        <h4>Development Process:</h4>
+                        <ol>
+                            <li>Write Java source code (.java)</li>
+                            <li>Compile using javac</li>
+                            <li>Create bytecode (.class)</li>
+                            <li>Package using jar</li>
+                            <li>Document using javadoc</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: JRE in Detail -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Java Runtime Environment (JRE)</h2>
+                <p>The Runtime Environment for Java Applications</p>
+            </div>
+            <div class="content">
+                <div class="two-column">
+                    <div class="concept-box">
+                        <h3>⚙️ What is JRE?</h3>
+                        <p>The JRE provides the minimum requirements for executing a Java application. It contains the JVM and core Java libraries.</p>
+                        
+                        <h4>Key Components:</h4>
+                        <ul>
+                            <li><strong>JVM</strong> - Virtual machine</li>
+                            <li><strong>Core Classes</strong> - Essential Java classes</li>
+                            <li><strong>Support Libraries</strong> - Additional functionality</li>
+                            <li><strong>Runtime Files</strong> - Configuration and resources</li>
+                        </ul>
+                    </div>
+
+                    <div class="concept-box">
+                        <h3>🎯 JRE Purpose</h3>
+                        <p>Provides a runtime environment without development tools. Perfect for end-users who only need to run Java applications.</p>
+                        
+                        <h4>When to Use JRE:</h4>
+                        <ul>
+                            <li>Deploying applications to servers</li>
+                            <li>Distributing desktop applications</li>
+                            <li>Running Java applets (historically)</li>
+                            <li>Embedded systems</li>
+                        </ul>
+                        
+                        <div class="highlight" style="margin-top: 15px;">
+                            <strong>Note:</strong> Modern Java distributions often bundle JDK and JRE together for simplicity.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: JVM in Detail -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Java Virtual Machine (JVM)</h2>
+                <p>The Heart of Java's Platform Independence</p>
+            </div>
+            <div class="content">
+                <div class="concept-box">
+                    <h3>🤖 What is JVM?</h3>
+                    <p>The JVM is an abstract computing machine that enables Java bytecode to be executed on any platform, providing platform independence.</p>
+                </div>
+
+                <div class="two-column">
+                    <div class="concept-box">
+                        <h3>🔧 JVM Components</h3>
+                        <ul>
+                            <li><strong>Class Loader</strong> - Loads class files</li>
+                            <li><strong>Bytecode Verifier</strong> - Verifies code safety</li>
+                            <li><strong>Execution Engine</strong> - Executes bytecode</li>
+                            <li><strong>Garbage Collector</strong> - Manages memory</li>
+                            <li><strong>Runtime Data Areas</strong> - Memory management</li>
+                        </ul>
+                    </div>
+
+                    <div class="concept-box">
+                        <h3>⚡ Execution Process</h3>
+                        <ol>
+                            <li>Loading - Class files loaded into memory</li>
+                            <li>Linking - Verification and preparation</li>
+                            <li>Initialization - Static initializers executed</li>
+                            <li>Execution - Bytecode interpreted or compiled</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="image-container">
+                    <img src="jvm.png" alt="JVM Internal Architecture" style="max-width: 700px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Features of Java - Introduction -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Features of Java Programming</h2>
+                <p>What Makes Java Special?</p>
+            </div>
+            <div class="content">
+                <div class="image-container">
+                    <img src="Features_of_Java-660.png" alt="Features of Java" style="max-width: 800px;">
+                </div>
+
+                <div class="highlight">
+                    <strong>Java's Success Factors:</strong> Platform independence, object-oriented design, robust security, automatic memory management, rich standard library, and strong community support have made Java one of the most popular programming languages worldwide.
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Core Java Features -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Core Java Features</h2>
+                <p>Fundamental Characteristics of Java</p>
+            </div>
+            <div class="content">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🌐 Platform Independence</h4>
+                        <p>Write Once, Run Anywhere (WORA). Java bytecode can run on any platform with JVM.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎯 Object-Oriented</h4>
+                        <p>Everything is an object (except primitives). Supports all OOP principles.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔒 Simple & Secure</h4>
+                        <p>No pointers, automatic memory management, bytecode verification, security manager.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>💪 Robust</h4>
+                        <p>Strong memory management, exception handling, garbage collection, type checking.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🏗️ Architecture Neutral</h4>
+                        <p>Bytecode is not dependent on any architecture. Same code runs everywhere.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🚀 High Performance</h4>
+                        <p>JIT compiler converts bytecode to machine code for faster execution.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔄 Multithreaded</h4>
+                        <p>Built-in support for concurrent execution of multiple threads.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📦 Rich Standard Library</h4>
+                        <p>Comprehensive APIs for data structures, networking, I/O, database, etc.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Platform Independence Deep Dive -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Platform Independence - WORA</h2>
+                <p>Write Once, Run Anywhere</p>
+            </div>
+            <div class="content">
+                <div class="concept-box">
+                    <h3>🔄 How Java Achieves Platform Independence</h3>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <div style="background: linear-gradient(to right, #667eea, #764ba2); color: white; padding: 20px; border-radius: 10px; display: inline-block;">
+                            <p style="font-size: 1.3em; margin: 10px 0;">Java Source Code (.java)</p>
+                            <p style="font-size: 2em; margin: 10px 0;">↓</p>
+                            <p style="font-size: 1.3em; margin: 10px 0;">Java Compiler (javac)</p>
+                            <p style="font-size: 2em; margin: 10px 0;">↓</p>
+                            <p style="font-size: 1.3em; margin: 10px 0;">Bytecode (.class)</p>
+                            <p style="font-size: 2em; margin: 10px 0;">↓</p>
+                            <p style="font-size: 1.3em; margin: 10px 0;">JVM (Platform Specific)</p>
+                            <p style="font-size: 2em; margin: 10px 0;">↓</p>
+                            <p style="font-size: 1.3em; margin: 10px 0;">Machine Code</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="two-column" style="margin-top: 30px;">
+                    <div class="concept-box">
+                        <h3>💻 Traditional Approach</h3>
+                        <p>Platform-specific compilation:</p>
+                        <ul>
+                            <li>Windows → .exe</li>
+                            <li>Linux → .out</li>
+                            <li>Mac → .app</li>
+                            <li>Need to recompile for each platform</li>
+                        </ul>
+                    </div>
+
+                    <div class="concept-box">
+                        <h3>☕ Java Approach</h3>
+                        <p>Platform-independent bytecode:</p>
+                        <ul>
+                            <li>Compile once to .class</li>
+                            <li>Run on any platform with JVM</li>
+                            <li>Same bytecode everywhere</li>
+                            <li>JVM handles platform differences</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Java in Real World -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Java in the Real World</h2>
+                <p>Applications and Impact</p>
+            </div>
+            <div class="content">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>📱 Mobile Development</h4>
+                        <p>Android apps (Kotlin/Java), enterprise mobile solutions</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🏢 Enterprise Applications</h4>
+                        <p>Banking systems, e-commerce, ERP, CRM solutions</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🌐 Web Applications</h4>
+                        <p>Spring framework, microservices, REST APIs</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Big Data</h4>
+                        <p>Hadoop, Spark, Kafka, Elasticsearch</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>☁️ Cloud Computing</h4>
+                        <p>AWS services, cloud-native applications</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🤖 IoT & Embedded</h4>
+                        <p>Smart devices, industrial automation</p>
+                    </div>
+                </div>
+
+                <div class="highlight" style="margin-top: 30px;">
+                    <strong>Java's Enduring Success:</strong> With over 25 years of evolution, Java continues to power critical infrastructure worldwide, from financial systems to space exploration, demonstrating its reliability, scalability, and adaptability.
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Summary -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Summary & Key Takeaways</h2>
+                <p>What We Learned Today</p>
+            </div>
+            <div class="content">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🏗️ Java Architecture</h4>
+                        <p>JDK ⊃ JRE ⊃ JVM - Each serves specific purposes in development and execution</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔧 Development Tools</h4>
+                        <p>JDK provides complete development environment with compiler, debugger, and tools</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⚙️ Runtime Environment</h4>
+                        <p>JRE provides everything needed to run Java applications without development tools</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🤖 Virtual Machine</h4>
+                        <p>JVM enables platform independence through bytecode interpretation and compilation</p>
+                    </div>
+                </div>
+
+                <div class="highlight" style="margin-top: 30px;">
+                    <strong>Key Features Remember:</strong> Platform Independence, Object-Oriented, Secure, Robust, High Performance, Multithreaded, and Rich Standard Library make Java a versatile and powerful programming language for modern software development.
+                </div>
+
+                <div style="text-align: center; margin-top: 40px;">
+                    <h3 style="color: #667eea;">Questions?</h3>
+                    <p style="font-size: 1.2em; color: #666; margin-top: 10px;">Next Lecture: Java Syntax & Basic Programming Concepts</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(index) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+            updateSlideCounter();
+            updateNavigationButtons();
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        function updateSlideCounter() {
+            const counter = document.querySelector('.slide-counter');
+            if (counter) {
+                counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+            }
+        }
+
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            if (prevBtn) {
+                prevBtn.disabled = currentSlide === 0;
+            }
+            
+            if (nextBtn) {
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                currentSlide = 0;
+                showSlide(currentSlide);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                currentSlide = totalSlides - 1;
+                showSlide(currentSlide);
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            showSlide(0);
+        });
+    </script>
+
+    <!-- Navigation Controls -->
+    <div class="navigation">
+        <button class="nav-btn" id="prevBtn" onclick="prevSlide()">← Previous</button>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <!-- Slide Counter -->
+    <div class="slide-counter">1 / 11</div>
+</body>
+</html>
