@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python File & Exception Handling | BTech Lecture</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #2a3044;
+    --accent: #00d4aa;
+    --accent2: #ff6b6b;
+    --accent3: #ffd93d;
+    --accent4: #6bcfff;
+    --text: #e2e8f0;
+    --text-muted: #8896b0;
+    --code-bg: #0a0c10;
+    --keyword: #ff79c6;
+    --string: #f1fa8c;
+    --func: #50fa7b;
+    --comment: #6272a4;
+    --number: #bd93f9;
+    --builtin: #8be9fd;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: rgba(13,15,20,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+
+  .nav-logo {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0.3rem;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.72rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .nav-links a:hover { color: var(--accent); background: rgba(0,212,170,0.08); }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    padding: 120px 2rem 80px;
+    text-align: center;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0,212,170,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    border: 1px solid rgba(0,212,170,0.3);
+    padding: 0.3rem 1rem;
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+    letter-spacing: 2px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  h1.hero-title {
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  h1.hero-title span { color: var(--accent); }
+
+  .hero-sub {
+    margin-top: 1rem;
+    color: var(--text-muted);
+    font-size: 1rem;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-meta {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .hero-meta span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .hero-meta span b { color: var(--accent3); }
+
+  /* SECTIONS */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 1; }
+
+  section { padding: 4rem 0; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    border: 1px solid rgba(0,212,170,0.3);
+    padding: 0.2rem 0.5rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  h2.section-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  h2.section-title span { color: var(--accent); }
+
+  .divider {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .card:hover { border-color: rgba(0,212,170,0.3); }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--accent3);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card h3 .icon { font-size: 1.1rem; }
+
+  .card p, .card li { 
+    font-size: 0.88rem; 
+    color: var(--text-muted); 
+    line-height: 1.7;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .card ul { padding-left: 1.2rem; }
+  .card li { margin-bottom: 0.3rem; }
+
+  .card li b { color: var(--accent4); }
+
+  /* CODE BLOCKS */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .code-header .lang {
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+
+  .code-dots { display: flex; gap: 0.4rem; }
+  .code-dots span {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .code-dots span:nth-child(1) { background: #ff5f57; }
+  .code-dots span:nth-child(2) { background: #febc2e; }
+  .code-dots span:nth-child(3) { background: #28c840; }
+
+  .code-body {
+    padding: 1.2rem 1.5rem;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.8;
+    white-space: pre;
+  }
+
+  /* Syntax colors */
+  .kw { color: var(--keyword); font-weight: 700; }
+  .st { color: var(--string); }
+  .fn { color: var(--func); }
+  .cm { color: var(--comment); font-style: italic; }
+  .nm { color: var(--number); }
+  .bt { color: var(--builtin); }
+  .tx { color: var(--text); }
+  .va { color: #ffb86c; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 8px; border: 1px solid var(--border); }
+
+  table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+
+  th {
+    background: var(--surface2);
+    color: var(--accent);
+    padding: 0.8rem 1rem;
+    text-align: left;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 0.7rem 1rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid rgba(42,48,68,0.5);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td:first-child { color: var(--accent3); font-weight: 700; }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-green { background: rgba(0,212,170,0.15); color: var(--accent); border: 1px solid rgba(0,212,170,0.3); }
+  .badge-red { background: rgba(255,107,107,0.15); color: var(--accent2); border: 1px solid rgba(255,107,107,0.3); }
+  .badge-yellow { background: rgba(255,217,61,0.15); color: var(--accent3); border: 1px solid rgba(255,217,61,0.3); }
+  .badge-blue { background: rgba(107,207,255,0.15); color: var(--accent4); border: 1px solid rgba(107,207,255,0.3); }
+
+  /* FLOW DIAGRAM */
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+  }
+
+  .flow-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  .flow-box.active { border-color: var(--accent); color: var(--accent); }
+  .flow-arrow { color: var(--text-muted); }
+
+  /* HINT SECTION */
+  .hint-section { padding: 4rem 0 6rem; }
+
+  .hint-section h2 { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+
+  .problem-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .problem-header {
+    background: var(--surface2);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prob-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    background: rgba(0,212,170,0.1);
+    border: 1px solid rgba(0,212,170,0.3);
+    color: var(--accent);
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+
+  .prob-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+  .problem-body { padding: 1.5rem; }
+
+  .sub-problem {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .sub-problem h4 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--accent4);
+    margin-bottom: 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .hint-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+
+  .hint-text .hl-kw { color: var(--keyword); }
+  .hint-text .hl-fn { color: var(--func); }
+  .hint-text .hl-st { color: var(--string); }
+  .hint-text .hl-cm { color: var(--comment); font-style: italic; }
+  .hint-text .hl-ac { color: var(--accent); }
+  .hint-text .hl-y { color: var(--accent3); }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in { animation: fadeUp 0.5s ease both; }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(30px); transition: all 0.6s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ALERT BOX */
+  .alert {
+    border-radius: 6px;
+    padding: 0.8rem 1.2rem;
+    margin: 1rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+    line-height: 1.6;
+  }
+  .alert-info { background: rgba(107,207,255,0.08); border: 1px solid rgba(107,207,255,0.25); color: var(--accent4); }
+  .alert-warn { background: rgba(255,217,61,0.08); border: 1px solid rgba(255,217,61,0.25); color: var(--accent3); }
+  .alert-danger { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.25); color: var(--accent2); }
+  .alert-success { background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.25); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">PY_LECTURE</div>
+  <ul class="nav-links">
+    <li><a href="#file-intro">File Basics</a></li>
+    <li><a href="#file-modes">Modes</a></li>
+    <li><a href="#file-ops">Operations</a></li>
+    <li><a href="#exceptions">Exceptions</a></li>
+    <li><a href="#try-except">Try-Except</a></li>
+    <li><a href="#custom">Custom Exc.</a></li>
+    <li><a href="#hints">Exercises</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">UNIT — FILE & EXCEPTION HANDLING</div>
+  <h1 class="hero-title">Python <span>File</span> &amp;<br><span>Exception</span> Handling</h1>
+  <p class="hero-sub">A comprehensive lecture for BTech Computer Science students</p>
+  <div class="hero-meta">
+    <span><b>Course:</b> Python Programming</span>
+    <span><b>Level:</b> BTech II Year</span>
+    <span><b>Topic:</b> I/O & Error Handling</span>
+  </div>
+</div>
+
+<!-- ==================== SECTION 1: FILE INTRO ==================== -->
+<section id="file-intro">
+<div class="container">
+  <div class="section-header reveal">
+    <span class="section-num">01</span>
+    <h2 class="section-title">Introduction to <span>File Handling</span></h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="card-grid reveal">
+    <div class="card">
+      <h3><span class="icon">💾</span> What is a File?</h3>
+      <p>A <b style="color:var(--accent)">file</b> is a named location on disk that stores related data permanently. Unlike variables, file data persists even after the program terminates.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon">🔑</span> Why File Handling?</h3>
+      <ul>
+        <li>Persist data beyond program lifetime</li>
+        <li>Share data between programs</li>
+        <li>Process large datasets</li>
+        <li>Log events and errors</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="icon">📂</span> Types of Files</h3>
+      <ul>
+        <li><b>Text files</b> — .txt, .csv, .py</li>
+        <li><b>Binary files</b> — .jpg, .mp3, .exe</li>
+      </ul>
+      <p style="margin-top:0.5rem">Python handles both; today we focus on <b style="color:var(--accent)">text files</b>.</p>
+    </div>
+  </div>
+
+  <div class="card reveal">
+    <h3><span class="icon">⚙️</span> File Operations — The Three-Step Rule</h3>
+    <div class="flow">
+      <div class="flow-box active">1. Open the file</div>
+      <div class="flow-arrow">──▶</div>
+      <div class="flow-box active">2. Read / Write</div>
+      <div class="flow-arrow">──▶</div>
+      <div class="flow-box active">3. Close the file</div>
+    </div>
+    <p style="margin-top:0.75rem;font-size:0.85rem;color:var(--text-muted)">Forgetting to close a file can cause data corruption and resource leaks. Always close files — or better, use the <code style="color:var(--accent)">with</code> statement which closes automatically.</p>
+  </div>
+</div>
+</section>
+
+<!-- ==================== SECTION 2: FILE MODES ==================== -->
+<section id="file-modes">
+<div class="container">
+  <div class="section-header reveal">
+    <span class="section-num">02</span>
+    <h2 class="section-title">File <span>Modes</span></h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="table-wrap reveal">
+    <table>
+      <thead>
+        <tr>
+          <th>Mode</th><th>Symbol</th><th>Description</th><th>File Exists?</th><th>File Missing?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Read</td><td><code>r</code></td><td>Read-only; file pointer at beginning</td><td>✅ Open</td><td>❌ Error</td></tr>
+        <tr><td>Write</td><td><code>w</code></td><td>Write-only; truncates existing content</td><td>⚠️ Overwrite</td><td>✅ Create</td></tr>
+        <tr><td>Append</td><td><code>a</code></td><td>Write; appends to end of file</td><td>✅ Append</td><td>✅ Create</td></tr>
+        <tr><td>Read+Write</td><td><code>r+</code></td><td>Read and write; no truncation</td><td>✅ Open</td><td>❌ Error</td></tr>
+        <tr><td>Write+Read</td><td><code>w+</code></td><td>Read and write; truncates file</td><td>⚠️ Overwrite</td><td>✅ Create</td></tr>
+        <tr><td>Binary Read</td><td><code>rb</code></td><td>Read binary file</td><td>✅ Open</td><td>❌ Error</td></tr>
+        <tr><td>Binary Write</td><td><code>wb</code></td><td>Write binary file</td><td>⚠️ Overwrite</td><td>✅ Create</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="code-block reveal">
+    <div class="code-header">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <span class="lang">PYTHON — OPENING FILES</span>
+    </div>
+    <div class="code-body"><span class="cm"># Method 1: Traditional — must manually close</span>
+<span class="va">f</span> = <span class="bt">open</span>(<span class="st">"name.txt"</span>, <span class="st">"r"</span>)
+<span class="va">data</span> = <span class="va">f</span>.<span class="fn">read</span>()
+<span class="va">f</span>.<span class="fn">close</span>()          <span class="cm"># ⚠️ Don't forget this!</span>
+
+<span class="cm"># Method 2: Context Manager (with) — RECOMMENDED ✅</span>
+<span class="kw">with</span> <span class="bt">open</span>(<span class="st">"name.txt"</span>, <span class="st">"r"</span>) <span class="kw">as</span> <span class="va">f</span>:
+    <span class="va">data</span> = <span class="va">f</span>.<span class="fn">read</span>()
+<span class="cm"># File is automatically closed here, even if exception occurs</span>
+
+<span class="cm"># Opening with encoding (always specify for text files)</span>
+<span class="kw">with</span> <span class="bt">open</span>(<span class="st">"name.txt"</span>, <span class="st">"r"</span>, encoding=<span class="st">"utf-8"</span>) <span class="kw">as</span> <span class="va">f</span>:
+    <span class="va">data</span> = <span class="va">f</span>.<span class="fn">read</span>()</div>
+  </div>
+</div>
+</section>
+
+<!-- ==================== SECTION 3: FILE OPERATIONS ==================== -->
+<section id="file-ops">
+<div class="container">
+  <div class="section-header reveal">
+    <span class="section-num">03</span>
+    <h2 class="section-title">File <span>Operations</span></h2>
+    <div class="divider"></div>
+  </div>
+
+  <!-- READING -->
+  <div class="card reveal">
+    <h3><span class="icon">📖</span> Reading from Files</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span class="lang">PYTHON — READING METHODS</span>
+      </div>
+      <div class="code-body"><span class="kw">with</span> <span class="bt">open</span>(<span class="st">"name.txt"</span>, <span class="st">"r"</span>) <span class="kw">as</span> <span class="va">f</span>:
+
+    <span class="cm"># read() — reads entire file as one string</span>
+    <span class="va">content</span> = <span class="va">f</span>.<span class="fn">read</span>()
+    <span class="bt">print</span>(<span class="va">content</span>)
+
+    <span class="cm"># readline() — reads one line at a time</span>
+    <span class="va">f</span>.<span class="fn">seek</span>(<span class="nm">0</span>)           <span class="cm"># go back to beginning</span>
+    <span class="va">line</span> = <span class="va">f</span>.<span class="fn">readline</span>()
+    <span class="bt">print</span>(<span class="va">line</span>)
+
+    <span class="cm"># readlines() — reads all lines, returns list</span>
+    <span class="va">f</span>.<span class="fn">seek</span>(<span class="nm">0</span>)
+    <span class="va">lines</span> = <span class="va">f</span>.<span class="fn">readlines</span>()
+    <span class="bt">print</span>(<span class="va">lines</span>)       <span class="cm"># ['Alice\n', 'Bob\n', 'Charlie\n']</span>
+
+    <span class="cm"># Iterating line by line (most memory-efficient)</span>
+    <span class="va">f</span>.<span class="fn">seek</span>(<span class="nm">0</span>)
+    <span class="kw">for</span> <span class="va">line</span> <span class="kw">in</span> <span class="va">f</span>:
+        <span class="bt">print</span>(<span class="va">line</span>.<span class="fn">strip</span>())   <span class="cm"># strip() removes \n</span></div>
+    </div>
+  </div>
+
+  <!-- WRITING -->
+  <div class="card reveal">
+    <h3><span class="icon">✏️</span> Writing to Files</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span class="lang">PYTHON — WRITING METHODS</span>
+      </div>
+      <div class="code-body"><span class="cm"># write() — writes a string (does NOT add newline automatically)</span>
+<span class="kw">with</span> <span class="bt">open</span>(<span class="st">"name.txt"</span>, <span class="st">"w"</span>) <span class="kw">as</span> <span class="va">f</span>:
+    <span class="va">f</span>.<span class="fn">write</span>(<span class="st">"Alice\n"</span>)
+    <span class="va">f</span>.<span class="fn">write</span>(<span class="st">"Bob\n"</span>)
+    <span class="va">f</span>.<span class="fn">write</span>(<span class="st">"Charlie\n"</span>)
+
+<span class="cm"># writelines() — writes a list of strings</span>
+<span class="va">names</span> = [<span class="st">"Alice\n"</span>, <span class="st">"Bob\n"</span>, <span class="st">"Charlie\n"</span>]
+<span class="kw">with</span> <span class="bt">open</span>(<span class="st">"name.txt"</span>, <span class="st">"w"</span>) <span class="kw">as</span> <span class="va">f</span>:
+    <span class="va">f</span>.<span class="fn">writelines</span>(<span class="va">names</span>)
+
+<span class="cm"># Append mode — does not erase existing content</span>
+<span class="kw">with</span> <span class="bt">open</span>(<span class="st">"name.txt"</span>, <span class="st">"a"</span>) <span class="kw">as</span> <span class="va">f</span>:
+    <span class="va">f</span>.<span class="fn">write</span>(<span class="st">"David\n"</span>)    <span class="cm"># adds to end</span></div>
+    </div>
+  </div>
+
+  <!-- FILE METHODS TABLE -->
+  <div class="table-wrap reveal">
+    <table>
+      <thead><tr><th>Method</th><th>Description</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td>read(n)</td><td>Read n characters (or all if n omitted)</td><td>str</td></tr>
+        <tr><td>readline()</td><td>Read one line including \n</td><td>str</td></tr>
+        <tr><td>readlines()</td><td>Read all lines into a list</td><td>list</td></tr>
+        <tr><td>write(s)</td><td>Write string s to file</td><td>int (chars written)</td></tr>
+        <tr><td>writelines(lst)</td><td>Write list of strings</td><td>None</td></tr>
+        <tr><td>seek(pos)</td><td>Move file pointer to position</td><td>int</td></tr>
+        <tr><td>tell()</td><td>Return current file pointer position</td><td>int</td></tr>
+        <tr><td>flush()</td><td>Flush the write buffer</td><td>None</td></tr>
+        <tr><td>close()</td><td>Close the file</td><td>None</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ==================== SECTION 4: EXCEPTIONS ==================== -->
+<section id="exceptions">
+<div class="container">
+  <div class="section-header reveal">
+    <span class="section-num">04</span>
+    <h2 class="section-title">Python <span>Exceptions</span></h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="card-grid reveal">
+    <div class="card">
+      <h3><span class="icon">⚡</span> What is an Exception?</h3>
+      <p>An exception is an <b style="color:var(--accent2)">event that disrupts normal program flow</b> during runtime. Unlike syntax errors (caught at compile time), exceptions occur during execution.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon">🧱</span> Exception Hierarchy</h3>
+      <ul>
+        <li><b>BaseException</b> → root of all</li>
+        <li><b>Exception</b> → most user exceptions</li>
+        <li><b>ArithmeticError</b> → ZeroDivisionError etc.</li>
+        <li><b>LookupError</b> → IndexError, KeyError</li>
+        <li><b>OSError</b> → FileNotFoundError etc.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="table-wrap reveal">
+    <table>
+      <thead><tr><th>Exception</th><th>Cause</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>ZeroDivisionError</td><td>Division by zero</td><td><code>10 / 0</code></td></tr>
+        <tr><td>ValueError</td><td>Invalid value for operation</td><td><code>int("abc")</code></td></tr>
+        <tr><td>TypeError</td><td>Wrong data type used</td><td><code>"a" + 1</code></td></tr>
+        <tr><td>FileNotFoundError</td><td>File does not exist</td><td><code>open("x.txt")</code></td></tr>
+        <tr><td>IndexError</td><td>List index out of range</td><td><code>lst[100]</code></td></tr>
+        <tr><td>KeyError</td><td>Dict key not found</td><td><code>d["x"]</code></td></tr>
+        <tr><td>NameError</td><td>Variable not defined</td><td><code>print(x)</code></td></tr>
+        <tr><td>AttributeError</td><td>Attribute not found</td><td><code>"hi".push()</code></td></tr>
+        <tr><td>ImportError</td><td>Module not found</td><td><code>import xyz</code></td></tr>
+        <tr><td>PermissionError</td><td>File access denied</td><td><code>open("/root/x")</code></td></tr>
+        <tr><td>MemoryError</td><td>Out of memory</td><td><code>[1]*10**10</code></td></tr>
+        <tr><td>RecursionError</td><td>Max recursion depth exceeded</td><td>Infinite recursion</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ==================== SECTION 5: TRY-EXCEPT ==================== -->
+<section id="try-except">
+<div class="container">
+  <div class="section-header reveal">
+    <span class="section-num">05</span>
+    <h2 class="section-title">Try-Except <span>Block Structure</span></h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="code-block reveal">
+    <div class="code-header">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <span class="lang">PYTHON — FULL TRY-EXCEPT-ELSE-FINALLY SYNTAX</span>
+    </div>
+    <div class="code-body"><span class="kw">try</span>:
+    <span class="cm"># Code that might raise an exception</span>
+    <span class="va">result</span> = <span class="nm">10</span> / <span class="nm">0</span>
+
+<span class="kw">except</span> <span class="bt">ZeroDivisionError</span> <span class="kw">as</span> <span class="va">e</span>:
+    <span class="cm"># Handle a specific exception</span>
+    <span class="bt">print</span>(<span class="st">f"Error: </span>{<span class="va">e</span>}<span class="st">"</span>)
+
+<span class="kw">except</span> (<span class="bt">TypeError</span>, <span class="bt">ValueError</span>) <span class="kw">as</span> <span class="va">e</span>:
+    <span class="cm"># Handle multiple exceptions in one block</span>
+    <span class="bt">print</span>(<span class="st">f"Type or Value Error: </span>{<span class="va">e</span>}<span class="st">"</span>)
+
+<span class="kw">except</span> <span class="bt">Exception</span> <span class="kw">as</span> <span class="va">e</span>:
+    <span class="cm"># Catch-all for any other exception</span>
+    <span class="bt">print</span>(<span class="st">f"Unexpected error: </span>{<span class="va">e</span>}<span class="st">"</span>)
+
+<span class="kw">else</span>:
+    <span class="cm"># Runs ONLY if no exception occurred in try block</span>
+    <span class="bt">print</span>(<span class="st">"Success! Result ="</span>, <span class="va">result</span>)
+
+<span class="kw">finally</span>:
+    <span class="cm"># ALWAYS runs — use for cleanup (closing files, DB, etc.)</span>
+    <span class="bt">print</span>(<span class="st">"This always executes."</span>)</div>
+  </div>
+
+  <div class="card-grid reveal">
+    <div class="card">
+      <h3><span class="icon">🟢</span> try</h3>
+      <p>Contains the code that <b style="color:var(--accent)">might raise</b> an exception. Python monitors this block. If an exception occurs, execution jumps to the matching <code style="color:var(--accent)">except</code>.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon">🔴</span> except</h3>
+      <p>Handles the exception. You can have <b style="color:var(--accent2)">multiple except</b> blocks for different exception types. Executed only when an exception matches.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon">✅</span> else</h3>
+      <p>Runs only when the try block <b style="color:var(--func)">completes successfully</b> — no exception. Useful for code that should run only on success.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon">🔒</span> finally</h3>
+      <p>Always executes — whether an exception occurred or not. Use for <b style="color:var(--accent3)">cleanup</b> tasks like closing files, releasing locks.</p>
+    </div>
+  </div>
+
+  <!-- raise -->
+  <div class="card reveal">
+    <h3><span class="icon">🚀</span> The <code style="color:var(--accent)">raise</code> Statement</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span class="lang">PYTHON — RAISE EXCEPTIONS</span>
+      </div>
+      <div class="code-body"><span class="cm"># Raise a built-in exception manually</span>
+<span class="kw">def</span> <span class="fn">divide</span>(<span class="va">a</span>, <span class="va">b</span>):
+    <span class="kw">if</span> <span class="va">b</span> == <span class="nm">0</span>:
+        <span class="kw">raise</span> <span class="bt">ZeroDivisionError</span>(<span class="st">"Denominator cannot be zero!"</span>)
+    <span class="kw">return</span> <span class="va">a</span> / <span class="va">b</span>
+
+<span class="cm"># Re-raise an exception after partial handling</span>
+<span class="kw">try</span>:
+    <span class="fn">divide</span>(<span class="nm">5</span>, <span class="nm">0</span>)
+<span class="kw">except</span> <span class="bt">ZeroDivisionError</span>:
+    <span class="bt">print</span>(<span class="st">"Caught it — but re-raising..."</span>)
+    <span class="kw">raise</span>    <span class="cm"># propagates the exception upward</span></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ==================== SECTION 6: CUSTOM EXCEPTIONS ==================== -->
+<section id="custom">
+<div class="container">
+  <div class="section-header reveal">
+    <span class="section-num">06</span>
+    <h2 class="section-title">Custom <span>Exceptions</span></h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="card reveal">
+    <p style="color:var(--text-muted);font-size:0.88rem;line-height:1.8">User-defined exceptions let you create <b style="color:var(--accent)">meaningful, domain-specific errors</b>. Always inherit from <code style="color:var(--accent)">Exception</code> (or its subclasses). This allows your exceptions to be caught by generic <code>except Exception</code> blocks.</p>
+  </div>
+
+  <div class="code-block reveal">
+    <div class="code-header">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <span class="lang">PYTHON — CUSTOM EXCEPTION CLASSES</span>
+    </div>
+    <div class="code-body"><span class="cm"># Basic custom exception</span>
+<span class="kw">class</span> <span class="bt">NegativeNumberError</span>(<span class="bt">Exception</span>):
+    <span class="kw">pass</span>
+
+<span class="cm"># Custom exception with message and attributes</span>
+<span class="kw">class</span> <span class="bt">FileSizeError</span>(<span class="bt">Exception</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="va">self</span>, <span class="va">size</span>, <span class="va">limit</span>):
+        <span class="va">self</span>.<span class="va">size</span> = <span class="va">size</span>
+        <span class="va">self</span>.<span class="va">limit</span> = <span class="va">limit</span>
+        <span class="bt">super</span>().<span class="fn">__init__</span>(<span class="st">f"File size </span>{<span class="va">size</span>}<span class="st">MB exceeds limit of </span>{<span class="va">limit</span>}<span class="st">MB"</span>)
+
+<span class="cm"># Exception hierarchy for a file application</span>
+<span class="kw">class</span> <span class="bt">AppError</span>(<span class="bt">Exception</span>):          <span class="cm"># Base for all app errors</span>
+    <span class="kw">pass</span>
+
+<span class="kw">class</span> <span class="bt">InvalidDataError</span>(<span class="bt">AppError</span>):   <span class="cm"># Bad data format</span>
+    <span class="kw">pass</span>
+
+<span class="kw">class</span> <span class="bt">FileAccessError</span>(<span class="bt">AppError</span>):    <span class="cm"># File access problem</span>
+    <span class="kw">pass</span>
+
+<span class="cm"># Using custom exceptions</span>
+<span class="kw">def</span> <span class="fn">write_data</span>(<span class="va">filename</span>, <span class="va">data</span>):
+    <span class="kw">if</span> <span class="kw">not</span> <span class="bt">isinstance</span>(<span class="va">data</span>, <span class="bt">str</span>):
+        <span class="kw">raise</span> <span class="bt">InvalidDataError</span>(<span class="st">"Data must be a string"</span>)
+    <span class="kw">try</span>:
+        <span class="kw">with</span> <span class="bt">open</span>(<span class="va">filename</span>, <span class="st">"w"</span>) <span class="kw">as</span> <span class="va">f</span>:
+            <span class="va">f</span>.<span class="fn">write</span>(<span class="va">data</span>)
+    <span class="kw">except</span> <span class="bt">PermissionError</span>:
+        <span class="kw">raise</span> <span class="bt">FileAccessError</span>(<span class="st">f"Cannot write to </span>{<span class="va">filename</span>}<span class="st">"</span>)
+
+<span class="kw">try</span>:
+    <span class="fn">write_data</span>(<span class="st">"output.txt"</span>, <span class="nm">12345</span>)   <span class="cm"># integer, not string!</span>
+<span class="kw">except</span> <span class="bt">InvalidDataError</span> <span class="kw">as</span> <span class="va">e</span>:
+    <span class="bt">print</span>(<span class="st">f"Data Error: </span>{<span class="va">e</span>}<span class="st">"</span>)
+<span class="kw">except</span> <span class="bt">FileAccessError</span> <span class="kw">as</span> <span class="va">e</span>:
+    <span class="bt">print</span>(<span class="st">f"Access Error: </span>{<span class="va">e</span>}<span class="st">"</span>)</div>
+  </div>
+
+  <!-- File + Exception together -->
+  <div class="card reveal">
+    <h3><span class="icon">🔗</span> File Handling + Exception Handling Together</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span class="lang">PYTHON — ROBUST FILE READING</span>
+      </div>
+      <div class="code-body"><span class="kw">def</span> <span class="fn">safe_read_file</span>(<span class="va">filename</span>):
+    <span class="kw">try</span>:
+        <span class="kw">with</span> <span class="bt">open</span>(<span class="va">filename</span>, <span class="st">"r"</span>, encoding=<span class="st">"utf-8"</span>) <span class="kw">as</span> <span class="va">f</span>:
+            <span class="kw">return</span> <span class="va">f</span>.<span class="fn">readlines</span>()
+
+    <span class="kw">except</span> <span class="bt">FileNotFoundError</span>:
+        <span class="bt">print</span>(<span class="st">f"❌ '{filename}' not found."</span>)
+    <span class="kw">except</span> <span class="bt">PermissionError</span>:
+        <span class="bt">print</span>(<span class="st">f"🔒 No permission to read '{filename}'."</span>)
+    <span class="kw">except</span> <span class="bt">UnicodeDecodeError</span>:
+        <span class="bt">print</span>(<span class="st">"⚠️  Cannot decode file — is it binary?"</span>)
+    <span class="kw">except</span> <span class="bt">OSError</span> <span class="kw">as</span> <span class="va">e</span>:
+        <span class="bt">print</span>(<span class="st">f"OS Error: </span>{<span class="va">e</span>}<span class="st">"</span>)
+    <span class="kw">finally</span>:
+        <span class="bt">print</span>(<span class="st">"Read attempt complete."</span>)
+
+    <span class="kw">return</span> []   <span class="cm"># return empty list on failure</span>
+
+<span class="va">lines</span> = <span class="fn">safe_read_file</span>(<span class="st">"name.txt"</span>)</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ==================== SECTION 7: EXERCISES & HINTS ==================== -->
+<section id="hints" class="hint-section">
+<div class="container">
+  <div class="section-header reveal">
+    <span class="section-num">07</span>
+    <h2 class="section-title">Practice <span>Exercises</span> — Hints</h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="alert alert-info reveal">
+    ℹ️ These are HINTS — not full solutions. Think through the logic, look up the methods used, and write the code yourself. The best learning is through struggle!
+  </div>
+
+  <!-- PROBLEM 1 -->
+  <div class="problem-card reveal">
+    <div class="problem-header">
+      <span class="prob-num">Q1</span>
+      <span class="prob-title">names.txt — Count, Vowel Names, Longest Name</span>
+    </div>
+    <div class="problem-body">
+      <div class="alert alert-warn">⚙️ Setup: Create "name.txt" with one name per line — e.g., Alice, Bob, Uma, Irfan...</div>
+      <div class="sub-problem">
+        <h4>a. Count total names</h4>
+        <div class="code-body">
+<span class="hl-kw">with</span> <span class="hl-fn">open</span>(<span class="hl-st">"name.txt"</span>, <span class="hl-st">"r"</span>) <span class="hl-kw">as</span> f:
+    names = [line.<span class="hl-fn">strip</span>() <span class="hl-kw">for</span> line <span class="hl-kw">in</span> f <span class="hl-kw">if</span> line.<span class="hl-fn">strip</span>()]
+    <span class="hl-cm"># count = len(names)  →  Use len() on the list</span>
+        </div>
+      </div>
+      <div class="sub-problem">
+        <h4>b. Count names starting with a vowel</h4>
+        <div class="code-body">
+<span class="hl-cm"># After reading names list:</span>
+vowels = <span class="hl-st">'AEIOUaeiou'</span>
+<span class="hl-cm"># Use a generator/list comprehension:</span>
+count = <span class="hl-fn">sum</span>(1 <span class="hl-kw">for</span> n <span class="hl-kw">in</span> names <span class="hl-kw">if</span> n[<span class="hl-ac">0</span>] <span class="hl-kw">in</span> vowels)
+span class="hl-cm"># Or: filter + len</span>
+        </div>
+      </div>
+      <div class="sub-problem">
+        <h4>c. Find the longest name</h4>
+        <div class="code-body">
+<span class="hl-cm"># Use the built-in max() with key parameter:</span>
+longest = <span class="hl-fn">max</span>(names, key=<span class="hl-kw">len</span>)
+<span class="hl-cm"># Or manually: iterate and track max length + name</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEM 2 -->
+  <div class="problem-card reveal">
+    <div class="problem-header">
+      <span class="prob-num">Q2</span>
+      <span class="prob-title">Integer File — Max, Average, Count &gt; 100</span>
+    </div>
+    <div class="problem-body">
+      <div class="alert alert-warn">⚙️ Setup: Write integers (one per line) to "numbers.txt"</div>
+      <div class="sub-problem">
+        <h4>Key insight: numbers read from file are strings — convert!</h4>
+        <div class="code-body">
+<span class="hl-kw">with</span> <span class="hl-fn">open</span>(<span class="hl-st">"numbers.txt"</span>, <span class="hl-st">"r"</span>) <span class="hl-kw">as</span> f:
+    nums = [<span class="hl-fn">int</span>(line.<span class="hl-fn">strip</span>()) <span class="hl-kw">for</span> line <span class="hl-kw">in</span> f <span class="hl-kw">if</span> line.<span class="hl-fn">strip</span>()]
+
+<span class="hl-cm"># a. Max number</span>
+max_num = <span class="hl-fn">max</span>(nums)
+
+<span class="hl-cm"># b. Average</span>
+avg = <span class="hl-fn">sum</span>(nums) / <span class="hl-fn">len</span>(nums)
+
+<span class="hl-cm"># c. Count > 100</span>
+count = <span class="hl-fn">sum</span>(1 <span class="hl-kw">for</span> n <span class="hl-kw">in</span> nums <span class="hl-kw">if</span> n > <span class="hl-ac">100</span>)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEM 3 -->
+  <div class="problem-card reveal">
+    <div class="problem-header">
+      <span class="prob-num">Q3</span>
+      <span class="prob-title">city.txt — Display, Population Filter, Sum of Areas</span>
+    </div>
+    <div class="problem-body">
+      <div class="alert alert-warn">⚙️ Format each line: <code>CityName  Population  Area</code> (space-separated)</div>
+      <div class="sub-problem">
+        <h4>a. Display all cities</h4>
+        <div class="code-body">
+<span class="hl-kw">with</span> <span class="hl-fn">open</span>(<span class="hl-st">"city.txt"</span>, <span class="hl-st">"r"</span>) <span class="hl-kw">as</span> f:
+    <span class="hl-kw">for</span> line <span class="hl-kw">in</span> f:
+        parts = line.<span class="hl-fn">split</span>()           <span class="hl-cm"># ['Dehradun', '5.78', '308.20']</span>
+        city, pop, area = parts[<span class="hl-ac">0</span>], <span class="hl-fn">float</span>(parts[<span class="hl-ac">1</span>]), <span class="hl-fn">float</span>(parts[<span class="hl-ac">2</span>])
+        <span class="hl-fn">print</span>(city, pop, area)
+        </div>
+      </div>
+      <div class="sub-problem">
+        <h4>b. Cities with population &gt; 10 lakhs</h4>
+        <div class="hint-text">
+<span class="hl-cm"># After parsing each line:</span>
+<span class="hl-kw">if</span> pop > <span class="hl-ac">10</span>:
+    <span class="hl-fn">print</span>(city)
+        </div>
+      </div>
+      <div class="sub-problem">
+        <h4>c. Sum of all areas</h4>
+        <div class="hint-text">
+total_area = <span class="hl-ac">0</span>
+<span class="hl-cm"># Inside the loop:</span>
+total_area += area
+<span class="hl-fn">print</span>(<span class="hl-st">"Total Area:"</span>, total_area)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEM 4 -->
+  <div class="problem-card reveal">
+    <div class="problem-header">
+      <span class="prob-num">Q4</span>
+      <span class="prob-title">Integer Division with ZeroDivisionError and ValueError Handling</span>
+    </div>
+    <div class="problem-body">
+      <div class="alert alert-warn">⚙️ Read N pairs of values; perform a//b; handle exceptions gracefully</div>
+      <div class="sub-problem">
+        <h4>Structure Hint</h4>
+        <div class="code-body">
+n = <span class="hl-fn">int</span>(<span class="hl-fn">input</span>())
+<span class="hl-kw">for</span> _ <span class="hl-kw">in</span> <span class="hl-fn">range</span>(n):
+    <span class="hl-kw">try</span>:
+        a_str, b_str = <span class="hl-fn">input</span>().<span class="hl-fn">split</span>()
+        a, b = <span class="hl-fn">int</span>(a_str), <span class="hl-fn">int</span>(b_str)   <span class="hl-cm"># ValueError if non-integer</span>
+        result = a // b                  <span class="hl-cm"># ZeroDivisionError if b==0</span>
+        <span class="hl-fn">print</span>(result)
+    <span class="hl-kw">except</span> ZeroDivisionError <span class="hl-kw">as</span> e:
+        <span class="hl-fn">print</span>(<span class="hl-st">"Error Code:"</span>, e)
+    <span class="hl-kw">except</span> ValueError <span class="hl-kw">as</span> e:
+        <span class="hl-fn">print</span>(<span class="hl-st">"Error Code:"</span>, e)
+        </div>
+      </div>
+      <div class="alert alert-success">💡 Key: <code>int("$")</code> raises ValueError. <code>5//0</code> raises ZeroDivisionError. Handle both separately!</div>
+    </div>
+  </div>
+
+  <!-- PROBLEM 5 -->
+  <div class="problem-card reveal">
+    <div class="problem-header">
+      <span class="prob-num">Q5</span>
+      <span class="prob-title">Multiple Custom Exceptions for File Handling</span>
+    </div>
+    <div class="problem-body">
+      <div class="sub-problem">
+        <h4>Design multiple custom exceptions for a file program</h4>
+        <div class="code-body">
+<span class="hl-cm"># Define custom exception hierarchy</span>
+<span class="hl-kw">class</span> FileAppError(Exception): <span class="hl-kw">pass</span>
+<span class="hl-kw">class</span> EmptyFileError(FileAppError): <span class="hl-kw">pass</span>
+<span class="hl-kw">class</span> InvalidFormatError(FileAppError): <span class="hl-kw">pass</span>
+<span class="hl-kw">class</span> FileTooLargeError(FileAppError): <span class="hl-kw">pass</span>
+
+<span class="hl-kw">def</span> <span class="hl-fn">process_file</span>(filename):
+    <span class="hl-kw">import</span> os
+    <span class="hl-kw">if</span> os.path.<span class="hl-fn">getsize</span>(filename) == <span class="hl-ac">0</span>:
+        <span class="hl-kw">raise</span> EmptyFileError(<span class="hl-st">"File is empty!"</span>)
+    <span class="hl-kw">if</span> os.path.<span class="hl-fn">getsize</span>(filename) > <span class="hl-ac">1048576</span>:   <span class="hl-cm"># > 1MB</span>
+        <span class="hl-kw">raise</span> FileTooLargeError(<span class="hl-st">"File exceeds 1MB!"</span>)
+
+    <span class="hl-kw">with</span> <span class="hl-fn">open</span>(filename) <span class="hl-kw">as</span> f:
+        <span class="hl-kw">for</span> line <span class="hl-kw">in</span> f:
+            <span class="hl-kw">if</span> <span class="hl-st">"|"</span> <span class="hl-kw">not in</span> line:    <span class="hl-cm"># expect pipe-separated</span>
+                <span class="hl-kw">raise</span> InvalidFormatError(<span class="hl-st">f"Bad format: {line.strip()}"</span>)
+
+<span class="hl-kw">try</span>:
+    <span class="hl-fn">process_file</span>(<span class="hl-st">"data.txt"</span>)
+<span class="hl-kw">except</span> EmptyFileError <span class="hl-kw">as</span> e: <span class="hl-fn">print</span>(<span class="hl-st">"Empty:"</span>, e)
+<span class="hl-kw">except</span> FileTooLargeError <span class="hl-kw">as</span> e: <span class="hl-fn">print</span>(<span class="hl-st">"Too large:"</span>, e)
+<span class="hl-kw">except</span> InvalidFormatError <span class="hl-kw">as</span> e: <span class="hl-fn">print</span>(<span class="hl-st">"Format error:"</span>, e)
+<span class="hl-kw">except</span> FileNotFoundError: <span class="hl-fn">print</span>(<span class="hl-st">"File not found!"</span>)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEM 6 -->
+  <div class="problem-card reveal">
+    <div class="problem-header">
+      <span class="prob-num">Q6</span>
+      <span class="prob-title">Execution Counter — How Many Times Has the Program Run?</span>
+    </div>
+    <div class="problem-body">
+      <div class="alert alert-warn">⚙️ Store the counter persistently in a file. Each run reads, increments, writes back.</div>
+      <div class="sub-problem">
+        <h4>Logic Hint</h4>
+        <div class="code-body">
+<span class="hl-cm"># Step 1: Try to read existing count from file</span>
+<span class="hl-kw">try</span>:
+    <span class="hl-kw">with</span> <span class="hl-fn">open</span>(<span class="hl-st">"counter.txt"</span>, <span class="hl-st">"r"</span>) <span class="hl-kw">as</span> f:
+        count = <span class="hl-fn">int</span>(f.<span class="hl-fn">read</span>().<span class="hl-fn">strip</span>())
+<span class="hl-kw">except</span> FileNotFoundError:
+    count = <span class="hl-ac">0</span>        <span class="hl-cm"># first run — start from 0</span>
+<span class="hl-kw">except</span> ValueError:
+    count = <span class="hl-ac">0</span>        <span class="hl-cm"># file corrupted — reset</span>
+
+<span class="hl-cm"># Step 2: Increment and write back</span>
+count += <span class="hl-ac">1</span>
+<span class="hl-kw">with</span> <span class="hl-fn">open</span>(<span class="hl-st">"counter.txt"</span>, <span class="hl-st">"w"</span>) <span class="hl-kw">as</span> f:
+    f.<span class="hl-fn">write</span>(<span class="hl-fn">str</span>(count))
+
+<span class="hl-fn">print</span>(<span class="hl-st">f"This program has been run {count} time(s)."</span>)
+        </div>
+      </div>
+      <div class="alert alert-success">💡 Key concepts used: <code>FileNotFoundError</code> to handle first run, file read/write, int/str conversion.</div>
+    </div>
+  </div>
+
+  <!-- QUICK REFERENCE -->
+  <div class="card reveal" style="margin-top:3rem;border-color:rgba(0,212,170,0.2)">
+    <h3><span class="icon">📌</span> Quick Reference — Key Takeaways</h3>
+    <div class="code-block" style="margin-top:1rem">
+      <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="lang">CHEAT SHEET</span></div>
+      <div class="code-body"><span class="cm"># ALWAYS use with statement for files</span>
+<span class="kw">with</span> <span class="bt">open</span>(<span class="st">"file"</span>, <span class="st">"mode"</span>) <span class="kw">as</span> f: ...
+
+<span class="cm"># Modes: r(read) w(write-overwrite) a(append) r+(read+write)</span>
+
+<span class="cm"># ALWAYS strip() when reading lines</span>
+names = [l.<span class="fn">strip</span>() <span class="kw">for</span> l <span class="kw">in</span> f <span class="kw">if</span> l.<span class="fn">strip</span>()]
+
+<span class="cm"># ALWAYS convert strings from file to numbers</span>
+nums = [<span class="bt">int</span>(l.<span class="fn">strip</span>()) <span class="kw">for</span> l <span class="kw">in</span> f]
+
+<span class="cm"># ALWAYS handle FileNotFoundError when reading</span>
+<span class="kw">try</span>: <span class="kw">with</span> <span class="bt">open</span>(<span class="st">"f"</span>) <span class="kw">as</span> f: ...
+<span class="kw">except</span> <span class="bt">FileNotFoundError</span>: ...
+
+<span class="cm"># Custom exceptions → inherit from Exception</span>
+<span class="kw">class</span> <span class="bt">MyError</span>(<span class="bt">Exception</span>): <span class="kw">pass</span></div>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<footer>
+  Prepared for BTech Students &nbsp;|&nbsp; Python File &amp; Exception Handling &nbsp;|&nbsp; Unit Lecture &nbsp;|&nbsp; &copy; 2025
+</footer>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+</body>
+</html>
