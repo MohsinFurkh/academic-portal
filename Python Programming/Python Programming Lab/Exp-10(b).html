@@ -1,0 +1,970 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pandas Lab – Concepts for Exp 4, 5 & 6</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── TOKENS ─────────────────────────────────────────── */
+  :root {
+    --bg:        #0b0f1a;
+    --panel:     #111827;
+    --border:    #1e2d40;
+    --accent:    #00d4aa;
+    --accent2:   #3b82f6;
+    --accent3:   #f59e0b;
+    --red:       #f87171;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --code-bg:   #0d1117;
+    --tag-bg:    rgba(0,212,170,.12);
+  }
+
+  /* ── COLAB BUTTON ───────────────────────────────────── */
+  .colab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .9rem 2rem;
+    border-radius: 3rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #000;
+    background: linear-gradient(135deg, #F9AB00 0%, #E8710A 100%);
+    box-shadow: 0 4px 24px rgba(249,171,0,.35), 0 1px 4px rgba(0,0,0,.3);
+    transition: transform .2s, box-shadow .2s, filter .2s;
+    cursor: pointer;
+    border: none;
+    letter-spacing: .02em;
+  }
+  .colab-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 8px 36px rgba(249,171,0,.5), 0 2px 6px rgba(0,0,0,.35);
+    filter: brightness(1.08);
+  }
+  .colab-btn:active {
+    transform: translateY(0) scale(.98);
+  }
+
+  /* ── RESET ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(14px, 1.8vw, 17px);
+  }
+
+  /* ── DECK ───────────────────────────────────────────── */
+  .deck {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+  }
+
+  /* progress bar */
+  .progress-track {
+    width: 100%; height: 3px;
+    background: var(--border);
+    flex-shrink: 0;
+    position: relative; z-index: 10;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .4s ease;
+  }
+
+  /* slides viewport */
+  .slides-viewport {
+    flex: 1; overflow: hidden; position: relative;
+  }
+  .slides-track {
+    display: flex;
+    height: 100%;
+    transition: transform .45s cubic-bezier(.65,0,.35,1);
+    will-change: transform;
+  }
+  .slide {
+    min-width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: clamp(1.2rem, 4vw, 3.5rem) clamp(1rem, 5vw, 6rem);
+    overflow-y: auto;
+  }
+
+  /* ── NAV BAR ────────────────────────────────────────── */
+  .nav-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .6rem 1.2rem;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: .6rem;
+  }
+  .nav-btn {
+    background: var(--border); border: none; color: var(--text);
+    width: 2.4rem; height: 2.4rem; border-radius: .5rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1rem; transition: background .2s, transform .15s;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover  { background: var(--accent2); transform: scale(1.05); }
+  .nav-btn:active { transform: scale(.95); }
+  .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; color: var(--muted); white-space: nowrap;
+  }
+  .slide-dots {
+    display: flex; gap: .35rem; flex-wrap: wrap;
+    justify-content: center; flex: 1;
+  }
+  .dot {
+    width: .45rem; height: .45rem; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: background .25s, transform .25s;
+  }
+  .dot.active { background: var(--accent); transform: scale(1.5); }
+
+  /* ── SHARED SLIDE COMPONENTS ────────────────────────── */
+  .slide-inner {
+    width: 100%; max-width: 900px;
+  }
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem; letter-spacing: .08em;
+    padding: .25rem .65rem; border-radius: .25rem;
+    border: 1px solid rgba(0,212,170,.2);
+    margin-bottom: .9rem; text-transform: uppercase;
+  }
+  .tag.blue  { background: rgba(59,130,246,.12); color: var(--accent2); border-color: rgba(59,130,246,.2); }
+  .tag.amber { background: rgba(245,158,11,.12); color: var(--accent3); border-color: rgba(245,158,11,.2); }
+  .tag.red   { background: rgba(248,113,113,.12); color: var(--red);    border-color: rgba(248,113,113,.2); }
+
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.6rem,5vw,3.2rem); font-weight:800; line-height:1.1; }
+  h2 { font-family: 'Syne', sans-serif; font-size: clamp(1.2rem,3.5vw,2rem); font-weight:700; margin-bottom: 1rem; }
+  h3 { font-family: 'Syne', sans-serif; font-size: clamp(1rem,2.5vw,1.25rem); font-weight:600; margin-bottom:.5rem; color: var(--accent); }
+  p  { line-height: 1.7; color: #94a3b8; margin-bottom: .6rem; }
+
+  .accent { color: var(--accent); }
+  .accent2 { color: var(--accent2); }
+  .accent3 { color: var(--accent3); }
+  .red-text { color: var(--red); }
+
+  /* code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: .5rem;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    margin: .8rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(.7rem, 1.4vw, .88rem);
+    line-height: 1.65;
+    tab-size: 4;
+  }
+  .kw  { color: #c792ea; }   /* keyword */
+  .fn  { color: #82aaff; }   /* function */
+  .str { color: #c3e88d; }   /* string */
+  .num { color: #f78c6c; }   /* number */
+  .cmt { color: #546e7a; font-style: italic; } /* comment */
+  .var { color: #eeffff; }
+  .out { color: var(--accent3); }
+
+  /* info cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: .9rem; margin-top: 1rem;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: 1rem 1.1rem;
+    transition: border-color .2s, transform .2s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card-icon { font-size: 1.5rem; margin-bottom: .4rem; }
+  .card h3   { font-size: .88rem; margin-bottom: .3rem; }
+  .card p    { font-size: .8rem; color: var(--muted); margin:0; }
+
+  /* two-col layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem; margin-top: .8rem;
+  }
+  @media (max-width:600px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* highlight box */
+  .box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: .9rem 1.1rem;
+    margin: .7rem 0;
+  }
+  .box.green  { border-left: 3px solid var(--accent);  background: rgba(0,212,170,.06); }
+  .box.blue   { border-left: 3px solid var(--accent2); background: rgba(59,130,246,.06); }
+  .box.amber  { border-left: 3px solid var(--accent3); background: rgba(245,158,11,.06); }
+  .box.danger { border-left: 3px solid var(--red);     background: rgba(248,113,113,.06); }
+
+  /* table */
+  .df-table {
+    border-collapse: collapse; width: 100%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(.65rem, 1.3vw, .82rem);
+    margin: .8rem 0;
+  }
+  .df-table th {
+    background: rgba(0,212,170,.15);
+    color: var(--accent); font-weight:600;
+    padding: .45rem .8rem; text-align:center;
+    border: 1px solid var(--border);
+  }
+  .df-table td {
+    padding: .35rem .8rem; text-align:center;
+    border: 1px solid var(--border);
+    color: #94a3b8;
+  }
+  .df-table tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  .df-table .idx { color: var(--muted); }
+
+  /* bullet list */
+  ul.notes { list-style: none; margin: .6rem 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+  ul.notes li { display: flex; gap: .7rem; align-items: flex-start; color: #94a3b8; font-size: .9rem; line-height: 1.55; }
+  ul.notes li::before { content: '▸'; color: var(--accent); flex-shrink: 0; margin-top: .05rem; }
+
+  /* method pill */
+  .pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .72rem; padding: .18rem .55rem;
+    border-radius: .3rem;
+    background: rgba(59,130,246,.15);
+    color: var(--accent2); border: 1px solid rgba(59,130,246,.25);
+    white-space: nowrap;
+  }
+  .pill.green { background: rgba(0,212,170,.12); color: var(--accent); border-color: rgba(0,212,170,.25); }
+  .pill.amber { background: rgba(245,158,11,.12); color: var(--accent3); border-color: rgba(245,158,11,.25); }
+  .pill.red   { background: rgba(248,113,113,.12); color: var(--red); border-color: rgba(248,113,113,.25); }
+
+  /* title slide special */
+  .title-slide {
+    background:
+      radial-gradient(ellipse 70% 60% at 80% 20%, rgba(0,212,170,.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 20% 80%, rgba(59,130,246,.07) 0%, transparent 60%),
+      var(--bg);
+    text-align: center; align-items: center;
+  }
+  .title-slide h1 { font-size: clamp(2rem,6vw,3.8rem); margin-bottom: .6rem; }
+  .title-slide .subtitle { color: var(--muted); font-size: clamp(.85rem,2vw,1.1rem); max-width: 600px; margin: 0 auto 1.2rem; }
+  .exp-badges { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; margin-top: .8rem; }
+  .exp-badge {
+    padding: .4rem 1rem; border-radius: 2rem;
+    font-family: 'Syne',sans-serif; font-size: .8rem; font-weight:700;
+    border: 1px solid;
+  }
+  .exp-badge.e4 { background: rgba(0,212,170,.1);  color: var(--accent);  border-color: rgba(0,212,170,.3); }
+  .exp-badge.e5 { background: rgba(59,130,246,.1);  color: var(--accent2); border-color: rgba(59,130,246,.3); }
+  .exp-badge.e6 { background: rgba(245,158,11,.1);  color: var(--accent3); border-color: rgba(245,158,11,.3); }
+
+  /* section divider slide */
+  .divider-slide {
+    background:
+      radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,212,170,.06) 0%, transparent 70%),
+      var(--bg);
+    text-align: center;
+  }
+  .big-num {
+    font-family: 'Syne',sans-serif; font-size: clamp(4rem,14vw,9rem);
+    font-weight: 800; line-height: 1;
+    -webkit-text-stroke: 2px var(--accent);
+    color: transparent; user-select: none;
+  }
+
+  /* NaN special highlight */
+  .nan-box {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono',monospace; font-size: 1.1rem;
+    font-weight: 700; color: var(--red);
+    background: rgba(248,113,113,.12); border: 2px dashed rgba(248,113,113,.4);
+    border-radius: .5rem; padding: .5rem 1.2rem; margin: .3rem;
+    letter-spacing: .05em;
+  }
+
+  /* step list */
+  .steps { display: flex; flex-direction:column; gap: .75rem; margin-top:.8rem; }
+  .step  { display: flex; gap: .9rem; align-items: flex-start; }
+  .step-num {
+    flex-shrink:0; width: 1.8rem; height: 1.8rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: .4rem; display: flex; align-items:center; justify-content:center;
+    font-family:'Syne',sans-serif; font-weight:700; font-size:.78rem; color:#000;
+  }
+  .step-body h3 { margin-bottom:.15rem; color: var(--text); }
+  .step-body p  { font-size:.82rem; margin:0; }
+
+  /* keyboard hint */
+  .kbd-hint {
+    font-size: .72rem; color: var(--muted); text-align:center; padding:.3rem;
+    font-family:'JetBrains Mono',monospace;
+  }
+  kbd {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: .25rem; padding: .1rem .35rem;
+    font-size: .7rem;
+  }
+
+  /* agenda items */
+  .agenda-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: .8rem; margin-top: 1rem;
+  }
+  .agenda-item {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: .6rem; padding: .85rem 1rem;
+    display: flex; flex-direction: column; gap: .35rem;
+  }
+  .agenda-item .num { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; }
+
+  /* scrollable slide */
+  .slide { scroll-behavior: smooth; }
+
+  @media(max-width:480px) {
+    .slide { padding: 1rem .9rem; justify-content: flex-start; padding-top:1.5rem; }
+    .nav-bar { padding: .5rem .7rem; }
+    .slide-dots { max-width: 60vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="slides-viewport">
+    <div class="slides-track" id="slidesTrack">
+
+      <!-- ═══ SLIDE 0 – TITLE ═══════════════════════════════════════════ -->
+      <div class="slide title-slide">
+        <div class="slide-inner" style="text-align:center">
+          <div class="tag" style="margin-bottom:1.2rem">BTech Lab · Pandas Concepts</div>
+          <h1>Pandas <span class="accent">Essentials</span><br/>for the Lab</h1>
+          <p class="subtitle">All the core concepts you need to understand before writing code for Experiments 4, 5 & 6</p>
+          <div class="exp-badges">
+            <span class="exp-badge e4">Exp 4 · Array Powers</span>
+            <span class="exp-badge e5">Exp 5 · First N Rows</span>
+            <span class="exp-badge e6">Exp 6 · Missing Values</span>
+          </div>
+          <p style="margin-top:1.4rem; color:var(--muted); font-size:.8rem">Use ← → keys or the buttons below to navigate</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 1 – SESSION MAP ════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag blue">Session Overview</div>
+          <h2>What We Cover Today</h2>
+          <div class="agenda-grid">
+            <div class="agenda-item">
+              <div class="num accent">01</div>
+              <h3>NumPy & Pandas Basics</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Libraries, imports, array creation</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num accent">02</div>
+              <h3>DataFrame Creation</h3>
+              <p style="font-size:.78rem;color:var(--muted)">From dict, column/index types</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num" style="color:var(--accent)">03</div>
+              <h3>Element-wise Powers</h3>
+              <p style="font-size:.78rem;color:var(--muted)">np.power, ** operator</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num" style="color:var(--accent2)">04</div>
+              <h3>Selecting Rows</h3>
+              <p style="font-size:.78rem;color:var(--muted)">head(), tail(), loc, iloc</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num" style="color:var(--accent3)">05</div>
+              <h3>Missing Values (NaN)</h3>
+              <p style="font-size:.78rem;color:var(--muted)">What NaN is, how it arises</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num" style="color:var(--red)">06</div>
+              <h3>Handling Missing Data</h3>
+              <p style="font-size:.78rem;color:var(--muted)">isnull, fillna, dropna</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 2 – IMPORTS ════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Libraries</div>
+          <h2>Importing NumPy &amp; Pandas</h2>
+          <p>Before writing any data code, you must import the two powerhouse libraries. These are already installed in your lab environment.</p>
+          <pre><span class="kw">import</span> <span class="var">numpy</span> <span class="kw">as</span> <span class="fn">np</span>    <span class="cmt"># array math, element-wise ops</span>
+<span class="kw">import</span> <span class="var">pandas</span> <span class="kw">as</span> <span class="fn">pd</span>   <span class="cmt"># DataFrames &amp; Series</span></pre>
+          <div class="cards">
+            <div class="card">
+              <div class="card-icon">🔢</div>
+              <h3>NumPy</h3>
+              <p>N-dimensional arrays, mathematical functions like <span class="pill green">np.power</span>. The backbone of scientific Python.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon">🐼</div>
+              <h3>Pandas</h3>
+              <p>Built on top of NumPy. Provides <strong>DataFrame</strong> (2-D table) and <strong>Series</strong> (1-D column) — your main tools today.</p>
+            </div>
+          </div>
+          <div class="box green" style="margin-top:1rem">
+            <h3 style="color:var(--text);font-size:.85rem">Convention Matters</h3>
+            <p style="margin:0;font-size:.82rem">Always use <code style="color:var(--accent)">np</code> and <code style="color:var(--accent)">pd</code> as aliases — every textbook, tutorial and StackOverflow answer uses them.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 3 – NDARRAY ════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">NumPy</div>
+          <h2>NumPy Arrays (ndarray)</h2>
+          <p>A NumPy array is a <em>grid of same-type values</em>. Unlike a Python list, every operation on it works <strong>element-by-element</strong> automatically.</p>
+          <pre><span class="var">a</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>])
+<span class="var">b</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>])
+
+<span class="fn">print</span>(<span class="var">a</span> + <span class="var">b</span>)   <span class="cmt"># [3, 5, 7]  ← adds index-by-index</span>
+<span class="fn">print</span>(<span class="var">a</span> * <span class="var">b</span>)   <span class="cmt"># [2, 6, 12]</span>
+<span class="fn">print</span>(<span class="var">a</span> ** <span class="var">b</span>)  <span class="cmt"># [2, 9, 64] ← element-wise power!</span></pre>
+          <div class="two-col">
+            <div class="box blue">
+              <h3>Key property: Broadcasting</h3>
+              <p style="font-size:.82rem">An operation between two same-shape arrays is done <em>position by position</em>. No loops needed.</p>
+            </div>
+            <div class="box amber">
+              <h3>dtype</h3>
+              <p style="font-size:.82rem">All elements share one data type (<span class="pill amber">int64</span>, <span class="pill amber">float64</span>…). Pandas inherits this for DataFrame columns.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 4 – NP.POWER ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Exp 4 · Core Concept</div>
+          <h2><span class="accent">np.power()</span> — Element-wise Raise</h2>
+          <p><span class="pill green">np.power(x1, x2)</span> raises each element of <strong>x1</strong> to the corresponding element of <strong>x2</strong>.</p>
+          <pre><span class="fn">np</span>.<span class="fn">power</span>(<span class="var">x1</span>, <span class="var">x2</span>)
+<span class="cmt"># x1 → base array  |  x2 → exponent array</span>
+<span class="cmt"># result[i] = x1[i] ** x2[i]  for every i</span></pre>
+          <div class="box green" style="margin-top:.6rem">
+            <h3 style="color:var(--text)">Concrete Example</h3>
+            <pre style="margin-top:.4rem"><span class="var">bases</span>  = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>])
+<span class="var">exps</span>   = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">3</span>, <span class="num">2</span>, <span class="num">1</span>])
+<span class="var">result</span> = <span class="fn">np</span>.<span class="fn">power</span>(<span class="var">bases</span>, <span class="var">exps</span>)
+<span class="cmt"># result → [8, 9, 4]</span>
+<span class="cmt">#           2³ 3² 4¹</span></pre>
+          </div>
+          <ul class="notes" style="margin-top:.8rem">
+            <li>Works on 1-D arrays, 2-D arrays, and entire DataFrame columns</li>
+            <li><span class="pill green">**</span> operator does the same thing: <code style="color:var(--accent)">a ** b</code> equals <code style="color:var(--accent)">np.power(a,b)</code></li>
+            <li>Both arrays must be the same shape (or broadcastable)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 5 – DATAFRAME CREATION ════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag blue">Exp 4 &amp; 5 · Core Concept</div>
+          <h2>Creating a <span class="accent2">DataFrame</span></h2>
+          <p>A DataFrame is a <strong>2-D labelled table</strong> — think of it as an Excel sheet inside Python. The most common way to build one is from a <strong>dictionary</strong>.</p>
+          <pre><span class="var">data</span> = {
+    <span class="str">'X'</span>: [<span class="num">78</span>, <span class="num">85</span>, <span class="num">96</span>],
+    <span class="str">'Y'</span>: [<span class="num">84</span>, <span class="num">94</span>, <span class="num">89</span>],
+    <span class="str">'Z'</span>: [<span class="num">86</span>, <span class="num">97</span>, <span class="num">96</span>],
+}
+<span class="var">df</span> = <span class="fn">pd</span>.<span class="fn">DataFrame</span>(<span class="var">data</span>)
+<span class="fn">print</span>(<span class="var">df</span>)</pre>
+          <table class="df-table" style="margin-top:.8rem">
+            <tr><th></th><th>X</th><th>Y</th><th>Z</th></tr>
+            <tr><td class="idx">0</td><td>78</td><td>84</td><td>86</td></tr>
+            <tr><td class="idx">1</td><td>85</td><td>94</td><td>97</td></tr>
+            <tr><td class="idx">2</td><td>96</td><td>89</td><td>96</td></tr>
+          </table>
+          <div class="two-col" style="margin-top:.7rem">
+            <div class="box blue">
+              <h3>Dictionary keys → Columns</h3>
+              <p style="font-size:.8rem">Each key becomes a column name. All lists must be equal length.</p>
+            </div>
+            <div class="box green">
+              <h3>Auto Index (0, 1, 2…)</h3>
+              <p style="font-size:.8rem">Pandas assigns a numeric row index unless you provide custom labels.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 6 – CUSTOM INDEX ═══════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag blue">Exp 5 · Core Concept</div>
+          <h2>Custom Row <span class="accent2">Labels</span> (index=)</h2>
+          <p>For Exp-5 the DataFrame uses <em>letter labels</em> instead of numbers. Pass your list of labels using the <span class="pill">index=</span> parameter.</p>
+          <pre><span class="var">labels</span> = [<span class="str">'a'</span>, <span class="str">'b'</span>, <span class="str">'c'</span>, <span class="str">'d'</span>, <span class="str">'e'</span>,
+           <span class="str">'f'</span>, <span class="str">'g'</span>, <span class="str">'h'</span>, <span class="str">'i'</span>, <span class="str">'j'</span>]
+
+<span class="var">df</span> = <span class="fn">pd</span>.<span class="fn">DataFrame</span>(<span class="var">exam_data</span>, <span class="var">index</span>=<span class="var">labels</span>)</pre>
+          <div class="box amber" style="margin-top:.8rem">
+            <h3 style="color:var(--text)">Why custom labels matter</h3>
+            <ul class="notes">
+              <li>Row labels become the <strong>index</strong> used by <span class="pill green">loc[]</span></li>
+              <li>Numeric position is still used by <span class="pill">iloc[]</span> (0-based, always)</li>
+              <li>Labels survive sorting, filtering, and merging — numbers don't</li>
+            </ul>
+          </div>
+          <div class="box green" style="margin-top:.7rem">
+            <h3 style="color:var(--text)">np.nan in data</h3>
+            <p style="font-size:.82rem">When building the dictionary, use <span class="pill green">np.nan</span> for missing entries. This requires importing NumPy first. It is the standard float sentinel for "no value".</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 7 – HEAD / TAIL ════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag blue">Exp 5 · Core Concept</div>
+          <h2>Viewing Rows: <span class="accent2">head()</span> &amp; <span class="accent2">tail()</span></h2>
+          <p>These are the two most-used methods for peeking at a DataFrame quickly.</p>
+          <div class="two-col">
+            <div>
+              <div class="box blue">
+                <span class="pill">df.head(n)</span>
+                <p style="margin-top:.5rem;font-size:.82rem">Returns the <strong>first n rows</strong>. Default is 5 if you omit the argument.</p>
+              </div>
+              <pre style="margin-top:.6rem"><span class="var">df</span>.<span class="fn">head</span>(<span class="num">3</span>)   <span class="cmt"># rows a, b, c</span>
+<span class="var">df</span>.<span class="fn">head</span>()    <span class="cmt"># rows a–e (first 5)</span></pre>
+            </div>
+            <div>
+              <div class="box green">
+                <span class="pill green">df.tail(n)</span>
+                <p style="margin-top:.5rem;font-size:.82rem">Returns the <strong>last n rows</strong>. Also defaults to 5.</p>
+              </div>
+              <pre style="margin-top:.6rem"><span class="var">df</span>.<span class="fn">tail</span>(<span class="num">3</span>)   <span class="cmt"># rows h, i, j</span>
+<span class="var">df</span>.<span class="fn">tail</span>()    <span class="cmt"># rows f–j (last 5)</span></pre>
+            </div>
+          </div>
+          <div class="box amber" style="margin-top:.9rem">
+            <h3 style="color:var(--text)">Analogy</h3>
+            <p style="font-size:.82rem">Think of head/tail like a newspaper — <strong>head</strong> shows the headline section, <strong>tail</strong> shows the classifieds at the back. Both give you a slice without changing the original.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 8 – LOC / ILOC ═════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag blue">Row Selection</div>
+          <h2><span class="accent2">loc</span> vs <span class="accent">iloc</span> — Know the Difference</h2>
+          <p>Two indexers that look similar but behave differently:</p>
+          <div class="two-col">
+            <div class="box blue">
+              <span class="pill">df.loc[label]</span>
+              <p style="margin-top:.5rem;font-size:.82rem"><strong>Label-based.</strong> Use the actual index labels ('a', 'b'…). End of slice is <em>inclusive</em>.</p>
+              <pre style="margin-top:.5rem;font-size:.75rem"><span class="var">df</span>.<span class="fn">loc</span>[<span class="str">'a'</span>:<span class="str">'c'</span>]
+<span class="cmt"># rows a, b, c  ✓</span></pre>
+            </div>
+            <div class="box green">
+              <span class="pill green">df.iloc[position]</span>
+              <p style="margin-top:.5rem;font-size:.82rem"><strong>Position-based.</strong> Always 0-indexed integers. End of slice is <em>exclusive</em>.</p>
+              <pre style="margin-top:.5rem;font-size:.75rem"><span class="var">df</span>.<span class="fn">iloc</span>[<span class="num">0</span>:<span class="num">3</span>]
+<span class="cmt"># positions 0,1,2  ✓</span></pre>
+            </div>
+          </div>
+          <table class="df-table" style="margin-top:.9rem">
+            <tr><th>Indexer</th><th>Works with</th><th>Slice end</th><th>Example</th></tr>
+            <tr><td><span class="pill">loc</span></td><td>Index labels</td><td>Inclusive</td><td><code style="color:var(--accent2)">df.loc['a':'c']</code></td></tr>
+            <tr><td><span class="pill green">iloc</span></td><td>Integer position</td><td>Exclusive</td><td><code style="color:var(--accent)">df.iloc[0:3]</code></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 9 – SECTION BREAK: MISSING VALUES ══════════════════ -->
+      <div class="slide divider-slide">
+        <div class="slide-inner" style="text-align:center">
+          <div class="big-num">NaN</div>
+          <div class="tag red" style="margin-top:1rem">Exp 6 · Missing Values</div>
+          <h2 style="margin-top:.5rem">What is a <span class="red-text">Missing Value</span>?</h2>
+          <p style="max-width:500px;margin:0 auto;margin-top:.5rem">Next up: understanding why missing values appear, how to detect them, and the three strategies to handle them.</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 10 – WHAT IS NaN ════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Exp 6 · Core Concept</div>
+          <h2>Understanding <span class="red-text">NaN</span></h2>
+          <p><strong>NaN</strong> = "Not a Number". In Pandas, it represents a <em>missing or undefined value</em> in a floating-point column.</p>
+          <div class="cards">
+            <div class="card">
+              <div class="nan-box">NaN</div>
+              <h3 style="margin-top:.4rem">It is a float</h3>
+              <p>Pandas uses Python's <code style="color:var(--accent)">float('nan')</code> from IEEE-754. It propagates: <code>NaN + 5 = NaN</code></p>
+            </div>
+            <div class="card">
+              <div class="card-icon">📭</div>
+              <h3>Where it comes from</h3>
+              <p>Missing survey answers, failed sensor readings, unfilled form fields, data import errors.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon">⚠️</div>
+              <h3>Why it matters</h3>
+              <p>Most statistical functions skip or miscount NaN. You must <em>decide</em> what to do with it before analysis.</p>
+            </div>
+          </div>
+          <div class="box danger" style="margin-top:.9rem">
+            <h3 style="color:var(--text)">NaN ≠ 0 &nbsp;|&nbsp; NaN ≠ empty string &nbsp;|&nbsp; NaN ≠ None</h3>
+            <p style="font-size:.82rem">All three look "empty" but are treated differently by Pandas. <span class="pill red">isnull()</span> catches <strong>only</strong> NaN and None (Python's null). Zero and empty strings are valid values.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 11 – DETECTING NaN ═════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Exp 6 · Core Concept</div>
+          <h2>Detecting Missing Values</h2>
+          <p>Before you fix missing data, you must <em>find</em> it. Pandas gives you several tools:</p>
+          <pre><span class="var">df</span>.<span class="fn">isnull</span>()        <span class="cmt"># True where NaN, False elsewhere</span>
+<span class="var">df</span>.<span class="fn">isna</span>()           <span class="cmt"># alias — exactly the same</span>
+<span class="var">df</span>.<span class="fn">notnull</span>()        <span class="cmt"># inverse: True where value exists</span>
+
+<span class="var">df</span>.<span class="fn">isnull</span>().<span class="fn">sum</span>()   <span class="cmt"># count NaNs per column ★ most useful</span>
+<span class="var">df</span>.<span class="fn">isnull</span>().<span class="fn">any</span>()   <span class="cmt"># True/False per column: any NaN?</span></pre>
+          <div class="two-col" style="margin-top:.7rem">
+            <div class="box danger">
+              <h3 style="color:var(--text)">Output of isnull()</h3>
+              <p style="font-size:.8rem">Returns a <strong>boolean DataFrame</strong> — same shape, but each cell is True/False. You can chain with .sum() to count per column.</p>
+            </div>
+            <div class="box amber">
+              <h3 style="color:var(--text)">Exam-data example</h3>
+              <p style="font-size:.8rem">In Exp-5 data, <code style="color:var(--accent)">score</code> has 2 NaNs (rows d & h). Running <code style="color:var(--accent3)">df['score'].isnull().sum()</code> returns <strong>2</strong>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 12 – FILLNA ═════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Exp 6 · Core Concept</div>
+          <h2><span class="red-text">fillna()</span> — Replace Missing Values</h2>
+          <p><span class="pill red">df.fillna(value)</span> substitutes every NaN with a value you choose. It returns a new DataFrame by default.</p>
+          <pre><span class="cmt"># Fill with a fixed number</span>
+<span class="var">df</span>.<span class="fn">fillna</span>(<span class="num">0</span>)
+
+<span class="cmt"># Fill with column mean (very common in data science)</span>
+<span class="var">df</span>[<span class="str">'score'</span>].<span class="fn">fillna</span>(<span class="var">df</span>[<span class="str">'score'</span>].<span class="fn">mean</span>())
+
+<span class="cmt"># Fill forward (use previous row's value)</span>
+<span class="var">df</span>.<span class="fn">fillna</span>(<span class="var">method</span>=<span class="str">'ffill'</span>)
+
+<span class="cmt"># Fill backward (use next row's value)</span>
+<span class="var">df</span>.<span class="fn">fillna</span>(<span class="var">method</span>=<span class="str">'bfill'</span>)</pre>
+          <div class="box amber" style="margin-top:.7rem">
+            <h3 style="color:var(--text)">inplace=True</h3>
+            <p style="font-size:.82rem">By default fillna returns a copy. Add <span class="pill amber">inplace=True</span> to modify the original DataFrame directly: <code style="color:var(--accent3)">df.fillna(0, inplace=True)</code></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 13 – DROPNA ═════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Exp 6 · Core Concept</div>
+          <h2><span class="red-text">dropna()</span> — Remove Missing Rows</h2>
+          <p><span class="pill red">df.dropna()</span> removes any row (or column) that contains at least one NaN.</p>
+          <pre><span class="cmt"># Drop every row that has ANY NaN</span>
+<span class="var">df</span>.<span class="fn">dropna</span>()
+
+<span class="cmt"># Drop only rows where ALL values are NaN</span>
+<span class="var">df</span>.<span class="fn">dropna</span>(<span class="var">how</span>=<span class="str">'all'</span>)
+
+<span class="cmt"># Drop columns instead of rows</span>
+<span class="var">df</span>.<span class="fn">dropna</span>(<span class="var">axis</span>=<span class="num">1</span>)
+
+<span class="cmt"># Keep rows that have at least 3 non-NaN values</span>
+<span class="var">df</span>.<span class="fn">dropna</span>(<span class="var">thresh</span>=<span class="num">3</span>)</pre>
+          <div class="two-col" style="margin-top:.7rem">
+            <div class="box danger">
+              <h3 style="color:var(--text)">When to drop</h3>
+              <p style="font-size:.8rem">Only drop when the missing rows are few and random. Dropping too many rows can introduce <em>bias</em> into your analysis.</p>
+            </div>
+            <div class="box blue">
+              <h3 style="color:var(--text)">When to fill</h3>
+              <p style="font-size:.8rem">Fill when you have a sensible substitute (mean, 0, the next known value). Filling preserves dataset size.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 14 – STRATEGY TABLE ════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Exp 6 · Strategy Guide</div>
+          <h2>Choosing the Right Strategy</h2>
+          <table class="df-table" style="margin-top:.8rem">
+            <tr>
+              <th>Situation</th>
+              <th>Best Approach</th>
+              <th>Method</th>
+            </tr>
+            <tr>
+              <td style="text-align:left">No meaningful substitute exists, row is mostly empty</td>
+              <td>Drop the row</td>
+              <td><span class="pill red">dropna()</span></td>
+            </tr>
+            <tr>
+              <td style="text-align:left">Numerical column, want to preserve size</td>
+              <td>Fill with mean/median</td>
+              <td><span class="pill red">fillna(mean)</span></td>
+            </tr>
+            <tr>
+              <td style="text-align:left">Categorical column (Yes/No)</td>
+              <td>Fill with mode</td>
+              <td><span class="pill red">fillna(mode[0])</span></td>
+            </tr>
+            <tr>
+              <td style="text-align:left">Time-series / ordered data</td>
+              <td>Forward or backward fill</td>
+              <td><span class="pill red">fillna(method='ffill')</span></td>
+            </tr>
+            <tr>
+              <td style="text-align:left">Replacement value is known (e.g., 0)</td>
+              <td>Fill with constant</td>
+              <td><span class="pill red">fillna(0)</span></td>
+            </tr>
+          </table>
+          <div class="box amber" style="margin-top:.9rem">
+            <p style="font-size:.82rem; margin:0"><strong>Pro tip:</strong> Always inspect with <span class="pill amber">isnull().sum()</span> <em>before and after</em> any fill or drop to confirm your operation worked as expected.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 15 – USEFUL ATTRIBUTES ═════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Quick Reference</div>
+          <h2>Essential DataFrame Attributes</h2>
+          <p>These attributes let you inspect a DataFrame without printing the whole thing:</p>
+          <pre><span class="var">df</span>.<span class="fn">shape</span>      <span class="cmt"># (rows, cols) — e.g. (10, 4)</span>
+<span class="var">df</span>.<span class="fn">dtypes</span>     <span class="cmt"># data type of each column</span>
+<span class="var">df</span>.<span class="fn">columns</span>    <span class="cmt"># list of column names</span>
+<span class="var">df</span>.<span class="fn">index</span>      <span class="cmt"># row labels</span>
+<span class="var">df</span>.<span class="fn">info</span>()     <span class="cmt"># summary + non-null counts ★</span>
+<span class="var">df</span>.<span class="fn">describe</span>() <span class="cmt"># stats: mean, std, min, max…</span></pre>
+          <div class="cards" style="margin-top:.9rem">
+            <div class="card">
+              <h3 style="color:var(--accent2)">df.info()</h3>
+              <p>Shows column names, non-null count, and dtype. The fastest way to spot missing data at a glance.</p>
+            </div>
+            <div class="card">
+              <h3 style="color:var(--accent3)">df.describe()</h3>
+              <p>Gives count, mean, std, min, percentiles, max for numeric columns. NaN rows are excluded from count.</p>
+            </div>
+            <div class="card">
+              <h3 style="color:var(--accent)">df.shape</h3>
+              <p>A tuple — first number is rows, second is columns. No parentheses — it's a property, not a method.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 16 – SUMMARY ════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Summary</div>
+          <h2>Concepts Covered Today</h2>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <h3>Import NumPy & Pandas</h3>
+                <p><span class="pill green">import numpy as np</span> &nbsp;<span class="pill green">import pandas as pd</span></p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <h3>Element-wise Power (Exp 4)</h3>
+                <p><span class="pill green">np.power(x1, x2)</span> — raises each element of x1 to corresponding element of x2</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <h3>DataFrame from dict + custom index (Exp 5)</h3>
+                <p><span class="pill">pd.DataFrame(data, index=labels)</span> + <span class="pill">df.head(n)</span></p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <h3>Detect Missing Values (Exp 6)</h3>
+                <p><span class="pill red">isnull()</span> &nbsp;/&nbsp; <span class="pill red">isna()</span> &nbsp;/&nbsp; <span class="pill red">isnull().sum()</span></p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">5</div>
+              <div class="step-body">
+                <h3>Handle Missing Values (Exp 6)</h3>
+                <p><span class="pill red">fillna(value)</span> to replace &nbsp;|&nbsp; <span class="pill red">dropna()</span> to remove</p>
+              </div>
+            </div>
+          </div>
+          <div class="box green" style="margin-top:1rem; text-align:center">
+            <p style="margin:0; font-size:.9rem">🎯 <strong>Remember:</strong> Understand the <em>concept</em> first — then the code writes itself.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 17 – OPEN IN GOOGLE COLAB ══════════════════════════ -->
+      <div class="slide title-slide" id="slide-colab">
+        <div class="slide-inner" style="text-align:center">
+          <div class="tag amber" style="margin-bottom:1.2rem">Pandas Notebook</div>
+          <h1 style="font-size:clamp(1.8rem,5vw,3rem); margin-bottom:.7rem">
+            Run the
+            <span class="accent3">Pandas</span>
+            Notebook
+          </h1>
+          <p class="subtitle" style="max-width:520px">
+            Open the accompanying <strong>Pandas.ipynb</strong> notebook directly in
+            Google Colab — no installation needed, runs entirely in your browser.
+          </p>
+
+          <!-- Colab Button -->
+          <a
+            id="colabLink"
+            href="https://colab.research.google.com/github/MohsinFurkh/academic-portal/blob/main/Python%20Programming/Python%20Programming%20Lab/Pandas.ipynb"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="text-decoration:none; display:inline-block; margin-top:1.8rem"
+          >
+            <div class="colab-btn" id="colabBtn">
+              <!-- Colab logo -->
+              <svg width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                <circle cx="12" cy="12" r="10" fill="#F9AB00"/>
+                <circle cx="9" cy="12" r="3" fill="#fff"/>
+                <circle cx="15" cy="12" r="3" fill="#E8710A"/>
+              </svg>
+              <span>Open in Google Colab</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-left:.3rem; flex-shrink:0">
+                <path d="M7 17L17 7M17 7H7M17 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </a>
+
+          <!-- file info badge -->
+          <div style="margin-top:1.4rem; display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap">
+            <span class="exp-badge" style="background:rgba(245,158,11,.1);color:var(--accent3);border-color:rgba(245,158,11,.3); font-family:'JetBrains Mono',monospace; font-size:.72rem; font-weight:500; letter-spacing:.03em">
+              📓 Pandas.ipynb
+            </span>
+            <span class="exp-badge" style="background:rgba(0,212,170,.08);color:var(--accent);border-color:rgba(0,212,170,.25); font-size:.72rem; font-weight:500">
+              ☁️ Runs in Cloud
+            </span>
+            <span class="exp-badge" style="background:rgba(59,130,246,.08);color:var(--accent2);border-color:rgba(59,130,246,.25); font-size:.72rem; font-weight:500">
+              🐍 Python 3
+            </span>
+          </div>
+
+          <p style="margin-top:1.6rem; color:var(--muted); font-size:.78rem">
+            Tip: Sign in with your Google account to save your work in Google Drive.
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /slides-track -->
+  </div><!-- /slides-viewport -->
+
+  <div class="nav-bar">
+    <button class="nav-btn" id="btnPrev" title="Previous (←)">&#8592;</button>
+    <div class="slide-dots" id="dotContainer"></div>
+    <span class="slide-counter" id="slideCounter">1 / 18</span>
+    <button class="nav-btn" id="btnNext" title="Next (→)">&#8594;</button>
+  </div>
+  <div class="kbd-hint" id="kbdHint">Use <kbd>←</kbd> <kbd>→</kbd> arrow keys or swipe to navigate</div>
+</div>
+
+<script>
+(function(){
+  const track    = document.getElementById('slidesTrack');
+  const dots     = document.getElementById('dotContainer');
+  const counter  = document.getElementById('slideCounter');
+  const fill     = document.getElementById('progressFill');
+  const btnPrev  = document.getElementById('btnPrev');
+  const btnNext  = document.getElementById('btnNext');
+  const hint     = document.getElementById('kbdHint');
+
+  const slides   = track.querySelectorAll('.slide');
+  const total    = slides.length;
+  let   current  = 0;
+
+  // build dots
+  for(let i = 0; i < total; i++){
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.addEventListener('click', ()=> go(i));
+    dots.appendChild(d);
+  }
+
+  function go(n){
+    current = Math.max(0, Math.min(total-1, n));
+    track.style.transform = `translateX(-${current * 100}%)`;
+    counter.textContent   = `${current+1} / ${total}`;
+    fill.style.width      = `${((current+1)/total)*100}%`;
+    dots.querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('active', i===current));
+  }
+
+  go(0);
+  btnPrev.addEventListener('click', ()=> go(current-1));
+  btnNext.addEventListener('click', ()=> go(current+1));
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown')  go(current+1);
+    if(e.key==='ArrowLeft' ||e.key==='ArrowUp')    go(current-1);
+    if(e.key==='Home') go(0);
+    if(e.key==='End')  go(total-1);
+  });
+
+  // touch / swipe
+  let tx = 0, ty = 0;
+  track.addEventListener('touchstart', e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
+  track.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - tx;
+    const dy = e.changedTouches[0].clientY - ty;
+    if(Math.abs(dx) > Math.abs(dy) + 20){
+      if(dx < -40) go(current+1);
+      else if(dx > 40) go(current-1);
+    }
+  },{passive:true});
+
+  // hide hint after 5s
+  setTimeout(()=>{ hint.style.opacity='0'; hint.style.transition='opacity 1s'; }, 5000);
+})();
+</script>
+</body>
+</html>
