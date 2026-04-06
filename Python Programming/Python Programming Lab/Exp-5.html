@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Python Lab – Concepts for Exp-5</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── TOKENS ─────────────────────────────────────────── */
+  :root {
+    --bg:        #0d0b14;
+    --panel:     #161324;
+    --border:    #2a2440;
+    --accent:    #8b5cf6; /* Violet */
+    --accent2:   #ec4899; /* Pink */
+    --accent3:   #06b6d4; /* Cyan */
+    --red:       #f43f5e; /* Rose */
+    --text:      #f1f5f9;
+    --muted:     #94a3b8;
+    --code-bg:   #0f0d18;
+    --tag-bg:    rgba(139, 92, 246, 0.12);
+  }
+
+  /* ── COLAB BUTTON ───────────────────────────────────── */
+  .colab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .9rem 2rem;
+    border-radius: 3rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    box-shadow: 0 4px 24px rgba(139, 92, 246, 0.35), 0 1px 4px rgba(0,0,0,.3);
+    transition: transform .2s, box-shadow .2s, filter .2s;
+    cursor: pointer;
+    border: none;
+    letter-spacing: .02em;
+  }
+  .colab-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 8px 36px rgba(236, 72, 153, 0.5), 0 2px 6px rgba(0,0,0,.35);
+    filter: brightness(1.08);
+  }
+  .colab-btn:active {
+    transform: translateY(0) scale(.98);
+  }
+
+  /* ── RESET ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(14px, 1.8vw, 17px);
+  }
+
+  /* ── DECK ───────────────────────────────────────────── */
+  .deck {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+  }
+
+  /* progress bar */
+  .progress-track {
+    width: 100%; height: 3px;
+    background: var(--border);
+    flex-shrink: 0;
+    position: relative; z-index: 10;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .4s ease;
+  }
+
+  /* slides viewport */
+  .slides-viewport {
+    flex: 1; overflow: hidden; position: relative;
+  }
+  .slides-track {
+    display: flex;
+    height: 100%;
+    transition: transform .45s cubic-bezier(.65,0,.35,1);
+    will-change: transform;
+  }
+  .slide {
+    min-width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: clamp(1.2rem, 4vw, 3.5rem) clamp(1rem, 5vw, 6rem);
+    overflow-y: auto;
+  }
+
+  /* ── NAV BAR ────────────────────────────────────────── */
+  .nav-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .6rem 1.2rem;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: .6rem;
+  }
+  .nav-btn {
+    background: var(--border); border: none; color: var(--text);
+    width: 2.4rem; height: 2.4rem; border-radius: .5rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1rem; transition: background .2s, transform .15s;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover  { background: var(--accent2); transform: scale(1.05); }
+  .nav-btn:active { transform: scale(.95); }
+  .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; color: var(--muted); white-space: nowrap;
+  }
+  .slide-dots {
+    display: flex; gap: .35rem; flex-wrap: wrap;
+    justify-content: center; flex: 1;
+  }
+  .dot {
+    width: .45rem; height: .45rem; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: background .25s, transform .25s;
+  }
+  .dot.active { background: var(--accent); transform: scale(1.5); }
+
+  /* ── SHARED SLIDE COMPONENTS ────────────────────────── */
+  .slide-inner {
+    width: 100%; max-width: 900px;
+  }
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem; letter-spacing: .08em;
+    padding: .25rem .65rem; border-radius: .25rem;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    margin-bottom: .9rem; text-transform: uppercase;
+  }
+  .tag.pink { background: rgba(236, 72, 153, 0.12); color: var(--accent2); border-color: rgba(236, 72, 153, 0.2); }
+  .tag.cyan { background: rgba(6, 182, 212, 0.12); color: var(--accent3); border-color: rgba(6, 182, 212, 0.2); }
+
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.6rem,5vw,3.2rem); font-weight:800; line-height:1.1; }
+  h2 { font-family: 'Syne', sans-serif; font-size: clamp(1.2rem,3.5vw,2rem); font-weight:700; margin-bottom: 1rem; }
+  h3 { font-family: 'Syne', sans-serif; font-size: clamp(1rem,2.5vw,1.25rem); font-weight:600; margin-bottom:.5rem; color: var(--accent); }
+  p  { line-height: 1.7; color: var(--muted); margin-bottom: .6rem; }
+
+  .accent { color: var(--accent); }
+  .accent2 { color: var(--accent2); }
+  .accent3 { color: var(--accent3); }
+
+  /* code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: .5rem;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    margin: .8rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(.7rem, 1.4vw, .88rem);
+    line-height: 1.65;
+    tab-size: 4;
+  }
+  .kw  { color: #c792ea; }   /* keyword */
+  .fn  { color: #82aaff; }   /* function */
+  .str { color: #c3e88d; }   /* string */
+  .num { color: #f78c6c; }   /* number */
+  .cmt { color: #546e7a; font-style: italic; } /* comment */
+  .var { color: #eeffff; }
+  .out { color: var(--accent3); }
+
+  /* info cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: .9rem; margin-top: 1rem;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: 1rem 1.1rem;
+    transition: border-color .2s, transform .2s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card-icon { font-size: 1.5rem; margin-bottom: .4rem; }
+  .card h3   { font-size: .88rem; margin-bottom: .3rem; }
+  .card p    { font-size: .8rem; color: var(--muted); margin:0; }
+
+  /* two-col layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem; margin-top: .8rem;
+  }
+  @media (max-width:600px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* highlight box */
+  .box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: .9rem 1.1rem;
+    margin: .7rem 0;
+  }
+  .box.violet { border-left: 3px solid var(--accent);  background: rgba(139, 92, 246,.06); }
+  .box.pink   { border-left: 3px solid var(--accent2); background: rgba(236, 72, 153,.06); }
+  .box.cyan   { border-left: 3px solid var(--accent3); background: rgba(6, 182, 212,.06); }
+
+  /* bullet list */
+  ul.notes { list-style: none; margin: .6rem 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+  ul.notes li { display: flex; gap: .7rem; align-items: flex-start; color: var(--muted); font-size: .9rem; line-height: 1.55; }
+  ul.notes li::before { content: '▸'; color: var(--accent); flex-shrink: 0; margin-top: .05rem; }
+
+  /* method pill */
+  .pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .72rem; padding: .18rem .55rem;
+    border-radius: .3rem;
+    background: rgba(139, 92, 246,.15);
+    color: var(--accent); border: 1px solid rgba(139, 92, 246,.25);
+    white-space: nowrap;
+  }
+  .pill.pink { background: rgba(236, 72, 153,.12); color: var(--accent2); border-color: rgba(236, 72, 153,.25); }
+  .pill.cyan { background: rgba(6, 182, 212,.12); color: var(--accent3); border-color: rgba(6, 182, 212,.25); }
+
+  /* title slide special */
+  .title-slide {
+    background:
+      radial-gradient(ellipse 70% 60% at 80% 20%, rgba(139, 92, 246,.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 20% 80%, rgba(236, 72, 153,.07) 0%, transparent 60%),
+      var(--bg);
+    text-align: center; align-items: center;
+  }
+  .title-slide h1 { font-size: clamp(2rem,6vw,3.8rem); margin-bottom: .6rem; }
+  .title-slide .subtitle { color: var(--muted); font-size: clamp(.85rem,2vw,1.1rem); max-width: 600px; margin: 0 auto 1.2rem; }
+
+  /* section divider slide */
+  .divider-slide {
+    background:
+      radial-gradient(ellipse 60% 60% at 50% 50%, rgba(139, 92, 246,.06) 0%, transparent 70%),
+      var(--bg);
+    text-align: center;
+  }
+  .big-num {
+    font-family: 'Syne',sans-serif; font-size: clamp(4rem,14vw,9rem);
+    font-weight: 800; line-height: 1;
+    -webkit-text-stroke: 2px var(--accent);
+    color: transparent; user-select: none;
+  }
+
+  kbd {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: .25rem; padding: .1rem .35rem;
+    font-size: .7rem;
+  }
+  .kbd-hint {
+    font-size: .72rem; color: var(--muted); text-align:center; padding:.3rem;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  /* agenda items */
+  .agenda-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: .8rem; margin-top: 1rem;
+  }
+  .agenda-item {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: .6rem; padding: .85rem 1rem;
+    display: flex; flex-direction: column; gap: .35rem;
+  }
+  .agenda-item .num { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; }
+
+  .slide { scroll-behavior: smooth; }
+  
+  /* terminal output box */
+  .terminal {
+    background: #000;
+    border: 1px solid #333;
+    border-radius: .3rem;
+    padding: .8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem;
+    color: #4ade80;
+    margin-top: .5rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+
+  @media(max-width:480px) {
+    .slide { padding: 1rem .9rem; justify-content: flex-start; padding-top:1.5rem; }
+    .nav-bar { padding: .5rem .7rem; }
+    .slide-dots { max-width: 60vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="slides-viewport">
+    <div class="slides-track" id="slidesTrack">
+
+      <!-- ═══ SLIDE 0 – TITLE ═══════════════════════════════════════════ -->
+      <div class="slide title-slide">
+        <div class="slide-inner" style="text-align:center">
+          <div class="tag" style="margin-bottom:1.2rem">Python Programming Lab · Exp-5</div>
+          <h1>Understanding Core <span class="accent">Data Structures</span></h1>
+          <p class="subtitle">A definitive guide to Lists, Tuples, and Dictionaries in Python with practical problem-solving applications.</p>
+          <div style="margin-top:1.4rem; display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap">
+            <span class="pill" style="font-size: .9rem; padding: .4rem 1rem;">📦 Lists</span>
+            <span class="pill pink" style="font-size: .9rem; padding: .4rem 1rem;">🔒 Tuples</span>
+            <span class="pill cyan" style="font-size: .9rem; padding: .4rem 1rem;">🔑 Dictionaries</span>
+          </div>
+          <p style="margin-top:1.4rem; color:var(--muted); font-size:.8rem">Use ← → keys or swipe to navigate</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 1 – AGENDA ══════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag cyan">Session Overview</div>
+          <h2>What We Cover Today</h2>
+          <div class="agenda-grid">
+            <div class="agenda-item">
+              <div class="num accent">01</div>
+              <h3>Data Structures</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Theory on Lists, Tuples, and Dictionaries.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num accent2">02</div>
+              <h3>List Algorithms</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Runner-up scores and Frequency counting.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num accent3">03</div>
+              <h3>Dictionary Mapping</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Key-Value bindings for Movies and Students.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num" style="color:var(--red)">04</div>
+              <h3>Building Apps</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Creating Contact Book and To-do Manager loops.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 2 – LISTS ═══════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Foundation</div>
+          <h2>Python <span class="accent">Lists</span></h2>
+          <p>Lists are used to store multiple items in a single variable. They are <strong>ordered, mutable (changeable), and allow duplicate values.</strong></p>
+          <pre><span class="cmt"># Creating a list</span>
+<span class="var">fruits</span> = [<span class="str">"apple"</span>, <span class="str">"banana"</span>, <span class="str">"cherry"</span>]
+
+<span class="cmt"># Mutating a list</span>
+<span class="var">fruits</span>.<span class="fn">append</span>(<span class="str">"orange"</span>)   <span class="cmt"># Adds to the end</span>
+<span class="var">fruits</span>[<span class="num">1</span>] = <span class="str">"mango"</span>       <span class="cmt"># Modifies index 1</span>
+<span class="var">fruits</span>.<span class="fn">pop</span>(<span class="num">0</span>)             <span class="cmt"># Removes item at index 0</span>
+
+<span class="fn">print</span>(<span class="var">fruits</span>)             <span class="cmt"># Output: ['mango', 'cherry', 'orange']</span></pre>
+          <div class="cards">
+            <div class="card">
+              <h3 style="color:var(--accent)">Ordered</h3>
+              <p>Items have a defined order, which will not change. If you add new items, they are placed at the end.</p>
+            </div>
+            <div class="card">
+              <h3 style="color:var(--accent)">Changeable</h3>
+              <p>We can change, add, and remove items in a list after it has been created.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 3 – TUPLES ══════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag pink">Foundation</div>
+          <h2>Python <span class="accent2">Tuples</span></h2>
+          <p>Tuples are identical to lists, but with one critical difference: they are <strong>immutable (unchangeable)</strong>. Once a tuple is created, you cannot change its values.</p>
+          <pre><span class="cmt"># Creating a tuple</span>
+<span class="var">coordinates</span> = (<span class="num">10.5</span>, <span class="num">20.8</span>)
+
+<span class="cmt"># Tuples can be accessed like lists</span>
+<span class="fn">print</span>(<span class="var">coordinates</span>[<span class="num">0</span>])   <span class="cmt"># Output: 10.5</span>
+
+<span class="cmt"># ERROR: coordinates[0] = 11.5 </span>
+<span class="cmt"># "tuple object does not support item assignment"</span></pre>
+          <div class="box pink" style="margin-top:1rem">
+            <h3>When to use Tuples instead of Lists?</h3>
+            <ul class="notes" style="font-size:.85rem; margin-top:.3rem">
+              <li>When your data should NOT be modified accidentally (e.g., configurations, coordinates).</li>
+              <li>Tuples perform memory allocation faster than lists. They are more efficient.</li>
+              <li>They can be used as <em>keys</em> in Dictionaries since they are immutable.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 4 – DICTIONARIES ════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag cyan">Foundation</div>
+          <h2>Python <span class="accent3">Dictionaries</span></h2>
+          <p>Dictionaries are used to store data values in <strong><code>key:value</code></strong> pairs. They are ordered (as of Python 3.7), changeable, and do NOT allow duplicate keys.</p>
+          <pre><span class="cmt"># Creating a dictionary</span>
+<span class="var">car</span> = {
+  <span class="str">"brand"</span>: <span class="str">"Ford"</span>,
+  <span class="str">"model"</span>: <span class="str">"Mustang"</span>,
+  <span class="str">"year"</span>: <span class="num">1964</span>
+}
+
+<span class="cmt"># Accessing attributes via keys</span>
+<span class="fn">print</span>(<span class="var">car</span>[<span class="str">"brand"</span>])     <span class="cmt"># Output: Ford</span>
+<span class="var">car</span>[<span class="str">"year"</span>] = <span class="num">2020</span>      <span class="cmt"># Updates value</span></pre>
+          <ul class="notes" style="margin-top:.8rem">
+            <li><strong>Keys:</strong> Must be immutable types (String, Number, Tuple) and unique.</li>
+            <li><strong>Values:</strong> Can be of any data type (Lists, objects, even other Dicts).</li>
+            <li>Using <code>.get('key')</code> is safer than <code>[]</code> because it avoids KeyErrors if missing.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 5 – EXAMPLE 1 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Problem 1</div>
+          <h2>Frequency of Values from 0-3</h2>
+          <p><strong>Task:</strong> Scan <code>n</code> values in the range <code>0-3</code> and print the number of times each value has occurred.</p>
+          <pre><span class="var">n</span> = <span class="fn">int</span>(<span class="fn">input</span>(<span class="str">"Enter number of values to read: "</span>))
+<span class="var">values</span> = []
+
+<span class="kw">for</span> <span class="var">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="var">n</span>):
+    <span class="var">val</span> = <span class="fn">int</span>(<span class="fn">input</span>(<span class="str">"Enter a value (0-3): "</span>))
+    <span class="kw">if</span> <span class="num">0</span> <= <span class="var">val</span> <= <span class="num">3</span>:
+        <span class="var">values</span>.<span class="fn">append</span>(<span class="var">val</span>)
+    <span class="kw">else</span>:
+        <span class="fn">print</span>(<span class="str">"Ignored: Value must be between 0 and 3."</span>)
+
+<span class="cmt"># Check count for 0, 1, 2, 3</span>
+<span class="kw">for</span> <span class="var">x</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">4</span>):
+    <span class="var">freq</span> = <span class="var">values</span>.<span class="fn">count</span>(<span class="var">x</span>)
+    <span class="fn">print</span>(<span class="str">f"Value {x} occurred {freq} times"</span>)</pre>
+          <div class="terminal">Enter number of values to read: 5
+Enter a value (0-3): 1
+Enter a value (0-3): 1
+Enter a value (0-3): 3
+Enter a value (0-3): 0
+Enter a value (0-3): 1
+Value 0 occurred 1 times
+Value 1 occurred 3 times
+Value 2 occurred 0 times
+Value 3 occurred 1 times</div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 6 – EXAMPLE 2 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag pink">Problem 2</div>
+          <h2>Tuple Average Calculation</h2>
+          <p><strong>Task:</strong> Create a tuple to store <code>n</code> numeric values and find the average of all values.</p>
+          <pre><span class="var">n</span> = <span class="fn">int</span>(<span class="fn">input</span>(<span class="str">"Enter number of values: "</span>))
+<span class="var">temp_list</span> = []
+
+<span class="cmt"># Lists are easier to build dynamically than Tuples</span>
+<span class="kw">for</span> <span class="var">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="var">n</span>):
+    <span class="var">num</span> = <span class="fn">float</span>(<span class="fn">input</span>(<span class="str">"Enter numeric value: "</span>))
+    <span class="var">temp_list</span>.<span class="fn">append</span>(<span class="var">num</span>)
+
+<span class="cmt"># Convert list to tuple</span>
+<span class="var">num_tuple</span> = <span class="fn">tuple</span>(<span class="var">temp_list</span>)
+
+<span class="kw">if</span> <span class="fn">len</span>(<span class="var">num_tuple</span>) > <span class="num">0</span>:
+    <span class="var">avg</span> = <span class="fn">sum</span>(<span class="var">num_tuple</span>) / <span class="fn">len</span>(<span class="var">num_tuple</span>)
+    <span class="fn">print</span>(<span class="str">f"Tuple: {num_tuple}"</span>)
+    <span class="fn">print</span>(<span class="str">f"Average: {avg:.2f}"</span>)</pre>
+          <div class="box pink" style="margin-top:1rem">
+            <h3><span class="card-icon">💡</span> Dynamic Tuple Generation</h3>
+            <p style="font-size:.85rem; margin-top:.3rem">Because tuples are immutable, you cannot use <code>.append()</code> on them. A common pattern is appending to a temporary List and type-casting it to a Tuple at the very end using the <code>tuple()</code> constructor.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 7 – EXAMPLE 3 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Problem 3</div>
+          <h2>The Runner-Up Score</h2>
+          <p><strong>Task:</strong> Input a list of scores for N students. Find the score of the runner-up.</p>
+          <pre><span class="var">n</span> = <span class="fn">int</span>(<span class="fn">input</span>(<span class="str">"N = "</span>))
+<span class="var">input_string</span> = <span class="fn">input</span>(<span class="str">"Scores= "</span>)
+
+<span class="cmt"># The split() splits the string by spaces.</span>
+<span class="cmt"># List comprehension converts strings to integers.</span>
+<span class="var">scores</span> = [<span class="fn">int</span>(<span class="var">x</span>) <span class="kw">for</span> <span class="var">x</span> <span class="kw">in</span> <span class="var">input_string</span>.<span class="fn">split</span>()]
+
+<span class="cmt"># Remove duplicates to handle multiple maximum scores</span>
+<span class="var">unique_scores</span> = <span class="fn">list</span>(<span class="fn">set</span>(<span class="var">scores</span>))
+
+<span class="cmt"># Sort in descending order</span>
+<span class="var">unique_scores</span>.<span class="fn">sort</span>(<span class="fn">reverse</span>=<span class="var">True</span>)
+
+<span class="cmt"># The 0th index is highest, 1st index is runner-up</span>
+<span class="fn">print</span>(<span class="var">unique_scores</span>[<span class="num">1</span>])</pre>
+          <div class="terminal">N = 5
+Scores= 2 3 6 6 5
+5</div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 8 – EXAMPLE 4 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag cyan">Problem 4</div>
+          <h2>Students & Cities Dictionary</h2>
+          <p><strong>Task:</strong> Create a dictionary linking Names (keys) to Cities (values) and execute multiple queries.</p>
+          <pre><span class="var">persons</span> = {<span class="str">"Alice"</span>: <span class="str">"Paris"</span>, <span class="str">"Bob"</span>: <span class="str">"London"</span>, <span class="str">"Charlie"</span>: <span class="str">"Paris"</span>}
+
+<span class="cmt"># a) Display all names (Keys)</span>
+<span class="fn">print</span>(<span class="str">"Names:"</span>, <span class="fn">list</span>(<span class="var">persons</span>.<span class="fn">keys</span>()))
+
+<span class="cmt"># b) Display all cities (Values)</span>
+<span class="fn">print</span>(<span class="str">"Cities:"</span>, <span class="fn">list</span>(<span class="var">persons</span>.<span class="fn">values</span>()))
+
+<span class="cmt"># c) Display student name and city</span>
+<span class="kw">for</span> <span class="var">name</span>, <span class="var">city</span> <span class="kw">in</span> <span class="var">persons</span>.<span class="fn">items</span>():
+    <span class="fn">print</span>(<span class="str">f"{name} -> {city}"</span>)
+
+<span class="cmt"># d) Count number of students in each city</span>
+<span class="var">city_count</span> = {}
+<span class="kw">for</span> <span class="var">city</span> <span class="kw">in</span> <span class="var">persons</span>.<span class="fn">values</span>():
+    <span class="cmt"># .get(city, 0) handles cases where city key is not made yet</span>
+    <span class="var">city_count</span>[<span class="var">city</span>] = <span class="var">city_count</span>.<span class="fn">get</span>(<span class="var">city</span>, <span class="num">0</span>) + <span class="num">1</span>
+
+<span class="fn">print</span>(<span class="str">"Counts:"</span>, <span class="var">city_count</span>)</pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 9 – EXAMPLE 5 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag cyan">Problem 5</div>
+          <h2>Nested Movie Dictionary</h2>
+          <p><strong>Task:</strong> Create a dictionary holding <em>another</em> dictionary (Name -> {Year, Director, Cost, Earnings}). Query specific movies.</p>
+          <pre><span class="var">movies</span> = {
+    <span class="str">"Inception"</span>: {<span class="str">"year"</span>:<span class="num">2010</span>, <span class="str">"dir"</span>:<span class="str">"Nolan"</span>, <span class="str">"cost"</span>:<span class="num">160</span>, <span class="str">"earn"</span>:<span class="num">836</span>},
+    <span class="str">"Avatar"</span>:    {<span class="str">"year"</span>:<span class="num">2009</span>, <span class="str">"dir"</span>:<span class="str">"Cameron"</span>,<span class="str">"cost"</span>:<span class="num">237</span>, <span class="str">"earn"</span>:<span class="num">2900</span>},
+    <span class="str">"Dune"</span>:      {<span class="str">"year"</span>:<span class="num">2021</span>, <span class="str">"dir"</span>:<span class="str">"Villeneuve"</span>,<span class="str">"cost"</span>:<span class="num">165</span>, <span class="str">"earn"</span>:<span class="num">400</span>}
+}
+<span class="fn">print</span>(<span class="str">"--- Movies Before 2015 ---"</span>)
+<span class="kw">for</span> <span class="var">name</span>, <span class="var">info</span> <span class="kw">in</span> <span class="var">movies</span>.<span class="fn">items</span>():
+    <span class="kw">if</span> <span class="var">info</span>[<span class="str">"year"</span>] < <span class="num">2015</span>:  <span class="fn">print</span>(<span class="var">name</span>)
+
+<span class="fn">print</span>(<span class="str">"--- Movies Making Profit ---"</span>)
+<span class="kw">for</span> <span class="var">name</span>, <span class="var">info</span> <span class="kw">in</span> <span class="var">movies</span>.<span class="fn">items</span>():
+    <span class="kw">if</span> <span class="var">info</span>[<span class="str">"earn"</span>] > <span class="var">info</span>[<span class="str">"cost"</span>]: <span class="fn">print</span>(<span class="var">name</span>)
+
+<span class="fn">print</span>(<span class="str">"--- Movies by Nolan ---"</span>)
+<span class="kw">for</span> <span class="var">name</span>, <span class="var">info</span> <span class="kw">in</span> <span class="var">movies</span>.<span class="fn">items</span>():
+    <span class="kw">if</span> <span class="var">info</span>[<span class="str">"dir"</span>] == <span class="str">"Nolan"</span>: <span class="fn">print</span>(<span class="var">name</span>)</pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 10 – EXAMPLE 6 ══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag cyan">Problem 6</div>
+          <h2>Contact Book Manager</h2>
+          <p><strong>Task:</strong> Create a persistent CRUD (Create, Read, Update, Delete) program using a Dictionary.</p>
+          <pre><span class="var">contacts</span> = {}
+<span class="kw">while</span> <span class="var">True</span>:
+    <span class="var">ch</span> = <span class="fn">int</span>(<span class="fn">input</span>(<span class="str">"1.Add 2.Search 3.Delete 4.Exit : "</span>))
+    
+    <span class="kw">if</span> <span class="var">ch</span> == <span class="num">1</span>:
+        <span class="var">name</span> = <span class="fn">input</span>(<span class="str">"Name: "</span>)
+        <span class="var">contacts</span>[<span class="var">name</span>] = <span class="fn">input</span>(<span class="str">"Phone: "</span>)
+        
+    <span class="kw">elif</span> <span class="var">ch</span> == <span class="num">2</span>:
+        <span class="var">name</span> = <span class="fn">input</span>(<span class="str">"Name to search: "</span>)
+        <span class="fn">print</span>(<span class="str">"Found:"</span>, <span class="var">contacts</span>.<span class="fn">get</span>(<span class="var">name</span>, <span class="str">"Not Found"</span>))
+        
+    <span class="kw">elif</span> <span class="var">ch</span> == <span class="num">3</span>:
+        <span class="var">name</span> = <span class="fn">input</span>(<span class="str">"Name to delete: "</span>)
+        <span class="kw">if</span> <span class="var">name</span> <span class="kw">in</span> <span class="var">contacts</span>:
+            <span class="kw">del</span> <span class="var">contacts</span>[<span class="var">name</span>]
+            <span class="fn">print</span>(<span class="str">"Deleted."</span>)
+            
+    <span class="kw">elif</span> <span class="var">ch</span> == <span class="num">4</span>: <span class="kw">break</span></pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 11 – EXAMPLE 7 ══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Problem 7</div>
+          <h2>Todo List Manager</h2>
+          <p><strong>Task:</strong> Create an infinite loop permitting users to push and pop tasks out of a List array.</p>
+          <pre><span class="var">todos</span> = []
+<span class="kw">while</span> <span class="var">True</span>:
+    <span class="fn">print</span>(<span class="str">"1.Add Task  2.View Tasks  3.Remove Task  4.Exit"</span>)
+    <span class="var">ch</span> = <span class="fn">int</span>(<span class="fn">input</span>(<span class="str">"Choice: "</span>))
+    
+    <span class="kw">if</span> <span class="var">ch</span> == <span class="num">1</span>:
+        <span class="var">todos</span>.<span class="fn">append</span>(<span class="fn">input</span>(<span class="str">"Enter new task: "</span>))
+        
+    <span class="kw">elif</span> <span class="var">ch</span> == <span class="num">2</span>:
+        <span class="kw">for</span> <span class="var">idx</span>, <span class="var">task</span> <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="var">todos</span>):
+            <span class="fn">print</span>(<span class="str">f"Task {idx+1}: {task}"</span>)
+            
+    <span class="kw">elif</span> <span class="var">ch</span> == <span class="num">3</span>:
+        <span class="var">idx</span> = <span class="fn">int</span>(<span class="fn">input</span>(<span class="str">"Enter Task Number to Remove: "</span>)) - <span class="num">1</span>
+        <span class="kw">if</span> <span class="num">0</span> <= <span class="var">idx</span> < <span class="fn">len</span>(<span class="var">todos</span>):
+            <span class="var">removed</span> = <span class="var">todos</span>.<span class="fn">pop</span>(<span class="var">idx</span>)
+            <span class="fn">print</span>(<span class="str">f"{removed} successfully removed."</span>)
+        <span class="kw">else</span>:
+            <span class="fn">print</span>(<span class="str">"Invalid ID."</span>)
+            
+    <span class="kw">elif</span> <span class="var">ch</span> == <span class="num">4</span>: <span class="kw">break</span></pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 12 – SUMMARY / COLAB ════════════════════════════════ -->
+      <div class="slide title-slide" id="slide-colab">
+        <div class="slide-inner" style="text-align:center">
+          <div class="tag pink" style="margin-bottom:1.2rem">Wrap Up</div>
+          <h1 style="font-size:clamp(1.8rem,5vw,3rem); margin-bottom:.7rem">
+            Open your
+            <span class="accent2">Python IDE</span>
+          </h1>
+          <p class="subtitle" style="max-width:520px; color:var(--text)">
+            Understanding Data Structures is arguably the most important step of python scripting. It is imperative to perform these labs yourself.
+          </p>
+
+          <a
+            id="colabLink"
+            href="https://colab.research.google.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="text-decoration:none; display:inline-block; margin-top:1.8rem"
+          >
+            <div class="colab-btn" id="colabBtn">
+              <!-- Colab logo -->
+              <svg width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                <circle cx="12" cy="12" r="10" fill="#FFF"/>
+                <circle cx="9" cy="12" r="3" fill="#ec4899"/>
+                <circle cx="15" cy="12" r="3" fill="#8b5cf6"/>
+              </svg>
+              <span>Build Apps in Colab</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-left:.3rem; flex-shrink:0">
+                <path d="M7 17L17 7M17 7H7M17 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /slides-track -->
+  </div><!-- /slides-viewport -->
+
+  <div class="nav-bar">
+    <button class="nav-btn" id="btnPrev" title="Previous (←)">&#8592;</button>
+    <div class="slide-dots" id="dotContainer"></div>
+    <span class="slide-counter" id="slideCounter">1 / 13</span>
+    <button class="nav-btn" id="btnNext" title="Next (→)">&#8594;</button>
+  </div>
+  <div class="kbd-hint" id="kbdHint">Use <kbd>←</kbd> <kbd>→</kbd> arrow keys or swipe to navigate</div>
+</div>
+
+<script>
+(function(){
+  const track    = document.getElementById('slidesTrack');
+  const dots     = document.getElementById('dotContainer');
+  const counter  = document.getElementById('slideCounter');
+  const fill     = document.getElementById('progressFill');
+  const btnPrev  = document.getElementById('btnPrev');
+  const btnNext  = document.getElementById('btnNext');
+  const hint     = document.getElementById('kbdHint');
+
+  const slides   = track.querySelectorAll('.slide');
+  const total    = slides.length;
+  let   current  = 0;
+
+  // build dots
+  for(let i = 0; i < total; i++){
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.addEventListener('click', ()=> go(i));
+    dots.appendChild(d);
+  }
+
+  function go(n){
+    current = Math.max(0, Math.min(total-1, n));
+    track.style.transform = `translateX(-${current * 100}%)`;
+    counter.textContent   = `${current+1} / ${total}`;
+    fill.style.width      = `${((current+1)/total)*100}%`;
+    dots.querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('active', i===current));
+  }
+
+  go(0);
+  btnPrev.addEventListener('click', ()=> go(current-1));
+  btnNext.addEventListener('click', ()=> go(current+1));
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown')  go(current+1);
+    if(e.key==='ArrowLeft' ||e.key==='ArrowUp')    go(current-1);
+    if(e.key==='Home') go(0);
+    if(e.key==='End')  go(total-1);
+  });
+
+  // touch / swipe
+  let tx = 0, ty = 0;
+  track.addEventListener('touchstart', e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
+  track.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - tx;
+    const dy = e.changedTouches[0].clientY - ty;
+    if(Math.abs(dx) > Math.abs(dy) + 20){
+      if(dx < -40) go(current+1);
+      else if(dx > 40) go(current-1);
+    }
+  },{passive:true});
+
+  // hide hint after 5s
+  setTimeout(()=>{ hint.style.opacity='0'; hint.style.transition='opacity 1s'; }, 5000);
+})();
+</script>
+</body>
+</html>

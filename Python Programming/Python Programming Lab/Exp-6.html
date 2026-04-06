@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Python Lab – Concepts for Exp-6</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── TOKENS ─────────────────────────────────────────── */
+  :root {
+    --bg:        #081014;
+    --panel:     #111d24;
+    --border:    #1c2e39;
+    --accent:    #10b981; /* Emerald */
+    --accent2:   #14b8a6; /* Teal */
+    --accent3:   #f59e0b; /* Amber */
+    --red:       #fb7185; /* Rose */
+    --text:      #f0fdfa;
+    --muted:     #94a3b8;
+    --code-bg:   #0d161a;
+    --tag-bg:    rgba(16, 185, 129, 0.12);
+  }
+
+  /* ── COLAB BUTTON ───────────────────────────────────── */
+  .colab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .9rem 2rem;
+    border-radius: 3rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #000;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    box-shadow: 0 4px 24px rgba(16, 185, 129, 0.35), 0 1px 4px rgba(0,0,0,.3);
+    transition: transform .2s, box-shadow .2s, filter .2s;
+    cursor: pointer;
+    border: none;
+    letter-spacing: .02em;
+  }
+  .colab-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 8px 36px rgba(20, 184, 166, 0.5), 0 2px 6px rgba(0,0,0,.35);
+    filter: brightness(1.08); /* Increase brightness safely */
+  }
+  .colab-btn:active {
+    transform: translateY(0) scale(.98);
+  }
+
+  /* ── RESET ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(14px, 1.8vw, 17px);
+  }
+
+  /* ── DECK ───────────────────────────────────────────── */
+  .deck {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+  }
+
+  /* progress bar */
+  .progress-track {
+    width: 100%; height: 3px;
+    background: var(--border);
+    flex-shrink: 0;
+    position: relative; z-index: 10;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .4s ease;
+  }
+
+  /* slides viewport */
+  .slides-viewport {
+    flex: 1; overflow: hidden; position: relative;
+  }
+  .slides-track {
+    display: flex;
+    height: 100%;
+    transition: transform .45s cubic-bezier(.65,0,.35,1);
+    will-change: transform;
+  }
+  .slide {
+    min-width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: clamp(1.2rem, 4vw, 3.5rem) clamp(1rem, 5vw, 6rem);
+    overflow-y: auto;
+  }
+
+  /* ── NAV BAR ────────────────────────────────────────── */
+  .nav-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .6rem 1.2rem;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: .6rem;
+  }
+  .nav-btn {
+    background: var(--border); border: none; color: var(--text);
+    width: 2.4rem; height: 2.4rem; border-radius: .5rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1rem; transition: background .2s, transform .15s;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover  { background: var(--accent2); transform: scale(1.05); }
+  .nav-btn:active { transform: scale(.95); }
+  .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; color: var(--muted); white-space: nowrap;
+  }
+  .slide-dots {
+    display: flex; gap: .35rem; flex-wrap: wrap;
+    justify-content: center; flex: 1;
+  }
+  .dot {
+    width: .45rem; height: .45rem; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: background .25s, transform .25s;
+  }
+  .dot.active { background: var(--accent); transform: scale(1.5); }
+
+  /* ── SHARED SLIDE COMPONENTS ────────────────────────── */
+  .slide-inner {
+    width: 100%; max-width: 900px;
+  }
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem; letter-spacing: .08em;
+    padding: .25rem .65rem; border-radius: .25rem;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    margin-bottom: .9rem; text-transform: uppercase;
+  }
+  .tag.teal { background: rgba(20, 184, 166, 0.12); color: var(--accent2); border-color: rgba(20, 184, 166, 0.2); }
+  .tag.amber { background: rgba(245, 158, 11, 0.12); color: var(--accent3); border-color: rgba(245, 158, 11, 0.2); }
+
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.6rem,5vw,3.2rem); font-weight:800; line-height:1.1; }
+  h2 { font-family: 'Syne', sans-serif; font-size: clamp(1.2rem,3.5vw,2rem); font-weight:700; margin-bottom: 1rem; }
+  h3 { font-family: 'Syne', sans-serif; font-size: clamp(1rem,2.5vw,1.25rem); font-weight:600; margin-bottom:.5rem; color: var(--accent); }
+  p  { line-height: 1.7; color: var(--muted); margin-bottom: .6rem; }
+
+  .accent { color: var(--accent); }
+  .accent2 { color: var(--accent2); }
+  .accent3 { color: var(--accent3); }
+
+  /* code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: .5rem;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    margin: .8rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(.7rem, 1.4vw, .88rem);
+    line-height: 1.65;
+    tab-size: 4;
+  }
+  .kw  { color: #c792ea; }   /* keyword */
+  .fn  { color: #82aaff; }   /* function */
+  .str { color: #c3e88d; }   /* string */
+  .num { color: #f78c6c; }   /* number */
+  .cmt { color: #546e7a; font-style: italic; } /* comment */
+  .var { color: #eeffff; }
+
+  /* info cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: .9rem; margin-top: 1rem;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: 1rem 1.1rem;
+    transition: border-color .2s, transform .2s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card-icon { font-size: 1.5rem; margin-bottom: .4rem; }
+  .card h3   { font-size: .88rem; margin-bottom: .3rem; }
+  .card p    { font-size: .8rem; color: var(--muted); margin:0; }
+
+  /* two-col layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem; margin-top: .8rem;
+  }
+  @media (max-width:600px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* highlight box */
+  .box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: .9rem 1.1rem;
+    margin: .7rem 0;
+  }
+  .box.emerald { border-left: 3px solid var(--accent);  background: rgba(16, 185, 129,.06); }
+  .box.teal    { border-left: 3px solid var(--accent2); background: rgba(20, 184, 166,.06); }
+  .box.amber   { border-left: 3px solid var(--accent3); background: rgba(245, 158, 11,.06); }
+
+  /* bullet list */
+  ul.notes { list-style: none; margin: .6rem 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+  ul.notes li { display: flex; gap: .7rem; align-items: flex-start; color: var(--muted); font-size: .9rem; line-height: 1.55; }
+  ul.notes li::before { content: '▸'; color: var(--accent); flex-shrink: 0; margin-top: .05rem; }
+
+  /* method pill */
+  .pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .72rem; padding: .18rem .55rem;
+    border-radius: .3rem;
+    background: rgba(16, 185, 129,.15);
+    color: var(--accent); border: 1px solid rgba(16, 185, 129,.25);
+    white-space: nowrap;
+  }
+  .pill.teal { background: rgba(20, 184, 166,.12); color: var(--accent2); border-color: rgba(20, 184, 166,.25); }
+  .pill.amber { background: rgba(245, 158, 11,.12); color: var(--accent3); border-color: rgba(245, 158, 11,.25); }
+
+  /* title slide special */
+  .title-slide {
+    background:
+      radial-gradient(ellipse 70% 60% at 80% 20%, rgba(16, 185, 129,.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 20% 80%, rgba(20, 184, 166,.07) 0%, transparent 60%),
+      var(--bg);
+    text-align: center; align-items: center;
+  }
+  .title-slide h1 { font-size: clamp(2rem,6vw,3.8rem); margin-bottom: .6rem; }
+  .title-slide .subtitle { color: var(--muted); font-size: clamp(.85rem,2vw,1.1rem); max-width: 600px; margin: 0 auto 1.2rem; }
+
+  /* section divider slide */
+  .divider-slide {
+    background:
+      radial-gradient(ellipse 60% 60% at 50% 50%, rgba(20, 184, 166,.06) 0%, transparent 70%),
+      var(--bg);
+    text-align: center;
+  }
+  .big-num {
+    font-family: 'Syne',sans-serif; font-size: clamp(4rem,14vw,9rem);
+    font-weight: 800; line-height: 1;
+    -webkit-text-stroke: 2px var(--accent);
+    color: transparent; user-select: none;
+  }
+
+  kbd {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: .25rem; padding: .1rem .35rem;
+    font-size: .7rem;
+  }
+  .kbd-hint {
+    font-size: .72rem; color: var(--muted); text-align:center; padding:.3rem;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  /* agenda items */
+  .agenda-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: .8rem; margin-top: 1rem;
+  }
+  .agenda-item {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: .6rem; padding: .85rem 1rem;
+    display: flex; flex-direction: column; gap: .35rem;
+  }
+  .agenda-item .num { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; }
+
+  .slide { scroll-behavior: smooth; }
+
+  @media(max-width:480px) {
+    .slide { padding: 1rem .9rem; justify-content: flex-start; padding-top:1.5rem; }
+    .nav-bar { padding: .5rem .7rem; }
+    .slide-dots { max-width: 60vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="slides-viewport">
+    <div class="slides-track" id="slidesTrack">
+
+      <!-- ═══ SLIDE 0 – TITLE ═══════════════════════════════════════════ -->
+      <div class="slide title-slide">
+        <div class="slide-inner" style="text-align:center">
+          <div class="tag" style="margin-bottom:1.2rem">Python Programming Lab · Exp-6</div>
+          <h1>Understanding <span class="accent">Functions</span> in Python</h1>
+          <p class="subtitle">A definitive guide to standard functions, recursion, decorators, arguments and lambda expressions.</p>
+          <div style="margin-top:1.4rem; display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap">
+            <span class="pill" style="font-size: .9rem; padding: .4rem 1rem;">🧱 Custom Built</span>
+            <span class="pill teal" style="font-size: .9rem; padding: .4rem 1rem;">🔁 Recursion</span>
+            <span class="pill amber" style="font-size: .9rem; padding: .4rem 1rem;">⚡ Lambdas</span>
+          </div>
+          <p style="margin-top:1.4rem; color:var(--muted); font-size:.8rem">Use ← → keys or swipe to navigate</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 1 – AGENDA ══════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag teal">Session Overview</div>
+          <h2>What We Cover Today</h2>
+          <div class="agenda-grid">
+            <div class="agenda-item">
+              <div class="num accent">01</div>
+              <h3>Function Basics</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Defining tools, tracking mins/maxs, and math logic.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num accent2">02</div>
+              <h3>Recursion</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Eliminating loops to build Fibonacci trees.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num accent3">03</div>
+              <h3>Lambda Functions</h3>
+              <p style="font-size:.78rem;color:var(--muted)">One-line anonymous architectures.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num" style="color:var(--red)">04</div>
+              <h3>Arguments</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Keyword, default, and variable length parsing.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 2 – EXAMPLE 1 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Problem 1</div>
+          <h2>Max and Min <span class="accent">Without Built-Ins</span></h2>
+          <p><strong>Task:</strong> Find the maximum and minimum numbers from a sequence without using the <code>max()</code> or <code>min()</code> functions.</p>
+          <pre><span class="kw">def</span> <span class="fn">find_max_min</span>(<span class="var">sequence</span>):
+    <span class="cmt"># Base case validation</span>
+    <span class="kw">if not</span> <span class="var">sequence</span>:
+        <span class="kw">return</span> <span class="var">None</span>, <span class="var">None</span>
+        
+    <span class="var">max_num</span> = <span class="var">sequence</span>[<span class="num">0</span>]
+    <span class="var">min_num</span> = <span class="var">sequence</span>[<span class="num">0</span>]
+    
+    <span class="kw">for</span> <span class="var">num</span> <span class="kw">in</span> <span class="var">sequence</span>[<span class="num">1</span>:]:
+        <span class="kw">if</span> <span class="var">num</span> > <span class="var">max_num</span>:
+            <span class="var">max_num</span> = <span class="var">num</span>
+        <span class="kw">if</span> <span class="var">num</span> < <span class="var">min_num</span>:
+            <span class="var">min_num</span> = <span class="var">num</span>
+            
+    <span class="kw">return</span> <span class="var">max_num</span>, <span class="var">min_num</span>
+
+<span class="cmt"># Usage:</span>
+<span class="var">m_max</span>, <span class="var">m_min</span> = <span class="fn">find_max_min</span>([<span class="num">10</span>, <span class="num">6</span>, <span class="num">8</span>, <span class="num">90</span>, <span class="num">12</span>, <span class="num">56</span>])
+<span class="fn">print</span>(<span class="str">f"Max: {m_max}, Min: {m_min}"</span>)</pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 3 – EXAMPLE 2 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag teal">Problem 2</div>
+          <h2>Sum of <span class="accent2">Cubes</span> Below N</h2>
+          <p><strong>Task:</strong> Create a function taking an integer and returning the sum of the cubes of all positive integers strictly smaller than it.</p>
+          <pre><span class="kw">def</span> <span class="fn">sum_of_cubes</span>(<span class="var">n</span>):
+    <span class="var">total</span> = <span class="num">0</span>
+    <span class="cmt"># Loop dynamically handles bounds from 1 up to (n-1)</span>
+    <span class="kw">for</span> <span class="var">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="var">n</span>):
+        <span class="var">total</span> += (<span class="var">i</span> ** <span class="num">3</span>)
+        
+    <span class="kw">return</span> <span class="var">total</span>
+
+<span class="cmt"># Alternative Pythonic 1-Liner using generator expression</span>
+<span class="kw">def</span> <span class="fn">sum_of_cubes_fast</span>(<span class="var">n</span>):
+    <span class="kw">return</span> <span class="fn">sum</span>(<span class="var">i</span> ** <span class="num">3</span> <span class="kw">for</span> <span class="var">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="var">n</span>))
+
+<span class="fn">print</span>(<span class="fn">sum_of_cubes</span>(<span class="num">4</span>))  <span class="cmt"># (1^3) + (2^3) + (3^3) = 1 + 8 + 27 = 36</span></pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 4 – RECURSION ═══════════════════════════════════════ -->
+      <div class="slide divider-slide">
+        <div class="slide-inner" style="text-align:center">
+          <div class="big-num">Recursion</div>
+          <div class="tag amber" style="margin-top:1rem">Function calls itself</div>
+          <p style="max-width:500px;margin:0 auto;margin-top:.5rem">Moving away from iteration. We can solve problems recursively by shrinking the problem payload each time a function calls itself until it hits the <strong>base case</strong>.</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 5 – EXAMPLE 3 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag amber">Problem 3</div>
+          <h2>Print 1 to N Using Recursion</h2>
+          <p><strong>Task:</strong> Emulate a loop, printing 1 up to N using a recursive function (no FOR or WHILE statements).</p>
+          <pre><span class="kw">def</span> <span class="fn">print_1_to_n</span>(<span class="var">n</span>):
+    <span class="cmt"># 1. Base statement checks when to break out</span>
+    <span class="kw">if</span> <span class="var">n</span> > <span class="num">0</span>:
+        <span class="cmt"># 2. Call the function with progressively smaller number limit</span>
+        <span class="fn">print_1_to_n</span>(<span class="var">n</span> - <span class="num">1</span>)
+        
+        <span class="cmt"># 3. Operations resolve from bottom to top upon function return</span>
+        <span class="fn">print</span>(<span class="var">n</span>, <span class="fn">end</span>=<span class="str">" "</span>)
+
+<span class="cmt"># Output will be: 1 2 3 4 5  </span>
+<span class="fn">print_1_to_n</span>(<span class="num">5</span>) </pre>
+          <div class="box amber" style="margin-top:1rem">
+            <h3><span class="card-icon">🧠</span> The Call Stack</h3>
+            <p style="font-size:.85rem; margin-top:.3rem">If the print statement was placed <em>before</em> the recursive call, the output would be reversed (`5 4 3 2 1`). By placing it after, the function resolves sequentially starting from the deepest base case calculation.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 6 – EXAMPLE 4 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag amber">Problem 4</div>
+          <h2>Fibonacci Sequence with Recursion</h2>
+          <p><strong>Task:</strong> Recursively output the Fibonacci series up to `N` terms directly mapped through function parameters.</p>
+          <pre><span class="kw">def</span> <span class="fn">recursive_fib</span>(<span class="var">n</span>, <span class="var">a</span>=<span class="num">0</span>, <span class="var">b</span>=<span class="num">1</span>):
+    <span class="cmt"># Break execution lock if N term countdown bottoms out</span>
+    <span class="kw">if</span> <span class="var">n</span> > <span class="num">0</span>:
+        <span class="fn">print</span>(<span class="var">a</span>, <span class="fn">end</span>=<span class="str">" "</span>)
+        <span class="cmt"># n-1 decreases term counter.</span>
+        <span class="cmt"># The next 'a' becomes the current 'b'.</span>
+        <span class="cmt"># The next 'b' becomes 'a + b'.</span>
+        <span class="fn">recursive_fib</span>(<span class="var">n</span>-<span class="num">1</span>, <span class="var">b</span>, <span class="var">a</span>+<span class="var">b</span>)
+
+<span class="fn">recursive_fib</span>(<span class="num">7</span>)
+<span class="cmt"># Process: 0 1 1 2 3 5 8</span></pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 7 – LAMBDA FUNCTIONS ════════════════════════════════ -->
+      <div class="slide divider-slide">
+        <div class="slide-inner" style="text-align:center">
+          <div class="big-num">λ Lambda</div>
+          <div class="tag" style="margin-top:1rem; border-color:var(--red); color:var(--red); background:rgba(251,113,133,.12);">Anonymous Operations</div>
+          <p style="max-width:400px;margin:0 auto;margin-top:.5rem">A lambda function is a small autonomous function that can evaluate a single expression and return the output without needing a formal `def` block wrapper.</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 8 – EXAMPLE 5 & 6 ═══════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag" style="border-color:var(--red); color:var(--red); background:rgba(251,113,133,.12);">Problem 5 & 6</div>
+          <h2>Implementing <span style="color:var(--red);">Lambdas</span></h2>
+          <p><strong>Task:</strong> Write one-line lambdas to a) Calculate Cone volume and b) Give a Tuple of Max/Min points from a List.</p>
+          <pre><span class="kw">import</span> <span class="var">math</span>
+
+<span class="cmt"># Volume of Cone ( V = 1/3 * π * r² * h )</span>
+<span class="var">vol_cone</span> = <span class="kw">lambda</span> <span class="var">r</span>, <span class="var">h</span>: (<span class="num">1</span>/<span class="num">3</span>) * <span class="var">math</span>.<span class="fn">pi</span> * (<span class="var">r</span>**<span class="num">2</span>) * <span class="var">h</span>
+
+<span class="fn">print</span>(<span class="str">f"Volume: {vol_cone(5, 10):.2f}"</span>)
+
+
+<span class="cmt"># Tuple mapped extraction</span>
+<span class="var">min_max_tuple</span> = <span class="kw">lambda</span> <span class="var">lst</span>: (<span class="fn">max</span>(<span class="var">lst</span>), <span class="fn">min</span>(<span class="var">lst</span>))
+
+<span class="var">data</span> = [<span class="num">10</span>, <span class="num">6</span>, <span class="num">8</span>, <span class="num">90</span>, <span class="num">12</span>, <span class="num">56</span>]
+<span class="fn">print</span>(<span class="str">"Result:"</span>, <span class="fn">min_max_tuple</span>(<span class="var">data</span>))</pre>
+          <ul class="notes" style="margin-top:1rem">
+            <li>Lambdas act as anonymous single-expression formulas.</li>
+            <li>Use format: <code>lambda arguments : expression</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 9 – EXAMPLE 7 ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag teal">Problem 7</div>
+          <h2>Function <span class="accent2">Arguments</span></h2>
+          <p>Explaining Keyword `kwargs`, Default arguments, and Variable Length sequences `*args`.</p>
+          <pre><span class="cmt"># A. Keyword Arguments (Order doesn't matter)</span>
+<span class="kw">def</span> <span class="fn">greet</span>(<span class="var">first_name</span>, <span class="var">last_name</span>):
+    <span class="fn">print</span>(<span class="str">f"Welcome {first_name} {last_name}"</span>)
+
+<span class="fn">greet</span>(<span class="var">last_name</span>=<span class="str">"Dar"</span>, <span class="var">first_name</span>=<span class="str">"Mohsin"</span>)
+
+
+<span class="cmt"># B. Default Arguments (Fallback if no arg passed)</span>
+<span class="kw">def</span> <span class="fn">calculate_tax</span>(<span class="var">price</span>, <span class="var">rate</span>=<span class="num">0.18</span>):
+    <span class="kw">return</span> <span class="var">price</span> + (<span class="var">price</span> * <span class="var">rate</span>)
+
+<span class="fn">print</span>(<span class="fn">calculate_tax</span>(<span class="num">1000</span>))       <span class="cmt"># Output 1180.0</span>
+
+
+<span class="cmt"># C. Variable Length arguments (Indefinite tuples via *args)</span>
+<span class="kw">def</span> <span class="fn">add_multiple</span>(*<span class="var">args</span>):
+    <span class="kw">return</span> <span class="fn">sum</span>(<span class="var">args</span>)
+
+<span class="fn">print</span>(<span class="fn">add_multiple</span>(<span class="num">5</span>, <span class="num">10</span>, <span class="num">15</span>, <span class="num">20</span>)) <span class="cmt"># Can take limitless parameters</span></pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 10 – EXAMPLE 8 ══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag" style="border-color:var(--red); color:var(--red); background:rgba(251,113,133,.12);">Problem 8</div>
+          <h2>Checking Identical Dictionary Values</h2>
+          <p><strong>Task:</strong> Check whether all the values in a dictionary are identical using a lambda function.</p>
+          <pre><span class="cmt"># A dictionary's .values() method yields the array map of data.</span>
+<span class="cmt"># A python Set automatically removes all duplicated inputs.</span>
+<span class="cmt"># Ergo, if the length of the Set is 1, all values are identical.</span>
+
+<span class="var">check_identical</span> = <span class="kw">lambda</span> <span class="var">d</span>: <span class="fn">len</span>(<span class="fn">set</span>(<span class="var">d</span>.<span class="fn">values</span>())) == <span class="num">1</span> <span class="kw">if</span> <span class="var">d</span> <span class="kw">else</span> <span class="var">True</span>
+
+<span class="var">dict1</span> = {<span class="str">'a'</span>: <span class="num">10</span>, <span class="str">'b'</span>: <span class="num">10</span>, <span class="str">'c'</span>: <span class="num">10</span>}
+<span class="var">dict2</span> = {<span class="str">'a'</span>: <span class="num">10</span>, <span class="str">'b'</span>: <span class="num">20</span>, <span class="str">'c'</span>: <span class="num">10</span>}
+
+<span class="fn">print</span>(<span class="str">"Dict 1 identical:"</span>, <span class="fn">check_identical</span>(<span class="var">dict1</span>))  <span class="cmt"># True</span>
+<span class="fn">print</span>(<span class="str">"Dict 2 identical:"</span>, <span class="fn">check_identical</span>(<span class="var">dict2</span>))  <span class="cmt"># False</span></pre>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 11 – EXAMPLE 9 ══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag amber">Problem 9</div>
+          <h2>List to Dictionary Merger</h2>
+          <p><strong>Task:</strong> Create two lists and generate a dictionary with keys exclusively from list1 and values heavily reliant from list2.</p>
+          <pre><span class="var">list1</span> = [<span class="str">"Name"</span>, <span class="str">"Age"</span>, <span class="str">"City"</span>]
+<span class="var">list2</span> = [<span class="str">"Mohsin"</span>, <span class="num">32</span>, <span class="str">"Dehradun"</span>]
+
+<span class="cmt"># Method A: Using a Zip sequence wrapper</span>
+<span class="var">merged_dict</span> = <span class="fn">dict</span>(<span class="fn">zip</span>(<span class="var">list1</span>, <span class="var">list2</span>))
+
+<span class="fn">print</span>(<span class="str">"A) Zip Method :"</span>, <span class="var">merged_dict</span>)
+
+
+<span class="cmt"># Method B: Using Iterative Append</span>
+<span class="var">manual_dict</span> = {}
+<span class="kw">for</span> <span class="var">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(<span class="var">list1</span>)):
+    <span class="var">manual_dict</span>[ <span class="var">list1</span>[<span class="var">i</span>] ] = <span class="var">list2</span>[<span class="var">i</span>]
+
+<span class="fn">print</span>(<span class="str">"B) Loop Method:"</span>, <span class="var">manual_dict</span>)</pre>
+        </div>
+      </div>
+
+    </div><!-- /slides-track -->
+  </div><!-- /slides-viewport -->
+
+  <div class="nav-bar">
+    <button class="nav-btn" id="btnPrev" title="Previous (←)">&#8592;</button>
+    <div class="slide-dots" id="dotContainer"></div>
+    <span class="slide-counter" id="slideCounter">1 / 11</span>
+    <button class="nav-btn" id="btnNext" title="Next (→)">&#8594;</button>
+  </div>
+  <div class="kbd-hint" id="kbdHint">Use <kbd>←</kbd> <kbd>→</kbd> arrow keys or swipe to navigate</div>
+</div>
+
+<script>
+(function(){
+  const track    = document.getElementById('slidesTrack');
+  const dots     = document.getElementById('dotContainer');
+  const counter  = document.getElementById('slideCounter');
+  const fill     = document.getElementById('progressFill');
+  const btnPrev  = document.getElementById('btnPrev');
+  const btnNext  = document.getElementById('btnNext');
+  const hint     = document.getElementById('kbdHint');
+
+  const slides   = track.querySelectorAll('.slide');
+  const total    = slides.length;
+  let   current  = 0;
+
+  // build dots
+  for(let i = 0; i < total; i++){
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.addEventListener('click', ()=> go(i));
+    dots.appendChild(d);
+  }
+
+  function go(n){
+    current = Math.max(0, Math.min(total-1, n));
+    track.style.transform = `translateX(-${current * 100}%)`;
+    counter.textContent   = `${current+1} / ${total}`;
+    fill.style.width      = `${((current+1)/total)*100}%`;
+    dots.querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('active', i===current));
+  }
+
+  go(0);
+  btnPrev.addEventListener('click', ()=> go(current-1));
+  btnNext.addEventListener('click', ()=> go(current+1));
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown')  go(current+1);
+    if(e.key==='ArrowLeft' ||e.key==='ArrowUp')    go(current-1);
+    if(e.key==='Home') go(0);
+    if(e.key==='End')  go(total-1);
+  });
+
+  // touch / swipe
+  let tx = 0, ty = 0;
+  track.addEventListener('touchstart', e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
+  track.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - tx;
+    const dy = e.changedTouches[0].clientY - ty;
+    if(Math.abs(dx) > Math.abs(dy) + 20){
+      if(dx < -40) go(current+1);
+      else if(dx > 40) go(current-1);
+    }
+  },{passive:true});
+
+  // hide hint after 5s
+  setTimeout(()=>{ hint.style.opacity='0'; hint.style.transition='opacity 1s'; }, 5000);
+})();
+</script>
+</body>
+</html>

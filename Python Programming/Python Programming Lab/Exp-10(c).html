@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Matplotlib Lab – Concepts for Exp-10(c)</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── TOKENS ─────────────────────────────────────────── */
+  :root {
+    --bg:        #0b0f1a;
+    --panel:     #111827;
+    --border:    #1e2d40;
+    --accent:    #118ab2; /* Blue */
+    --accent2:   #06d6a0; /* Green */
+    --accent3:   #ffd166; /* Yellow */
+    --red:       #ef476f; /* Pink/Red */
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --code-bg:   #0d1117;
+    --tag-bg:    rgba(17,138,178,.12);
+  }
+
+  /* ── COLAB BUTTON ───────────────────────────────────── */
+  .colab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .9rem 2rem;
+    border-radius: 3rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #000;
+    background: linear-gradient(135deg, #F9AB00 0%, #E8710A 100%);
+    box-shadow: 0 4px 24px rgba(249,171,0,.35), 0 1px 4px rgba(0,0,0,.3);
+    transition: transform .2s, box-shadow .2s, filter .2s;
+    cursor: pointer;
+    border: none;
+    letter-spacing: .02em;
+  }
+  .colab-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 8px 36px rgba(249,171,0,.5), 0 2px 6px rgba(0,0,0,.35);
+    filter: brightness(1.08);
+  }
+  .colab-btn:active {
+    transform: translateY(0) scale(.98);
+  }
+
+  /* ── RESET ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(14px, 1.8vw, 17px);
+  }
+
+  /* ── DECK ───────────────────────────────────────────── */
+  .deck {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+  }
+
+  /* progress bar */
+  .progress-track {
+    width: 100%; height: 3px;
+    background: var(--border);
+    flex-shrink: 0;
+    position: relative; z-index: 10;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .4s ease;
+  }
+
+  /* slides viewport */
+  .slides-viewport {
+    flex: 1; overflow: hidden; position: relative;
+  }
+  .slides-track {
+    display: flex;
+    height: 100%;
+    transition: transform .45s cubic-bezier(.65,0,.35,1);
+    will-change: transform;
+  }
+  .slide {
+    min-width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: clamp(1.2rem, 4vw, 3.5rem) clamp(1rem, 5vw, 6rem);
+    overflow-y: auto;
+  }
+
+  /* ── NAV BAR ────────────────────────────────────────── */
+  .nav-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .6rem 1.2rem;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: .6rem;
+  }
+  .nav-btn {
+    background: var(--border); border: none; color: var(--text);
+    width: 2.4rem; height: 2.4rem; border-radius: .5rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1rem; transition: background .2s, transform .15s;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover  { background: var(--accent2); transform: scale(1.05); }
+  .nav-btn:active { transform: scale(.95); }
+  .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; color: var(--muted); white-space: nowrap;
+  }
+  .slide-dots {
+    display: flex; gap: .35rem; flex-wrap: wrap;
+    justify-content: center; flex: 1;
+  }
+  .dot {
+    width: .45rem; height: .45rem; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: background .25s, transform .25s;
+  }
+  .dot.active { background: var(--accent); transform: scale(1.5); }
+
+  /* ── SHARED SLIDE COMPONENTS ────────────────────────── */
+  .slide-inner {
+    width: 100%; max-width: 900px;
+  }
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem; letter-spacing: .08em;
+    padding: .25rem .65rem; border-radius: .25rem;
+    border: 1px solid rgba(17,138,178,.2);
+    margin-bottom: .9rem; text-transform: uppercase;
+  }
+  .tag.green  { background: rgba(6,214,160,.12); color: var(--accent2); border-color: rgba(6,214,160,.2); }
+  .tag.amber { background: rgba(255,209,102,.12); color: var(--accent3); border-color: rgba(255,209,102,.2); }
+  .tag.red   { background: rgba(239,71,111,.12); color: var(--red);    border-color: rgba(239,71,111,.2); }
+
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.6rem,5vw,3.2rem); font-weight:800; line-height:1.1; }
+  h2 { font-family: 'Syne', sans-serif; font-size: clamp(1.2rem,3.5vw,2rem); font-weight:700; margin-bottom: 1rem; }
+  h3 { font-family: 'Syne', sans-serif; font-size: clamp(1rem,2.5vw,1.25rem); font-weight:600; margin-bottom:.5rem; color: var(--accent); }
+  p  { line-height: 1.7; color: #94a3b8; margin-bottom: .6rem; }
+
+  .accent { color: var(--accent); }
+  .accent2 { color: var(--accent2); }
+  .accent3 { color: var(--accent3); }
+  .red-text { color: var(--red); }
+
+  /* code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: .5rem;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    margin: .8rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(.7rem, 1.4vw, .88rem);
+    line-height: 1.65;
+    tab-size: 4;
+  }
+  .kw  { color: #c792ea; }   /* keyword */
+  .fn  { color: #82aaff; }   /* function */
+  .str { color: #c3e88d; }   /* string */
+  .num { color: #f78c6c; }   /* number */
+  .cmt { color: #546e7a; font-style: italic; } /* comment */
+  .var { color: #eeffff; }
+  .out { color: var(--accent3); }
+
+  /* info cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: .9rem; margin-top: 1rem;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: 1rem 1.1rem;
+    transition: border-color .2s, transform .2s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card-icon { font-size: 1.5rem; margin-bottom: .4rem; }
+  .card h3   { font-size: .88rem; margin-bottom: .3rem; }
+  .card p    { font-size: .8rem; color: var(--muted); margin:0; }
+
+  /* two-col layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem; margin-top: .8rem;
+  }
+  @media (max-width:600px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* highlight box */
+  .box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: .9rem 1.1rem;
+    margin: .7rem 0;
+  }
+  .box.blue   { border-left: 3px solid var(--accent);  background: rgba(17,138,178,.06); }
+  .box.green  { border-left: 3px solid var(--accent2); background: rgba(6,214,160,.06); }
+  .box.amber  { border-left: 3px solid var(--accent3); background: rgba(255,209,102,.06); }
+  .box.danger { border-left: 3px solid var(--red);     background: rgba(239,71,111,.06); }
+
+  /* bullet list */
+  ul.notes { list-style: none; margin: .6rem 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+  ul.notes li { display: flex; gap: .7rem; align-items: flex-start; color: #94a3b8; font-size: .9rem; line-height: 1.55; }
+  ul.notes li::before { content: '▸'; color: var(--accent); flex-shrink: 0; margin-top: .05rem; }
+
+  /* method pill */
+  .pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .72rem; padding: .18rem .55rem;
+    border-radius: .3rem;
+    background: rgba(17,138,178,.15);
+    color: var(--accent); border: 1px solid rgba(17,138,178,.25);
+    white-space: nowrap;
+  }
+  .pill.green { background: rgba(6,214,160,.12); color: var(--accent2); border-color: rgba(6,214,160,.25); }
+  .pill.amber { background: rgba(255,209,102,.12); color: var(--accent3); border-color: rgba(255,209,102,.25); }
+  .pill.red   { background: rgba(239,71,111,.12); color: var(--red); border-color: rgba(239,71,111,.25); }
+
+  /* title slide special */
+  .title-slide {
+    background:
+      radial-gradient(ellipse 70% 60% at 80% 20%, rgba(17,138,178,.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 20% 80%, rgba(6,214,160,.07) 0%, transparent 60%),
+      var(--bg);
+    text-align: center; align-items: center;
+  }
+  .title-slide h1 { font-size: clamp(2rem,6vw,3.8rem); margin-bottom: .6rem; }
+  .title-slide .subtitle { color: var(--muted); font-size: clamp(.85rem,2vw,1.1rem); max-width: 600px; margin: 0 auto 1.2rem; }
+
+  /* section divider slide */
+  .divider-slide {
+    background:
+      radial-gradient(ellipse 60% 60% at 50% 50%, rgba(17,138,178,.06) 0%, transparent 70%),
+      var(--bg);
+    text-align: center;
+  }
+  .big-num {
+    font-family: 'Syne',sans-serif; font-size: clamp(4rem,14vw,9rem);
+    font-weight: 800; line-height: 1;
+    -webkit-text-stroke: 2px var(--accent);
+    color: transparent; user-select: none;
+  }
+
+  /* step list */
+  .steps { display: flex; flex-direction:column; gap: .75rem; margin-top:.8rem; }
+  .step  { display: flex; gap: .9rem; align-items: flex-start; }
+  .step-num {
+    flex-shrink:0; width: 1.8rem; height: 1.8rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: .4rem; display: flex; align-items:center; justify-content:center;
+    font-family:'Syne',sans-serif; font-weight:700; font-size:.78rem; color:#000;
+  }
+  .step-body h3 { margin-bottom:.15rem; color: var(--text); }
+  .step-body p  { font-size:.82rem; margin:0; }
+
+  /* exercises */
+  .exercise-box {
+    background: var(--panel);
+    border: 1px dashed var(--accent2);
+    border-radius: .7rem;
+    padding: 1.2rem;
+    margin: .8rem 0;
+  }
+  .exercise-box h3 { color: var(--accent2); margin-bottom: .5rem; }
+
+  kbd {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: .25rem; padding: .1rem .35rem;
+    font-size: .7rem;
+  }
+  .kbd-hint {
+    font-size: .72rem; color: var(--muted); text-align:center; padding:.3rem;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  /* agenda items */
+  .agenda-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: .8rem; margin-top: 1rem;
+  }
+  .agenda-item {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: .6rem; padding: .85rem 1rem;
+    display: flex; flex-direction: column; gap: .35rem;
+  }
+  .agenda-item .num { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; }
+
+  .slide { scroll-behavior: smooth; }
+  @media(max-width:480px) {
+    .slide { padding: 1rem .9rem; justify-content: flex-start; padding-top:1.5rem; }
+    .nav-bar { padding: .5rem .7rem; }
+    .slide-dots { max-width: 60vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="slides-viewport">
+    <div class="slides-track" id="slidesTrack">
+
+      <!-- ═══ SLIDE 0 – TITLE ═══════════════════════════════════════════ -->
+      <div class="slide title-slide">
+        <div class="slide-inner" style="text-align:center">
+          <div class="tag" style="margin-bottom:1.2rem">Python Programming Lab · Exp-10(c)</div>
+          <h1>Data Visualization with <span class="accent">Matplotlib</span></h1>
+          <p class="subtitle">A visual tour of Matplotlib.Pyplot, drawing plots, customizing aesthetics, and working with complex charts.</p>
+          <div style="margin-top:1.4rem; display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap">
+            <span class="pill green" style="font-size: .9rem; padding: .4rem 1rem;">📈 Line Plots</span>
+            <span class="pill amber" style="font-size: .9rem; padding: .4rem 1rem;">📊 Bar Charts</span>
+            <span class="pill red" style="font-size: .9rem; padding: .4rem 1rem;">🎯 Scatter Plots</span>
+          </div>
+          <p style="margin-top:1.4rem; color:var(--muted); font-size:.8rem">Use ← → keys or swipe to navigate</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 1 – AGENDA ══════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag green">Session Overview</div>
+          <h2>What We Cover Today</h2>
+          <div class="agenda-grid">
+            <div class="agenda-item">
+              <div class="num accent">01</div>
+              <h3>Introduction to Pyplot</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Importing, basic syntax, and showing plots.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num accent2">02</div>
+              <h3>Aesthetics & Styling</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Controlling markers, lines, labels, and grids.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num accent3">03</div>
+              <h3>Types of Charts</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Scatter, Bar, Histogram, and Pie charts.</p>
+            </div>
+            <div class="agenda-item">
+              <div class="num red">04</div>
+              <h3>Subplots</h3>
+              <p style="font-size:.78rem;color:var(--muted)">Combining multiple plots into one figure.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 2 – INTRO TO MATPLOTLIB ═════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Introduction</div>
+          <h2>What is <span class="accent">Matplotlib?</span></h2>
+          <p>Matplotlib is the most popular <strong>data visualization library</strong> for Python. It allows you to create static, animated, and interactive visualizations with just a few lines of code.</p>
+          <div class="box blue">
+            <h3>Pyplot (matplotlib.pyplot)</h3>
+            <p style="font-size:.85rem; margin-top:.3rem">
+              Most of the Matplotlib utilities lie under the <code>pyplot</code> submodule, acting almost identically to MATLAB's plotting functions.
+            </p>
+          </div>
+          <pre><span class="cmt"># Standard import convention</span>
+<span class="kw">import</span> <span class="var">matplotlib.pyplot</span> <span class="kw">as</span> <span class="fn">plt</span>
+<span class="kw">import</span> <span class="var">numpy</span> <span class="kw">as</span> <span class="fn">np</span></pre>
+          <ul class="notes" style="margin-top:.8rem">
+            <li><strong>Interactive and Expressive:</strong> Allows fine-tuning of every aspect of your plot.</li>
+            <li><strong>Integration:</strong> Works seamlessly with NumPy arrays and Pandas DataFrames.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 3 – BASIC PLOTTING ══════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag">Basic Plotting</div>
+          <h2>Your First Line Plot</h2>
+          <p>The <span class="pill">plt.plot()</span> function is used to draw points (markers) in a diagram. By default, it draws a continuous line connecting the points.</p>
+          <pre><span class="var">xpoints</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">0</span>, <span class="num">6</span>])
+<span class="var">ypoints</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">0</span>, <span class="num">250</span>])
+
+<span class="cmt"># Draw the line</span>
+<span class="fn">plt</span>.<span class="fn">plot</span>(<span class="var">xpoints</span>, <span class="var">ypoints</span>)
+<span class="cmt"># Display the plot</span>
+<span class="fn">plt</span>.<span class="fn">show</span>()</pre>
+          <div class="cards" style="margin-top:.8rem">
+            <div class="card">
+              <div class="card-icon">📍</div>
+              <h3>Without x-points</h3>
+              <p>If you only pass Y, Matplotlib assumes X is [0, 1, 2, 3...]</p>
+            </div>
+            <div class="card">
+              <div class="card-icon">👁️</div>
+              <h3>plt.show()</h3>
+              <p>The crucial command that flushes the canvas and displays your final visual on screen.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 4 – MARKERS ═════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag green">Aesthetics</div>
+          <h2>Customizing <span class="accent2">Markers</span></h2>
+          <p>A "marker" emphasizes specific data points along your line. You specify it using the <code>marker</code> argument in <code>plot()</code>.</p>
+          <pre><span class="var">ypoints</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">3</span>, <span class="num">8</span>, <span class="num">1</span>, <span class="num">10</span>])
+
+<span class="cmt"># 'o' = Circle marker  |  'D' = Diamond  |  '*' = Star</span>
+<span class="fn">plt</span>.<span class="fn">plot</span>(<span class="var">ypoints</span>, <span class="fn">marker</span>=<span class="str">'o'</span>, <span class="fn">ms</span>=<span class="num">20</span>, <span class="fn">mec</span>=<span class="str">'r'</span>, <span class="fn">mfc</span>=<span class="str">'y'</span>)
+<span class="fn">plt</span>.<span class="fn">show</span>()</pre>
+          <div class="two-col">
+            <div class="box green">
+              <h3>Marker Sizes & Colors</h3>
+              <ul class="notes" style="font-size:.78rem">
+                <li><span class="pill green">ms</span> (markersize) - sets the size.</li>
+                <li><span class="pill green">mec</span> (markeredgecolor) - border color.</li>
+                <li><span class="pill green">mfc</span> (markerfacecolor) - fill color.</li>
+              </ul>
+            </div>
+            <div class="box blue">
+              <h3>Shorthand Notation: 'fmt'</h3>
+              <p style="font-size:.78rem">You can format dynamically using: <code>marker|line|color</code><br/><br/>Example: <span class="pill">plt.plot(ypoints, 'o:r')</span><br/>(Circle marker, dotted line, red color).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 5 – LINES ═══════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag green">Aesthetics</div>
+          <h2>Modifying the <span class="accent2">Line</span></h2>
+          <p>You can change the style, width, and color of the line connecting your data points.</p>
+          <pre><span class="cmt"># Creating a thick, dashed, green line</span>
+<span class="fn">plt</span>.<span class="fn">plot</span>(
+    <span class="var">ypoints</span>,
+    <span class="fn">linestyle</span>=<span class="str">'dashed'</span>,  <span class="cmt"># or ls='--'</span>
+    <span class="fn">color</span>=<span class="str">'#06d6a0'</span>,     <span class="cmt"># or c='g'</span>
+    <span class="fn">linewidth</span>=<span class="num">5.5</span>        <span class="cmt"># or lw=5.5</span>
+)</pre>
+          <table class="df-table" style="width:100%; text-align:left; font-family:'Inter'; margin-top:.8rem;">
+            <tr><th style="text-align:left">Style Name</th><th style="text-align:left">Shorthand</th><th>Description</th></tr>
+            <tr><td>'solid'</td><td>'-'</td><td>Default connecting line</td></tr>
+            <tr><td>'dotted'</td><td>':'</td><td>Line mapped with dots</td></tr>
+            <tr><td>'dashed'</td><td>'--'</td><td>Line separated by dashes</td></tr>
+            <tr><td>'dashdot'</td><td>'-.'</td><td>Alternating dashes & dots</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 6 – LABELS & TITLE ══════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag amber">Metadata</div>
+          <h2>Labels, Titles & Legends</h2>
+          <p>A plot without labels is useless because the viewers don't know what the axes represent.</p>
+          <pre><span class="fn">plt</span>.<span class="fn">plot</span>(<span class="var">x</span>, <span class="var">y</span>, <span class="fn">label</span>=<span class="str">'Sales Data'</span>)
+
+<span class="cmt"># Set Title and Axis Labels</span>
+<span class="fn">plt</span>.<span class="fn">title</span>(<span class="str">'Monthly Revenue'</span>, <span class="fn">loc</span>=<span class="str">'left'</span>, <span class="fn">fontsize</span>=<span class="num">16</span>)
+<span class="fn">plt</span>.<span class="fn">xlabel</span>(<span class="str">'Months'</span>)
+<span class="fn">plt</span>.<span class="fn">ylabel</span>(<span class="str">'Revenue (USD)'</span>)
+
+<span class="cmt"># Show the legend based on the plot 'label' argument</span>
+<span class="fn">plt</span>.<span class="fn">legend</span>()</pre>
+          <div class="box amber" style="margin-top:1rem">
+            <h3><span class="card-icon">💡</span> Adding Fonts to Titles</h3>
+            <p style="font-size:.85rem; margin-top:.3rem">You can use font dictionaries to style titles dynamically: <br><code>fontdict = {'family':'serif','color':'blue','size':20}</code> <br><code>plt.title('Main', fontdict=fontdict)</code></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 7 – GRID ════════════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag amber">Metadata</div>
+          <h2>Adding a <span class="accent3">Grid</span></h2>
+          <p>Grids make your charts dramatically easier to read by adding visual background guides.</p>
+          <pre><span class="cmt"># Enable default grid</span>
+<span class="fn">plt</span>.<span class="fn">grid</span>()
+
+<span class="cmt"># Enable grid for just one axis</span>
+<span class="fn">plt</span>.<span class="fn">grid</span>(<span class="fn">axis</span>=<span class="str">'x'</span>)
+
+<span class="cmt"># Customize grid lines</span>
+<span class="fn">plt</span>.<span class="fn">grid</span>(<span class="fn">color</span>=<span class="str">'green'</span>, <span class="fn">linestyle</span>=<span class="str">'--'</span>, <span class="fn">linewidth</span>=<span class="num">0.5</span>)</pre>
+          <p style="margin-top:.5rem;">The <span class="pill amber">grid()</span> function takes the same styling parameters as lines, allowing you to establish beautiful, subtle guidelines.</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 8 – SECTION BREAK: TYPES OF PLOTS ═══════════════════ -->
+      <div class="slide divider-slide">
+        <div class="slide-inner" style="text-align:center">
+          <div class="big-num">Charts</div>
+          <div class="tag red" style="margin-top:1rem">Creating Different Types of Plots</div>
+          <h2 style="margin-top:.5rem">Moving Beyond Line Graphs</h2>
+          <p style="max-width:500px;margin:0 auto;margin-top:.5rem">Lines represent trends over time. Next, let's look at specialized plots to represent distributions, comparisons, and comparisons of proportions.</p>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 9 – SCATTER PLOTS ═══════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Chart Types</div>
+          <h2><span class="red-text">Scatter Plot</span></h2>
+          <p>Use <span class="pill red">scatter()</span> to observe relationships (correlations) between two metric variables. Each item in the array becomes a single dot.</p>
+          <pre><span class="var">x</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">5</span>,<span class="num">7</span>,<span class="num">8</span>,<span class="num">7</span>,<span class="num">2</span>,<span class="num">17</span>,<span class="num">2</span>,<span class="num">9</span>,<span class="num">4</span>])
+<span class="var">y</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">99</span>,<span class="num">86</span>,<span class="num">87</span>,<span class="num">88</span>,<span class="num">111</span>,<span class="num">86</span>,<span class="num">103</span>,<span class="num">87</span>,<span class="num">94</span>])
+
+<span class="fn">plt</span>.<span class="fn">scatter</span>(<span class="var">x</span>, <span class="var">y</span>)
+<span class="fn">plt</span>.<span class="fn">show</span>()</pre>
+          <div class="box danger" style="margin-top:.8rem">
+            <h3>Mapping Data to Colors & Sizes</h3>
+            <p style="font-size:.85rem; margin-top:.3rem">
+              To make scatter plots 4-Dimensional: Provide an array to <code>c</code> (Colors) and an array to <code>s</code> (Sizes).<br>
+              <code>plt.scatter(x, y, c=colors, s=sizes, alpha=0.5, cmap='viridis')</code>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 10 – BAR CHARTS ═════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Chart Types</div>
+          <h2><span class="red-text">Bar Chart</span></h2>
+          <p>Use <span class="pill red">bar()</span> to compare categorical data (like cities, fruits, or years).</p>
+          <div class="two-col">
+            <div style="display:flex; flex-direction:column; gap:.5rem">
+              <pre><span class="cmt"># Vertical Bars</span>
+<span class="var">x</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="str">"A"</span>, <span class="str">"B"</span>, <span class="str">"C"</span>])
+<span class="var">y</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">3</span>, <span class="num">8</span>, <span class="num">1</span>])
+
+<span class="fn">plt</span>.<span class="fn">bar</span>(<span class="var">x</span>, <span class="var">y</span>, <span class="fn">width</span>=<span class="num">0.1</span>)</pre>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:.5rem">
+              <pre><span class="cmt"># Horizontal Bars</span>
+<span class="var">x</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="str">"A"</span>, <span class="str">"B"</span>, <span class="str">"C"</span>])
+<span class="var">y</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">3</span>, <span class="num">8</span>, <span class="num">1</span>])
+
+<span class="fn">plt</span>.<span class="fn">barh</span>(<span class="var">x</span>, <span class="var">y</span>, <span class="fn">height</span>=<span class="num">0.1</span>)</pre>
+            </div>
+          </div>
+          <ul class="notes" style="margin-top:1rem">
+            <li>For <code>plt.bar()</code> use <strong>width</strong> to compress the bars.</li>
+            <li>For <code>plt.barh()</code> use <strong>height</strong> to compress the bars.</li>
+            <li>You can color them dynamically by supplying a list of colors to the <code>color</code> parameter.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 11 – HISTOGRAMS ═════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Chart Types</div>
+          <h2><span class="red-text">Histograms</span></h2>
+          <p>A Histogram shows the <strong>frequency distribution</strong> of a given 1D array. It bins continuous data to see its spread.</p>
+          <pre><span class="cmt"># Generating 250 random values matching a normal distribution </span>
+<span class="cmt"># centered at 170, with a std dev of 10</span>
+<span class="var">x</span> = <span class="fn">np</span>.<span class="fn">random</span>.<span class="fn">normal</span>(<span class="num">170</span>, <span class="num">10</span>, <span class="num">250</span>)
+
+<span class="fn">plt</span>.<span class="fn">hist</span>(<span class="var">x</span>)
+<span class="fn">plt</span>.<span class="fn">show</span>()</pre>
+          <div class="box blue" style="margin-top:1rem">
+            <h3 style="color:var(--text)">Histogram vs Bar Chart</h3>
+            <p style="font-size:.85rem; margin-top:.3rem">
+              <strong>Bar Charts</strong> compare distinct <em>categories</em>. <br>
+              <strong>Histograms</strong> measure the distribution of a <em>single continuous numeric variable</em> into discrete 'bins'.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 12 – PIE CHARTS ═════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag red">Chart Types</div>
+          <h2><span class="red-text">Pie Charts</span></h2>
+          <p>Use <span class="pill red">pie()</span> to show proportions of a whole.</p>
+          <pre><span class="var">y</span> = <span class="fn">np</span>.<span class="fn">array</span>([<span class="num">35</span>, <span class="num">25</span>, <span class="num">25</span>, <span class="num">15</span>])
+<span class="var">mylabels</span> = [<span class="str">"Apples"</span>, <span class="str">"Bananas"</span>, <span class="str">"Cherries"</span>, <span class="str">"Dates"</span>]
+<span class="var">myexplode</span> = [<span class="num">0.2</span>, <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>] <span class="cmt"># pop out the first slice</span>
+
+<span class="fn">plt</span>.<span class="fn">pie</span>(<span class="var">y</span>, <span class="fn">labels</span> = <span class="var">mylabels</span>, <span class="fn">explode</span> = <span class="var">myexplode</span>, <span class="fn">shadow</span> = <span class="var">True</span>)
+<span class="fn">plt</span>.<span class="fn">legend</span>(<span class="fn">title</span> = <span class="str">"Fruits:"</span>)
+<span class="fn">plt</span>.<span class="fn">show</span>()</pre>
+          <ul class="notes" style="margin-top:1rem">
+            <li><strong>explode:</strong> Array to offset a wedge from the center.</li>
+            <li><strong>startangle:</strong> Change the rotation (default starts at the x-axis, degree 0).</li>
+            <li><strong>shadow:</strong> Adds a beautiful 3D-like drop shadow.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 13 – SUBPLOTS ═══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag blue">Advanced Layouts</div>
+          <h2>Working with <span class="accent">Subplots</span></h2>
+          <p>The <span class="pill">subplot()</span> function allows you to draw multiple plots in one single figure. It takes a 3-digit integer representing layout: <code>(rows, columns, index)</code></p>
+          <pre><span class="cmt"># Plot 1: Will be drawn as 1st plot in a 1 Row, 2 Column grid </span>
+<span class="fn">plt</span>.<span class="fn">subplot</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">1</span>)
+<span class="fn">plt</span>.<span class="fn">plot</span>(<span class="var">x</span>, <span class="var">y</span>)
+
+<span class="cmt"># Plot 2: Will be drawn as 2nd plot in a 1 Row, 2 Column grid </span>
+<span class="fn">plt</span>.<span class="fn">subplot</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">2</span>)
+<span class="fn">plt</span>.<span class="fn">plot</span>(<span class="var">x</span>, <span class="var">y</span>)
+
+<span class="fn">plt</span>.<span class="fn">show</span>()</pre>
+          <div class="box blue" style="margin-top:1rem">
+            <h3 style="color:var(--text)">Adding a Super Title</h3>
+            <p style="font-size:.85rem; margin-top:.3rem">
+              Use <code>plt.suptitle('My Main Dashboard')</code> to add a title reflecting all the subplots combined.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 14 – EXERCISES ══════════════════════════════════════ -->
+      <div class="slide">
+        <div class="slide-inner">
+          <div class="tag green">Lab Tasks</div>
+          <h2>Coding Exercises</h2>
+          <p>Try these exercises to apply what you've learned. Write these in your Jupyter Notebook.</p>
+          
+          <div class="exercise-box">
+            <h3>Exercise 1: The Fancy Line</h3>
+            <p style="font-size:.85rem; color: #cbd5e1; margin-bottom:0;">
+              Given `x=[1, 2, 3, 4]`, `y=[10, 20, 25, 30]`. <br>
+              Plot a line graph. Make the line dashed, color it red, and add Diamond markers. Add X/Y labels and Title. Finally, display a grid.
+            </p>
+          </div>
+
+          <div class="exercise-box" style="border-color: var(--accent3);">
+            <h3 style="color:var(--accent3);">Exercise 2: Comparison Bar Chart</h3>
+            <p style="font-size:.85rem; color: #cbd5e1; margin-bottom:0;">
+              Create two arrays: Languages `['Python', 'C++', 'Java']` and Popularity `[90, 50, 75]`.<br>
+              Generate a Bar Chart. Color Python as 'green', C++ as 'red', and Java as 'blue'.
+            </p>
+          </div>
+
+          <div class="exercise-box" style="border-color: var(--red);">
+            <h3 style="color:var(--red);">Exercise 3: Financial Dashboard</h3>
+            <p style="font-size:.85rem; color: #cbd5e1; margin-bottom:0;">
+              Create a 2x1 subplot grid (2 rows, 1 col). <br>
+              Top cell: A Scatter plot showing Revenue vs Marketing Spend. <br>
+              Bottom cell: A Histogram of Daily Transactions `np.random.normal(5000, 200, 100)`. Add a super title: "Q1 Performance".
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SLIDE 15 – SUMMARY / COLAB ════════════════════════════════ -->
+      <div class="slide title-slide" id="slide-colab">
+        <div class="slide-inner" style="text-align:center">
+          <div class="tag amber" style="margin-bottom:1.2rem">Practice & Execution</div>
+          <h1 style="font-size:clamp(1.8rem,5vw,3rem); margin-bottom:.7rem">
+            Open the
+            <span class="accent3">Python Lab</span>
+            Notebook
+          </h1>
+          <p class="subtitle" style="max-width:520px">
+            It is time to execute these snippets and visualize the data. Complete your experiments in the Lab's interactive environment.
+          </p>
+
+          <a
+            id="colabLink"
+            href="https://colab.research.google.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="text-decoration:none; display:inline-block; margin-top:1.8rem"
+          >
+            <div class="colab-btn" id="colabBtn">
+              <!-- Colab logo -->
+              <svg width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                <circle cx="12" cy="12" r="10" fill="#F9AB00"/>
+                <circle cx="9" cy="12" r="3" fill="#fff"/>
+                <circle cx="15" cy="12" r="3" fill="#E8710A"/>
+              </svg>
+              <span>Open in Google Colab</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-left:.3rem; flex-shrink:0">
+                <path d="M7 17L17 7M17 7H7M17 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </a>
+
+          <div style="margin-top:1.4rem; display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap">
+            <span class="exp-badge" style="background:rgba(245,158,11,.1);color:var(--accent3);border-color:rgba(245,158,11,.3); font-family:'JetBrains Mono',monospace; padding:.4rem 1rem; border-radius:2rem; font-size:.72rem; font-weight:500; letter-spacing:.03em; border:1px solid;">
+              📓 Write Code
+            </span>
+            <span class="exp-badge" style="background:rgba(6,214,160,.08);color:var(--accent2);border-color:rgba(6,214,160,.25); padding:.4rem 1rem; border-radius:2rem; font-size:.72rem; font-weight:500; border:1px solid;">
+              ☁️ Visualize Output
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /slides-track -->
+  </div><!-- /slides-viewport -->
+
+  <div class="nav-bar">
+    <button class="nav-btn" id="btnPrev" title="Previous (←)">&#8592;</button>
+    <div class="slide-dots" id="dotContainer"></div>
+    <span class="slide-counter" id="slideCounter">1 / 16</span>
+    <button class="nav-btn" id="btnNext" title="Next (→)">&#8594;</button>
+  </div>
+  <div class="kbd-hint" id="kbdHint">Use <kbd>←</kbd> <kbd>→</kbd> arrow keys or swipe to navigate</div>
+</div>
+
+<script>
+(function(){
+  const track    = document.getElementById('slidesTrack');
+  const dots     = document.getElementById('dotContainer');
+  const counter  = document.getElementById('slideCounter');
+  const fill     = document.getElementById('progressFill');
+  const btnPrev  = document.getElementById('btnPrev');
+  const btnNext  = document.getElementById('btnNext');
+  const hint     = document.getElementById('kbdHint');
+
+  const slides   = track.querySelectorAll('.slide');
+  const total    = slides.length;
+  let   current  = 0;
+
+  // build dots
+  for(let i = 0; i < total; i++){
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.addEventListener('click', ()=> go(i));
+    dots.appendChild(d);
+  }
+
+  function go(n){
+    current = Math.max(0, Math.min(total-1, n));
+    track.style.transform = `translateX(-${current * 100}%)`;
+    counter.textContent   = `${current+1} / ${total}`;
+    fill.style.width      = `${((current+1)/total)*100}%`;
+    dots.querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('active', i===current));
+  }
+
+  go(0);
+  btnPrev.addEventListener('click', ()=> go(current-1));
+  btnNext.addEventListener('click', ()=> go(current+1));
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown')  go(current+1);
+    if(e.key==='ArrowLeft' ||e.key==='ArrowUp')    go(current-1);
+    if(e.key==='Home') go(0);
+    if(e.key==='End')  go(total-1);
+  });
+
+  // touch / swipe
+  let tx = 0, ty = 0;
+  track.addEventListener('touchstart', e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
+  track.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - tx;
+    const dy = e.changedTouches[0].clientY - ty;
+    if(Math.abs(dx) > Math.abs(dy) + 20){
+      if(dx < -40) go(current+1);
+      else if(dx > 40) go(current-1);
+    }
+  },{passive:true});
+
+  // hide hint after 5s
+  setTimeout(()=>{ hint.style.opacity='0'; hint.style.transition='opacity 1s'; }, 5000);
+})();
+</script>
+</body>
+</html>
