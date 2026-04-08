@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Experiment 8: GUI and Backend Connectivity</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e74c3c;
+            --dark-bg: #2c3e50;
+            --light-bg: #ecf0f1;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            max-width: 1400px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--dark-bg), #34495e);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+
+        .content-wrapper {
+            padding: 40px;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 5px solid var(--primary-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .section-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .code-block {
+            background: #2d3748;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+            color: #e2e8f0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .concept-box::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        }
+
+        .nav-tabs {
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: 30px;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-dark);
+            font-weight: 600;
+            padding: 12px 25px;
+            transition: all 0.3s ease;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .nav-tabs .nav-link:hover {
+            background: var(--primary-color);
+            color: white;
+            opacity: 0.8;
+        }
+
+        .task-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            transition: transform 0.3s ease;
+        }
+
+        .task-card:hover {
+            transform: scale(1.02);
+        }
+
+        .example-output {
+            background: #1a202c;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 15px 0;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .tip-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #f39c12;
+        }
+
+        .warning-box {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid var(--accent-color);
+        }
+
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid var(--secondary-color);
+        }
+
+        .progress-bar-container {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 30px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.5s ease;
+        }
+
+        .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .floating-btn:hover {
+            transform: scale(1.1);
+            background: var(--secondary-color);
+        }
+
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 20px;
+            }
+            
+            .section-card {
+                padding: 20px;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .table-of-contents {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+        }
+
+        .table-of-contents ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .table-of-contents li {
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .table-of-contents li:last-child {
+            border-bottom: none;
+        }
+
+        .table-of-contents a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .table-of-contents a:hover {
+            color: var(--secondary-color);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1><i class="fas fa-desktop"></i> Experiment 8: GUI and Backend Connectivity</h1>
+            <p class="lead mb-0">Python Programming Lab - BTech 2nd Semester</p>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Table of Contents -->
+            <div class="table-of-contents">
+                <h3><i class="fas fa-list"></i> Table of Contents</h3>
+                <ul>
+                    <li><a href="#introduction"><i class="fas fa-angle-right"></i> Introduction to GUI Programming</a></li>
+                    <li><a href="#tkinter-basics"><i class="fas fa-angle-right"></i> Tkinter Basics</a></li>
+                    <li><a href="#database-connectivity"><i class="fas fa-angle-right"></i> Database Connectivity</a></li>
+                    <li><a href="#task1"><i class="fas fa-angle-right"></i> Task 1: Simple Tkinter Window</a></li>
+                    <li><a href="#task2"><i class="fas fa-angle-right"></i> Task 2: Basic Calculator</a></li>
+                    <li><a href="#task3"><i class="fas fa-angle-right"></i> Task 3: Student Registration System</a></li>
+                    <li><a href="#task4"><i class="fas fa-angle-right"></i> Task 4: Task Manager</a></li>
+                    <li><a href="#task5"><i class="fas fa-angle-right"></i> Task 5: Login and Signup System</a></li>
+                </ul>
+            </div>
+
+            <!-- Introduction Section -->
+            <section id="introduction" class="section-card animate-fade-in">
+                <h2><i class="fas fa-book-open"></i> Introduction to GUI Programming</h2>
+                
+                <div class="concept-box">
+                    <h3><i class="fas fa-lightbulb"></i> What is GUI Programming?</h3>
+                    <p>Graphical User Interface (GUI) programming allows users to interact with applications through visual elements like buttons, text fields, menus, and windows instead of command-line interfaces.</p>
+                </div>
+
+                <h4>Key Concepts:</h4>
+                <ul>
+                    <li><strong>Event-Driven Programming:</strong> Programs respond to user actions (events) like button clicks, mouse movements</li>
+                    <li><strong>Widgets:</strong> GUI elements like buttons, labels, text fields</li>
+                    <li><strong>Layout Management:</strong> Arranging widgets in windows</li>
+                    <li><strong>Backend Connectivity:</strong> Connecting GUI to databases for data persistence</li>
+                </ul>
+
+                <div class="tip-box">
+                    <h5><i class="fas fa-info-circle"></i> Why Tkinter?</h5>
+                    <p>Tkinter is Python's standard GUI library because:</p>
+                    <ul>
+                        <li>Built into Python (no installation required)</li>
+                        <li>Simple and easy to learn</li>
+                        <li>Cross-platform compatibility</li>
+                        <li>Good for beginners and rapid prototyping</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Tkinter Basics Section -->
+            <section id="tkinter-basics" class="section-card animate-fade-in">
+                <h2><i class="fas fa-cogs"></i> Tkinter Basics</h2>
+
+                <h3>1. Importing Tkinter</h3>
+                <div class="code-block">
+                    <pre><code># Method 1: Import the entire module
+import tkinter as tk
+
+# Method 2: Import specific widgets
+from tkinter import Tk, Label, Button, Entry
+
+# Method 3: Import all (not recommended for large projects)
+from tkinter import *</code></pre>
+                </div>
+
+                <h3>2. Basic Window Components</h3>
+                <div class="code-block">
+                    <pre><code># Create main window
+root = tk.Tk()
+root.title("My Application")
+root.geometry("400x300")  # Width x Height
+root.resizable(False, False)  # Fixed size
+
+# Start the event loop
+root.mainloop()</code></pre>
+                </div>
+
+                <h3>3. Common Widgets</h3>
+                
+                <ul class="nav nav-tabs" id="widgetTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="label-tab" data-bs-toggle="tab" data-bs-target="#label" type="button" role="tab">Label</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="button-tab" data-bs-toggle="tab" data-bs-target="#button" type="button" role="tab">Button</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="entry-tab" data-bs-toggle="tab" data-bs-target="#entry" type="button" role="tab">Entry</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="listbox-tab" data-bs-toggle="tab" data-bs-target="#listbox" type="button" role="tab">Listbox</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="widgetTabContent">
+                    <div class="tab-pane fade show active" id="label" role="tabpanel">
+                        <div class="code-block">
+                            <pre><code># Label Widget - Display text
+label = tk.Label(root, text="Hello World!", 
+                font=("Arial", 12), 
+                bg="lightblue", 
+                fg="darkblue")
+label.pack(pady=10)</code></pre>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="button" role="tabpanel">
+                        <div class="code-block">
+                            <pre><code># Button Widget - Clickable element
+def button_click():
+    print("Button clicked!")
+
+button = tk.Button(root, text="Click Me", 
+                  command=button_click,
+                  bg="green", 
+                  fg="white",
+                  padx=20, pady=10)
+button.pack(pady=10)</code></pre>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="entry" role="tabpanel">
+                        <div class="code-block">
+                            <pre><code># Entry Widget - Text input field
+entry = tk.Entry(root, width=30, 
+                font=("Arial", 10),
+                borderwidth=2)
+entry.pack(pady=10)
+
+# Get text from entry
+text = entry.get()
+
+# Set text in entry
+entry.insert(0, "Default text")</code></pre>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="listbox" role="tabpanel">
+                        <div class="code-block">
+                            <pre><code># Listbox Widget - Display list of items
+listbox = tk.Listbox(root, height=5, selectmode=tk.SINGLE)
+items = ["Item 1", "Item 2", "Item 3"]
+for item in items:
+    listbox.insert(tk.END, item)
+listbox.pack(pady=10)
+
+# Get selected item
+selected = listbox.get(tk.ACTIVE)</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>4. Layout Management</h3>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <h5>pack() - Simple Layout</h5>
+                        <div class="code-block">
+                            <pre><code># Pack widgets from top to bottom
+label.pack()
+button.pack()
+entry.pack()
+
+# Options: side, padx, pady, fill, expand</code></pre>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>grid() - Table Layout</h5>
+                        <div class="code-block">
+                            <pre><code># Arrange in rows and columns
+label.grid(row=0, column=0)
+entry.grid(row=0, column=1)
+button.grid(row=1, column=0, columnspan=2)
+
+# Options: row, column, padx, pady, sticky</code></pre>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>place() - Precise Position</h5>
+                        <div class="code-block">
+                            <pre><code># Position with exact coordinates
+button.place(x=50, y=100, width=100, height=30)
+
+# Options: x, y, width, height, anchor</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Database Connectivity Section -->
+            <section id="database-connectivity" class="section-card animate-fade-in">
+                <h2><i class="fas fa-database"></i> Database Connectivity</h2>
+
+                <div class="concept-box">
+                    <h3><i class="fas fa-link"></i> Connecting GUI to Database</h3>
+                    <p>Database connectivity allows your GUI applications to store, retrieve, and manage data persistently.</p>
+                </div>
+
+                <h3>1. SQLite - Built-in Database</h3>
+                <div class="code-block">
+                    <pre><code>import sqlite3
+
+# Create connection
+conn = sqlite3.connect('database.db')
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS students (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE,
+        age INTEGER
+    )
+''')
+
+# Insert data
+cursor.execute('INSERT INTO students (name, email, age) VALUES (?, ?, ?)', 
+              ('John Doe', 'john@example.com', 20))
+
+# Commit and close
+conn.commit()
+conn.close()</code></pre>
+                </div>
+
+                <h3>2. MySQL - External Database</h3>
+                <div class="code-block">
+                    <pre><code># Install: pip install mysql-connector-python
+import mysql.connector
+
+# Create connection
+conn = mysql.connector.connect(
+    host='localhost',
+    user='username',
+    password='password',
+    database='school'
+)
+
+cursor = conn.cursor()
+
+# Execute queries
+cursor.execute('SELECT * FROM students')
+results = cursor.fetchall()
+
+# Close connection
+conn.close()</code></pre>
+                </div>
+
+                <div class="warning-box">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Important Security Note</h5>
+                    <p>Always use parameterized queries (?) to prevent SQL injection attacks:</p>
+                    <div class="code-block">
+                        <pre><code># GOOD - Parameterized query
+cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+
+# BAD - String formatting (vulnerable to SQL injection)
+cursor.execute(f'SELECT * FROM users WHERE username = {username}')</code></pre>
+                    </div>
+                </div>
+
+                <h3>3. Database Operations Pattern</h3>
+                <div class="code-block">
+                    <pre><code>class DatabaseManager:
+    def __init__(self, db_name):
+        self.conn = sqlite3.connect(db_name)
+        self.cursor = self.conn.cursor()
+        self.create_tables()
+    
+    def create_tables(self):
+        # Create necessary tables
+        pass
+    
+    def insert_data(self, table, data):
+        # Insert data into table
+        pass
+    
+    def get_data(self, table, condition=None):
+        # Retrieve data from table
+        pass
+    
+    def update_data(self, table, data, condition):
+        # Update data in table
+        pass
+    
+    def delete_data(self, table, condition):
+        # Delete data from table
+        pass
+    
+    def close(self):
+        self.conn.close()</code></pre>
+                </div>
+            </section>
+
+            <!-- Task 1 -->
+            <section id="task1" class="section-card animate-fade-in">
+                <h2><i class="fas fa-tasks"></i> Task 1: Simple Tkinter Window</h2>
+                
+                <div class="task-card">
+                    <h3>Objective</h3>
+                    <p>Create a simple Tkinter window with a title and fixed size.</p>
+                </div>
+
+                <h3>Concept Explanation</h3>
+                <ul>
+                    <li><strong>Root Window:</strong> The main window of your application</li>
+                    <li><strong>Title:</strong> Text displayed in the window title bar</li>
+                    <li><strong>Geometry:</strong> Window dimensions (width x height)</li>
+                    <li><strong>Resizable:</strong> Control whether window can be resized</li>
+                    <li><strong>Mainloop:</strong> Starts the event loop</li>
+                </ul>
+
+                <h3>Complete Code</h3>
+                <div class="code-block">
+                    <pre><code>import tkinter as tk
+
+def create_simple_window():
+    # Create the main window
+    root = tk.Tk()
+    
+    # Set window title
+    root.title("My First GUI Application")
+    
+    # Set window size (width x height)
+    root.geometry("500x400")
+    
+    # Make window non-resizable
+    root.resizable(False, False)
+    
+    # Set background color
+    root.configure(bg='#f0f0f0')
+    
+    # Add a label to show the window is working
+    welcome_label = tk.Label(
+        root, 
+        text="Welcome to GUI Programming!",
+        font=("Arial", 16, "bold"),
+        bg='#f0f0f0',
+        fg='#2c3e50'
+    )
+    welcome_label.pack(pady=50)
+    
+    # Add a button to close the window
+    close_button = tk.Button(
+        root,
+        text="Close Window",
+        command=root.destroy,
+        bg='#e74c3c',
+        fg='white',
+        font=("Arial", 12),
+        padx=20,
+        pady=10
+    )
+    close_button.pack(pady=20)
+    
+    # Start the event loop
+    root.mainloop()
+
+# Run the application
+if __name__ == "__main__":
+    create_simple_window()</code></pre>
+                </div>
+
+                <h3>Key Points to Remember</h3>
+                <div class="success-box">
+                    <ul>
+                        <li>Always call <code>root.mainloop()</code> at the end</li>
+                        <li>Use <code>geometry("widthxheight")</code> for fixed size</li>
+                        <li><code>resizable(False, False)</code> prevents resizing</li>
+                        <li>Widgets are added using layout managers (pack, grid, place)</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Task 2 -->
+            <section id="task2" class="section-card animate-fade-in">
+                <h2><i class="fas fa-calculator"></i> Task 2: Basic Calculator</h2>
+                
+                <div class="task-card">
+                    <h3>Objective</h3>
+                    <p>Design a GUI-based basic calculator for performing arithmetic operations.</p>
+                </div>
+
+                <h3>Concept Explanation</h3>
+                <ul>
+                    <li><strong>Entry Widget:</strong> For displaying numbers and results</li>
+                    <li><strong>Button Grid:</strong> Arrange calculator buttons in grid layout</li>
+                    <li><strong>Event Handling:</strong> Functions to handle button clicks</li>
+                    <li><strong>Expression Evaluation:</strong> Using Python's eval() function</li>
+                </ul>
+
+                <h3>Complete Code</h3>
+                <div class="code-block">
+                    <pre><code>import tkinter as tk
+from tkinter import messagebox
+
+class Calculator:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Basic Calculator")
+        self.root.geometry("350x450")
+        self.root.resizable(False, False)
+        self.root.configure(bg='#2c3e50')
+        
+        # Variable to store current expression
+        self.expression = ""
+        
+        # Create display
+        self.create_display()
+        
+        # Create buttons
+        self.create_buttons()
+    
+    def create_display(self):
+        # Display frame
+        display_frame = tk.Frame(self.root, bg='#2c3e50')
+        display_frame.pack(pady=20)
+        
+        # Entry widget for display
+        self.display = tk.Entry(
+            display_frame,
+            textvariable=tk.StringVar(),
+            font=('Arial', 24),
+            width=14,
+            bd=10,
+            insertwidth=4,
+            bg='#34495e',
+            fg='white',
+            justify='right'
+        )
+        self.display.pack()
+    
+    def create_buttons(self):
+        # Button frame
+        button_frame = tk.Frame(self.root, bg='#2c3e50')
+        button_frame.pack()
+        
+        # Button layout
+        buttons = [
+            '7', '8', '9', '/',
+            '4', '5', '6', '*',
+            '1', '2', '3', '-',
+            '0', '.', '=', '+',
+            'C', '⌫'
+        ]
+        
+        # Create buttons
+        row = 0
+        col = 0
+        for button_text in buttons:
+            if button_text == '=':
+                button = tk.Button(
+                    button_frame,
+                    text=button_text,
+                    font=('Arial', 18, 'bold'),
+                    width=5,
+                    height=2,
+                    bg='#27ae60',
+                    fg='white',
+                    command=self.calculate
+                )
+            elif button_text == 'C':
+                button = tk.Button(
+                    button_frame,
+                    text=button_text,
+                    font=('Arial', 18, 'bold'),
+                    width=5,
+                    height=2,
+                    bg='#e74c3c',
+                    fg='white',
+                    command=self.clear
+                )
+            elif button_text == '⌫':
+                button = tk.Button(
+                    button_frame,
+                    text=button_text,
+                    font=('Arial', 18, 'bold'),
+                    width=5,
+                    height=2,
+                    bg='#f39c12',
+                    fg='white',
+                    command=self.backspace
+                )
+            else:
+                button = tk.Button(
+                    button_frame,
+                    text=button_text,
+                    font=('Arial', 18),
+                    width=5,
+                    height=2,
+                    bg='#34495e',
+                    fg='white',
+                    command=lambda text=button_text: self.append_to_expression(text)
+                )
+            
+            button.grid(row=row, column=col, padx=2, pady=2)
+            
+            col += 1
+            if col > 3:
+                col = 0
+                row += 1
+    
+    def append_to_expression(self, value):
+        self.expression += str(value)
+        self.display.delete(0, tk.END)
+        self.display.insert(0, self.expression)
+    
+    def clear(self):
+        self.expression = ""
+        self.display.delete(0, tk.END)
+    
+    def backspace(self):
+        self.expression = self.expression[:-1]
+        self.display.delete(0, tk.END)
+        self.display.insert(0, self.expression)
+    
+    def calculate(self):
+        try:
+            result = str(eval(self.expression))
+            self.display.delete(0, tk.END)
+            self.display.insert(0, result)
+            self.expression = result
+        except:
+            messagebox.showerror("Error", "Invalid Expression")
+            self.clear()
+
+# Create and run the calculator
+if __name__ == "__main__":
+    root = tk.Tk()
+    calculator = Calculator(root)
+    root.mainloop()</code></pre>
+                </div>
+
+                <h3>Key Concepts Demonstrated</h3>
+                <div class="tip-box">
+                    <ul>
+                        <li><strong>Grid Layout:</strong> Perfect for calculator button arrangement</li>
+                        <li><strong>Lambda Functions:</strong> Pass parameters to button commands</li>
+                        <li><strong>Error Handling:</strong> Try-except for invalid expressions</li>
+                        <li><strong>State Management:</strong> Tracking current expression</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Task 3 -->
+            <section id="task3" class="section-card animate-fade-in">
+                <h2><i class="fas fa-user-graduate"></i> Task 3: Student Registration System</h2>
+                
+                <div class="task-card">
+                    <h3>Objective</h3>
+                    <p>Design a GUI for student registration and store details in a database.</p>
+                </div>
+
+                <h3>Concept Explanation</h3>
+                <ul>
+                    <li><strong>Form Validation:</strong> Ensure data integrity</li>
+                    <li><strong>Database Integration:</strong> SQLite for data persistence</li>
+                    <li><strong>CRUD Operations:</strong> Create, Read, Update, Delete</li>
+                    <li><strong>Data Display:</strong> Show registered students</li>
+                </ul>
+
+                <h3>Complete Code</h3>
+                <div class="code-block">
+                    <pre><code>import tkinter as tk
+from tkinter import messagebox, ttk
+import sqlite3
+
+class StudentRegistrationSystem:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Student Registration System")
+        self.root.geometry("800x600")
+        self.root.configure(bg='#ecf0f1')
+        
+        # Initialize database
+        self.init_database()
+        
+        # Create GUI
+        self.create_widgets()
+        
+        # Load students
+        self.load_students()
+    
+    def init_database(self):
+        # Create database connection
+        self.conn = sqlite3.connect('students.db')
+        self.cursor = self.conn.cursor()
+        
+        # Create table if not exists
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS students (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                phone TEXT,
+                course TEXT,
+                age INTEGER,
+                gender TEXT
+            )
+        ''')
+        self.conn.commit()
+    
+    def create_widgets(self):
+        # Main frame
+        main_frame = tk.Frame(self.root, bg='#ecf0f1')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Left frame - Registration form
+        left_frame = tk.Frame(main_frame, bg='white', relief=tk.RAISED, bd=2)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+        
+        # Right frame - Student list
+        right_frame = tk.Frame(main_frame, bg='white', relief=tk.RAISED, bd=2)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(10, 0))
+        
+        # Registration form
+        self.create_registration_form(left_frame)
+        
+        # Student list
+        self.create_student_list(right_frame)
+    
+    def create_registration_form(self, parent):
+        # Title
+        title = tk.Label(parent, text="Student Registration", 
+                        font=('Arial', 16, 'bold'), bg='white')
+        title.pack(pady=20)
+        
+        # Form fields
+        fields = [
+            ("Name:", "name_entry"),
+            ("Email:", "email_entry"),
+            ("Phone:", "phone_entry"),
+            ("Course:", "course_entry"),
+            ("Age:", "age_entry"),
+            ("Gender:", "gender_var")
+        ]
+        
+        self.entries = {}
+        
+        for i, (label_text, entry_name) in enumerate(fields):
+            # Label
+            label = tk.Label(parent, text=label_text, font=('Arial', 10), bg='white')
+            label.grid(row=i, column=0, padx=10, pady=5, sticky='w')
+            
+            if entry_name == "gender_var":
+                # Gender radio buttons
+                self.gender_var = tk.StringVar(value="Male")
+                male_radio = tk.Radiobutton(parent, text="Male", variable=self.gender_var, 
+                                         value="Male", bg='white')
+                male_radio.grid(row=i, column=1, padx=10, pady=5, sticky='w')
+                
+                female_radio = tk.Radiobutton(parent, text="Female", variable=self.gender_var, 
+                                            value="Female", bg='white')
+                female_radio.grid(row=i, column=2, padx=10, pady=5, sticky='w')
+            else:
+                # Entry field
+                entry = tk.Entry(parent, font=('Arial', 10), width=25)
+                entry.grid(row=i, column=1, columnspan=2, padx=10, pady=5, sticky='w')
+                self.entries[entry_name] = entry
+        
+        # Buttons
+        button_frame = tk.Frame(parent, bg='white')
+        button_frame.grid(row=len(fields), column=0, columnspan=3, pady=20)
+        
+        register_btn = tk.Button(button_frame, text="Register", 
+                                command=self.register_student,
+                                bg='#27ae60', fg='white', font=('Arial', 10, 'bold'),
+                                padx=20, pady=5)
+        register_btn.pack(side=tk.LEFT, padx=5)
+        
+        clear_btn = tk.Button(button_frame, text="Clear", 
+                             command=self.clear_form,
+                             bg='#e74c3c', fg='white', font=('Arial', 10, 'bold'),
+                             padx=20, pady=5)
+        clear_btn.pack(side=tk.LEFT, padx=5)
+    
+    def create_student_list(self, parent):
+        # Title
+        title = tk.Label(parent, text="Registered Students", 
+                        font=('Arial', 16, 'bold'), bg='white')
+        title.pack(pady=20)
+        
+        # Treeview for student list
+        columns = ('ID', 'Name', 'Email', 'Phone', 'Course', 'Age', 'Gender')
+        self.student_tree = ttk.Treeview(parent, columns=columns, show='headings', height=15)
+        
+        # Define headings
+        for col in columns:
+            self.student_tree.heading(col, text=col)
+            self.student_tree.column(col, width=80)
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=self.student_tree.yview)
+        self.student_tree.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack treeview and scrollbar
+        self.student_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0), pady=(0, 10))
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 10), pady=(0, 10))
+        
+        # Delete button
+        delete_btn = tk.Button(parent, text="Delete Selected", 
+                              command=self.delete_student,
+                              bg='#e74c3c', fg='white', font=('Arial', 10, 'bold'),
+                              padx=20, pady=5)
+        delete_btn.pack(pady=10)
+    
+    def register_student(self):
+        # Get form data
+        name = self.entries['name_entry'].get().strip()
+        email = self.entries['email_entry'].get().strip()
+        phone = self.entries['phone_entry'].get().strip()
+        course = self.entries['course_entry'].get().strip()
+        age = self.entries['age_entry'].get().strip()
+        gender = self.gender_var.get()
+        
+        # Validation
+        if not name or not email:
+            messagebox.showerror("Error", "Name and Email are required!")
+            return
+        
+        if age and not age.isdigit():
+            messagebox.showerror("Error", "Age must be a number!")
+            return
+        
+        # Insert into database
+        try:
+            self.cursor.execute('''
+                INSERT INTO students (name, email, phone, course, age, gender)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (name, email, phone, course, age, gender))
+            self.conn.commit()
+            
+            messagebox.showinfo("Success", "Student registered successfully!")
+            self.clear_form()
+            self.load_students()
+            
+        except sqlite3.IntegrityError:
+            messagebox.showerror("Error", "Email already exists!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Registration failed: {str(e)}")
+    
+    def load_students(self):
+        # Clear existing data
+        for item in self.student_tree.get_children():
+            self.student_tree.delete(item)
+        
+        # Load from database
+        self.cursor.execute('SELECT * FROM students ORDER BY id')
+        students = self.cursor.fetchall()
+        
+        for student in students:
+            self.student_tree.insert('', tk.END, values=student)
+    
+    def delete_student(self):
+        selected = self.student_tree.selection()
+        if not selected:
+            messagebox.showwarning("Warning", "Please select a student to delete!")
+            return
+        
+        if messagebox.askyesno("Confirm", "Are you sure you want to delete this student?"):
+            item = self.student_tree.item(selected[0])
+            student_id = item['values'][0]
+            
+            try:
+                self.cursor.execute('DELETE FROM students WHERE id = ?', (student_id,))
+                self.conn.commit()
+                self.load_students()
+                messagebox.showinfo("Success", "Student deleted successfully!")
+            except Exception as e:
+                messagebox.showerror("Error", f"Deletion failed: {str(e)}")
+    
+    def clear_form(self):
+        for entry in self.entries.values():
+            if entry:  # Skip gender_var
+                entry.delete(0, tk.END)
+        self.gender_var.set("Male")
+    
+    def __del__(self):
+        # Close database connection
+        if hasattr(self, 'conn'):
+            self.conn.close()
+
+# Create and run the application
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = StudentRegistrationSystem(root)
+    root.mainloop()</code></pre>
+                </div>
+
+                <h3>Key Features</h3>
+                <div class="success-box">
+                    <ul>
+                        <li><strong>Form Validation:</strong> Checks for required fields and data types</li>
+                        <li><strong>Database Operations:</strong> Insert and delete student records</li>
+                        <li><strong>Data Display:</strong> Treeview widget for tabular data</li>
+                        <li><strong>Error Handling:</strong> Database constraints and user input errors</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Task 4 -->
+            <section id="task4" class="section-card animate-fade-in">
+                <h2><i class="fas fa-tasks"></i> Task 4: Task Manager</h2>
+                
+                <div class="task-card">
+                    <h3>Objective</h3>
+                    <p>Create a GUI-based task manager where users can add, edit, and remove tasks.</p>
+                </div>
+
+                <h3>Concept Explanation</h3>
+                <ul>
+                    <li><strong>Listbox Widget:</strong> Display list of tasks</li>
+                    <li><strong>Task Management:</strong> Add, edit, delete operations</li>
+                    <li><strong>State Tracking:</strong> Task completion status</li>
+                    <li><strong>Data Persistence:</strong> SQLite database storage</li>
+                </ul>
+
+                <h3>Complete Code</h3>
+                <div class="code-block">
+                    <pre><code>import tkinter as tk
+from tkinter import messagebox, simpledialog
+import sqlite3
+from datetime import datetime
+
+class TaskManager:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Task Manager")
+        self.root.geometry("600x500")
+        self.root.configure(bg='#34495e')
+        
+        # Initialize database
+        self.init_database()
+        
+        # Create GUI
+        self.create_widgets()
+        
+        # Load tasks
+        self.load_tasks()
+    
+    def init_database(self):
+        # Create database connection
+        self.conn = sqlite3.connect('tasks.db')
+        self.cursor = self.conn.cursor()
+        
+        # Create table if not exists
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_date TEXT,
+                completed_date TEXT
+            )
+        ''')
+        self.conn.commit()
+    
+    def create_widgets(self):
+        # Title
+        title = tk.Label(self.root, text="Task Manager", 
+                        font=('Arial', 20, 'bold'), 
+                        bg='#34495e', fg='white')
+        title.pack(pady=20)
+        
+        # Input frame
+        input_frame = tk.Frame(self.root, bg='#34495e')
+        input_frame.pack(pady=10)
+        
+        # Task entry
+        self.task_entry = tk.Entry(input_frame, font=('Arial', 12), width=40)
+        self.task_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Add button
+        add_btn = tk.Button(input_frame, text="Add Task", 
+                           command=self.add_task,
+                           bg='#27ae60', fg='white', 
+                           font=('Arial', 10, 'bold'),
+                           padx=15, pady=5)
+        add_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Task list frame
+        list_frame = tk.Frame(self.root, bg='white', relief=tk.RAISED, bd=2)
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        # Listbox with scrollbar
+        scrollbar = tk.Scrollbar(list_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.task_listbox = tk.Listbox(list_frame, 
+                                       font=('Arial', 11),
+                                       selectmode=tk.SINGLE,
+                                       yscrollcommand=scrollbar.set,
+                                       height=15)
+        self.task_listbox.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        scrollbar.config(command=self.task_listbox.yview)
+        
+        # Bind double-click for editing
+        self.task_listbox.bind('<Double-Button-1>', self.edit_task)
+        
+        # Button frame
+        button_frame = tk.Frame(self.root, bg='#34495e')
+        button_frame.pack(pady=10)
+        
+        # Action buttons
+        complete_btn = tk.Button(button_frame, text="Mark Complete", 
+                                command=self.complete_task,
+                                bg='#3498db', fg='white',
+                                font=('Arial', 10, 'bold'),
+                                padx=15, pady=5)
+        complete_btn.pack(side=tk.LEFT, padx=5)
+        
+        edit_btn = tk.Button(button_frame, text="Edit Task", 
+                            command=self.edit_task_button,
+                            bg='#f39c12', fg='white',
+                            font=('Arial', 10, 'bold'),
+                            padx=15, pady=5)
+        edit_btn.pack(side=tk.LEFT, padx=5)
+        
+        delete_btn = tk.Button(button_frame, text="Delete Task", 
+                              command=self.delete_task,
+                              bg='#e74c3c', fg='white',
+                              font=('Arial', 10, 'bold'),
+                              padx=15, pady=5)
+        delete_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Status bar
+        self.status_bar = tk.Label(self.root, text="Ready", 
+                                  font=('Arial', 9), 
+                                  bg='#2c3e50', fg='white',
+                                  anchor=tk.W)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+    
+    def add_task(self):
+        task = self.task_entry.get().strip()
+        if not task:
+            messagebox.showwarning("Warning", "Please enter a task!")
+            return
+        
+        try:
+            created_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.cursor.execute('''
+                INSERT INTO tasks (task, status, created_date)
+                VALUES (?, ?, ?)
+            ''', (task, 'pending', created_date))
+            self.conn.commit()
+            
+            self.task_entry.delete(0, tk.END)
+            self.load_tasks()
+            self.update_status(f"Task '{task}' added successfully!")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to add task: {str(e)}")
+    
+    def load_tasks(self):
+        # Clear existing tasks
+        self.task_listbox.delete(0, tk.END)
+        
+        # Load from database
+        self.cursor.execute('SELECT * FROM tasks ORDER BY created_date DESC')
+        tasks = self.cursor.fetchall()
+        
+        for task in tasks:
+            task_id, task_text, status, created_date, completed_date = task
+            display_text = f"[{status.upper()}] {task_text}"
+            if status == 'completed':
+                display_text = "✓ " + display_text
+            self.task_listbox.insert(tk.END, display_text)
+    
+    def get_selected_task_id(self):
+        selected = self.task_listbox.curselection()
+        if not selected:
+            return None
+        
+        # Get the actual task from database
+        self.cursor.execute('SELECT * FROM tasks ORDER BY created_date DESC')
+        tasks = self.cursor.fetchall()
+        
+        if selected[0] < len(tasks):
+            return tasks[selected[0]][0]  # Return task ID
+        return None
+    
+    def complete_task(self):
+        task_id = self.get_selected_task_id()
+        if not task_id:
+            messagebox.showwarning("Warning", "Please select a task!")
+            return
+        
+        try:
+            completed_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.cursor.execute('''
+                UPDATE tasks SET status = 'completed', completed_date = ?
+                WHERE id = ?
+            ''', (completed_date, task_id))
+            self.conn.commit()
+            
+            self.load_tasks()
+            self.update_status("Task marked as complete!")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to complete task: {str(e)}")
+    
+    def edit_task_button(self):
+        task_id = self.get_selected_task_id()
+        if not task_id:
+            messagebox.showwarning("Warning", "Please select a task!")
+            return
+        
+        self.edit_task(None)
+    
+    def edit_task(self, event):
+        task_id = self.get_selected_task_id()
+        if not task_id:
+            return
+        
+        # Get current task text
+        self.cursor.execute('SELECT task FROM tasks WHERE id = ?', (task_id,))
+        current_task = self.cursor.fetchone()[0]
+        
+        # Ask for new task text
+        new_task = simpledialog.askstring("Edit Task", 
+                                         "Enter new task text:",
+                                         initialvalue=current_task)
+        
+        if new_task and new_task.strip():
+            try:
+                self.cursor.execute('''
+                    UPDATE tasks SET task = ? WHERE id = ?
+                ''', (new_task.strip(), task_id))
+                self.conn.commit()
+                
+                self.load_tasks()
+                self.update_status("Task updated successfully!")
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to update task: {str(e)}")
+    
+    def delete_task(self):
+        task_id = self.get_selected_task_id()
+        if not task_id:
+            messagebox.showwarning("Warning", "Please select a task!")
+            return
+        
+        if messagebox.askyesno("Confirm", "Are you sure you want to delete this task?"):
+            try:
+                self.cursor.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
+                self.conn.commit()
+                
+                self.load_tasks()
+                self.update_status("Task deleted successfully!")
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to delete task: {str(e)}")
+    
+    def update_status(self, message):
+        self.status_bar.config(text=message)
+        self.root.after(3000, lambda: self.status_bar.config(text="Ready"))
+    
+    def __del__(self):
+        # Close database connection
+        if hasattr(self, 'conn'):
+            self.conn.close()
+
+# Create and run the application
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = TaskManager(root)
+    root.mainloop()</code></pre>
+                </div>
+
+                <h3>Advanced Features</h3>
+                <div class="tip-box">
+                    <ul>
+                        <li><strong>Double-click Editing:</strong> Double-click task to edit</li>
+                        <li><strong>Status Tracking:</strong> Pending vs completed tasks</li>
+                        <li><strong>Timestamps:</strong> Track creation and completion times</li>
+                        <li><strong>Status Bar:</strong> User feedback for actions</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Task 5 -->
+            <section id="task5" class="section-card animate-fade-in">
+                <h2><i class="fas fa-user-lock"></i> Task 5: Login and Signup System</h2>
+                
+                <div class="task-card">
+                    <h3>Objective</h3>
+                    <p>Design a login and signup authentication system with GUI.</p>
+                </div>
+
+                <h3>Concept Explanation</h3>
+                <ul>
+                    <li><strong>Authentication:</strong> Verify user credentials</li>
+                    <li><strong>Password Hashing:</strong> Secure password storage</li>
+                    <li><strong>Session Management:</strong> Track logged-in users</li>
+                    <li><strong>Window Switching:</strong> Navigate between login/signup/main windows</li>
+                </ul>
+
+                <h3>Complete Code</h3>
+                <div class="code-block">
+                    <pre><code>import tkinter as tk
+from tkinter import messagebox
+import sqlite3
+import hashlib
+import random
+import string
+
+class AuthenticationSystem:
+    def __init__(self):
+        # Initialize database
+        self.init_database()
+        
+        # Create main window
+        self.root = tk.Tk()
+        self.root.title("Authentication System")
+        self.root.geometry("400x300")
+        self.root.resizable(False, False)
+        
+        # Current user (for session management)
+        self.current_user = None
+        
+        # Show login screen
+        self.show_login_screen()
+        
+        # Start the application
+        self.root.mainloop()
+    
+    def init_database(self):
+        # Create database connection
+        self.conn = sqlite3.connect('auth_system.db')
+        self.cursor = self.conn.cursor()
+        
+        # Create users table if not exists
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_date TEXT,
+                last_login TEXT
+            )
+        ''')
+        self.conn.commit()
+    
+    def clear_window(self):
+        # Clear all widgets from window
+        for widget in self.root.winfo_children():
+            widget.destroy()
+    
+    def show_login_screen(self):
+        self.clear_window()
+        self.root.geometry("400x300")
+        
+        # Title
+        title = tk.Label(self.root, text="Login", 
+                        font=('Arial', 20, 'bold'),
+                        bg='#3498db', fg='white')
+        title.pack(fill=tk.X, pady=(0, 30))
+        
+        # Login frame
+        login_frame = tk.Frame(self.root, bg='white', relief=tk.RAISED, bd=2)
+        login_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Username
+        tk.Label(login_frame, text="Username:", font=('Arial', 10), bg='white').grid(row=0, column=0, padx=10, pady=10, sticky='w')
+        self.login_username = tk.Entry(login_frame, font=('Arial', 10), width=25)
+        self.login_username.grid(row=0, column=1, padx=10, pady=10)
+        
+        # Password
+        tk.Label(login_frame, text="Password:", font=('Arial', 10), bg='white').grid(row=1, column=0, padx=10, pady=10, sticky='w')
+        self.login_password = tk.Entry(login_frame, font=('Arial', 10), width=25, show='*')
+        self.login_password.grid(row=1, column=1, padx=10, pady=10)
+        
+        # Login button
+        login_btn = tk.Button(login_frame, text="Login", 
+                            command=self.login,
+                            bg='#27ae60', fg='white',
+                            font=('Arial', 10, 'bold'),
+                            padx=20, pady=5)
+        login_btn.grid(row=2, column=0, columnspan=2, pady=20)
+        
+        # Signup link
+        signup_link = tk.Button(login_frame, text="Don't have an account? Sign up",
+                              command=self.show_signup_screen,
+                              bg='#3498db', fg='white',
+                              font=('Arial', 9),
+                              relief=tk.FLAT, cursor='hand2')
+        signup_link.grid(row=3, column=0, columnspan=2)
+        
+        # Bind Enter key to login
+        self.root.bind('<Return>', lambda event: self.login())
+        
+        # Focus on username field
+        self.login_username.focus()
+    
+    def show_signup_screen(self):
+        self.clear_window()
+        self.root.geometry("450x400")
+        
+        # Title
+        title = tk.Label(self.root, text="Sign Up", 
+                        font=('Arial', 20, 'bold'),
+                        bg='#e74c3c', fg='white')
+        title.pack(fill=tk.X, pady=(0, 30))
+        
+        # Signup frame
+        signup_frame = tk.Frame(self.root, bg='white', relief=tk.RAISED, bd=2)
+        signup_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Username
+        tk.Label(signup_frame, text="Username:", font=('Arial', 10), bg='white').grid(row=0, column=0, padx=10, pady=10, sticky='w')
+        self.signup_username = tk.Entry(signup_frame, font=('Arial', 10), width=25)
+        self.signup_username.grid(row=0, column=1, padx=10, pady=10)
+        
+        # Email
+        tk.Label(signup_frame, text="Email:", font=('Arial', 10), bg='white').grid(row=1, column=0, padx=10, pady=10, sticky='w')
+        self.signup_email = tk.Entry(signup_frame, font=('Arial', 10), width=25)
+        self.signup_email.grid(row=1, column=1, padx=10, pady=10)
+        
+        # Password
+        tk.Label(signup_frame, text="Password:", font=('Arial', 10), bg='white').grid(row=2, column=0, padx=10, pady=10, sticky='w')
+        self.signup_password = tk.Entry(signup_frame, font=('Arial', 10), width=25, show='*')
+        self.signup_password.grid(row=2, column=1, padx=10, pady=10)
+        
+        # Confirm Password
+        tk.Label(signup_frame, text="Confirm Password:", font=('Arial', 10), bg='white').grid(row=3, column=0, padx=10, pady=10, sticky='w')
+        self.signup_confirm_password = tk.Entry(signup_frame, font=('Arial', 10), width=25, show='*')
+        self.signup_confirm_password.grid(row=3, column=1, padx=10, pady=10)
+        
+        # Signup button
+        signup_btn = tk.Button(signup_frame, text="Sign Up", 
+                             command=self.signup,
+                             bg='#e74c3c', fg='white',
+                             font=('Arial', 10, 'bold'),
+                             padx=20, pady=5)
+        signup_btn.grid(row=4, column=0, columnspan=2, pady=20)
+        
+        # Login link
+        login_link = tk.Button(signup_frame, text="Already have an account? Login",
+                             command=self.show_login_screen,
+                             bg='#3498db', fg='white',
+                             font=('Arial', 9),
+                             relief=tk.FLAT, cursor='hand2')
+        login_link.grid(row=5, column=0, columnspan=2)
+        
+        # Focus on username field
+        self.signup_username.focus()
+    
+    def hash_password(self, password):
+        # Hash password using SHA-256
+        return hashlib.sha256(password.encode()).hexdigest()
+    
+    def validate_email(self, email):
+        # Simple email validation
+        return '@' in email and '.' in email
+    
+    def login(self):
+        username = self.login_username.get().strip()
+        password = self.login_password.get().strip()
+        
+        if not username or not password:
+            messagebox.showerror("Error", "Please enter both username and password!")
+            return
+        
+        try:
+            password_hash = self.hash_password(password)
+            self.cursor.execute('''
+                SELECT * FROM users WHERE username = ? AND password_hash = ?
+            ''', (username, password_hash))
+            
+            user = self.cursor.fetchone()
+            
+            if user:
+                # Update last login
+                from datetime import datetime
+                last_login = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cursor.execute('''
+                    UPDATE users SET last_login = ? WHERE id = ?
+                ''', (last_login, user[0]))
+                self.conn.commit()
+                
+                self.current_user = {'id': user[0], 'username': user[1], 'email': user[2]}
+                messagebox.showinfo("Success", f"Welcome back, {username}!")
+                self.show_dashboard()
+            else:
+                messagebox.showerror("Error", "Invalid username or password!")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Login failed: {str(e)}")
+    
+    def signup(self):
+        username = self.signup_username.get().strip()
+        email = self.signup_email.get().strip()
+        password = self.signup_password.get().strip()
+        confirm_password = self.signup_confirm_password.get().strip()
+        
+        # Validation
+        if not username or not email or not password or not confirm_password:
+            messagebox.showerror("Error", "Please fill all fields!")
+            return
+        
+        if len(username) < 3:
+            messagebox.showerror("Error", "Username must be at least 3 characters!")
+            return
+        
+        if not self.validate_email(email):
+            messagebox.showerror("Error", "Please enter a valid email address!")
+            return
+        
+        if len(password) < 6:
+            messagebox.showerror("Error", "Password must be at least 6 characters!")
+            return
+        
+        if password != confirm_password:
+            messagebox.showerror("Error", "Passwords do not match!")
+            return
+        
+        try:
+            # Check if username or email already exists
+            self.cursor.execute('''
+                SELECT username, email FROM users WHERE username = ? OR email = ?
+            ''', (username, email))
+            
+            existing_user = self.cursor.fetchone()
+            
+            if existing_user:
+                if existing_user[0] == username:
+                    messagebox.showerror("Error", "Username already exists!")
+                else:
+                    messagebox.showerror("Error", "Email already registered!")
+                return
+            
+            # Create new user
+            password_hash = self.hash_password(password)
+            from datetime import datetime
+            created_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            self.cursor.execute('''
+                INSERT INTO users (username, email, password_hash, created_date)
+                VALUES (?, ?, ?, ?)
+            ''', (username, email, password_hash, created_date))
+            
+            self.conn.commit()
+            
+            messagebox.showinfo("Success", "Account created successfully! Please login.")
+            self.show_login_screen()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Signup failed: {str(e)}")
+    
+    def show_dashboard(self):
+        self.clear_window()
+        self.root.geometry("500x400")
+        
+        # Title
+        title = tk.Label(self.root, text=f"Welcome, {self.current_user['username']}!", 
+                        font=('Arial', 18, 'bold'),
+                        bg='#27ae60', fg='white')
+        title.pack(fill=tk.X, pady=(0, 30))
+        
+        # Dashboard frame
+        dashboard_frame = tk.Frame(self.root, bg='white', relief=tk.RAISED, bd=2)
+        dashboard_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # User info
+        info_frame = tk.Frame(dashboard_frame, bg='white')
+        info_frame.pack(pady=20)
+        
+        tk.Label(info_frame, text=f"Username: {self.current_user['username']}", 
+                font=('Arial', 12), bg='white').pack(anchor='w', pady=5)
+        tk.Label(info_frame, text=f"Email: {self.current_user['email']}", 
+                font=('Arial', 12), bg='white').pack(anchor='w', pady=5)
+        
+        # Get last login
+        self.cursor.execute('SELECT last_login FROM users WHERE id = ?', (self.current_user['id'],))
+        last_login = self.cursor.fetchone()[0]
+        if last_login:
+            tk.Label(info_frame, text=f"Last Login: {last_login}", 
+                    font=('Arial', 12), bg='white').pack(anchor='w', pady=5)
+        
+        # Welcome message
+        welcome_label = tk.Label(dashboard_frame, 
+                               text="You have successfully logged in!\nThis is your personal dashboard.",
+                               font=('Arial', 11), bg='white', justify='center')
+        welcome_label.pack(pady=30)
+        
+        # Logout button
+        logout_btn = tk.Button(dashboard_frame, text="Logout", 
+                             command=self.logout,
+                             bg='#e74c3c', fg='white',
+                             font=('Arial', 10, 'bold'),
+                             padx=20, pady=5)
+        logout_btn.pack(pady=20)
+    
+    def logout(self):
+        self.current_user = None
+        messagebox.showinfo("Success", "You have been logged out successfully!")
+        self.show_login_screen()
+    
+    def __del__(self):
+        # Close database connection
+        if hasattr(self, 'conn'):
+            self.conn.close()
+
+# Run the authentication system
+if __name__ == "__main__":
+    app = AuthenticationSystem()</code></pre>
+                </div>
+
+                <h3>Security Features</h3>
+                <div class="warning-box">
+                    <ul>
+                        <li><strong>Password Hashing:</strong> SHA-256 for secure password storage</li>
+                        <li><strong>Input Validation:</strong> Check for required fields and format</li>
+                        <li><strong>Session Management:</strong> Track logged-in user state</li>
+                        <li><strong>Error Handling:</strong> Prevent information disclosure</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Summary Section -->
+            <section class="section-card animate-fade-in">
+                <h2><i class="fas fa-graduation-cap"></i> Summary and Best Practices</h2>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4><i class="fas fa-check-circle"></i> GUI Best Practices</h4>
+                        <ul>
+                            <li>Use consistent color schemes and fonts</li>
+                            <li>Provide clear user feedback (messages, status bars)</li>
+                            <li>Implement proper error handling</li>
+                            <li>Make interfaces intuitive and responsive</li>
+                            <li>Use appropriate layout managers</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h4><i class="fas fa-shield-alt"></i> Database Best Practices</h4>
+                        <ul>
+                            <li>Always use parameterized queries</li>
+                            <li>Implement proper error handling</li>
+                            <li>Close database connections properly</li>
+                            <li>Use transactions for data integrity</li>
+                            <li>Validate user input before database operations</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    <h4><i class="fas fa-lightbulb"></i> Key Takeaways</h4>
+                    <p>After completing this experiment, students should be able to:</p>
+                    <ul>
+                        <li>Create professional GUI applications using Tkinter</li>
+                        <li>Integrate GUI applications with databases</li>
+                        <li>Implement CRUD operations with user interfaces</li>
+                        <li>Design authentication systems with secure password handling</li>
+                        <li>Apply proper software engineering practices</li>
+                    </ul>
+                </div>
+
+                <div class="tip-box">
+                    <h4><i class="fas fa-code"></i> Additional Resources</h4>
+                    <ul>
+                        <li><a href="https://docs.python.org/3/library/tkinter.html" target="_blank">Official Tkinter Documentation</a></li>
+                        <li><a href="https://docs.python.org/3/library/sqlite3.html" target="_blank">SQLite3 Documentation</a></li>
+                        <li><a href="https://realpython.com/python-gui-tkinter/" target="_blank">Real Python Tkinter Tutorial</a></li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Floating button to scroll to top -->
+    <button class="floating-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    
+    <script>
+        // Add smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-fade-in');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.section-card').forEach(card => {
+            observer.observe(card);
+        });
+
+        // Progress bar for reading
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            
+            // You can add a progress bar element if needed
+        });
+    </script>
+</body>
+</html>
