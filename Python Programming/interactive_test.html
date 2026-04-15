@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Python Test</title>
+
+    <!-- CodeMirror for Python Editor -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            color: var(--text-color);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            color: #94a3b8;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.5);
+        }
+
+        .test-area {
+            display: none;
+            margin-top: 2rem;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .question-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .timer-badge {
+            position: absolute;
+            top: -15px;
+            right: 20px;
+            background: var(--danger-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timer-badge.warning {
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.05);
+                background-color: #dc2626;
+            }
+        }
+
+        .editor-wrapper {
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .CodeMirror {
+            height: 350px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        #result-area {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .result-success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .result-partial {
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid #f59e0b;
+            color: #fbbf24;
+        }
+
+        .result-fail {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--danger-color);
+            color: #f87171;
+        }
+
+        .instruction-box {
+            background: rgba(15, 23, 42, 0.8);
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            display: none;
+            /* hidden until populated */
+        }
+
+        .instruction-box div {
+            margin-bottom: 0.5rem;
+        }
+
+        .instruction-box strong {
+            color: #818cf8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Python Programming Interactive Test</h1>
+        <p class="subtitle">Complete the assigned programming task within 5 minutes. Good luck!</p>
+
+        <div id="setup-area">
+            <div class="form-row">
+                <div class="input-group">
+                    <label for="student-name">Student Name</label>
+                    <input type="text" id="student-name" placeholder="Enter your full name" required>
+                </div>
+                <div class="input-group">
+                    <label for="sap-id">SAP ID</label>
+                    <input type="text" id="sap-id" placeholder="Enter your SAP ID" required>
+                </div>
+            </div>
+            <button id="btn-start" class="btn" style="width: 100%">Get Random Question & Start Timer</button>
+        </div>
+
+        <div id="test-area" class="test-area">
+            <div class="question-card">
+                <div class="timer-badge" id="timer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="time-display">05:00</span>
+                </div>
+                <p class="question-text" id="question-text">Loading question...</p>
+                <div class="instruction-box" id="instruction-box">
+                    <div><strong>Sample Input:</strong> <br><span id="sample-input"></span></div>
+                    <div><strong>Sample Output:</strong> <br><span id="sample-output"></span></div>
+                </div>
+            </div>
+
+            <div class="editor-wrapper">
+                <textarea id="code-editor"></textarea>
+            </div>
+
+            <div class="actions">
+                <button id="btn-submit" class="btn btn-success">Submit Solution</button>
+            </div>
+        </div>
+
+        <div id="result-area"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:5000/api';
+
+        let editor;
+        let timerInterval;
+        let timeLeft = 300; // 5 minutes in seconds
+        let currentQuestionId = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
+                mode: "python",
+                theme: "dracula",
+                lineNumbers: true,
+                indentUnit: 4,
+                matchBrackets: true,
+                autoCloseBrackets: true
+            });
+            editor.setValue("# Write your Python code here...\n");
+        });
+
+        document.getElementById('btn-start').addEventListener('click', async () => {
+            const name = document.getElementById('student-name').value.trim();
+            const sapId = document.getElementById('sap-id').value.trim();
+
+            if (!name || !sapId) {
+                alert("Please enter both your Student Name and SAP ID.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-start');
+            btn.disabled = true;
+            btn.innerText = "Fetching Question...";
+
+            try {
+                const response = await fetch(`${API_BASE}/get_question`);
+                if (!response.ok) throw new Error("Failed to fetch question.");
+                const data = await response.json();
+
+                currentQuestionId = data.id;
+                document.getElementById('question-text').innerText = data.text;
+
+                if (data.sample_input || data.sample_output) {
+                    document.getElementById('instruction-box').style.display = 'block';
+                    document.getElementById('sample-input').innerText = data.sample_input || "None";
+                    document.getElementById('sample-output').innerText = data.sample_output || "None";
+                } else {
+                    document.getElementById('instruction-box').style.display = 'none';
+                }
+
+                document.getElementById('setup-area').style.display = 'none';
+                document.getElementById('test-area').style.display = 'block';
+
+                // Refresh editor to fix rendering issue after display:none
+                setTimeout(() => editor.refresh(), 10);
+
+                startTimer();
+
+            } catch (error) {
+                alert(error.message);
+                btn.disabled = false;
+                btn.innerText = "Get Random Question & Start Timer";
+            }
+        });
+
+        function startTimer() {
+            timeLeft = 300; // Reset just in case
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 60) {
+                    document.getElementById('timer').classList.add('warning');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitCode(true);
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('time-display').innerText = `${m}:${s}`;
+        }
+
+        document.getElementById('btn-submit').addEventListener('click', () => {
+            if (confirm("Are you sure you want to submit your solution?")) {
+                submitCode(false);
+            }
+        });
+
+        async function submitCode(autoSubmit) {
+            clearInterval(timerInterval);
+            document.getElementById('timer').classList.remove('warning');
+
+            const btnSubmit = document.getElementById('btn-submit');
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = autoSubmit ? "Time's Up! Evaluating..." : "Evaluating...";
+            editor.setOption("readOnly", true);
+
+            const payload = {
+                name: document.getElementById('student-name').value.trim(),
+                sap_id: document.getElementById('sap-id').value.trim(),
+                question_id: currentQuestionId,
+                code: editor.getValue()
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/evaluate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("Evaluation failed due to a server error.");
+                const result = await response.json();
+
+                showResult(result.marks, result.total_marks);
+
+            } catch (error) {
+                alert(error.message);
+                btnSubmit.innerText = "Evaluation Failed";
+            }
+        }
+
+        function showResult(marks, total) {
+            const resultArea = document.getElementById('result-area');
+            resultArea.style.display = 'block';
+
+            const percentage = (marks / total) * 100;
+
+            if (percentage === 100) {
+                resultArea.className = 'result-success';
+                resultArea.innerHTML = `Great Job! You scored ${marks} / ${total} marks.`;
+            } else if (percentage > 0) {
+                resultArea.className = 'result-partial';
+                resultArea.innerHTML = `Good attempt! You scored ${marks} / ${total} marks.`;
+            } else {
+                resultArea.className = 'result-fail';
+                resultArea.innerHTML = `Test failed. You scored ${marks} / ${total} marks.`;
+            }
+        }
+    </script>
+
+</body>
+
+</html>
