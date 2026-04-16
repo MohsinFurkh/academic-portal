@@ -4,12 +4,24 @@ import random
 import tempfile
 import subprocess
 import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from openpyxl import Workbook, load_workbook
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend requests
+
+# Configure CORS for production
+CORS(app, origins=[
+    "https://mohsinfurkh.github.io",  # Your GitHub Pages URL
+    "http://localhost:3000",           # Local development
+    "https://127.0.0.1:3000",
+    "*"  # Allow all origins for debugging (remove in production)
+])
+
+# Production configuration
+app.config['DEBUG'] = False
+app.config['TESTING'] = False
+app.config['ENV'] = 'production'
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 QUESTIONS_FILE = os.path.join(BASE_DIR, 'Exercises', 'questions.json')
@@ -301,6 +313,17 @@ def log_to_excel(name, sap_id, question_id, marks, security_data=None):
     except Exception as e:
         print(f"Error saving to Excel: {e}")
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Render"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.datetime.now().isoformat(),
+        'version': '1.0.0'
+    })
+
 if __name__ == '__main__':
-    # Run on port 5000
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    # Get port from environment variable for Render
+    port = int(os.environ.get('PORT', 5000))
+    # Run on all interfaces for Render with production settings
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
