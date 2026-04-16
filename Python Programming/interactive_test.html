@@ -69,6 +69,7 @@
             margin-top: 0;
             margin-bottom: 0.5rem;
             background: linear-gradient(to right, #818cf8, #c084fc);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -195,6 +196,11 @@
             animation: pulse 1s infinite alternate;
         }
 
+        .timer-badge.critical {
+            animation: criticalPulse 0.5s infinite alternate;
+            background-color: #dc2626 !important;
+        }
+
         @keyframes pulse {
             from {
                 transform: scale(1);
@@ -203,6 +209,30 @@
             to {
                 transform: scale(1.05);
                 background-color: #dc2626;
+            }
+        }
+
+        @keyframes criticalPulse {
+            from {
+                transform: scale(1);
+                box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.5);
+            }
+
+            to {
+                transform: scale(1.1);
+                box-shadow: 0 8px 12px -2px rgba(239, 68, 68, 0.8);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
             }
         }
 
@@ -336,6 +366,12 @@
         let timerInterval;
         let timeLeft = 300; // 5 minutes in seconds
         let currentQuestionId = null;
+        let shownQuestionIds = new Set(); // Track shown questions to prevent duplicates
+        let isFullscreen = false;
+        let testStartTime = null;
+        let tabSwitchCount = 0;
+        let warningCount = 0;
+        let securityAlerts = [];
 
         document.addEventListener("DOMContentLoaded", () => {
             editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
@@ -349,6 +385,88 @@
             editor.setValue("# Write your Python code here...\n");
         });
 
+        // Add fullscreen event listeners
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        function handleFullscreenChange() {
+            isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || 
+                           document.mozFullScreenElement || document.msFullscreenElement);
+        }
+
+        // Add escape key listener to exit fullscreen
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                exitFullscreen();
+            }
+            
+            // Security: Disable common shortcuts during test
+            if (testStartTime) {
+                // Disable Ctrl+C, Ctrl+V, Ctrl+X
+                if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                    e.preventDefault();
+                    showSecurityWarning('Copy/Paste is disabled during the test');
+                    return false;
+                }
+                
+                // Disable F12 (Developer Tools)
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                    showSecurityWarning('Developer Tools are disabled during the test');
+                    return false;
+                }
+                
+                // Disable Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j'].includes(e.key.toLowerCase())) {
+                    e.preventDefault();
+                    showSecurityWarning('Developer Tools are disabled during the test');
+                    return false;
+                }
+                
+                // Disable Ctrl+U (View Source)
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+                    e.preventDefault();
+                    showSecurityWarning('View Source is disabled during the test');
+                    return false;
+                }
+            }
+        });
+
+        // Tab switching detection
+        document.addEventListener('visibilitychange', () => {
+            if (testStartTime && document.hidden) {
+                tabSwitchCount++;
+                handleTabSwitch();
+            }
+        });
+
+        // Disable right-click context menu during test
+        document.addEventListener('contextmenu', (e) => {
+            if (testStartTime) {
+                e.preventDefault();
+                showSecurityWarning('Right-click is disabled during the test');
+                return false;
+            }
+        });
+
+        // Disable text selection during test
+        document.addEventListener('selectstart', (e) => {
+            if (testStartTime && !e.target.closest('.CodeMirror')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Prevent drag and drop
+        document.addEventListener('dragstart', (e) => {
+            if (testStartTime) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
         document.getElementById('btn-start').addEventListener('click', async () => {
             const name = document.getElementById('student-name').value.trim();
             const sapId = document.getElementById('sap-id').value.trim();
@@ -358,51 +476,30 @@
                 return;
             }
 
-            const btn = document.getElementById('btn-start');
-            btn.disabled = true;
-            btn.innerText = "Fetching Question...";
-
-            try {
-                const response = await fetch(`${API_BASE}/get_question`);
-                if (!response.ok) throw new Error("Failed to fetch question.");
-                const data = await response.json();
-
-                currentQuestionId = data.id;
-                document.getElementById('question-text').innerText = data.text;
-
-                if (data.sample_input || data.sample_output) {
-                    document.getElementById('instruction-box').style.display = 'block';
-                    document.getElementById('sample-input').innerText = data.sample_input || "None";
-                    document.getElementById('sample-output').innerText = data.sample_output || "None";
-                } else {
-                    document.getElementById('instruction-box').style.display = 'none';
-                }
-
-                document.getElementById('setup-area').style.display = 'none';
-                document.getElementById('test-area').style.display = 'block';
-
-                // Refresh editor to fix rendering issue after display:none
-                setTimeout(() => editor.refresh(), 10);
-
-                startTimer();
-
-            } catch (error) {
-                alert(error.message);
-                btn.disabled = false;
-                btn.innerText = "Get Random Question & Start Timer";
-            }
+            await fetchNewQuestion();
         });
 
         function startTimer() {
+            testStartTime = new Date();
             timeLeft = 300; // Reset just in case
+            tabSwitchCount = 0;
+            warningCount = 0;
+            securityAlerts = [];
+            
             updateTimerDisplay();
+            updateEnhancedTimer();
 
             timerInterval = setInterval(() => {
                 timeLeft--;
                 updateTimerDisplay();
+                updateEnhancedTimer();
 
                 if (timeLeft <= 60) {
                     document.getElementById('timer').classList.add('warning');
+                }
+
+                if (timeLeft <= 30) {
+                    document.getElementById('timer').classList.add('critical');
                 }
 
                 if (timeLeft <= 0) {
@@ -410,6 +507,122 @@
                     submitCode(true);
                 }
             }, 1000);
+        }
+
+        function updateEnhancedTimer() {
+            const elapsed = Math.floor((new Date() - testStartTime) / 1000);
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const elapsedMinutes = Math.floor(elapsed / 60);
+            const elapsedSeconds = elapsed % 60;
+            
+            // Update enhanced timer display
+            let timerDisplay = document.getElementById('enhanced-timer');
+            if (!timerDisplay) {
+                timerDisplay = document.createElement('div');
+                timerDisplay.id = 'enhanced-timer';
+                timerDisplay.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    left: 10px;
+                    background: rgba(30, 41, 59, 0.9);
+                    color: white;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    font-family: 'Inter', sans-serif;
+                    font-size: 14px;
+                    z-index: 10000;
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    min-width: 200px;
+                `;
+                document.body.appendChild(timerDisplay);
+            }
+            
+            const timeColor = timeLeft <= 30 ? '#ef4444' : timeLeft <= 60 ? '#f59e0b' : '#10b981';
+            timerDisplay.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: ${timeColor};">
+                            Time: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}
+                        </div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+                            Elapsed: ${elapsedMinutes}:${elapsedSeconds.toString().padStart(2, '0')}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        ${tabSwitchCount > 0 ? `<div style="font-size: 12px; color: #f59e0b;">Tab switches: ${tabSwitchCount}</div>` : ''}
+                        ${warningCount > 0 ? `<div style="font-size: 12px; color: #ef4444;">Warnings: ${warningCount}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function showSecurityWarning(message) {
+            warningCount++;
+            securityAlerts.push({
+                time: new Date(),
+                message: message,
+                type: 'warning'
+            });
+            
+            // Create warning popup
+            const warning = document.createElement('div');
+            warning.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(239, 68, 68, 0.95);
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                z-index: 10001;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+                backdrop-filter: blur(10px);
+                animation: slideIn 0.3s ease-out;
+            `;
+            warning.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(warning);
+            
+            setTimeout(() => {
+                warning.style.opacity = '0';
+                setTimeout(() => {
+                    if (warning.parentNode) {
+                        warning.parentNode.removeChild(warning);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        function handleTabSwitch() {
+            const message = `Tab switching detected! This is attempt #${tabSwitchCount}. Multiple switches may affect your score.`;
+            showSecurityWarning(message);
+            
+            // Log the tab switch
+            securityAlerts.push({
+                time: new Date(),
+                message: `Tab switch #${tabSwitchCount}`,
+                type: 'tab_switch'
+            });
+            
+            // Auto-submit after too many violations
+            if (tabSwitchCount >= 5) {
+                showSecurityWarning('Too many tab switches detected. Test will be submitted automatically.');
+                clearInterval(timerInterval);
+                submitCode(true);
+            }
         }
 
         function updateTimerDisplay() {
@@ -427,17 +640,30 @@
         async function submitCode(autoSubmit) {
             clearInterval(timerInterval);
             document.getElementById('timer').classList.remove('warning');
+            document.getElementById('timer').classList.remove('critical');
 
             const btnSubmit = document.getElementById('btn-submit');
             btnSubmit.disabled = true;
             btnSubmit.innerText = autoSubmit ? "Time's Up! Evaluating..." : "Evaluating...";
             editor.setOption("readOnly", true);
 
+            // Calculate test duration
+            const testEndTime = new Date();
+            const testDuration = Math.floor((testEndTime - testStartTime) / 1000);
+
             const payload = {
                 name: document.getElementById('student-name').value.trim(),
                 sap_id: document.getElementById('sap-id').value.trim(),
                 question_id: currentQuestionId,
-                code: editor.getValue()
+                code: editor.getValue(),
+                security_data: {
+                    test_duration: testDuration,
+                    tab_switches: tabSwitchCount,
+                    warnings: warningCount,
+                    security_alerts: securityAlerts,
+                    start_time: testStartTime.toISOString(),
+                    end_time: testEndTime.toISOString()
+                }
             };
 
             try {
@@ -450,7 +676,7 @@
                 if (!response.ok) throw new Error("Evaluation failed due to a server error.");
                 const result = await response.json();
 
-                showResult(result.marks, result.total_marks);
+                showResult(result.marks, result.total_marks, result.test_results);
 
             } catch (error) {
                 alert(error.message);
@@ -458,21 +684,276 @@
             }
         }
 
-        function showResult(marks, total) {
+        function showResult(marks, total, testResults = null) {
+            // Exit fullscreen when showing results
+            exitFullscreen();
+            
+            // Clean up enhanced timer
+            const enhancedTimer = document.getElementById('enhanced-timer');
+            if (enhancedTimer && enhancedTimer.parentNode) {
+                enhancedTimer.parentNode.removeChild(enhancedTimer);
+            }
+            
+            // Reset security variables
+            testStartTime = null;
+            
             const resultArea = document.getElementById('result-area');
             resultArea.style.display = 'block';
 
             const percentage = (marks / total) * 100;
+            let resultHTML = '';
 
             if (percentage === 100) {
                 resultArea.className = 'result-success';
-                resultArea.innerHTML = `Great Job! You scored ${marks} / ${total} marks.`;
+                resultHTML = `<div>Great Job! You scored ${marks} / ${total} marks.</div>`;
             } else if (percentage > 0) {
                 resultArea.className = 'result-partial';
-                resultArea.innerHTML = `Good attempt! You scored ${marks} / ${total} marks.`;
+                resultHTML = `<div>Good attempt! You scored ${marks} / ${total} marks.</div>`;
             } else {
                 resultArea.className = 'result-fail';
-                resultArea.innerHTML = `Test failed. You scored ${marks} / ${total} marks.`;
+                resultHTML = `<div>Test failed. You scored ${marks} / ${total} marks.</div>`;
+            }
+
+            // Add detailed test results if available
+            if (testResults && testResults.length > 0) {
+                resultHTML += '<div class="test-details" style="margin-top: 1rem; text-align: left;">';
+                resultHTML += '<h4 style="margin-bottom: 0.5rem;">Test Case Details:</h4>';
+                
+                testResults.forEach((test, index) => {
+                    const statusIcon = test.passed ? '&#x2713;' : '&#x2717;';
+                    const statusColor = test.passed ? '#10b981' : '#ef4444';
+                    
+                    resultHTML += `
+                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(15, 23, 42, 0.5); border-radius: 4px; border-left: 3px solid ${statusColor};">
+                            <div style="font-weight: bold; color: ${statusColor};">
+                                Test Case ${test.test_case}: ${statusIcon} ${test.passed ? 'PASSED' : 'FAILED'}
+                            </div>
+                            <div style="font-size: 0.9rem; margin-top: 0.25rem;">
+                                <strong>Input:</strong> <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 2px;">${test.input}</code>
+                            </div>
+                            <div style="font-size: 0.9rem; margin-top: 0.25rem;">
+                                <strong>Expected:</strong> <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 2px;">${test.expected}</code>
+                            </div>
+                    `;
+                    
+                    if (!test.passed) {
+                        if (test.error) {
+                            resultHTML += `
+                                <div style="font-size: 0.9rem; margin-top: 0.25rem; color: #f87171;">
+                                    <strong>Error:</strong> ${test.error}
+                                </div>
+                            `;
+                        } else {
+                            resultHTML += `
+                                <div style="font-size: 0.9rem; margin-top: 0.25rem;">
+                                    <strong>Your Output:</strong> <code style="background: rgba(239, 68, 68, 0.2); padding: 2px 4px; border-radius: 2px;">${test.actual}</code>
+                                </div>
+                                <div style="font-size: 0.85rem; margin-top: 0.25rem; color: #fbbf24;">
+                                    <strong>Feedback:</strong> ${test.feedback}
+                                </div>
+                            `;
+                        }
+                    } else {
+                        resultHTML += `
+                            <div style="font-size: 0.9rem; margin-top: 0.25rem; color: #10b981;">
+                                <strong>Your Output:</strong> <code style="background: rgba(16, 185, 129, 0.2); padding: 2px 4px; border-radius: 2px;">${test.actual}</code>
+                            </div>
+                        `;
+                    }
+                    
+                    resultHTML += '</div>';
+                });
+                
+                resultHTML += '</div>';
+            }
+
+            // Add button to get new question
+            resultHTML += `
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <button id="btn-next-question" class="btn" onclick="getNextQuestion()">
+                        Get Next Question
+                    </button>
+                </div>
+            `;
+
+            resultArea.innerHTML = resultHTML;
+        }
+
+        function enterFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+            
+            // Show fullscreen indicator
+            showFullscreenIndicator();
+        }
+
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            }
+            
+            // Hide fullscreen indicator
+            hideFullscreenIndicator();
+        }
+
+        function showFullscreenIndicator() {
+            // Create or update fullscreen indicator
+            let indicator = document.getElementById('fullscreen-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'fullscreen-indicator';
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    background: rgba(99, 102, 241, 0.9);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    z-index: 10000;
+                    pointer-events: none;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                `;
+                indicator.innerHTML = 'Press ESC to exit fullscreen';
+                document.body.appendChild(indicator);
+            }
+            
+            setTimeout(() => {
+                indicator.style.opacity = '1';
+            }, 500);
+        }
+
+        function hideFullscreenIndicator() {
+            const indicator = document.getElementById('fullscreen-indicator');
+            if (indicator) {
+                indicator.style.opacity = '0';
+                setTimeout(() => {
+                    if (indicator.parentNode) {
+                        indicator.parentNode.removeChild(indicator);
+                    }
+                }, 300);
+            }
+        }
+
+        async function getNextQuestion() {
+            // Exit fullscreen when going to next question
+            exitFullscreen();
+            
+            // Reset the UI for next question
+            document.getElementById('result-area').style.display = 'none';
+            document.getElementById('test-area').style.display = 'none';
+            document.getElementById('setup-area').style.display = 'block';
+            
+            // Reset editor
+            editor.setValue("# Write your Python code here...\n");
+            editor.setOption("readOnly", false);
+            
+            // Reset submit button
+            const btnSubmit = document.getElementById('btn-submit');
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = "Submit Solution";
+            
+            // Clear name and SAP ID fields for re-entry
+            document.getElementById('student-name').value = '';
+            document.getElementById('sap-id').value = '';
+            
+            // Reset start button to original state
+            const btnStart = document.getElementById('btn-start');
+            btnStart.style.display = 'block';
+            btnStart.disabled = false;
+            btnStart.innerText = "Get Random Question & Start Timer";
+            
+            // Focus on name field for convenience
+            document.getElementById('student-name').focus();
+        }
+
+        async function fetchNewQuestion() {
+            const btn = document.getElementById('btn-start');
+            const name = document.getElementById('student-name').value.trim();
+            const sapId = document.getElementById('sap-id').value.trim();
+
+            if (!name || !sapId) {
+                return; // Don't fetch if details are not entered
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Fetching Question...";
+
+            try {
+                // Send excluded question IDs to prevent duplicates
+                const response = await fetch(`${API_BASE}/get_question`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        excluded_ids: Array.from(shownQuestionIds)
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (response.status === 404 && errorData.error.includes("All questions have been shown")) {
+                        alert("All questions have been shown! Please refresh the page to start a new session.");
+                        btn.disabled = false;
+                        btn.innerText = "Get Random Question & Start Timer";
+                        return;
+                    }
+                    throw new Error(errorData.error || "Failed to fetch question.");
+                }
+                
+                const data = await response.json();
+
+                currentQuestionId = data.id;
+                shownQuestionIds.add(data.id); // Track this question as shown
+                
+                document.getElementById('question-text').innerText = data.text;
+
+                if (data.sample_input || data.sample_output) {
+                    document.getElementById('instruction-box').style.display = 'block';
+                    document.getElementById('sample-input').innerText = data.sample_input || "None";
+                    document.getElementById('sample-output').innerText = data.sample_output || "None";
+                } else {
+                    document.getElementById('instruction-box').style.display = 'none';
+                }
+
+                // Update button text and remaining questions info
+                if (data.remaining_questions !== undefined) {
+                    btn.innerText = `Get New Question (${data.remaining_questions} remaining)`;
+                } else {
+                    btn.innerText = "Get New Question";
+                }
+
+                // Hide the start button when test is active
+                btn.style.display = 'none';
+
+                document.getElementById('setup-area').style.display = 'none';
+                document.getElementById('test-area').style.display = 'block';
+
+                // Refresh editor to fix rendering issue after display:none
+                setTimeout(() => editor.refresh(), 10);
+
+                // Enter fullscreen mode
+                enterFullscreen();
+
+                startTimer();
+
+            } catch (error) {
+                alert(error.message);
+                btn.disabled = false;
+                btn.innerText = "Get Random Question & Start Timer";
+                btn.style.display = 'block';
             }
         }
     </script>
