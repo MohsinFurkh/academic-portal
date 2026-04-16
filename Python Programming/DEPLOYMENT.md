@@ -33,7 +33,7 @@ Python Programming/
 1. Click **"New +"** > **"Web Service"**
 2. **Connect Repository**: Select your GitHub repository
 3. **Configure Service**:
-   - **Name**: `python-test-api` (or your preferred name)
+   - **Name**: `academic-portal` (or your preferred name)
    - **Environment**: `Python 3`
    - **Region**: Choose nearest region
    - **Branch**: `main`
@@ -67,7 +67,7 @@ Health Check: https://python-test-api.onrender.com/health
 ### 4.1 Update interactive_test.html
 Replace the API_BASE constant:
 ```javascript
-const API_BASE = 'https://your-service-name.onrender.com/api';
+const API_BASE = 'https://academic-portal-y4my.onrender.com/';
 ```
 
 ### 4.2 Deploy to GitHub Pages
