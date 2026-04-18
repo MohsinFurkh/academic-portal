@@ -72,6 +72,20 @@ def run_code_with_input(code, standard_input):
         if os.path.exists(temp_script_path):
             os.remove(temp_script_path)
 
+def compare_outputs(actual_output, expected_output):
+    """Compare actual output with expected output using flexible matching."""
+    # Direct match after normalization
+    if normalize_output(actual_output) == normalize_output(expected_output):
+        return True
+    
+    # Try alternative output formats
+    alternatives = generate_alternative_outputs(expected_output)
+    for alt in alternatives:
+        if normalize_output(actual_output) == normalize_output(alt):
+            return True
+    
+    return False
+
 def generate_alternative_inputs(standard_input):
     """Generate alternative input formats for flexible testing."""
     alternatives = [standard_input]  # Original format
@@ -155,7 +169,7 @@ def api_reset_session():
 @app.route('/api/evaluate', methods=['POST'])
 def api_evaluate():
     data = request.json
-    name = data.get('name', '').strip()
+    name = data.get('student_name', data.get('name', '')).strip()
     sap_id = data.get('sap_id', '').strip()
     question_id = data.get('question_id')
     code = data.get('code', '')

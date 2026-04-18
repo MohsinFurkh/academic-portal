@@ -679,18 +679,24 @@
                 testResultsDiv.style.display = 'block';
 
                 if (result.test_results && result.test_results.length > 0) {
-                    const passed = result.test_results.filter(t => t.passed).length;
+                    const passed = result.test_results.filter(t => t.passed || t.status === 'passed').length;
                     const total = result.test_results.length;
                     testSummaryDiv.innerHTML = `<strong>${passed}/${total}</strong> test cases passed`;
 
                     let detailsHTML = '';
                     result.test_results.forEach((test, index) => {
-                        const statusIcon = test.passed ? '&#10003;' : '&#10005;';
-                        const statusColor = test.passed ? '#10b981' : '#ef4444';
+                        const isPassed = test.passed || test.status === 'passed';
+                        const statusIcon = isPassed ? '&#10003;' : '&#10005;';
+                        const statusColor = isPassed ? '#10b981' : '#ef4444';
+                        const testExpected = test.expected || test.expected_output || 'N/A';
+                        const testActual = test.actual || test.actual_output || 'N/A';
                         detailsHTML += '<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(15, 23, 42, 0.5); border-radius: 4px; border-left: 3px solid ' + statusColor + ';">';
                         detailsHTML += '<span style="color: ' + statusColor + '; font-weight: bold;">' + statusIcon + ' Test ' + (index + 1) + '</span>';
-                        if (!test.passed) {
-                            detailsHTML += '<div style="font-size: 0.85rem; margin-top: 0.25rem;">Expected: <code>' + (test.expected || 'N/A') + '</code> | Got: <code>' + (test.actual || 'N/A') + '</code></div>';
+                        if (!isPassed) {
+                            detailsHTML += '<div style="font-size: 0.85rem; margin-top: 0.25rem;">Expected: <code>' + testExpected + '</code> | Got: <code>' + testActual + '</code></div>';
+                            if (test.error) {
+                                detailsHTML += '<div style="font-size: 0.85rem; margin-top: 0.25rem; color: #f87171;">Error: ' + test.error + '</div>';
+                            }
                         }
                         detailsHTML += '</div>';
                     });
@@ -805,7 +811,7 @@
             const resultArea = document.getElementById('result-area');
             resultArea.style.display = 'block';
 
-            const marks = result.marks_obtained || 0;
+            const marks = result.marks || result.marks_obtained || 0;
             const total = result.total_marks || 7;
             const percentage = Math.round((marks / total) * 100);
 
@@ -828,25 +834,32 @@
                 resultHTML += '<h4 style="margin-bottom: 0.5rem;">Test Case Details:</h4>';
                 
                 result.test_results.forEach((test, index) => {
-                    const statusIcon = test.passed ? '&#10003;' : '&#10005;';
-                    const statusColor = test.passed ? '#10b981' : '#ef4444';
+                    const isPassed = test.passed || test.status === 'passed';
+                    const statusIcon = isPassed ? '&#10003;' : '&#10005;';
+                    const statusColor = isPassed ? '#10b981' : '#ef4444';
+                    const testInput = test.input || '';
+                    const testExpected = test.expected || test.expected_output || '';
+                    const testActual = test.actual || test.actual_output || '';
+                    const testError = test.error || '';
                     
                     resultHTML += '<div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(15, 23, 42, 0.5); border-radius: 4px; border-left: 3px solid ' + statusColor + ';">';
                     resultHTML += '<div style="font-weight: bold; color: ' + statusColor + ';">';
-                    resultHTML += 'Test Case ' + test.test_case + ': ' + statusIcon + ' ' + (test.passed ? 'PASSED' : 'FAILED');
+                    resultHTML += 'Test Case ' + test.test_case + ': ' + statusIcon + ' ' + (isPassed ? 'PASSED' : 'FAILED');
                     resultHTML += '</div>';
                     resultHTML += '<div style="font-size: 0.9rem; margin-top: 0.25rem;">';
-                    resultHTML += '<strong>Input:</strong> <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 2px;">' + test.input + '</code>';
+                    resultHTML += '<strong>Input:</strong> <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 2px;">' + testInput + '</code>';
                     resultHTML += '</div>';
                     resultHTML += '<div style="font-size: 0.9rem; margin-top: 0.25rem;">';
-                    resultHTML += '<strong>Expected:</strong> <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 2px;">' + test.expected + '</code>';
+                    resultHTML += '<strong>Expected:</strong> <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 2px;">' + testExpected + '</code>';
                     resultHTML += '</div>';
                     resultHTML += '<div style="font-size: 0.9rem; margin-top: 0.25rem;">';
-                    resultHTML += '<strong>Actual:</strong> <code style="background: rgba(239, 68, 68, 0.2); padding: 2px 4px; border-radius: 2px;">' + test.actual + '</code>';
+                    resultHTML += '<strong>Actual:</strong> <code style="background: rgba(239, 68, 68, 0.2); padding: 2px 4px; border-radius: 2px;">' + testActual + '</code>';
                     resultHTML += '</div>';
-                    resultHTML += '<div style="font-size: 0.9rem; margin-top: 0.25rem; color: #f87171;">';
-                    resultHTML += '<strong>Error:</strong> ' + test.error;
-                    resultHTML += '</div>';
+                    if (testError) {
+                        resultHTML += '<div style="font-size: 0.9rem; margin-top: 0.25rem; color: #f87171;">';
+                        resultHTML += '<strong>Error:</strong> ' + testError;
+                        resultHTML += '</div>';
+                    }
                     resultHTML += '</div>';
                 });
                 
