@@ -24,7 +24,7 @@ app.config['TESTING'] = False
 app.config['ENV'] = 'production'
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-QUESTIONS_FILE = os.path.join(BASE_DIR, 'Exercises', 'questions.json')
+QUESTIONS_FILE = os.path.join(BASE_DIR, 'Exercises', 'questions_Viva-2.json')
 EXCEL_FILE = os.path.join(BASE_DIR, 'Student_Marks.xlsx')
 
 def get_questions():
@@ -232,8 +232,8 @@ def api_evaluate():
 
         marks = round((passed / total) * 7.0, 2)
 
-    # Log to Excel with security data
-    log_to_excel(name, sap_id, question_id, marks, security_data)
+    # Log to Excel with security data and student code
+    log_to_excel(name, sap_id, question_id, marks, code, security_data)
 
     return jsonify({
         "marks": marks, 
@@ -272,7 +272,7 @@ def get_failure_feedback(expected, actual):
     
     return f"Expected: '{expected}', Got: '{actual}'"
 
-def log_to_excel(name, sap_id, question_id, marks, security_data=None):
+def log_to_excel(name, sap_id, question_id, marks, code="", security_data=None):
     try:
         if not os.path.exists(EXCEL_FILE):
             wb = Workbook()
@@ -280,7 +280,7 @@ def log_to_excel(name, sap_id, question_id, marks, security_data=None):
             ws.title = "Marks"
             headers = [
                 "Timestamp", "Name", "SAP ID", "Question ID", "Marks Out of 7",
-                "Test Duration (seconds)", "Tab Switches", "Warnings", 
+                "Solution Code", "Test Duration (seconds)", "Tab Switches", "Warnings", 
                 "Start Time", "End Time", "Security Violations"
             ]
             ws.append(headers)
@@ -304,7 +304,7 @@ def log_to_excel(name, sap_id, question_id, marks, security_data=None):
                                      if alert.get('type') == 'tab_switch'])
         
         row = [
-            timestamp, name, sap_id, question_id, marks,
+            timestamp, name, sap_id, question_id, marks, code,
             test_duration, tab_switches, warnings,
             start_time, end_time, security_violations
         ]
