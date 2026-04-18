@@ -4,7 +4,7 @@ import random
 import tempfile
 import subprocess
 import datetime
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 from openpyxl import Workbook, load_workbook
 
@@ -321,6 +321,46 @@ def health_check():
         'timestamp': datetime.datetime.now().isoformat(),
         'version': '1.0.0'
     })
+
+@app.route('/download_excel')
+def download_excel():
+    """Download the Excel file with student marks"""
+    try:
+        if os.path.exists(EXCEL_FILE):
+            return send_file(EXCEL_FILE, 
+                           as_attachment=True, 
+                           download_name='Student_Marks.xlsx',
+                           mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        else:
+            return jsonify({"error": "Excel file not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Error downloading file: {str(e)}"}), 500
+
+@app.route('/api/excel_data')
+def get_excel_data():
+    """Get Excel data as JSON for viewing"""
+    try:
+        if not os.path.exists(EXCEL_FILE):
+            return jsonify({"data": [], "message": "No data available"})
+        
+        wb = load_workbook(EXCEL_FILE)
+        ws = wb.active
+        
+        data = []
+        headers = []
+        for row in ws.iter_rows(values_only=True):
+            if not headers:
+                headers = [str(cell) for cell in row]
+            else:
+                row_data = {}
+                for i, cell in enumerate(row):
+                    if i < len(headers):
+                        row_data[headers[i]] = str(cell) if cell is not None else ""
+                data.append(row_data)
+        
+        return jsonify({"headers": headers, "data": data})
+    except Exception as e:
+        return jsonify({"error": f"Error reading Excel: {str(e)}"}), 500
 
 if __name__ == '__main__':
     # Get port from environment variable for Render
