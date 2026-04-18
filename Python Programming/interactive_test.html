@@ -155,6 +155,162 @@
             box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.5);
         }
 
+        .btn-warning {
+            background: var(--warning-color);
+            color: var(--text-dark);
+            box-shadow: 0 4px 6px -1px rgba(255, 193, 7, 0.4);
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            box-shadow: 0 10px 15px -3px rgba(255, 193, 7, 0.5);
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 123, 255, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            box-shadow: 0 10px 15px -3px rgba(0, 123, 255, 0.5);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .close:hover {
+            opacity: 1;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 0 0 10px 10px;
+            text-align: right;
+        }
+
+        .test-summary {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .test-case {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .test-case.passed {
+            border-left: 4px solid #28a745;
+            background: #d4edda;
+        }
+
+        .test-case.failed {
+            border-left: 4px solid #dc3545;
+            background: #f8d7da;
+        }
+
+        .test-case.error {
+            border-left: 4px solid #ffc107;
+            background: #fff3cd;
+        }
+
+        .test-case-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .test-case-details {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-passed {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-failed {
+            background: #dc3545;
+            color: white;
+        }
+
+        .status-error {
+            background: #ffc107;
+            color: #212529;
+        }
+
         .test-area {
             display: none;
             margin-top: 2rem;
@@ -348,8 +504,31 @@
             </div>
 
             <div class="actions">
-                <button id="btn-submit" class="btn btn-success">Submit Solution</button>
+                <button id="btn-test" class="btn btn-warning">
+                    <i class="fas fa-play"></i> Test Run
+                </button>
+                <button id="btn-submit" class="btn btn-success">
+                    <i class="fas fa-paper-plane"></i> Submit Solution
+                </button>
             </div>
+        </div>
+
+        <!-- Test Results Modal -->
+        <div id="test-results-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Test Results</h3>
+                    <span class="close" onclick="closeTestResults()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="test-summary"></div>
+                    <div id="test-details"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="closeTestResults()">Close</button>
+                </div>
+            </div>
+        </div>
         </div>
 
         <div id="result-area"></div>
@@ -631,11 +810,128 @@
             document.getElementById('time-display').innerText = `${m}:${s}`;
         }
 
+        document.getElementById('btn-test').addEventListener('click', () => {
+            testRun();
+        });
+
         document.getElementById('btn-submit').addEventListener('click', () => {
             if (confirm("Are you sure you want to submit your solution?")) {
                 submitCode(false);
             }
         });
+
+        async function testRun() {
+            const btnTest = document.getElementById('btn-test');
+            btnTest.disabled = true;
+            btnTest.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+
+            try {
+                const response = await fetch(`${API_BASE}/test_run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: editor.getValue(),
+                        question_id: currentQuestionId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    alert('Error: ' + result.error);
+                    return;
+                }
+
+                displayTestResults(result);
+            } catch (error) {
+                alert('Error running tests: ' + error.message);
+            } finally {
+                btnTest.disabled = false;
+                btnTest.innerHTML = '<i class="fas fa-play"></i> Test Run';
+            }
+        }
+
+        function displayTestResults(result) {
+            const modal = document.getElementById('test-results-modal');
+            const summaryDiv = document.getElementById('test-summary');
+            const detailsDiv = document.getElementById('test-details');
+
+            // Display summary
+            const summary = result.summary;
+            let summaryHTML = `
+                <h4>Test Summary</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                    <div><strong>Total Tests:</strong> ${summary.total_tests}</div>
+                    <div><strong>Passed:</strong> <span style="color: #28a745;">${summary.passed}</span></div>
+                    <div><strong>Failed:</strong> <span style="color: #dc3545;">${summary.failed}</span></div>
+                    <div><strong>Pass Rate:</strong> ${summary.pass_rate}%</div>
+                </div>
+            `;
+
+            if (summary.has_syntax_error) {
+                summaryHTML += `<div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                    <strong style="color: #856404;">⚠️ Syntax Error Detected!</strong><br>
+                    Please check your code for syntax errors before submitting.
+                </div>`;
+            }
+
+            summaryDiv.innerHTML = summaryHTML;
+
+            // Display detailed test cases
+            let detailsHTML = '<h4>Test Case Details</h4>';
+            
+            result.results.forEach((testCase, index) => {
+                const statusClass = testCase.passed ? 'passed' : (testCase.stderr ? 'error' : 'failed');
+                const statusBadge = testCase.passed ? 'PASSED' : (testCase.stderr ? 'ERROR' : 'FAILED');
+                const badgeClass = testCase.passed ? 'status-passed' : (testCase.stderr ? 'status-error' : 'status-failed');
+
+                detailsHTML += `
+                    <div class="test-case ${statusClass}">
+                        <div class="test-case-header">
+                            <span>Test Case ${testCase.test_case}</span>
+                            <span class="status-badge ${badgeClass}">${statusBadge}</span>
+                        </div>
+                        <div class="test-case-details">
+                            <div><strong>Input:</strong></div>
+                            <pre>${testCase.input}</pre>
+                            
+                            <div><strong>Expected Output:</strong></div>
+                            <pre>${testCase.expected_output}</pre>
+                            
+                            <div><strong>Actual Output:</strong></div>
+                            <pre>${testCase.actual_output || 'No output'}</pre>
+                            
+                            ${testCase.stderr ? `
+                                <div><strong>Error:</strong></div>
+                                <pre style="color: #dc3545;">${testCase.stderr}</pre>
+                            ` : ''}
+                            
+                            ${testCase.feedback && !testCase.stderr ? `
+                                <div><strong>Feedback:</strong></div>
+                                <div>${testCase.feedback}</div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            detailsDiv.innerHTML = detailsHTML;
+
+            // Show modal
+            modal.style.display = 'block';
+        }
+
+        function closeTestResults() {
+            document.getElementById('test-results-modal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('test-results-modal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
 
         async function submitCode(autoSubmit) {
             clearInterval(timerInterval);
