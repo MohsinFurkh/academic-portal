@@ -152,151 +152,99 @@ def api_reset_session():
     """Reset the session to allow all questions to be available again."""
     return jsonify({"message": "Session reset successfully"})
 
-@app.route('/api/test_run', methods=['POST'])
-def api_test_run():
-    """Test student code against test cases without logging results."""
-    data = request.get_json()
-    code = data.get('code', '')
-    question_id = data.get('question_id', '')
-
-    if not all([code, question_id]):
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    # Get question and test cases
-    questions = get_questions()
-    question = next((q for q in questions if q['id'] == int(question_id)), None)
-    
-    if not question:
-        return jsonify({'error': 'Question not found'}), 404
-
-    test_cases = question['test_cases']
-    
-    # Evaluate code against test cases
-    results = []
-    total_passed = 0
-    has_syntax_error = False
-
-    for i, test_case in enumerate(test_cases, 1):
-        input_data = test_case['input']
-        expected_output = test_case['expected_output']
-        
-        # Run student code with test input
-        stdout, stderr = run_code_with_input(code, input_data)
-        
-        if stderr:
-            # Check if it's a syntax error
-            if any(keyword in stderr.lower() for keyword in ['syntax error', 'syntaxerror', 'invalid syntax']):
-                has_syntax_error = True
-                passed = False
-                feedback = f"Syntax Error: {stderr}"
-            else:
-                passed = False
-                feedback = get_failure_feedback(expected_output, stderr, is_error=True)
-        else:
-            # Compare output
-            passed = compare_outputs(stdout, expected_output)
-            feedback = get_failure_feedback(expected_output, stdout, is_error=False)
-        
-        results.append({
-            'test_case': i,
-            'input': input_data,
-            'expected_output': expected_output,
-            'actual_output': stdout,
-            'stderr': stderr,
-            'passed': passed,
-            'feedback': feedback
-        })
-        
-        if passed:
-            total_passed += 1
-
-    # Calculate summary
-    total_tests = len(test_cases)
-    pass_rate = (total_passed / total_tests) * 100
-
-    return jsonify({
-        'results': results,
-        'summary': {
-            'total_tests': total_tests,
-            'passed': total_passed,
-            'failed': total_tests - total_passed,
-            'pass_rate': round(pass_rate, 2),
-            'has_syntax_error': has_syntax_error
-        },
-        'test_run': True  # Indicate this is a test run, not final submission
-    })
-
 @app.route('/api/evaluate', methods=['POST'])
 def api_evaluate():
-    """Evaluate student code against test cases and log results."""
-    data = request.get_json()
+    data = request.json
     name = data.get('name', '').strip()
     sap_id = data.get('sap_id', '').strip()
+    question_id = data.get('question_id')
     code = data.get('code', '')
-    question_id = data.get('question_id', '')
     security_data = data.get('security_data', {})
 
-    if not all([name, sap_id, code, question_id]):
-        return jsonify({'error': 'Missing required fields'}), 400
+    if not name or not sap_id or question_id is None or not code:
+        return jsonify({"error": "Missing required fields"}), 400
 
-    # Get question and test cases
     questions = get_questions()
-    question = next((q for q in questions if q['id'] == int(question_id)), None)
+    question = next((q for q in questions if q['id'] == question_id), None)
     
     if not question:
-        return jsonify({'error': 'Question not found'}), 404
+        return jsonify({"error": "Question not found"}), 404
 
-    test_cases = question['test_cases']
+    test_cases = question.get('test_cases', [])
+    test_results = []  # Store detailed results for each test case
     
-    # Evaluate code against test cases
-    results = []
-    total_marks = 0
-    max_marks = len(test_cases)  # 1 mark per test case
+    if not test_cases:
+        # If there are no test cases, we can't reliably grade it, but let's give 7 to be nice, or 0.
+        marks = 0
+    else:
+        passed = 0
+        total = len(test_cases)
+        
+        for i, tc in enumerate(test_cases, 1):
+            tc_input = tc.get('input', '')
+            expected_output = tc.get('expected_output', '')
+            
+            # Try multiple input formats
+            input_formats = generate_alternative_inputs(tc_input)
+            output_formats = generate_alternative_outputs(expected_output)
+            test_passed = False
+            actual_output = ""
+            error_msg = ""
+            
+            for input_format in input_formats:
+                stdout, stderr = run_code_with_input(code, input_format)
+                
+                if stderr:
+                    error_msg = stderr
+                    continue  # Try next input format if there's an error
+                
+                # Check against multiple output formats
+                for output_format in output_formats:
+                    if normalize_output(stdout) == normalize_output(output_format):
+                        test_passed = True
+                        actual_output = stdout
+                        break  # Found matching output format
+                
+                if test_passed:
+                    break  # Test passed, no need to try other input formats
+            
+            # Store test case result
+            test_result = {
+                "test_case": i,
+                "input": tc_input.strip(),
+                "expected": expected_output.strip(),
+                "passed": test_passed
+            }
+            
+            if test_passed:
+                test_result["actual"] = actual_output.strip()
+                passed += 1
+            else:
+                if error_msg:
+                    test_result["error"] = error_msg
+                else:
+                    # Get the last attempted output for feedback
+                    last_stdout, _ = run_code_with_input(code, tc_input)
+                    test_result["actual"] = last_stdout.strip()
+                    test_result["feedback"] = get_failure_feedback(expected_output.strip(), last_stdout.strip())
+            
+            test_results.append(test_result)
 
-    for i, test_case in enumerate(test_cases, 1):
-        input_data = test_case['input']
-        expected_output = test_case['expected_output']
-        
-        # Run student code with test input
-        stdout, stderr = run_code_with_input(code, input_data)
-        
-        if stderr:
-            # Code execution error
-            passed = False
-            feedback = get_failure_feedback(expected_output, stderr, is_error=True)
-        else:
-            # Compare output
-            passed = compare_outputs(stdout, expected_output)
-            feedback = get_failure_feedback(expected_output, stdout, is_error=False)
-        
-        results.append({
-            'test_case': i,
-            'input': input_data,
-            'expected_output': expected_output,
-            'actual_output': stdout,
-            'stderr': stderr,
-            'passed': passed,
-            'feedback': feedback
-        })
-        
-        if passed:
-            total_marks += 1
+        marks = round((passed / total) * 7.0, 2)
 
-    # Log to Excel
-    log_to_excel(name, sap_id, question_id, total_marks, max_marks, security_data)
-
-    # Calculate percentage
-    percentage = (total_marks / max_marks) * 100
+    # Log to Excel with security data and student code
+    log_to_excel(name, sap_id, question_id, marks, code, security_data)
 
     return jsonify({
-        'results': results,
-        'total_marks': total_marks,
-        'max_marks': max_marks,
-        'percentage': percentage,
-        'passed': percentage >= 100
+        "marks": marks, 
+        "total_marks": 7, 
+        "message": "Evaluation successful",
+        "test_results": test_results,
+        "passed_tests": passed,
+        "total_tests": len(test_cases) if test_cases else 0
     })
 
-def get_failure_feedback(expected, actual, is_error=False):
+def get_failure_feedback(expected, actual):
     """Generate helpful feedback based on the type of mismatch."""
     if not actual:
         return "No output produced. Make sure your program prints the result."
@@ -413,6 +361,94 @@ def get_excel_data():
         return jsonify({"headers": headers, "data": data})
     except Exception as e:
         return jsonify({"error": f"Error reading Excel: {str(e)}"}), 500
+
+@app.route('/api/test_run', methods=['POST'])
+def test_run():
+    """Test student code without logging to Excel - for practice/testing"""
+    try:
+        data = request.get_json()
+        student_code = data.get('code', '')
+        question_id = data.get('question_id')
+        
+        if not student_code:
+            return jsonify({"error": "No code provided"}), 400
+        
+        # Get the question and its test cases
+        questions = get_questions()
+        question = None
+        for q in questions:
+            if q['id'] == question_id:
+                question = q
+                break
+        
+        if not question:
+            return jsonify({"error": "Question not found"}), 404
+        
+        test_cases = question.get('test_cases', [])
+        if not test_cases:
+            return jsonify({"error": "No test cases found for this question"}), 400
+        
+        results = []
+        total_cases = len(test_cases)
+        passed_cases = 0
+        
+        for i, test_case in enumerate(test_cases):
+            test_input = test_case['input']
+            expected_output = test_case['expected_output']
+            
+            # Run the student's code with test input
+            stdout, stderr = run_code_with_input(student_code, test_input)
+            
+            # Check for errors
+            if stderr:
+                results.append({
+                    "test_case": i + 1,
+                    "status": "error",
+                    "input": test_input,
+                    "expected_output": expected_output,
+                    "actual_output": stdout,
+                    "error": stderr,
+                    "message": "Runtime Error"
+                })
+            else:
+                # Compare outputs (flexible comparison)
+                if compare_outputs(stdout, expected_output):
+                    results.append({
+                        "test_case": i + 1,
+                        "status": "passed",
+                        "input": test_input,
+                        "expected_output": expected_output,
+                        "actual_output": stdout,
+                        "message": "Passed"
+                    })
+                    passed_cases += 1
+                else:
+                    results.append({
+                        "test_case": i + 1,
+                        "status": "failed",
+                        "input": test_input,
+                        "expected_output": expected_output,
+                        "actual_output": stdout,
+                        "message": "Output Mismatch"
+                    })
+        
+        # Calculate score
+        score = (passed_cases / total_cases) * 7 if total_cases > 0 else 0
+        
+        return jsonify({
+            "success": True,
+            "question_id": question_id,
+            "total_test_cases": total_cases,
+            "passed_test_cases": passed_cases,
+            "failed_test_cases": total_cases - passed_cases,
+            "score": round(score, 2),
+            "percentage": round((passed_cases / total_cases) * 100, 1) if total_cases > 0 else 0,
+            "test_results": results,
+            "message": f"Passed {passed_cases} out of {total_cases} test cases"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Test run failed: {str(e)}"}), 500
 
 if __name__ == '__main__':
     # Get port from environment variable for Render
