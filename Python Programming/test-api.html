@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .loading { background: #fff3cd; color: #856404; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    <p>Testing connection to: <strong>https://academic-portal-y4my.onrender.com/api</strong></p>
+    
+    <button onclick="testHealth()">Test Health Endpoint</button>
+    <button onclick="testGetQuestion()">Test Get Question</button>
+    <button onclick="testCORS()">Test CORS Headers</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'https://academic-portal-y4my.onrender.com/api';
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(message, type = 'loading') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            resultsDiv.appendChild(div);
+            return div;
+        }
+
+        async function testHealth() {
+            const resultDiv = addResult('Testing health endpoint...', 'loading');
+            try {
+                const response = await fetch(`${API_BASE}/../health`);
+                const data = await response.json();
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    <strong>Health Check Success!</strong><br>
+                    Status: ${data.status}<br>
+                    Timestamp: ${data.timestamp}<br>
+                    Version: ${data.version}
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>Health Check Failed:</strong><br>${error.message}`;
+            }
+        }
+
+        async function testGetQuestion() {
+            const resultDiv = addResult('Testing get_question endpoint...', 'loading');
+            try {
+                const response = await fetch(`${API_BASE}/get_question`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ excluded_ids: [] })
+                });
+                const data = await response.json();
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    <strong>Get Question Success!</strong><br>
+                    Question ID: ${data.id}<br>
+                    Text: ${data.text}<br>
+                    Sample Input: <pre>${data.sample_input}</pre>
+                    Sample Output: <pre>${data.sample_output}</pre>
+                    Remaining Questions: ${data.remaining_questions}
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>Get Question Failed:</strong><br>${error.message}`;
+            }
+        }
+
+        async function testCORS() {
+            const resultDiv = addResult('Testing CORS headers...', 'loading');
+            try {
+                const response = await fetch(`${API_BASE}/get_question`, {
+                    method: 'OPTIONS',
+                    headers: { 
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                const corsHeaders = {
+                    'access-control-allow-origin': response.headers.get('access-control-allow-origin'),
+                    'access-control-allow-methods': response.headers.get('access-control-allow-methods'),
+                    'access-control-allow-headers': response.headers.get('access-control-allow-headers')
+                };
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    <strong>CORS Test Success!</strong><br>
+                    <pre>${JSON.stringify(corsHeaders, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>CORS Test Failed:</strong><br>${error.message}`;
+            }
+        }
+
+        // Auto-run health test on page load
+        window.onload = () => testHealth();
+    </script>
+</body>
+</html>
