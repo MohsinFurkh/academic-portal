@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 3 – DevOps Tools & Toolchain | CSDV3017 | Dr. Mohsin Furkh Dar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg:      #0D1117;
+    --surface: #161B22;
+    --card:    #1C2128;
+    --border:  #30363D;
+    --accent:  #F78166;
+    --accent2: #79C0FF;
+    --accent3: #56D364;
+    --accent4: #D2A8FF;
+    --accent5: #FFA657;
+    --text:    #E6EDF3;
+    --muted:   #8B949E;
+    --tag-bg:  #21262D;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.93); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; gap: 12px; flex-wrap: wrap;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .course-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--accent3); background: var(--tag-bg);
+    border: 1px solid var(--border); padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .topbar-title { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .nav-controls { display: flex; align-items: center; gap: 8px; }
+  .nav-btn {
+    background: var(--tag-bg); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    font-family: 'Inter', sans-serif; transition: background .15s, border-color .15s; white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--border); border-color: var(--accent2); }
+  .nav-btn:disabled { opacity: .35; cursor: default; }
+  .slide-counter { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); min-width: 56px; text-align: center; }
+
+  /* ── SLIDES ── */
+  .slides-viewport { overflow: hidden; }
+  .slides-track { display: flex; transition: transform .42s cubic-bezier(.4,0,.2,1); }
+  .slide { min-width: 100%; padding: 32px 20px 64px; display: flex; flex-direction: column; align-items: center; }
+  .slide-inner { width: 100%; max-width: 960px; }
+
+  /* ── TYPOGRAPHY ── */
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
+  .heading { font-size: clamp(26px,5vw,48px); font-weight: 800; line-height: 1.12; margin-bottom: 14px; }
+  .sub { font-size: clamp(13px,2vw,16px); color: var(--muted); line-height: 1.65; max-width: 740px; }
+  .divider { height: 1px; background: linear-gradient(90deg,var(--accent) 0%,var(--border) 55%,transparent 100%); margin: 20px 0; }
+
+  /* ── TITLE SLIDE ── */
+  .title-wrap { min-height: 82vh; display: flex; flex-direction: column; justify-content: center; }
+  .lec-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--tag-bg); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 14px; margin-bottom: 24px; width: fit-content;
+  }
+  .lec-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.4);} }
+  .lec-badge span { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+  .t-main { font-size: clamp(30px,6vw,62px); font-weight: 800; line-height: 1.08; margin-bottom: 10px; }
+  .t-main .ho { color: var(--accent5); }
+  .t-main .hb { color: var(--accent2); }
+  .t-sub { font-size: clamp(14px,2.4vw,20px); color: var(--accent3); font-weight: 600; margin-bottom: 20px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+  .chip { background: var(--tag-bg); border: 1px solid var(--border); padding: 6px 14px; border-radius: 6px; font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .chip strong { color: var(--text); }
+  .obj-box { margin-top: 26px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; max-width: 680px; }
+  .obj-box h4 { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent5); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+  .obj-list { list-style: none; }
+  .obj-list li { display: flex; gap: 10px; font-size: 13px; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--tag-bg); }
+  .obj-list li:last-child { border-bottom: none; }
+  .obj-list li::before { content: '→'; color: var(--accent2); font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
+
+  /* ── CARDS ── */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 13px; margin-top: 20px; }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; transition: border-color .2s, transform .2s; }
+  .card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .ci { border-left: 3px solid var(--accent); }
+  .cb { border-left: 3px solid var(--accent2); }
+  .cg { border-left: 3px solid var(--accent3); }
+  .cp { border-left: 3px solid var(--accent4); }
+  .co { border-left: 3px solid var(--accent5); }
+  .card-icon { font-size: 24px; margin-bottom: 9px; display: block; }
+  .card-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .card-body { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  /* ── DEF BOX ── */
+  .def-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin: 18px 0; position: relative; overflow: hidden; }
+  .def-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3)); }
+  .def-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 9px; }
+  .def-text { font-size: clamp(13px,2.1vw,16px); line-height: 1.65; font-weight: 500; }
+  .def-text em { color: var(--accent2); font-style: normal; font-weight: 700; }
+
+  /* ── CALLOUT ── */
+  .callout { border-left: 3px solid var(--accent2); background: var(--surface); border-radius: 0 8px 8px 0; padding: 15px 18px; margin: 18px 0; font-size: 14px; color: var(--text); line-height: 1.65; font-style: italic; }
+  .callout cite { display: block; margin-top: 7px; font-size: 11px; color: var(--muted); font-style: normal; font-family: 'JetBrains Mono', monospace; }
+
+  /* ── PIPELINE FLOW ── */
+  .pipeline { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 20px; }
+  .pipe-phase { display: flex; flex-direction: column; }
+  .phase-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px; text-align: center; }
+  .pipe-steps { display: flex; align-items: center; gap: 4px; }
+  .pstep { background: var(--card); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; text-align: center; min-width: 78px; }
+  .pstep .ps-icon { font-size: 17px; display: block; margin-bottom: 3px; }
+  .pstep .ps-lbl { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; line-height: 1.3; }
+  .pstep.hl-o { border-color: var(--accent);  background: rgba(247,129,102,.07); }
+  .pstep.hl-b { border-color: var(--accent2); background: rgba(121,192,255,.07); }
+  .pstep.hl-g { border-color: var(--accent3); background: rgba(86,211,100,.07);  }
+  .pstep.hl-p { border-color: var(--accent4); background: rgba(210,168,255,.07); }
+  .pstep.hl-or{ border-color: var(--accent5); background: rgba(255,166,87,.07);  }
+  .parr { color: var(--muted); font-size: 14px; align-self: center; flex-shrink: 0; margin-top: 14px; }
+  .pipe-group-arrow { color: var(--accent); font-size: 20px; align-self: center; flex-shrink: 0; padding: 0 2px; margin-top: 14px; }
+
+  /* ── TOOL BADGES ── */
+  .tool-section { margin-top: 20px; }
+  .tool-section h3 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .tool-section h3 span { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); font-weight: 400; }
+  .tool-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .tbadge {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 600;
+    transition: border-color .15s;
+  }
+  .tbadge:hover { border-color: var(--accent2); }
+  .tbadge .ticon { font-size: 15px; }
+  .tbadge .tsub { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-weight: 400; }
+
+  /* ── COMPARE TABLE ── */
+  .ctable { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+  .ctable th { background: var(--surface); padding: 10px 13px; text-align: left; font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; border-bottom: 2px solid var(--border); }
+  .ctable th:nth-child(2) { color: var(--accent2); }
+  .ctable th:nth-child(3) { color: var(--accent3); }
+  .ctable td { padding: 10px 13px; border-bottom: 1px solid var(--tag-bg); color: var(--muted); vertical-align: top; }
+  .ctable td:first-child { color: var(--text); font-weight: 500; }
+  .ctable tr:last-child td { border-bottom: none; }
+  .ctable tr:hover td { background: var(--tag-bg); }
+
+  /* ── SHIFT-LEFT ── */
+  .shift-bar { display: flex; align-items: stretch; border-radius: 9px; overflow: hidden; border: 1px solid var(--border); margin: 18px 0; }
+  .shift-phase { flex: 1; padding: 14px 12px; text-align: center; }
+  .shift-phase .sph-lbl { font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }
+  .shift-phase .sph-checks { font-size: 10px; color: var(--muted); line-height: 1.7; }
+  .sp-plan   { background: rgba(86,211,100,.06);  border-right: 1px solid var(--border); }
+  .sp-code   { background: rgba(121,192,255,.06); border-right: 1px solid var(--border); }
+  .sp-build  { background: rgba(210,168,255,.08); border-right: 1px solid var(--border); }
+  .sp-test   { background: rgba(255,166,87,.07);  border-right: 1px solid var(--border); }
+  .sp-deploy { background: rgba(247,129,102,.06); }
+  .sph-lbl.og { color: var(--accent5); }
+  .sph-lbl.bl { color: var(--accent2); }
+  .sph-lbl.pu { color: var(--accent4); }
+  .sph-lbl.or { color: var(--accent); }
+  .sph-lbl.gn { color: var(--accent3); }
+
+  /* ── TOOLCHAIN DIAGRAM ── */
+  .toolchain { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+  .tc-row { display: flex; align-items: center; gap: 10px; }
+  .tc-phase-lbl {
+    min-width: 110px; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: .07em; color: var(--muted); text-align: right; flex-shrink: 0;
+  }
+  .tc-tools { display: flex; flex-wrap: wrap; gap: 7px; }
+  .tc-tool {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 11px; font-size: 12px; font-weight: 600;
+    transition: border-color .15s;
+  }
+  .tc-tool:hover { border-color: var(--accent2); }
+  .tc-tool.to { border-color: var(--accent);  color: var(--accent);  background: rgba(247,129,102,.06); }
+  .tc-tool.tb { border-color: var(--accent2); color: var(--accent2); background: rgba(121,192,255,.06); }
+  .tc-tool.tg { border-color: var(--accent3); color: var(--accent3); background: rgba(86,211,100,.06);  }
+  .tc-tool.tp { border-color: var(--accent4); color: var(--accent4); background: rgba(210,168,255,.06); }
+  .tc-tool.tor{ border-color: var(--accent5); color: var(--accent5); background: rgba(255,166,87,.06);  }
+  .tc-arrow-down { text-align: left; padding-left: 120px; color: var(--border); font-size: 14px; }
+
+  /* ── SUMMARY ── */
+  .sum-list { list-style: none; margin-top: 18px; }
+  .sum-list li { display: flex; gap: 13px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .sum-list li:last-child { border-bottom: none; }
+  .snum { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); background: var(--tag-bg); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; flex-shrink: 0; margin-top: 2px; }
+
+  /* ── FOOTER ── */
+  .slide-footer { margin-top: 34px; padding-top: 13px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .footer-l, .footer-r { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* ── PROGRESS / KBD ── */
+  .progress-bar { height: 3px; background: var(--border); position: fixed; bottom: 0; left: 0; width: 100%; z-index: 200; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg,var(--accent5),var(--accent2)); transition: width .4s; }
+  .kbd-hint { position: fixed; bottom: 13px; right: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--border); }
+  .kbd-hint kbd { color: var(--muted); background: var(--tag-bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:620px){
+    .slide{ padding:18px 12px 52px; }
+    .topbar{ padding:8px 12px; }
+    .nav-btn{ padding:5px 10px; font-size:12px; }
+    .ctable{ font-size:11px; }
+    .ctable th,.ctable td{ padding:8px 9px; }
+    .tc-phase-lbl{ min-width:72px; font-size:9px; }
+    .shift-bar{ flex-direction:column; }
+    .shift-phase{ border-right:none !important; border-bottom:1px solid var(--border); }
+    .pipe-phase{ min-width:0; }
+    .pstep{ min-width:64px; padding:7px 7px; }
+  }
+
+  /* ── SRE PILLARS ── */
+  .sre-pillars { display: grid; grid-template-columns: repeat(auto-fit,minmax(175px,1fr)); gap: 12px; margin-top: 18px; }
+  .sre-card { background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 16px 18px; }
+  .sre-card .s-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent4); display: block; margin-bottom: 6px; }
+  .sre-card .s-title { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+  .sre-card .s-desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+  /* ── MONITOR METRICS ── */
+  .metrics-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .metric-card { flex: 1; min-width: 130px; background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 14px 16px; }
+  .metric-card .m-val { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; margin-bottom: 3px; }
+  .metric-card .m-label { font-size: 11px; color: var(--muted); }
+  .metric-card .m-bar { height: 4px; border-radius: 2px; margin-top: 10px; background: var(--border); }
+  .metric-card .m-fill { height: 100%; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <span class="course-tag">CSDV3017</span>
+    <span class="topbar-title">DevOps · Lecture 3 · Summer 2026</span>
+  </div>
+  <div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" onclick="goSlide(-1)" disabled>← Prev</button>
+    <span class="slide-counter" id="counter">1 / 12</span>
+    <button class="nav-btn" id="nextBtn" onclick="goSlide(1)">Next →</button>
+  </div>
+</nav>
+
+<div class="slides-viewport">
+<div class="slides-track" id="track">
+
+<!-- ══════ SLIDE 1 — TITLE ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="title-wrap">
+    <div class="lec-badge"><span class="dot"></span><span>CSDV3017 · Lecture 3 · 09 Jun 2026 · 14:00–15:00</span></div>
+    <div class="t-main">DevOps <span class="ho">Tools</span><br>&amp; <span class="hb">Toolchain</span></div>
+    <div class="t-sub">CI · CD · Testing · Deployment · Monitoring · DevSecOps · SRE</div>
+    <p class="sub">BTech CSE 6th Semester · School of Computer Sciences · UPES Dehradun</p>
+    <div class="meta-row">
+      <div class="chip"><strong>Faculty:</strong> Dr. Mohsin Furkh Dar</div>
+      <div class="chip"><strong>Mode:</strong> Online · MS Teams</div>
+      <div class="chip"><strong>Session:</strong> Tue 14:00 – 15:00</div>
+      <div class="chip"><strong>Week:</strong> 1 of 6</div>
+    </div>
+    <div class="obj-box">
+      <h4>Today's Learning Objectives</h4>
+      <ul class="obj-list">
+        <li>Understand the role of tools across the full DevOps lifecycle</li>
+        <li>Identify key tools for Continuous Development, Integration, and Testing</li>
+        <li>Explain Continuous Deployment and Monitoring with their toolsets</li>
+        <li>Understand DevSecOps and the "shift-left" security approach</li>
+        <li>Distinguish DevOps from Site Reliability Engineering (SRE)</li>
+        <li>Map a complete, end-to-end DevOps toolchain</li>
+      </ul>
+    </div>
+    <div style="margin-top:18px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 20px; max-width:680px;">
+      <h4 style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent4); letter-spacing:.1em; text-transform:uppercase; margin-bottom:11px;">Recap from Lecture 2</h4>
+      <ul class="obj-list">
+        <li>DevOps history: Waterfall → Agile Manifesto (2001) → DevOpsDays Ghent (2009) → GitOps/AIOps</li>
+        <li>8 core DevOps practices: CI, CD, IaC, Monitoring, Collaboration, DevSecOps, Containers, Feedback</li>
+        <li>Agile vs DevOps: scope, team, delivery cadence, and how they complement each other</li>
+        <li>Kanban (WIP limits, continuous flow) and Scrum (sprints, roles, events, artifacts)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 1 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 2 — TOOLS OVERVIEW ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">The Big Picture</div>
+  <h1 class="heading">Tools Across the<br>DevOps Lifecycle</h1>
+  <p class="sub">No single tool does everything. A DevOps toolchain is a curated set of tools — one or more for each stage — that together automate and accelerate the path from idea to production.</p>
+  <div class="divider"></div>
+  <div class="pipeline">
+
+    <div class="pipe-phase">
+      <div class="phase-label" style="color:var(--accent3);">Plan</div>
+      <div class="pipe-steps">
+        <div class="pstep hl-g"><span class="ps-icon">📋</span><span class="ps-lbl">Jira<br>Trello<br>Azure Boards</span></div>
+      </div>
+    </div>
+    <span class="pipe-group-arrow">›</span>
+
+    <div class="pipe-phase">
+      <div class="phase-label" style="color:var(--accent2);">Develop</div>
+      <div class="pipe-steps">
+        <div class="pstep hl-b"><span class="ps-icon">💻</span><span class="ps-lbl">VS Code<br>IntelliJ<br>Git</span></div>
+      </div>
+    </div>
+    <span class="pipe-group-arrow">›</span>
+
+    <div class="pipe-phase">
+      <div class="phase-label" style="color:var(--accent);">Build / CI</div>
+      <div class="pipe-steps">
+        <div class="pstep hl-o"><span class="ps-icon">🔨</span><span class="ps-lbl">Jenkins<br>GitHub Actions<br>GitLab CI</span></div>
+      </div>
+    </div>
+    <span class="pipe-group-arrow">›</span>
+
+    <div class="pipe-phase">
+      <div class="phase-label" style="color:var(--accent4);">Test</div>
+      <div class="pipe-steps">
+        <div class="pstep hl-p"><span class="ps-icon">🧪</span><span class="ps-lbl">JUnit<br>Selenium<br>SonarQube</span></div>
+      </div>
+    </div>
+    <span class="pipe-group-arrow">›</span>
+
+    <div class="pipe-phase">
+      <div class="phase-label" style="color:var(--accent5);">Release / CD</div>
+      <div class="pipe-steps">
+        <div class="pstep hl-or"><span class="ps-icon">📦</span><span class="ps-lbl">Spinnaker<br>ArgoCD<br>AWS CodePipeline</span></div>
+      </div>
+    </div>
+    <span class="pipe-group-arrow">›</span>
+
+    <div class="pipe-phase">
+      <div class="phase-label" style="color:var(--accent);">Deploy</div>
+      <div class="pipe-steps">
+        <div class="pstep hl-o"><span class="ps-icon">🚀</span><span class="ps-lbl">Docker<br>Kubernetes<br>Ansible</span></div>
+      </div>
+    </div>
+    <span class="pipe-group-arrow">›</span>
+
+    <div class="pipe-phase">
+      <div class="phase-label" style="color:var(--accent3);">Monitor</div>
+      <div class="pipe-steps">
+        <div class="pstep hl-g"><span class="ps-icon">📊</span><span class="ps-lbl">Prometheus<br>Grafana<br>Datadog</span></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="grid" style="margin-top:22px;">
+    <div class="card cb">
+      <span class="card-icon">🎯</span>
+      <div class="card-title">Right Tool, Right Stage</div>
+      <div class="card-body">Every stage of the lifecycle has specialised tools. Mixing or skipping stages creates gaps that slow delivery and increase risk.</div>
+    </div>
+    <div class="card cg">
+      <span class="card-icon">🔗</span>
+      <div class="card-title">Integration is Everything</div>
+      <div class="card-body">Tools must integrate seamlessly. A Jenkins build should automatically trigger a SonarQube scan, push to Docker Hub, and notify Slack — with zero manual handoffs.</div>
+    </div>
+    <div class="card co">
+      <span class="card-icon">📖</span>
+      <div class="card-title">Open Source First</div>
+      <div class="card-body">Most industry-standard DevOps tools are open source (Jenkins, Prometheus, Kubernetes, Ansible). Vendor platforms (AWS, Azure, GCP) wrap these with managed services.</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 2 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 3 — CONTINUOUS DEVELOPMENT ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Stage 1</div>
+  <h1 class="heading">Continuous<br>Development</h1>
+  <p class="sub">Continuous Development (CD) is the first stage of the DevOps lifecycle — covering planning and coding. It emphasises short development cycles, version control discipline, and fast feedback from the codebase.</p>
+  <div class="def-box">
+    <div class="def-label">Definition</div>
+    <p class="def-text">Continuous Development is the practice of <em>continuously writing, refining, and committing code</em> in small increments using version control, ensuring the codebase is always in a workable state and ready for the next stage of the pipeline.</p>
+  </div>
+  <div class="grid grid-3">
+    <div class="card ci">
+      <span class="card-icon">🗂️</span>
+      <div class="card-title">Version Control</div>
+      <div class="card-body">Every line of code is tracked. Git is the universal standard. GitHub, GitLab, and Bitbucket host repositories and enable collaboration at scale.</div>
+    </div>
+    <div class="card cb">
+      <span class="card-icon">🌿</span>
+      <div class="card-title">Branching Strategies</div>
+      <div class="card-body"><strong>Gitflow:</strong> feature/release/hotfix branches.<br><strong>Trunk-based:</strong> short-lived branches, merge to main daily. Preferred in high-velocity DevOps teams.</div>
+    </div>
+    <div class="card cg">
+      <span class="card-icon">📝</span>
+      <div class="card-title">IDEs &amp; Editors</div>
+      <div class="card-body">VS Code, IntelliJ IDEA, PyCharm. Extensions for linting, formatting, and integrated terminal make them the developer's primary environment.</div>
+    </div>
+    <div class="card cp">
+      <span class="card-icon">📦</span>
+      <div class="card-title">Package &amp; Dependency Mgmt</div>
+      <div class="card-body">npm (Node.js), pip (Python), Maven/Gradle (Java), Cargo (Rust). Lock files ensure reproducible builds across environments.</div>
+    </div>
+    <div class="card co">
+      <span class="card-icon">🔍</span>
+      <div class="card-title">Code Review</div>
+      <div class="card-body">Pull Requests (PRs) enforce peer review before merging. GitHub, GitLab, and Gerrit provide inline commenting, approval workflows, and status checks.</div>
+    </div>
+    <div class="card ci">
+      <span class="card-icon">📋</span>
+      <div class="card-title">Issue &amp; Project Tracking</div>
+      <div class="card-body">Jira, Trello, Linear, and GitHub Issues link code commits to user stories and tasks, maintaining traceability from requirement to release.</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 3 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 4 — CI ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Stage 2</div>
+  <h1 class="heading">Continuous<br>Integration (CI)</h1>
+  <p class="sub">CI is the practice of automatically building and testing every code commit. It is the engine that keeps the shared codebase healthy and eliminates the "integration hell" of infrequent merges.</p>
+  <div class="def-box">
+    <div class="def-label">Definition</div>
+    <p class="def-text">Continuous Integration is the practice of <em>merging developer code changes into a shared repository frequently</em> — at least daily — where each merge triggers an <em>automated build and test pipeline</em> to detect problems early.</p>
+  </div>
+  <div class="divider" style="margin:14px 0;"></div>
+  <p style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:4px;">What happens on every commit →</p>
+  <div class="pipeline" style="margin-top:10px; flex-wrap:wrap;">
+    <div class="pstep hl-b" style="min-width:90px;"><span class="ps-icon">⬆️</span><span class="ps-lbl">Code Push<br>to Git</span></div>
+    <span class="parr">›</span>
+    <div class="pstep hl-o"><span class="ps-icon">🔨</span><span class="ps-lbl">Automated<br>Build</span></div>
+    <span class="parr">›</span>
+    <div class="pstep hl-p"><span class="ps-icon">🧪</span><span class="ps-lbl">Unit &amp;<br>Integration Tests</span></div>
+    <span class="parr">›</span>
+    <div class="pstep hl-g"><span class="ps-icon">🔍</span><span class="ps-lbl">Static Code<br>Analysis</span></div>
+    <span class="parr">›</span>
+    <div class="pstep hl-or"><span class="ps-icon">📊</span><span class="ps-lbl">Test<br>Report</span></div>
+    <span class="parr">›</span>
+    <div class="pstep hl-g" style="border-color:var(--accent3);"><span class="ps-icon">✅</span><span class="ps-lbl">Pass:<br>Merge</span></div>
+    <span class="parr" style="color:var(--accent);">|</span>
+    <div class="pstep hl-o" style="border-color:var(--accent);"><span class="ps-icon">🚨</span><span class="ps-lbl">Fail:<br>Notify Dev</span></div>
+  </div>
+
+  <div class="tool-section">
+    <h3>Key CI Tools <span>— industry standard</span></h3>
+    <div class="tool-row">
+      <div class="tbadge"><span class="ticon">🔧</span><div><div>Jenkins</div><div class="tsub">Open-source · most widely used</div></div></div>
+      <div class="tbadge"><span class="ticon">⚡</span><div><div>GitHub Actions</div><div class="tsub">Native to GitHub repos</div></div></div>
+      <div class="tbadge"><span class="ticon">🦊</span><div><div>GitLab CI/CD</div><div class="tsub">Built into GitLab platform</div></div></div>
+      <div class="tbadge"><span class="ticon">🔵</span><div><div>Azure DevOps Pipelines</div><div class="tsub">Microsoft cloud-native</div></div></div>
+      <div class="tbadge"><span class="ticon">☁️</span><div><div>CircleCI</div><div class="tsub">Cloud-first, YAML config</div></div></div>
+      <div class="tbadge"><span class="ticon">🟠</span><div><div>Travis CI</div><div class="tsub">Popular for open-source</div></div></div>
+    </div>
+  </div>
+  <div class="callout">
+    <strong>CI Rule of Thumb:</strong> If the build is broken, fixing it is the team's highest priority — not starting new work. A broken main branch blocks everyone. Fix forward or roll back immediately.
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 4 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 5 — CONTINUOUS TESTING ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Stage 3</div>
+  <h1 class="heading">Continuous<br>Testing</h1>
+  <p class="sub">In DevOps, testing is not a phase — it is a continuous, automated activity embedded throughout the pipeline. The goal is to get fast, reliable feedback at every stage.</p>
+  <div class="grid grid-3" style="margin-top:18px;">
+    <div class="card ci">
+      <span class="card-icon">⚡</span>
+      <div class="card-title">Unit Testing</div>
+      <div class="card-body">Test individual functions or methods in isolation. Fastest feedback. Run on every commit. Tools: <strong>JUnit</strong> (Java), <strong>PyTest</strong> (Python), <strong>Jest</strong> (JS). Target: >80% code coverage.</div>
+    </div>
+    <div class="card cb">
+      <span class="card-icon">🔗</span>
+      <div class="card-title">Integration Testing</div>
+      <div class="card-body">Test interactions between modules, services, or databases. Slower than unit tests. Tools: <strong>Postman</strong>, <strong>REST Assured</strong>, <strong>TestContainers</strong>.</div>
+    </div>
+    <div class="card cg">
+      <span class="card-icon">🖥️</span>
+      <div class="card-title">UI / End-to-End Testing</div>
+      <div class="card-body">Simulate real user interactions in a browser. Slowest but highest confidence. Tools: <strong>Selenium</strong>, <strong>Playwright</strong>, <strong>Cypress</strong>.</div>
+    </div>
+    <div class="card cp">
+      <span class="card-icon">📈</span>
+      <div class="card-title">Performance Testing</div>
+      <div class="card-body">Measure response times, throughput, and system behaviour under load. Tools: <strong>JMeter</strong>, <strong>k6</strong>, <strong>Gatling</strong>. Run in staging before production.</div>
+    </div>
+    <div class="card co">
+      <span class="card-icon">🔍</span>
+      <div class="card-title">Static Analysis (SAST)</div>
+      <div class="card-body">Scan source code for bugs, vulnerabilities, and style violations without running it. Tools: <strong>SonarQube</strong>, <strong>ESLint</strong>, <strong>Checkstyle</strong>, <strong>Bandit</strong>.</div>
+    </div>
+    <div class="card ci">
+      <span class="card-icon">🧩</span>
+      <div class="card-title">Contract Testing</div>
+      <div class="card-body">Verify API contracts between microservices without deploying them together. Tool: <strong>Pact</strong>. Essential in distributed systems to prevent breaking changes.</div>
+    </div>
+  </div>
+  <div class="def-box" style="margin-top:18px;">
+    <div class="def-label">The Test Pyramid</div>
+    <p class="def-text">Many <em>fast unit tests</em> at the base → fewer integration tests in the middle → very few slow UI tests at the top. This shape keeps CI pipelines fast and feedback immediate.</p>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 5 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 6 — CD / DEPLOYMENT ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Stages 4 &amp; 5</div>
+  <h1 class="heading">Continuous Delivery<br>&amp; Deployment</h1>
+  <p class="sub">After code passes CI and testing, it must be packaged and shipped. Two related practices govern this — and they are often confused.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr; gap:14px; margin-top:18px;">
+    <div class="card cb" style="padding:20px 22px;">
+      <span class="card-icon">📬</span>
+      <div class="card-title" style="font-size:16px;">Continuous Delivery</div>
+      <div class="card-body" style="font-size:13px;">Code is <strong>always in a deployable state</strong>. Every change is automatically built, tested, and prepared for release. Deployment to production requires a <em>manual approval step</em>. The team decides <em>when</em> to ship.</div>
+    </div>
+    <div class="card cg" style="padding:20px 22px;">
+      <span class="card-icon">🚀</span>
+      <div class="card-title" style="font-size:16px;">Continuous Deployment</div>
+      <div class="card-body" style="font-size:13px;">Every change that passes all automated tests is <strong>automatically deployed to production</strong> — with zero human approval. Requires very high test confidence and robust monitoring. Example: Netflix, Amazon.</div>
+    </div>
+  </div>
+  <div class="divider" style="margin:16px 0;"></div>
+  <p style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:12px;">Key Deployment Strategies</p>
+  <div class="grid grid-3">
+    <div class="card ci">
+      <div class="card-title">🔵🟢 Blue-Green Deployment</div>
+      <div class="card-body">Two identical environments (Blue = live, Green = new). Traffic switched from Blue to Green instantly. Easy rollback: switch back.</div>
+    </div>
+    <div class="card cp">
+      <div class="card-title">🐦 Canary Release</div>
+      <div class="card-body">New version deployed to a small % of users (e.g. 5%). If metrics are healthy, gradually roll out to 100%. Reduces blast radius of bad releases.</div>
+    </div>
+    <div class="card co">
+      <div class="card-title">🔄 Rolling Update</div>
+      <div class="card-body">Replace old instances with new ones incrementally. Zero downtime, but both versions run simultaneously during the rollout. Used natively by Kubernetes.</div>
+    </div>
+    <div class="card cg">
+      <div class="card-title">🏳️ Feature Flags</div>
+      <div class="card-body">Deploy code with features hidden behind flags. Enable or disable features per user segment without redeployment. Tools: LaunchDarkly, Flagsmith.</div>
+    </div>
+    <div class="card cb">
+      <div class="card-title">🗂️ IaC for Deployment</div>
+      <div class="card-body">Infrastructure provisioned as code alongside the app. Terraform, Ansible, CloudFormation ensure consistent environments every time.</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 6 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 7 — CONTINUOUS MONITORING ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Stage 6</div>
+  <h1 class="heading">Continuous<br>Monitoring</h1>
+  <p class="sub">Monitoring closes the feedback loop. Without observability into production, teams are flying blind. Monitoring is not optional — it is the foundation of reliability and the source of data for every improvement.</p>
+  <div class="def-box">
+    <div class="def-label">Three Pillars of Observability</div>
+    <p class="def-text"><em>Metrics</em> — numerical measurements over time (CPU, latency, error rate) &nbsp;·&nbsp; <em>Logs</em> — timestamped records of events &nbsp;·&nbsp; <em>Traces</em> — end-to-end journey of a request across microservices</p>
+  </div>
+  <div class="metrics-row">
+    <div class="metric-card"><div class="m-val" style="color:var(--accent3);">99.9%</div><div class="m-label">Uptime SLA</div><div class="m-bar"><div class="m-fill" style="width:99.9%; background:var(--accent3);"></div></div></div>
+    <div class="metric-card"><div class="m-val" style="color:var(--accent2);">142ms</div><div class="m-label">Avg Response Time</div><div class="m-bar"><div class="m-fill" style="width:35%; background:var(--accent2);"></div></div></div>
+    <div class="metric-card"><div class="m-val" style="color:var(--accent5);">0.3%</div><div class="m-label">Error Rate</div><div class="m-bar"><div class="m-fill" style="width:3%; background:var(--accent5);"></div></div></div>
+    <div class="metric-card"><div class="m-val" style="color:var(--accent4);">4.2k</div><div class="m-label">Req/sec</div><div class="m-bar"><div class="m-fill" style="width:70%; background:var(--accent4);"></div></div></div>
+  </div>
+  <div class="tool-section" style="margin-top:20px;">
+    <h3>Monitoring &amp; Observability Tools <span>— ecosystem</span></h3>
+    <div class="tool-row">
+      <div class="tbadge"><span class="ticon">🔥</span><div><div>Prometheus</div><div class="tsub">Metrics collection &amp; alerting</div></div></div>
+      <div class="tbadge"><span class="ticon">📊</span><div><div>Grafana</div><div class="tsub">Dashboards &amp; visualisation</div></div></div>
+      <div class="tbadge"><span class="ticon">🐘</span><div><div>ELK Stack</div><div class="tsub">Elasticsearch · Logstash · Kibana</div></div></div>
+      <div class="tbadge"><span class="ticon">🐶</span><div><div>Datadog</div><div class="tsub">SaaS APM &amp; infrastructure</div></div></div>
+      <div class="tbadge"><span class="ticon">🟠</span><div><div>Jaeger</div><div class="tsub">Distributed tracing</div></div></div>
+      <div class="tbadge"><span class="ticon">📟</span><div><div>PagerDuty</div><div class="tsub">Incident management &amp; on-call</div></div></div>
+      <div class="tbadge"><span class="ticon">🔔</span><div><div>Alertmanager</div><div class="tsub">Prometheus alert routing</div></div></div>
+      <div class="tbadge"><span class="ticon">☁️</span><div><div>AWS CloudWatch</div><div class="tsub">AWS-native monitoring</div></div></div>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:14px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+    <div class="card cg">
+      <div class="card-title">🚨 Alerting</div>
+      <div class="card-body">Define thresholds. Alert on anomalies. Route to the right on-call engineer. Avoid alert fatigue with smart grouping and silencing.</div>
+    </div>
+    <div class="card cb">
+      <div class="card-title">📝 Log Aggregation</div>
+      <div class="card-body">Centralise logs from all services. Correlate by trace ID. Search in seconds. ELK Stack and Loki (Grafana) are the go-to solutions.</div>
+    </div>
+    <div class="card co">
+      <div class="card-title">🔄 Feedback to Dev</div>
+      <div class="card-body">Production metrics feed back into the planning stage. New bugs → new Jira tickets. Latency spikes → new performance stories. The ∞ loop in action.</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 7 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 8 — DEVSECOPS ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Security Integration</div>
+  <h1 class="heading">DevSecOps:<br>Security is Everyone's Job</h1>
+  <p class="sub">DevSecOps extends DevOps by integrating security practices at every stage of the pipeline — not as a gate at the end, but as a shared responsibility from the first line of code.</p>
+  <div class="def-box">
+    <div class="def-label">Definition</div>
+    <p class="def-text">DevSecOps stands for <em>Development, Security, and Operations</em>. It embeds security controls, testing, and culture into the CI/CD pipeline so that security is <em>built in, not bolted on</em>. The guiding principle: <em>shift left</em> — catch security issues as early as possible.</p>
+  </div>
+  <div class="divider" style="margin:14px 0;"></div>
+  <p style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:8px;">Shift-Left Security — Security at Every Stage</p>
+  <div class="shift-bar">
+    <div class="shift-phase sp-plan">
+      <div class="sph-lbl gn">Plan</div>
+      <div class="sph-checks">Threat modelling<br>Security requirements<br>OWASP checklist</div>
+    </div>
+    <div class="shift-phase sp-code">
+      <div class="sph-lbl bl">Code</div>
+      <div class="sph-checks">Pre-commit hooks<br>Secret scanning<br>IDE security plugins</div>
+    </div>
+    <div class="shift-phase sp-build">
+      <div class="sph-lbl pu">Build / CI</div>
+      <div class="sph-checks">SAST (SonarQube)<br>Dependency scan<br>Snyk / OWASP DC</div>
+    </div>
+    <div class="shift-phase sp-test">
+      <div class="sph-lbl or">Test</div>
+      <div class="sph-checks">DAST (OWASP ZAP)<br>Penetration testing<br>Container image scan</div>
+    </div>
+    <div class="shift-phase sp-deploy">
+      <div class="sph-lbl gn">Deploy / Run</div>
+      <div class="sph-checks">Runtime protection<br>WAF / IDS<br>Compliance audits</div>
+    </div>
+  </div>
+  <div class="grid grid-3" style="margin-top:18px;">
+    <div class="card ci">
+      <span class="card-icon">🔍</span>
+      <div class="card-title">SAST</div>
+      <div class="card-body"><strong>Static Application Security Testing</strong> — analyse source code for vulnerabilities without running it. Tools: SonarQube, Semgrep, Checkmarx. Run in CI pipeline.</div>
+    </div>
+    <div class="card cb">
+      <span class="card-icon">🌐</span>
+      <div class="card-title">DAST</div>
+      <div class="card-body"><strong>Dynamic Application Security Testing</strong> — attack a running application to find runtime vulnerabilities. Tools: OWASP ZAP, Burp Suite. Run in staging.</div>
+    </div>
+    <div class="card cg">
+      <span class="card-icon">📦</span>
+      <div class="card-title">SCA — Dependency Scanning</div>
+      <div class="card-body"><strong>Software Composition Analysis</strong> — scan third-party libraries for known CVEs. Tools: Snyk, OWASP Dependency-Check, Dependabot. Automated on every build.</div>
+    </div>
+    <div class="card cp">
+      <span class="card-icon">🔒</span>
+      <div class="card-title">Secrets Management</div>
+      <div class="card-body">Never store credentials in code. Tools: HashiCorp Vault, AWS Secrets Manager, GitHub Secret Scanning. Enforce via pre-commit hooks.</div>
+    </div>
+    <div class="card co">
+      <span class="card-icon">🐳</span>
+      <div class="card-title">Container Security</div>
+      <div class="card-body">Scan Docker images for OS and package CVEs before pushing to registry. Tools: Trivy, Clair, Snyk Container. Use minimal base images.</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 8 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 9 — DEVOPS vs SRE ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Key Distinction</div>
+  <h1 class="heading">DevOps vs<br>Site Reliability Engineering</h1>
+  <p class="sub">DevOps and SRE are two of the most important concepts in modern software operations. They share goals but differ in origin, structure, and how they achieve reliability.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr; gap:14px; margin-top:18px;">
+    <div class="card cb" style="padding:20px 22px;">
+      <span class="card-icon">🔁</span>
+      <div class="card-title" style="font-size:15px;">DevOps</div>
+      <div class="card-body" style="font-size:13px; line-height:1.7;">
+        <strong>Origin:</strong> Industry-wide movement (2009)<br>
+        <strong>Philosophy:</strong> Culture + practices + automation<br>
+        <strong>Goal:</strong> Break silos, speed up delivery, improve collaboration<br>
+        <strong>Scope:</strong> Full lifecycle — Dev through Ops<br>
+        <strong>Teams:</strong> Cross-functional DevOps teams<br>
+        <strong>Success Metric:</strong> Deployment frequency, lead time, MTTR<br>
+        <strong>"What":</strong> Principles and mindset — not prescriptive
+      </div>
+    </div>
+    <div class="card cg" style="padding:20px 22px;">
+      <span class="card-icon">🛡️</span>
+      <div class="card-title" style="font-size:15px;">Site Reliability Engineering (SRE)</div>
+      <div class="card-body" style="font-size:13px; line-height:1.7;">
+        <strong>Origin:</strong> Google (2003, Ben Treynor Sloss)<br>
+        <strong>Philosophy:</strong> Apply software engineering to operations problems<br>
+        <strong>Goal:</strong> Build and maintain large-scale reliable systems<br>
+        <strong>Scope:</strong> Production reliability, availability, performance<br>
+        <strong>Teams:</strong> Dedicated SRE team (software + ops skills)<br>
+        <strong>Success Metric:</strong> SLIs, SLOs, error budgets<br>
+        <strong>"How":</strong> Specific, prescriptive implementation
+      </div>
+    </div>
+  </div>
+  <div class="sre-pillars">
+    <div class="sre-card">
+      <span class="s-num">SRE Concept 1</span>
+      <div class="s-title">SLI — Service Level Indicator</div>
+      <div class="s-desc">A quantitative measure of service behaviour. E.g., request latency, error rate, availability percentage.</div>
+    </div>
+    <div class="sre-card">
+      <span class="s-num">SRE Concept 2</span>
+      <div class="s-title">SLO — Service Level Objective</div>
+      <div class="s-desc">A target value for an SLI. E.g., "99.9% of requests served within 200ms." The reliability goal the team commits to.</div>
+    </div>
+    <div class="sre-card">
+      <span class="s-num">SRE Concept 3</span>
+      <div class="s-title">Error Budget</div>
+      <div class="s-desc">The allowed amount of unreliability. 99.9% SLO = 0.1% error budget = ~8.7 hours/year. If budget is spent, slow releases; if ample, move fast.</div>
+    </div>
+    <div class="sre-card">
+      <span class="s-num">SRE Concept 4</span>
+      <div class="s-title">Toil Elimination</div>
+      <div class="s-desc">SREs spend ≤50% time on toil (repetitive manual ops work). The rest is engineering to automate and eliminate that toil permanently.</div>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:16px;">
+    <strong>Google's framing:</strong> "SRE is what happens when you ask a software engineer to design an operations team." DevOps and SRE are <em>complementary</em> — SRE is a concrete implementation of DevOps principles at scale.
+    <cite>— Benjamin Treynor Sloss, Google VP Engineering</cite>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 9 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 10 — DEVOPS vs SRE TABLE ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Side-by-Side</div>
+  <h1 class="heading">DevOps vs SRE:<br>Detailed Comparison</h1>
+  <p class="sub">Understanding where DevOps ends and SRE begins helps organisations decide which roles and structures to adopt as they scale their engineering organisations.</p>
+  <div style="overflow-x:auto; margin-top:18px;">
+  <table class="ctable">
+    <thead>
+      <tr><th>Dimension</th><th>DevOps</th><th>SRE</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Originated at</td><td>Industry movement (Flickr/Allspaw 2009)</td><td>Google (Ben Treynor, 2003)</td></tr>
+      <tr><td>Primary Focus</td><td>Collaboration, speed, breaking silos</td><td>Reliability, scalability, availability</td></tr>
+      <tr><td>Prescriptiveness</td><td>Principles &amp; culture — not prescriptive</td><td>Highly specific practices and metrics</td></tr>
+      <tr><td>Team Structure</td><td>Embedded in product teams</td><td>Dedicated SRE team, serves other teams</td></tr>
+      <tr><td>Key Metrics</td><td>DORA (deploy freq, lead time, CFR, MTTR)</td><td>SLIs, SLOs, error budgets, toil %</td></tr>
+      <tr><td>Automation Goal</td><td>Automate the delivery pipeline (CI/CD)</td><td>Automate operations to reduce toil</td></tr>
+      <tr><td>On-Call Rotation</td><td>Shared "you build it, you run it"</td><td>Structured SRE on-call with runbooks</td></tr>
+      <tr><td>Incident Response</td><td>Blameless post-mortems, fast MTTR</td><td>Formal incident management, RCA docs</td></tr>
+      <tr><td>Relationship</td><td colspan="2" style="color:var(--accent3); font-weight:600; text-align:center;">✓ SRE implements DevOps principles with engineering rigour — they are complementary, not competing</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="grid" style="margin-top:18px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+    <div class="card cb">
+      <span class="card-icon">🏢</span>
+      <div class="card-title">When to use DevOps?</div>
+      <div class="card-body">Any team that wants to ship faster, collaborate better, and reduce silos. Works at any scale — startups to enterprises.</div>
+    </div>
+    <div class="card cg">
+      <span class="card-icon">🌐</span>
+      <div class="card-title">When to adopt SRE?</div>
+      <div class="card-body">At scale — when reliability requirements are high, on-call burden is unsustainable, and you need rigorous SLO-based engineering practices.</div>
+    </div>
+    <div class="card co">
+      <span class="card-icon">🤝</span>
+      <div class="card-title">Using Both Together</div>
+      <div class="card-body">Large organisations (Google, Netflix, LinkedIn) use SRE teams to support DevOps product teams — providing reliability infrastructure and guidance.</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 10 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 11 — TOOLCHAIN ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">End-to-End</div>
+  <h1 class="heading">The Complete<br>DevOps Toolchain</h1>
+  <p class="sub">A DevOps toolchain is the full set of tools integrated together to support continuous delivery — from planning to monitoring. Each tool hands off to the next automatically.</p>
+  <div class="toolchain">
+    <div class="tc-row">
+      <div class="tc-phase-lbl">Plan</div>
+      <div class="tc-tools">
+        <div class="tc-tool tg">Jira</div>
+        <div class="tc-tool tg">Trello</div>
+        <div class="tc-tool tg">Azure Boards</div>
+        <div class="tc-tool tg">Linear</div>
+        <div class="tc-tool tg">GitHub Issues</div>
+      </div>
+    </div>
+    <div class="tc-arrow-down">↓</div>
+    <div class="tc-row">
+      <div class="tc-phase-lbl">Develop</div>
+      <div class="tc-tools">
+        <div class="tc-tool tb">Git</div>
+        <div class="tc-tool tb">GitHub</div>
+        <div class="tc-tool tb">GitLab</div>
+        <div class="tc-tool tb">VS Code</div>
+        <div class="tc-tool tb">IntelliJ</div>
+        <div class="tc-tool tb">Bitbucket</div>
+      </div>
+    </div>
+    <div class="tc-arrow-down">↓</div>
+    <div class="tc-row">
+      <div class="tc-phase-lbl">Build / CI</div>
+      <div class="tc-tools">
+        <div class="tc-tool to">Jenkins</div>
+        <div class="tc-tool to">GitHub Actions</div>
+        <div class="tc-tool to">GitLab CI</div>
+        <div class="tc-tool to">CircleCI</div>
+        <div class="tc-tool to">Azure Pipelines</div>
+        <div class="tc-tool to">Travis CI</div>
+      </div>
+    </div>
+    <div class="tc-arrow-down">↓</div>
+    <div class="tc-row">
+      <div class="tc-phase-lbl">Test</div>
+      <div class="tc-tools">
+        <div class="tc-tool tp">JUnit</div>
+        <div class="tc-tool tp">Selenium</div>
+        <div class="tc-tool tp">Cypress</div>
+        <div class="tc-tool tp">JMeter</div>
+        <div class="tc-tool tp">SonarQube</div>
+        <div class="tc-tool tp">Snyk</div>
+        <div class="tc-tool tp">OWASP ZAP</div>
+      </div>
+    </div>
+    <div class="tc-arrow-down">↓</div>
+    <div class="tc-row">
+      <div class="tc-phase-lbl">Release / CD</div>
+      <div class="tc-tools">
+        <div class="tc-tool tor">Spinnaker</div>
+        <div class="tc-tool tor">ArgoCD</div>
+        <div class="tc-tool tor">AWS CodePipeline</div>
+        <div class="tc-tool tor">Harness</div>
+        <div class="tc-tool tor">Flux</div>
+      </div>
+    </div>
+    <div class="tc-arrow-down">↓</div>
+    <div class="tc-row">
+      <div class="tc-phase-lbl">Deploy / IaC</div>
+      <div class="tc-tools">
+        <div class="tc-tool to">Docker</div>
+        <div class="tc-tool to">Kubernetes</div>
+        <div class="tc-tool to">Terraform</div>
+        <div class="tc-tool to">Ansible</div>
+        <div class="tc-tool to">Puppet</div>
+        <div class="tc-tool to">Helm</div>
+      </div>
+    </div>
+    <div class="tc-arrow-down">↓</div>
+    <div class="tc-row">
+      <div class="tc-phase-lbl">Monitor</div>
+      <div class="tc-tools">
+        <div class="tc-tool tg">Prometheus</div>
+        <div class="tc-tool tg">Grafana</div>
+        <div class="tc-tool tg">ELK Stack</div>
+        <div class="tc-tool tg">Datadog</div>
+        <div class="tc-tool tg">Jaeger</div>
+        <div class="tc-tool tg">PagerDuty</div>
+      </div>
+    </div>
+    <div class="tc-arrow-down" style="color:var(--accent3);">↺ feedback loop back to Plan</div>
+  </div>
+  <div class="slide-footer"><span class="footer-l">CSDV3017 · Summer Semester 2026</span><span class="footer-r">Slide 11 / 12</span></div>
+</div></div>
+
+<!-- ══════ SLIDE 12 — SUMMARY ══════ -->
+<div class="slide"><div class="slide-inner">
+  <div class="eyebrow">Lecture Wrap-up</div>
+  <h1 class="heading">Key Takeaways</h1>
+  <p class="sub">What you should be able to explain after today's session:</p>
+  <ul class="sum-list">
+    <li><span class="snum">01</span>A DevOps toolchain covers every stage of the lifecycle — Plan, Develop, Build, Test, Release, Deploy, Monitor — with specialised, integrated tools at each stage.</li>
+    <li><span class="snum">02</span><strong>Continuous Development</strong> relies on Git, branching strategies, IDEs, and code review (PRs) to keep the codebase always workable and collaborative.</li>
+    <li><span class="snum">03</span><strong>Continuous Integration</strong> automatically builds and tests every commit. Key tools: Jenkins, GitHub Actions, GitLab CI. A broken build is the team's top priority.</li>
+    <li><span class="snum">04</span><strong>Continuous Testing</strong> embeds unit, integration, UI, performance, and security tests into the pipeline using the test pyramid model (many fast → few slow).</li>
+    <li><span class="snum">05</span><strong>CD = Continuous Delivery</strong> (manual approval gate) vs <strong>Continuous Deployment</strong> (fully automated to production). Key strategies: Blue-Green, Canary, Rolling, Feature Flags.</li>
+    <li><span class="snum">06</span><strong>Continuous Monitoring</strong> uses the three pillars (Metrics, Logs, Traces) via Prometheus, Grafana, ELK, and Datadog to close the feedback loop from production back to planning.</li>
+    <li><span class="snum">07</span><strong>DevSecOps</strong> shifts security left — embedding SAST, DAST, SCA, secrets scanning, and container scanning throughout the pipeline rather than at the end.</li>
+    <li><span class="snum">08</span><strong>SRE</strong> (Google, 2003) implements DevOps principles with engineering rigour: SLIs, SLOs, error budgets, and toil elimination. Complementary to — not a replacement for — DevOps.</li>
+  </ul>
+  <div class="divider"></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); margin-top:0;">
+    <div class="card cb">
+      <span class="card-icon">📚</span>
+      <div class="card-title">Next Session</div>
+      <div class="card-body">Week 2 · Mon, 15 Jun — Business Needs for DevOps; Why DevOps is needed? (Unit II)</div>
+    </div>
+    <div class="card cg">
+      <span class="card-icon">💡</span>
+      <div class="card-title">Think About This</div>
+      <div class="card-body">If you were setting up a CI/CD pipeline for a university project, which 3–4 tools from today's toolchain would you start with, and why?</div>
+    </div>
+    <div class="card co">
+      <span class="card-icon">🔗</span>
+      <div class="card-title">Academic Portal</div>
+      <div class="card-body">Resources &amp; slides: <strong>mohsinfurkh.github.io/academic-portal</strong></div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span class="footer-l">Dr. Mohsin Furkh Dar · CSDV3017 · UPES Dehradun</span>
+    <span class="footer-r">Slide 12 / 12</span>
+  </div>
+</div></div>
+
+</div><!-- /track -->
+</div><!-- /viewport -->
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> arrow keys · swipe on mobile</div>
+
+<script>
+  const TOTAL = 12;
+  let current = 0;
+  function update() {
+    document.getElementById('track').style.transform = `translateX(-${current * 100}%)`;
+    document.getElementById('counter').textContent = `${current + 1} / ${TOTAL}`;
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === TOTAL - 1;
+    document.getElementById('progress').style.width = `${((current + 1) / TOTAL) * 100}%`;
+  }
+  function goSlide(dir) {
+    current = Math.max(0, Math.min(TOTAL - 1, current + dir));
+    update();
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goSlide(-1);
+  });
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) goSlide(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  update();
+</script>
+</body>
+</html>

@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 1 – What is DevOps? | CSDV3017 | Dr. Mohsin Furkh Dar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg:        #0D1117;
+    --surface:   #161B22;
+    --card:      #1C2128;
+    --border:    #30363D;
+    --accent:    #F78166;
+    --accent2:   #79C0FF;
+    --accent3:   #56D364;
+    --accent4:   #D2A8FF;
+    --text:      #E6EDF3;
+    --muted:     #8B949E;
+    --tag-bg:    #21262D;
+    --slide-w:   960px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── TOP NAV ── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .course-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .topbar-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-btn {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--border); border-color: var(--accent2); }
+  .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 52px;
+    text-align: center;
+  }
+
+  /* ── SLIDES WRAPPER ── */
+  .slides-viewport {
+    overflow: hidden;
+    position: relative;
+  }
+  .slides-track {
+    display: flex;
+    transition: transform 0.42s cubic-bezier(0.4,0,0.2,1);
+  }
+  .slide {
+    min-width: 100%;
+    padding: 32px 20px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .slide-inner {
+    width: 100%;
+    max-width: var(--slide-w);
+  }
+
+  /* ── COMMON SLIDE ELEMENTS ── */
+  .slide-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .slide-heading {
+    font-size: clamp(26px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 14px;
+  }
+  .slide-sub {
+    font-size: clamp(14px, 2.2vw, 18px);
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 700px;
+  }
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--border) 60%, transparent 100%);
+    margin: 24px 0;
+  }
+
+  /* ── TITLE SLIDE ── */
+  .title-slide-inner {
+    min-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .lecture-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    margin-bottom: 28px;
+    width: fit-content;
+  }
+  .lecture-badge .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(1.4); }
+  }
+  .lecture-badge span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .title-main {
+    font-size: clamp(36px, 7vw, 72px);
+    font-weight: 800;
+    line-height: 1.08;
+    margin-bottom: 8px;
+  }
+  .title-main .highlight { color: var(--accent2); }
+  .title-sub-line {
+    font-size: clamp(16px, 2.8vw, 24px);
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+  .title-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 32px;
+  }
+  .meta-chip {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .meta-chip strong { color: var(--text); }
+  .title-objectives {
+    margin-top: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    max-width: 680px;
+  }
+  .title-objectives h4 {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .obj-list { list-style: none; }
+  .obj-list li {
+    display: flex;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--muted);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--tag-bg);
+  }
+  .obj-list li:last-child { border-bottom: none; }
+  .obj-list li::before {
+    content: '→';
+    color: var(--accent2);
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── GRID CARDS ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .card-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .card-body {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .card.accent-orange { border-left: 3px solid var(--accent); }
+  .card.accent-blue   { border-left: 3px solid var(--accent2); }
+  .card.accent-green  { border-left: 3px solid var(--accent3); }
+  .card.accent-purple { border-left: 3px solid var(--accent4); }
+
+  /* ── PIPELINE DIAGRAM ── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding: 8px 0 16px;
+    margin-top: 20px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .pipe-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 96px;
+    flex-shrink: 0;
+  }
+  .pipe-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+    width: 86px;
+    transition: border-color 0.2s;
+  }
+  .pipe-box:hover { border-color: var(--accent2); }
+  .pipe-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .pipe-label { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .pipe-arrow {
+    color: var(--accent);
+    font-size: 18px;
+    padding: 0 2px;
+    flex-shrink: 0;
+  }
+  .pipe-step.active .pipe-box { border-color: var(--accent3); background: rgba(86,211,100,0.07); }
+  .pipe-step.active .pipe-label { color: var(--accent3); }
+
+  /* ── COMPARISON TABLE ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .compare-table th {
+    background: var(--surface);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid var(--border);
+  }
+  .compare-table th:nth-child(2) { color: var(--accent); }
+  .compare-table th:nth-child(3) { color: var(--accent2); }
+  .compare-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--tag-bg);
+    color: var(--muted);
+    vertical-align: top;
+  }
+  .compare-table td:first-child { color: var(--text); font-weight: 500; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:hover td { background: var(--tag-bg); }
+
+  /* ── BENEFITS LIST ── */
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .benefit-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .benefit-icon { font-size: 22px; flex-shrink: 0; }
+  .benefit-text h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .benefit-text p  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* ── QUOTE / HIGHLIGHT BOX ── */
+  .callout {
+    border-left: 3px solid var(--accent2);
+    background: var(--surface);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.6;
+    font-style: italic;
+  }
+  .callout cite {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── TERMINAL SNIPPET ── */
+  .terminal {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    margin-top: 20px;
+    overflow-x: auto;
+  }
+  .terminal .prompt { color: var(--accent3); }
+  .terminal .cmd    { color: var(--text); }
+  .terminal .out    { color: var(--muted); }
+  .terminal .kw     { color: var(--accent2); }
+  .terminal .str    { color: var(--accent); }
+
+  /* ── SUMMARY SLIDE ── */
+  .summary-list { list-style: none; margin-top: 20px; }
+  .summary-list li {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+  }
+  .summary-list li:last-child { border-bottom: none; }
+  .summary-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── FOOTER ── */
+  .slide-footer {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-left { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .footer-right { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .slide { padding: 20px 12px 48px; }
+    .topbar { padding: 8px 12px; }
+    .compare-table { font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 9px 10px; }
+    .nav-btn { padding: 5px 10px; font-size: 12px; }
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 200;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s;
+  }
+
+  /* ── KEYBOARD HINT ── */
+  .kbd-hint {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--border);
+  }
+  .kbd-hint kbd {
+    color: var(--muted);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+
+  /* ── DEFINITION BOX ── */
+  .def-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin: 20px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .def-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+  }
+  .def-box .def-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .def-box .def-text {
+    font-size: clamp(15px, 2.4vw, 19px);
+    line-height: 1.6;
+    font-weight: 500;
+  }
+  .def-box .def-text em { color: var(--accent2); font-style: normal; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topbar">
+  <div class="topbar-left">
+    <span class="course-tag">CSDV3017</span>
+    <span class="topbar-title">DevOps · Lecture 1 · Summer 2026</span>
+  </div>
+  <div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" onclick="goSlide(-1)" disabled>← Prev</button>
+    <span class="slide-counter" id="counter">1 / 9</span>
+    <button class="nav-btn" id="nextBtn" onclick="goSlide(1)">Next →</button>
+  </div>
+</nav>
+
+<!-- SLIDES -->
+<div class="slides-viewport">
+<div class="slides-track" id="track">
+
+  <!-- ═══════════════════════════════ SLIDE 1 – TITLE ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+  <div class="title-slide-inner">
+    <div class="lecture-badge"><span class="dot"></span><span>CSDV3017 · Lecture 1 · 08 Jun 2026</span></div>
+    <div class="title-main">What is<br><span class="highlight">DevOps?</span></div>
+    <div class="title-sub-line">How It Works & Why It Matters</div>
+    <p class="slide-sub">BTech CSE 6th Semester · School of Computer Sciences · UPES Dehradun</p>
+    <div class="title-meta">
+      <div class="meta-chip"><strong>Faculty:</strong> Dr. Mohsin Furkh Dar</div>
+      <div class="meta-chip"><strong>Mode:</strong> Online · MS Teams</div>
+      <div class="meta-chip"><strong>Credits:</strong> 3</div>
+      <div class="meta-chip"><strong>Session:</strong> Mon 14:00 – 15:00</div>
+    </div>
+    <div class="title-objectives">
+      <h4>Today's Learning Objectives</h4>
+      <ul class="obj-list">
+        <li>Understand what DevOps is and where it came from</li>
+        <li>Explain how the DevOps lifecycle works end-to-end</li>
+        <li>Identify the key benefits DevOps delivers to teams and organisations</li>
+        <li>Distinguish DevOps from traditional software delivery models</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+    <span class="footer-right">Slide 1 / 9</span>
+  </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 2 – THE PROBLEM ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Setting the Stage</div>
+    <h1 class="slide-heading">The Problem<br>DevOps Solves</h1>
+    <p class="slide-sub">Before DevOps, software teams operated in silos — and that caused serious friction.</p>
+    <div class="divider"></div>
+    <div class="cards-grid">
+      <div class="card accent-orange">
+        <span class="card-icon">🏗️</span>
+        <div class="card-title">Development Team</div>
+        <div class="card-body">Wrote code fast, pushed features frequently. Goal: <em>ship quickly.</em><br><br>"It works on my machine!"</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">🛡️</span>
+        <div class="card-title">Operations Team</div>
+        <div class="card-body">Managed servers, stability, and uptime. Goal: <em>don't break prod.</em><br><br>"We can't deploy until it's tested for 2 weeks."</div>
+      </div>
+      <div class="card accent-purple">
+        <span class="card-icon">💥</span>
+        <div class="card-title">The Conflict</div>
+        <div class="card-body">Dev wanted speed. Ops wanted stability. They rarely communicated. Deployments became <em>high-risk events</em> — infrequent and painful.</div>
+      </div>
+    </div>
+    <div class="callout">
+      "The wall of confusion — developers throw code over the wall to operations, and operations throws it back when it breaks."
+      <cite>— Gene Kim, The Phoenix Project</cite>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 2 / 9</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 3 – DEFINITION ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Core Definition</div>
+    <h1 class="slide-heading">What is DevOps?</h1>
+    <p class="slide-sub">DevOps is a compound of two words: <strong>Development</strong> + <strong>Operations</strong>. But it is much more than just merging two teams.</p>
+    <div class="def-box" style="margin-top:28px">
+      <div class="def-label">Definition</div>
+      <p class="def-text">DevOps is a <em>set of practices, cultural philosophies, and tools</em> that increases an organisation's ability to deliver applications and services at <em>high velocity</em> — evolving and improving products faster than organisations using traditional software development and infrastructure management processes.</p>
+    </div>
+    <div class="cards-grid" style="margin-top:20px">
+      <div class="card accent-orange">
+        <span class="card-icon">🤝</span>
+        <div class="card-title">Culture</div>
+        <div class="card-body">Shared ownership, collaboration, and responsibility between Dev and Ops throughout the entire software lifecycle.</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">⚙️</span>
+        <div class="card-title">Automation</div>
+        <div class="card-body">Automate repetitive tasks — builds, tests, deployments — to reduce human error and increase speed.</div>
+      </div>
+      <div class="card accent-green">
+        <span class="card-icon">📏</span>
+        <div class="card-title">Measurement</div>
+        <div class="card-body">Continuously measure performance, lead times, and failure rates to drive improvement decisions.</div>
+      </div>
+      <div class="card accent-purple">
+        <span class="card-icon">🔗</span>
+        <div class="card-title">Sharing</div>
+        <div class="card-body">Share knowledge, tools, and feedback loops — breaking down silos across the organisation.</div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 3 / 9</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 4 – HISTORY ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Origins</div>
+    <h1 class="slide-heading">A Brief History<br>of DevOps</h1>
+    <p class="slide-sub">DevOps did not appear overnight — it grew from decades of software delivery pain.</p>
+    <div class="divider"></div>
+    <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="card accent-orange">
+        <span class="card-icon">📅</span>
+        <div class="card-title">2007 – 2008</div>
+        <div class="card-body">Patrick Debois and Andrew Shafer discuss "Agile Infrastructure." The frustration with Dev–Ops silos reaches a tipping point.</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">🎤</span>
+        <div class="card-title">2009</div>
+        <div class="card-body">John Allspaw & Paul Hammond: <em>"10+ Deploys per Day"</em> at Velocity Conference. Patrick Debois coins the term <strong>DevOps</strong> and organises DevOpsDays in Ghent, Belgium.</div>
+      </div>
+      <div class="card accent-green">
+        <span class="card-icon">📖</span>
+        <div class="card-title">2013</div>
+        <div class="card-body">Gene Kim et al. publish <em>The Phoenix Project</em> — a novel that explains DevOps through storytelling. Becomes a landmark text.</div>
+      </div>
+      <div class="card accent-purple">
+        <span class="card-icon">🌐</span>
+        <div class="card-title">2016 – Present</div>
+        <div class="card-body">DevOps becomes mainstream. Cloud platforms (AWS, Azure, GCP) embrace DevOps natively. DORA metrics established for measuring DevOps performance.</div>
+      </div>
+    </div>
+    <div class="terminal" style="margin-top:20px">
+      <span class="prompt">$</span> <span class="cmd">echo <span class="str">"DevOps = Agile + Lean + Continuous Delivery + Cloud"</span></span><br>
+      <span class="out">→ A culture-first movement, tooled for speed and reliability</span>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 4 / 9</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 5 – HOW IT WORKS ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">The Lifecycle</div>
+    <h1 class="slide-heading">How DevOps Works:<br>The ∞ Loop</h1>
+    <p class="slide-sub">DevOps is visualised as an <strong>infinite loop</strong> — a continuous cycle of Plan → Code → Build → Test → Release → Deploy → Operate → Monitor, then back to Plan.</p>
+    <div class="pipeline">
+      <div class="pipe-step active">
+        <div class="pipe-box"><span class="pipe-icon">📋</span><span class="pipe-label">Plan</span></div>
+      </div>
+      <span class="pipe-arrow">›</span>
+      <div class="pipe-step active">
+        <div class="pipe-box"><span class="pipe-icon">💻</span><span class="pipe-label">Code</span></div>
+      </div>
+      <span class="pipe-arrow">›</span>
+      <div class="pipe-step active">
+        <div class="pipe-box"><span class="pipe-icon">🔨</span><span class="pipe-label">Build</span></div>
+      </div>
+      <span class="pipe-arrow">›</span>
+      <div class="pipe-step active">
+        <div class="pipe-box"><span class="pipe-icon">🧪</span><span class="pipe-label">Test</span></div>
+      </div>
+      <span class="pipe-arrow">›</span>
+      <div class="pipe-step active">
+        <div class="pipe-box"><span class="pipe-icon">📦</span><span class="pipe-label">Release</span></div>
+      </div>
+      <span class="pipe-arrow">›</span>
+      <div class="pipe-step active">
+        <div class="pipe-box"><span class="pipe-icon">🚀</span><span class="pipe-label">Deploy</span></div>
+      </div>
+      <span class="pipe-arrow">›</span>
+      <div class="pipe-step active">
+        <div class="pipe-box"><span class="pipe-icon">🔧</span><span class="pipe-label">Operate</span></div>
+      </div>
+      <span class="pipe-arrow">›</span>
+      <div class="pipe-step active">
+        <div class="pipe-box"><span class="pipe-icon">📊</span><span class="pipe-label">Monitor</span></div>
+      </div>
+      <span class="pipe-arrow" style="color:var(--accent3)">↩</span>
+    </div>
+    <div class="cards-grid" style="margin-top:20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="card accent-orange">
+        <div class="card-title">🔄 Continuous Integration (CI)</div>
+        <div class="card-body">Developers merge code frequently. Every commit triggers an automated build and test. Tools: <strong>Jenkins, GitHub Actions, GitLab CI</strong>.</div>
+      </div>
+      <div class="card accent-blue">
+        <div class="card-title">🚢 Continuous Delivery (CD)</div>
+        <div class="card-body">Code is always in a deployable state. Releases happen on demand, safely, at any time. Tools: <strong>Spinnaker, ArgoCD, AWS CodeDeploy</strong>.</div>
+      </div>
+      <div class="card accent-green">
+        <div class="card-title">👁️ Continuous Monitoring</div>
+        <div class="card-body">Production systems are observed in real time. Alerts triggered on anomalies. Tools: <strong>Prometheus, Grafana, Datadog, ELK Stack</strong>.</div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 5 / 9</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 6 – BENEFITS ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Why Adopt DevOps</div>
+    <h1 class="slide-heading">Benefits of DevOps</h1>
+    <p class="slide-sub">Organisations that adopt DevOps consistently outperform those that don't — across speed, stability, and quality (DORA State of DevOps Report).</p>
+    <div class="benefits-grid" style="margin-top:24px">
+      <div class="benefit-item">
+        <span class="benefit-icon">⚡</span>
+        <div class="benefit-text">
+          <h4>Speed & Agility</h4>
+          <p>Release features and fixes faster. High-performing teams deploy 208× more frequently than low performers.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">🛡️</span>
+        <div class="benefit-text">
+          <h4>Reliability</h4>
+          <p>Automated testing and CI/CD reduces defects reaching production. Change failure rate drops significantly.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">📈</span>
+        <div class="benefit-text">
+          <h4>Scalability</h4>
+          <p>Infrastructure as Code and cloud-native tooling allow scaling with consistent, repeatable processes.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">🤝</span>
+        <div class="benefit-text">
+          <h4>Collaboration</h4>
+          <p>Shared ownership reduces blame culture. Teams work toward common goals with unified toolchains.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">🔒</span>
+        <div class="benefit-text">
+          <h4>Security (DevSecOps)</h4>
+          <p>Security integrated from the start — "shift left" testing catches vulnerabilities early in the pipeline.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">💰</span>
+        <div class="benefit-text">
+          <h4>Cost Efficiency</h4>
+          <p>Automation reduces manual effort. Faster recovery from failures reduces downtime-related losses.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">😊</span>
+        <div class="benefit-text">
+          <h4>Customer Satisfaction</h4>
+          <p>Faster delivery of features aligned to user feedback. Shorter feedback loops improve product quality.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">📉</span>
+        <div class="benefit-text">
+          <h4>Faster Recovery</h4>
+          <p>Mean Time to Recovery (MTTR) drops dramatically with automated rollbacks and observability tools.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 6 / 9</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 7 – DORA METRICS ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Measuring DevOps</div>
+    <h1 class="slide-heading">DORA Metrics:<br>Measuring DevOps Performance</h1>
+    <p class="slide-sub">DORA (DevOps Research and Assessment) established four key metrics to evaluate DevOps effectiveness.</p>
+    <div class="divider"></div>
+    <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="card accent-green">
+        <span class="card-icon">🚀</span>
+        <div class="card-title">Deployment Frequency</div>
+        <div class="card-body">How often an organisation successfully releases to production. <em>Elite: Multiple times/day.</em></div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">⏱️</span>
+        <div class="card-title">Lead Time for Changes</div>
+        <div class="card-body">Time from code commit to running in production. <em>Elite: Less than 1 hour.</em></div>
+      </div>
+      <div class="card accent-orange">
+        <span class="card-icon">💔</span>
+        <div class="card-title">Change Failure Rate</div>
+        <div class="card-body">Percentage of changes causing production failures. <em>Elite: 0–15%.</em></div>
+      </div>
+      <div class="card accent-purple">
+        <span class="card-icon">🔄</span>
+        <div class="card-title">Mean Time to Recovery</div>
+        <div class="card-body">How quickly a team recovers from a production failure. <em>Elite: Less than 1 hour.</em></div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:20px">
+      Elite DevOps teams deploy <strong>208× more frequently</strong> and recover from incidents <strong>2,604× faster</strong> than low performers. — DORA State of DevOps Report
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 7 / 9</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 8 – DEVOPS VS TRADITIONAL ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Comparison</div>
+    <h1 class="slide-heading">DevOps vs.<br>Traditional IT</h1>
+    <p class="slide-sub">How does DevOps differ from the traditional software delivery model across key dimensions?</p>
+    <div style="overflow-x:auto; margin-top:24px;">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Dimension</th>
+          <th>Traditional IT</th>
+          <th>DevOps</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Team Structure</td><td>Dev, Ops, QA in separate silos</td><td>Cross-functional, shared ownership</td></tr>
+        <tr><td>Release Cycle</td><td>Months to years (Waterfall)</td><td>Days to hours (Continuous delivery)</td></tr>
+        <tr><td>Testing</td><td>Manual, end-of-cycle</td><td>Automated, continuous, "shift left"</td></tr>
+        <tr><td>Infrastructure</td><td>Manual provisioning</td><td>Infrastructure as Code (IaC)</td></tr>
+        <tr><td>Failure Response</td><td>Blame game, slow resolution</td><td>Blameless post-mortems, fast recovery</td></tr>
+        <tr><td>Feedback Loop</td><td>Long (months to customer)</td><td>Short (hours to days)</td></tr>
+        <tr><td>Risk Posture</td><td>Big-bang releases = high risk</td><td>Small, frequent releases = lower risk</td></tr>
+        <tr><td>Tools</td><td>Disconnected, manual handoffs</td><td>Integrated toolchain (Git → CI → CD → Monitor)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 8 / 9</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 9 – SUMMARY ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Lecture Wrap-up</div>
+    <h1 class="slide-heading">Key Takeaways</h1>
+    <p class="slide-sub">What you should be able to explain after today's session:</p>
+    <ul class="summary-list">
+      <li><span class="summary-num">01</span>DevOps is a <strong>culture + practices + tools</strong> movement that unifies software development and IT operations to deliver value faster and more reliably.</li>
+      <li><span class="summary-num">02</span>It emerged from the <strong>Dev–Ops wall of confusion</strong> — the tension between the need for speed (Dev) and stability (Ops).</li>
+      <li><span class="summary-num">03</span>The DevOps lifecycle is a <strong>continuous ∞ loop</strong>: Plan → Code → Build → Test → Release → Deploy → Operate → Monitor.</li>
+      <li><span class="summary-num">04</span>Core practices include <strong>CI (Continuous Integration)</strong>, <strong>CD (Continuous Delivery/Deployment)</strong>, and <strong>Continuous Monitoring</strong>.</li>
+      <li><span class="summary-num">05</span>Benefits include faster delivery, higher reliability, better collaboration, built-in security, and measurable cost savings.</li>
+      <li><span class="summary-num">06</span><strong>DORA metrics</strong> (Deployment Frequency, Lead Time, Change Failure Rate, MTTR) are the standard for measuring DevOps maturity.</li>
+    </ul>
+    <div class="divider"></div>
+    <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top:0;">
+      <div class="card accent-blue">
+        <span class="card-icon">📚</span>
+        <div class="card-title">Next Session</div>
+        <div class="card-body">Tue, 09 Jun — DevOps practices &amp; history; Agile vs DevOps; Kanban &amp; Scrum</div>
+      </div>
+      <div class="card accent-green">
+        <span class="card-icon">🔗</span>
+        <div class="card-title">Academic Portal</div>
+        <div class="card-body">Resources &amp; references available at <strong>mohsinfurkh.github.io/academic-portal</strong></div>
+      </div>
+      <div class="card accent-orange">
+        <span class="card-icon">💬</span>
+        <div class="card-title">Questions?</div>
+        <div class="card-body">Raise your hand on MS Teams or drop a message in the course chat. See you Tuesday!</div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">Dr. Mohsin Furkh Dar · CSDV3017 · UPES Dehradun</span>
+      <span class="footer-right">Slide 9 / 9</span>
+    </div>
+  </div>
+  </div>
+
+</div><!-- /slides-track -->
+</div><!-- /slides-viewport -->
+
+<!-- PROGRESS BAR -->
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<!-- KEYBOARD HINT -->
+<div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> Arrow keys to navigate</div>
+
+<script>
+  const TOTAL = 9;
+  let current = 0;
+
+  function update() {
+    document.getElementById('track').style.transform = `translateX(-${current * 100}%)`;
+    document.getElementById('counter').textContent = `${current + 1} / ${TOTAL}`;
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === TOTAL - 1;
+    document.getElementById('progress').style.width = `${((current + 1) / TOTAL) * 100}%`;
+  }
+
+  function goSlide(dir) {
+    current = Math.max(0, Math.min(TOTAL - 1, current + dir));
+    update();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goSlide(-1);
+  });
+
+  // Touch/swipe support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) goSlide(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  update();
+</script>
+</body>
+</html>
