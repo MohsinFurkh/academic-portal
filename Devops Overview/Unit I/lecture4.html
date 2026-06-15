@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 4 – Agile Manifesto: Individuals &amp; Interactions / Working Software</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;
+    --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+    --accent:#58a6ff;--accent2:#1f6feb;
+    --green:#3fb950;--green2:#196c2e;
+    --amber:#d29922;--red:#f85149;
+    --purple:#bc8cff;--purple2:#6e40c9;
+    --pink:#e879c4;
+  }
+  body{font-family:'Inter',sans-serif;background:#070c10;color:var(--text);min-height:100vh;overflow-x:hidden}
+
+  /* ── Top Bar ── */
+  #topbar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(7,12,16,.93);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1rem;height:52px;gap:.75rem}
+  #course-label{font-size:14px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+  #course-label strong{color:var(--purple);font-size:15px;display:block}
+  #nav-controls{display:flex;align-items:center;gap:6px}
+  .nav-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;transition:background .15s,border-color .15s;white-space:nowrap}
+  .nav-btn:hover{background:var(--purple2);border-color:var(--purple)}
+  .nav-btn:disabled{opacity:.35;cursor:default}
+  .nav-btn:disabled:hover{background:var(--bg3);border-color:var(--border)}
+  #slide-counter{font-size:13px;color:var(--text2);min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+
+  /* ── Progress (purple — unique to Lecture 4) ── */
+  #progress-bar{position:fixed;top:52px;left:0;right:0;height:3px;z-index:99;background:var(--bg3)}
+  #progress-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--purple));transition:width .35s ease}
+
+  /* ── Stage ── */
+  #stage{margin-top:55px;display:flex;align-items:center;justify-content:center;padding:1rem;min-height:calc(100vh - 55px)}
+  .slide-wrap{width:100%;max-width:1400px;aspect-ratio:16/9;position:relative}
+  .slide{width:100%;height:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:none;flex-direction:column;position:relative}
+  .slide.active{display:flex}
+  .slide::after{content:attr(data-num);position:absolute;bottom:14px;right:20px;font-size:14px;color:var(--text3);font-variant-numeric:tabular-nums}
+
+  /* ── Shared header ── */
+  .slide-header{border-bottom:1px solid var(--border);padding-bottom:.6em;margin-bottom:.85em;flex-shrink:0}
+  .slide-header h2{font-size:clamp(18px,2.6vw,30px);font-weight:600;color:var(--text)}
+  .eyebrow{font-size:clamp(11px,1.3vw,15px);color:var(--purple);text-transform:uppercase;letter-spacing:.1em;font-weight:500;margin-bottom:.3em}
+  .slide-content{padding:4% 5%;flex-direction:column;gap:0}
+  .slide-body{flex:1;display:flex;flex-direction:column;justify-content:center}
+
+  /* ── TITLE ── */
+  .slide-title{align-items:center;justify-content:center;text-align:center;padding:5%;background:var(--bg)}
+  .slide-title .course-tag{font-size:clamp(12px,1.6vw,17px);color:var(--purple);letter-spacing:.12em;text-transform:uppercase;font-weight:600;border:1px solid var(--purple2);border-radius:4px;padding:3px 10px;margin-bottom:1.8em;display:inline-block}
+  .slide-title h1{font-size:clamp(26px,4vw,48px);font-weight:700;line-height:1.2;color:var(--text);margin-bottom:.5em}
+  .slide-title h1 .hl-p{color:var(--purple)}
+  .slide-title h1 .hl-g{color:var(--green)}
+  .slide-title .sub{font-size:clamp(14px,1.8vw,20px);color:var(--text2);margin-bottom:2em;line-height:1.6}
+  .meta-row{display:flex;gap:1.2em;justify-content:center;margin-top:.5em}
+  .meta-block{text-align:center}
+  .meta-block .m-label{font-size:clamp(10px,1.2vw,14px);color:var(--text3);margin-bottom:2px}
+  .meta-block .m-val{font-size:clamp(12px,1.5vw,17px);color:var(--text2)}
+  .meta-div{width:1px;background:var(--border)}
+  .slide-title .instructor{font-size:clamp(13px,1.6vw,18px);color:var(--text2);margin-top:2em}
+  .slide-title .instructor strong{color:var(--text)}
+
+  /* ── SECTION DIVIDER ── */
+  .slide-divider{background:var(--bg2);align-items:center;justify-content:center;text-align:center;padding:5%}
+  .slide-divider .sec-num{font-size:clamp(60px,10vw,110px);font-weight:700;color:var(--bg3);line-height:1;margin-bottom:.2em;user-select:none}
+  .slide-divider h2{font-size:clamp(24px,3.5vw,42px);font-weight:600;color:var(--text);margin-bottom:.5em}
+  .slide-divider p{font-size:clamp(14px,1.8vw,20px);color:var(--text2)}
+  .slide-divider .value-quote{margin-top:1em;font-size:clamp(14px,1.8vw,20px);color:var(--text);font-weight:600;line-height:1.5}
+  .slide-divider .value-quote .over{display:block;font-size:clamp(11px,1.3vw,15px);color:var(--text3);font-weight:400;text-transform:uppercase;letter-spacing:.15em;margin:.35em 0}
+  .slide-divider .value-quote .right{color:var(--text3);font-weight:400;text-decoration:line-through;text-decoration-color:#444;font-size:clamp(12px,1.5vw,17px)}
+
+  /* ── TIMELINE ── */
+  .timeline{list-style:none;display:flex;flex-direction:column;gap:.55em}
+  .timeline li{display:flex;align-items:flex-start;gap:.75em;font-size:clamp(14px,1.7vw,19px);line-height:1.5;color:var(--text2)}
+  .timeline li .dot{width:7px;height:7px;border-radius:50%;background:var(--purple);flex-shrink:0;margin-top:.45em}
+  .timeline li strong{color:var(--text)}
+
+  /* ── CARDS ── */
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6em;flex:1}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.7em .85em;display:flex;flex-direction:column;gap:.3em}
+  .card .card-title{font-size:clamp(14px,1.6vw,18px);font-weight:600;color:var(--text)}
+  .card .card-body{font-size:clamp(12px,1.4vw,16px);color:var(--text2);line-height:1.5}
+  .card.ac-purple{border-color:var(--purple2)}.card.ac-green{border-color:#196c2e}
+  .card.ac-amber{border-color:#9e6a03}.card.ac-red{border-color:#6e1a1a}
+  .card.ac-blue{border-color:var(--accent2)}.card.ac-pink{border-color:#9e3f7d}
+
+  /* ── PHASE LIST ── */
+  .phase-list{display:flex;flex-direction:column;gap:.45em;flex:1;justify-content:center}
+  .phase-row{display:flex;align-items:flex-start;gap:.75em;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.5em .85em}
+  .phase-num{font-size:clamp(14px,1.6vw,18px);font-weight:700;color:var(--purple);min-width:28px;text-align:right;flex-shrink:0;padding-top:.1em}
+  .phase-name{font-size:clamp(14px,1.6vw,18px);font-weight:600;color:var(--text);min-width:26%;flex-shrink:0}
+  .phase-desc{font-size:clamp(12px,1.4vw,16px);color:var(--text2);line-height:1.4}
+
+  /* ── TWO COLUMN ── */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:.7em;flex:1}
+  .col-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.65em .85em;display:flex;flex-direction:column;gap:.3em}
+  .col-panel h3{font-size:clamp(14px,1.6vw,18px);font-weight:600;margin-bottom:.25em}
+  .col-panel ul{list-style:none;display:flex;flex-direction:column;gap:.28em}
+  .col-panel ul li{font-size:clamp(12px,1.4vw,16px);color:var(--text2);line-height:1.45;padding-left:1em;position:relative}
+  .col-panel ul li::before{content:'›';position:absolute;left:0;color:var(--purple)}
+  .cp-purple{border-color:var(--purple2)}.cp-purple h3{color:var(--purple)}
+  .cp-amber{border-color:#9e6a03}.cp-amber h3{color:var(--amber)}
+  .cp-green{border-color:#196c2e}.cp-green h3{color:var(--green)}
+  .cp-red{border-color:#6e1a1a}.cp-red h3{color:var(--red)}
+  .cp-blue{border-color:var(--accent2)}.cp-blue h3{color:var(--accent)}
+  .cp-pink{border-color:#9e3f7d}.cp-pink h3{color:var(--pink)}
+
+  /* ── CALLOUT ── */
+  .callout{background:var(--bg2);border-left:3px solid var(--purple);border-radius:0 8px 8px 0;padding:.8em 1em;font-size:clamp(14px,1.6vw,18px);color:var(--text2);line-height:1.6;font-style:italic}
+  .callout strong{color:var(--text);font-style:normal}
+  .callout.cb-amber{border-left-color:var(--amber)}
+  .callout.cb-green{border-left-color:var(--green)}
+  .callout.cb-blue{border-left-color:var(--accent)}
+  .callout.cb-red{border-left-color:var(--red)}
+
+  /* ── STAT ROW ── */
+  .stat-row{display:flex;gap:.6em;margin:.5em 0}
+  .stat-box{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.6em .75em;text-align:center}
+  .stat-box .stat-num{font-size:clamp(24px,4vw,42px);font-weight:700;color:var(--purple)}
+  .stat-box .stat-label{font-size:clamp(12px,1.4vw,16px);color:var(--text2);margin-top:2px;line-height:1.3}
+
+  /* ── COMPARISON TABLE ── */
+  .cmp-table{width:100%;border-collapse:collapse;font-size:clamp(13px,1.5vw,17px)}
+  .cmp-table th{background:var(--bg3);color:var(--text2);text-align:left;padding:.45em .7em;font-weight:500;border-bottom:1px solid var(--border);font-size:clamp(12px,1.3vw,15px);letter-spacing:.06em}
+  .cmp-table td{padding:.48em .7em;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top;line-height:1.45}
+  .cmp-table tr:last-child td{border-bottom:none}
+  .cmp-table td:first-child{color:var(--text);font-weight:500}
+  .badge{display:inline-block;border-radius:4px;padding:1px 7px;font-size:clamp(11px,1.2vw,14px);font-weight:600;vertical-align:middle}
+  .bd-purple{background:#1f0d3d;color:var(--purple)}
+  .bd-blue{background:#0d2b4e;color:var(--accent)}
+  .bd-amber{background:#2d1a00;color:var(--amber)}
+  .bd-red{background:#270d0d;color:var(--red)}
+  .bd-green{background:#0d2b12;color:var(--green)}
+
+  /* ── VALUE BANNER (manifesto pair) ── */
+  .value-banner{background:var(--bg2);border:1px solid var(--purple2);border-radius:10px;padding:.8em 1.1em;display:flex;align-items:center;justify-content:center;gap:.8em;text-align:center;flex-wrap:wrap}
+  .value-banner .vb-left{font-size:clamp(16px,2.8vw,26px);font-weight:700;color:var(--green)}
+  .value-banner .vb-over{font-size:clamp(11px,1.3vw,15px);color:var(--text3);text-transform:uppercase;letter-spacing:.15em}
+  .value-banner .vb-right{font-size:clamp(12px,1.5vw,17px);color:var(--text3);text-decoration:line-through;text-decoration-color:#444}
+
+  /* ── COMM STRUCTURE DIAGRAM ── */
+  .comm-wrap{display:flex;gap:.6em;flex:1;align-items:stretch}
+  .comm-side{flex:1;border-radius:8px;padding:.7em .85em;display:flex;flex-direction:column;gap:.4em}
+  .comm-side h3{font-size:clamp(14px,1.8vw,20px);font-weight:700;text-align:center;padding-bottom:.4em;border-bottom:1px solid}
+  .comm-side .comm-diagram{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3em;padding:.4em 0}
+  .comm-side ul{list-style:none;display:flex;flex-direction:column;gap:.25em}
+  .comm-side ul li{font-size:clamp(12px,1.4vw,16px);line-height:1.4;padding-left:.9em;position:relative}
+  .comm-side ul li::before{content:'▸';position:absolute;left:0;font-size:.8em;top:.1em}
+  .comm-heavy{background:#1a1000;border:1px solid #6e3800}.comm-heavy h3{color:var(--amber);border-color:#6e3800}.comm-heavy ul li{color:#d6b87a}.comm-heavy ul li::before{color:var(--amber)}
+  .comm-agile{background:#1f0d2e;border:1px solid var(--purple2)}.comm-agile h3{color:var(--purple);border-color:var(--purple2)}.comm-agile ul li{color:#d6c3f5}.comm-agile ul li::before{color:var(--purple)}
+
+  /* Node-line diagrams for communication structure */
+  .node-row{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+  .node{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .node-hub{background:var(--purple2);color:#fff;width:34px;height:34px;font-size:12px}
+  .node-person{background:var(--bg3);border:1px solid var(--text3);color:var(--text2)}
+  .conn-line{width:18px;height:2px;background:var(--text3)}
+
+  /* ── DOD CHECKLIST ── */
+  .dod-list{display:flex;flex-direction:column;gap:.4em;flex:1;justify-content:center}
+  .dod-item{display:flex;align-items:center;gap:.6em;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.5em .8em}
+  .dod-check{width:20px;height:20px;border-radius:4px;background:#0d2b12;border:1px solid var(--green2);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .dod-text{font-size:clamp(12px,1.4vw,16px);color:var(--text2);line-height:1.4}
+  .dod-text strong{color:var(--text)}
+
+  /* ── SCENARIO COMPARE ── */
+  .scenario-wrap{display:grid;grid-template-columns:1fr 1fr;gap:.6em;flex:1}
+  .scenario-card{border-radius:8px;padding:.65em .85em;display:flex;flex-direction:column;gap:.35em}
+  .scenario-card h3{font-size:clamp(14px,1.6vw,18px);font-weight:600;padding-bottom:.3em;border-bottom:1px solid}
+  .scenario-card ul{list-style:none;display:flex;flex-direction:column;gap:.28em}
+  .scenario-card ul li{font-size:clamp(12px,1.4vw,16px);color:var(--text2);line-height:1.4;padding-left:.9em;position:relative}
+  .scenario-card ul li::before{content:'▸';position:absolute;left:0;font-size:.8em;top:.1em}
+  .sc-old{background:#111009;border:1px solid #9e6a03}.sc-old h3{color:var(--amber);border-color:#9e6a03}.sc-old ul li::before{color:var(--amber)}
+  .sc-new{background:#160c24;border:1px solid var(--purple2)}.sc-new h3{color:var(--purple);border-color:var(--purple2)}.sc-new ul li::before{color:var(--purple)}
+
+  /* ── THUMBNAIL NAV ── */
+  #thumb-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(7,12,16,.95);border-top:1px solid var(--border);display:flex;gap:6px;overflow-x:auto;padding:8px 12px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;z-index:90}
+  .thumb{flex-shrink:0;width:72px;height:41px;border-radius:4px;border:1px solid var(--border);cursor:pointer;overflow:hidden;background:var(--bg2);position:relative;transition:border-color .15s;display:flex;align-items:center;justify-content:center}
+  .thumb:hover{border-color:var(--purple2)}
+  .thumb.active{border-color:var(--purple)}
+  .thumb-num{font-size:9px;color:var(--text3);position:absolute;bottom:2px;right:4px}
+  .thumb-label{font-size:7px;color:var(--text2);padding:3px;text-align:center;line-height:1.3}
+  #kbd-hint{position:fixed;bottom:65px;right:12px;z-index:95;font-size:10px;color:var(--text3);pointer-events:none;user-select:none}
+
+  @media(max-width:480px){
+    #thumb-nav{display:none}
+    #stage{padding:.5rem;margin-top:52px;min-height:calc(100vh - 52px)}
+    #kbd-hint{display:none}
+    .two-col{grid-template-columns:1fr}
+    .cards-grid{grid-template-columns:1fr 1fr}
+    .scenario-wrap{grid-template-columns:1fr}
+    .comm-wrap{flex-direction:column}
+  }
+  @media(max-height:540px){#thumb-nav{display:none}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <a href="../index.html" id="course-label" style="text-decoration: none;">
+    <strong>DevOps Overview</strong>
+    BTech CSE Sem V · UPES Dehradun
+  </a>
+  <div id="nav-controls">
+    <button class="nav-btn" id="btn-prev" onclick="changeSlide(-1)" disabled>◀</button>
+    <span id="slide-counter">1 / 15</span>
+    <button class="nav-btn" id="btn-next" onclick="changeSlide(1)">▶</button>
+  </div>
+</div>
+<div id="progress-bar"><div id="progress-fill" style="width:6.67%"></div></div>
+
+<div id="stage">
+ <div class="slide-wrap">
+
+  <!-- ══ SLIDE 1 — Title ══ -->
+  <div class="slide slide-title active" data-num="1 / 15">
+    <div class="course-tag">Unit I · Lecture 4</div>
+    <h1>Agile Manifesto, Part 1<br><span class="hl-p">Individuals &amp; Interactions</span> · <span class="hl-g">Working Software</span></h1>
+    <p class="sub">A deep dive into the first two values of the Agile Manifesto —<br>what they mean, why they matter, and how to apply them.</p>
+    <div class="meta-row">
+      <div class="meta-block"><div class="m-label">COURSE</div><div class="m-val">DevOps Overview</div></div>
+      <div class="meta-div"></div>
+      <div class="meta-block"><div class="m-label">UNIT</div><div class="m-val">I of IV</div></div>
+      <div class="meta-div"></div>
+      <div class="meta-block"><div class="m-label">LECTURE</div><div class="m-val">4 of series</div></div>
+      <div class="meta-div"></div>
+      <div class="meta-block"><div class="m-label">PREV. LECTURE</div><div class="m-val">Agile vs Waterfall</div></div>
+    </div>
+    <p class="instructor" style="margin-top:2em"><strong>Dr. Mohsin Furkh Dar</strong> &nbsp;·&nbsp; School of Computer Science, UPES Dehradun</p>
+  </div>
+
+  <!-- ══ SLIDE 2 — Agenda ══ -->
+  <div class="slide slide-content" data-num="2 / 15">
+    <div class="slide-header"><div class="eyebrow">Overview</div><h2>What We Cover Today</h2></div>
+    <div class="slide-body">
+      <div class="cards-grid">
+        <div class="card ac-purple"><div class="card-title">🔁 Recap</div><div class="card-body">Quick recap of the four Agile values and how iterative Agile cycles work.</div></div>
+        <div class="card ac-purple"><div class="card-title">🧑‍🤝‍🧑 Value 1: Individuals &amp; Interactions</div><div class="card-body">Why people and conversations matter more than rigid processes and tooling.</div></div>
+        <div class="card ac-blue"><div class="card-title">🗣️ Communication Structures</div><div class="card-body">Face-to-face communication, co-located teams, and the cost of indirect channels.</div></div>
+        <div class="card ac-pink"><div class="card-title">🧩 Self-Organising Teams</div><div class="card-body">What it means for a team to organise itself — and why it produces better designs.</div></div>
+        <div class="card ac-green"><div class="card-title">🚀 Value 2: Working Software</div><div class="card-body">Why running, tested code is the only real measure of progress.</div></div>
+        <div class="card ac-amber"><div class="card-title">📄 Just Enough Documentation</div><div class="card-body">Documentation is not eliminated — it's right-sized to serve the team and the product.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 3 — Recap ══ -->
+  <div class="slide slide-content" data-num="3 / 15">
+    <div class="slide-header"><div class="eyebrow">Recap — Lecture 3</div><h2>Where We Left Off</h2></div>
+    <div class="slide-body">
+      <div class="callout cb-blue" style="margin-bottom:.6em">
+        Agile is both <strong>iterative</strong> (refine what exists) and <strong>incremental</strong> (deliver new working functionality). Each sprint runs through planning, daily standups, development &amp; testing, review, and retrospective — inverting the risk curve compared to Waterfall.
+      </div>
+      <div class="callout cb-green" style="margin-bottom:.6em">
+        The Agile Manifesto (2001) expresses this philosophy as <strong>four value statements</strong>, each contrasting something Agile prioritises with something it values less (but does not discard):
+      </div>
+      <div class="phase-list" style="gap:.3em">
+        <div class="phase-row" style="padding:.4em .85em">
+          <div class="phase-num" style="color:var(--purple)">①②</div>
+          <div class="phase-name">Today's focus</div>
+          <div class="phase-desc"><strong style="color:var(--text)">Individuals &amp; interactions over processes &amp; tools</strong> and <strong style="color:var(--text)">working software over comprehensive documentation</strong> — the two "how we build" values.</div>
+        </div>
+        <div class="phase-row" style="padding:.4em .85em">
+          <div class="phase-num" style="color:var(--text3)">③④</div>
+          <div class="phase-name">Next lecture</div>
+          <div class="phase-desc">Customer collaboration over contract negotiation, and responding to change over following a plan — the two "how we relate to the customer" values.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4 — Section Divider: Value 1 ══ -->
+  <div class="slide slide-divider" data-num="4 / 15">
+    <div class="sec-num">01</div>
+    <h2>Individuals &amp; Interactions</h2>
+    <div class="value-quote">
+      Individuals and interactions
+      <span class="over">over</span>
+      <span class="right">processes and tools</span>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 5 — Why this value exists ══ -->
+  <div class="slide slide-content" data-num="5 / 15">
+    <div class="slide-header"><div class="eyebrow">Value 1 — Origins</div><h2>Why "People First" Became a Core Value</h2></div>
+    <div class="slide-body">
+      <div class="callout" style="margin-bottom:.6em">
+        Heavyweight processes promise predictability by making work independent of <em>who</em> does it. In practice, this often produced rigid workflows where people followed steps without understanding <em>why</em> — and problems that needed a conversation instead got routed through forms, tickets, and approval chains.
+      </div>
+      <ul class="timeline">
+        <li><span class="dot"></span><span><strong>The trap of process-first thinking:</strong> When something goes wrong, the instinct is to add a new process step or tool to prevent recurrence — over time, this accumulates into bureaucracy that slows everyone down.</span></li>
+        <li><span class="dot"></span><span><strong>Tools cannot replace judgment:</strong> A project management tool can track tasks, but it cannot resolve ambiguity, negotiate trade-offs, or notice that a requirement doesn't make sense — only people can.</span></li>
+        <li><span class="dot"></span><span><strong>The Manifesto's claim:</strong> Skilled, motivated people, given the right environment and support, will find better solutions than any process can prescribe — and they will adapt that process when it stops serving them.</span></li>
+        <li><span class="dot"></span><span><strong>Important nuance:</strong> Processes and tools still matter — version control, CI pipelines, issue trackers are valuable. The point is they should <em>serve</em> people, not constrain or replace human judgment and communication.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 6 — Communication Structures ══ -->
+  <div class="slide slide-content" data-num="6 / 15">
+    <div class="slide-header"><div class="eyebrow">Value 1 — In Practice</div><h2>Communication: Direct vs Mediated</h2></div>
+    <div class="slide-body">
+      <div class="comm-wrap">
+        <div class="comm-side comm-heavy">
+          <h3>📋 Process-Heavy Communication</h3>
+          <div class="comm-diagram">
+            <div class="node-row">
+              <div class="node node-person">Dev</div>
+              <div class="conn-line"></div>
+              <div class="node node-person">📄</div>
+              <div class="conn-line"></div>
+              <div class="node node-person">Lead</div>
+            </div>
+            <div class="node-row" style="margin-top:6px">
+              <div class="node node-person">Lead</div>
+              <div class="conn-line"></div>
+              <div class="node node-person">📄</div>
+              <div class="conn-line"></div>
+              <div class="node node-person">PM</div>
+            </div>
+            <div class="node-row" style="margin-top:6px">
+              <div class="node node-person">PM</div>
+              <div class="conn-line"></div>
+              <div class="node node-person">📄</div>
+              <div class="conn-line"></div>
+              <div class="node node-person">Client</div>
+            </div>
+          </div>
+          <ul>
+            <li>Questions answered via formal change requests</li>
+            <li>Decisions take days — wait for the right meeting</li>
+            <li>Information degrades with each handoff (telephone effect)</li>
+            <li>Tickets/emails create paper trails but slow resolution</li>
+          </ul>
+        </div>
+        <div class="comm-side comm-agile">
+          <h3>💬 Agile Direct Communication</h3>
+          <div class="comm-diagram">
+            <div class="node-row">
+              <div class="node node-person">Dev</div>
+              <div class="node node-person">Lead</div>
+              <div class="node node-hub">⬤</div>
+              <div class="node node-person">PM</div>
+              <div class="node node-person">Client</div>
+            </div>
+            <div style="font-size:clamp(8px,1vw,10px);color:var(--text3);margin-top:6px">All connected — same room, same standup, same chat channel</div>
+          </div>
+          <ul>
+            <li>Questions answered in minutes via direct conversation</li>
+            <li>Decisions made by the people closest to the problem</li>
+            <li>Shared context — less information loss</li>
+            <li>Whiteboard/diagram in 5 minutes &gt; week-long spec document</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 7 — Self-Organising Teams ══ -->
+  <div class="slide slide-content" data-num="7 / 15">
+    <div class="slide-header"><div class="eyebrow">Value 1 — Self-Organising Teams</div><h2>Why Teams Organise Themselves</h2></div>
+    <div class="slide-body">
+      <div class="two-col" style="margin-bottom:.6em">
+        <div class="col-panel cp-amber">
+          <h3>Command-and-Control Model</h3>
+          <ul>
+            <li>Manager assigns tasks to individuals</li>
+            <li>Work is divided before anyone understands the full problem</li>
+            <li>Specialists work in isolation, integration happens late</li>
+            <li>Decisions flow top-down; feedback flows slowly upward</li>
+            <li>Team members optimise for "my part," not the whole</li>
+          </ul>
+        </div>
+        <div class="col-panel cp-purple">
+          <h3>Self-Organising Model</h3>
+          <ul>
+            <li>Team collectively decides who does what, and how</li>
+            <li>Work divided after the team understands the goal together</li>
+            <li>Cross-functional collaboration — pairing, mobbing, shared reviews</li>
+            <li>Decisions made by whoever is closest to the information</li>
+            <li>Team members optimise for the sprint goal as a shared outcome</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout cb-green">
+        <strong>From the 12 Principles:</strong> "The best architectures, requirements, and designs emerge from self-organising teams." This is an empirical claim — teams with autonomy and ownership consistently produce more coherent solutions than those following externally imposed task breakdowns.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 8 — Building the right environment ══ -->
+  <div class="slide slide-content" data-num="8 / 15">
+    <div class="slide-header"><div class="eyebrow">Value 1 — Supporting People</div><h2>"Give Them the Environment and Support They Need"</h2></div>
+    <div class="slide-body">
+      <div class="cards-grid">
+        <div class="card ac-purple"><div class="card-title">🏢 Co-location / Virtual equivalents</div><div class="card-body">Shared physical or virtual space (video-always-on, shared channels) reduces friction in spontaneous conversation.</div></div>
+        <div class="card ac-purple"><div class="card-title">🛡️ Psychological safety</div><div class="card-body">People raise problems, admit mistakes, and ask "naive" questions without fear of blame — essential for early feedback.</div></div>
+        <div class="card ac-purple"><div class="card-title">🎯 Clarity of goal, not task</div><div class="card-body">Teams given a "why" and a goal — not a prescriptive task list — can find better paths to the outcome.</div></div>
+        <div class="card ac-purple"><div class="card-title">🔧 Access to tools, not gatekeeping</div><div class="card-body">Developers empowered to provision environments, run pipelines, and make technical decisions without lengthy approvals.</div></div>
+        <div class="card ac-purple"><div class="card-title">⏳ Protected focus time</div><div class="card-body">Minimise context-switching and interruption-driven work — sustainable pace requires uninterrupted blocks of deep work.</div></div>
+        <div class="card ac-purple"><div class="card-title">🤝 Trust over surveillance</div><div class="card-body">Managers trust teams to deliver and support them — rather than micromanaging through status reports and check-ins.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 9 — Section Divider: Value 2 ══ -->
+  <div class="slide slide-divider" data-num="9 / 15">
+    <div class="sec-num">02</div>
+    <h2>Working Software</h2>
+    <div class="value-quote">
+      Working software
+      <span class="over">over</span>
+      <span class="right">comprehensive documentation</span>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 10 — Why this value exists ══ -->
+  <div class="slide slide-content" data-num="10 / 15">
+    <div class="slide-header"><div class="eyebrow">Value 2 — Origins</div><h2>Documentation as a Proxy for Progress — and Its Failure</h2></div>
+    <div class="slide-body">
+      <div class="callout" style="margin-bottom:.6em">
+        In Waterfall-era projects, completing a requirements document or design specification was treated as "progress" — even though no software existed yet. Teams could be 80% through the schedule and 0% through anything a user could actually run.
+      </div>
+      <ul class="timeline">
+        <li><span class="dot"></span><span><strong>Documents can be wrong and still "complete":</strong> A 200-page SRS can be internally consistent, fully reviewed, and signed off — and still describe a system nobody wants. Completeness ≠ correctness.</span></li>
+        <li><span class="dot"></span><span><strong>Documentation goes stale fast:</strong> The moment code diverges from the design document (which happens almost immediately), the document becomes actively misleading rather than merely incomplete.</span></li>
+        <li><span class="dot"></span><span><strong>Working software is falsifiable:</strong> You cannot "fake" a feature that actually runs, handles edge cases, and produces correct output. It is the one artifact that cannot lie about its own state.</span></li>
+        <li><span class="dot"></span><span><strong>Manifesto's claim:</strong> The primary measure of progress should be: <em>can a user run this and get value from it right now?</em> Everything else is a proxy — sometimes useful, but never a substitute.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 11 — What counts as Working Software ══ -->
+  <div class="slide slide-content" data-num="11 / 15">
+    <div class="slide-header"><div class="eyebrow">Value 2 — Definition of Done</div><h2>What Actually Counts as "Working Software"?</h2></div>
+    <div class="slide-body">
+      <div class="callout cb-amber" style="margin-bottom:.55em">
+        "It compiles" is not working software. "It runs on my machine" is not working software. The <strong>Definition of Done (DoD)</strong> is the team's shared, explicit checklist for what "working" actually means.
+      </div>
+      <div class="dod-list">
+        <div class="dod-item"><div class="dod-check">✓</div><div class="dod-text"><strong>Code written and peer-reviewed</strong> — meets the team's coding standards, reviewed by at least one other developer</div></div>
+        <div class="dod-item"><div class="dod-check">✓</div><div class="dod-text"><strong>Automated tests written and passing</strong> — unit tests at minimum; integration tests where applicable</div></div>
+        <div class="dod-item"><div class="dod-check">✓</div><div class="dod-text"><strong>Integrated into the main codebase</strong> — merged, builds successfully, no broken dependencies</div></div>
+        <div class="dod-item"><div class="dod-check">✓</div><div class="dod-text"><strong>Deployed to a test/staging environment</strong> — runs in an environment resembling production, not just a developer laptop</div></div>
+        <div class="dod-item"><div class="dod-check">✓</div><div class="dod-text"><strong>Meets acceptance criteria</strong> — satisfies the conditions defined with the Product Owner for this user story</div></div>
+        <div class="dod-item"><div class="dod-check">✓</div><div class="dod-text"><strong>Demonstrable to stakeholders</strong> — can be shown working end-to-end in the sprint review</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 12 — Just Enough Documentation ── -->
+  <div class="slide slide-content" data-num="12 / 15">
+    <div class="slide-header"><div class="eyebrow">Value 2 — Documentation Reframed</div><h2>"Comprehensive" Doesn't Mean "None"</h2></div>
+    <div class="slide-body">
+      <div class="callout cb-green" style="margin-bottom:.55em">
+        A common misconception: Agile teams write no documentation. In reality, Agile asks: <strong>"Does this document help someone do their job better?"</strong> If yes, write it — concisely. If it exists mainly to satisfy a process checkbox, question it.
+      </div>
+      <table class="cmp-table">
+        <thead><tr><th>Document Type</th><th>Comprehensive (Waterfall-style)</th><th>Agile "Just Enough"</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Requirements</td>
+            <td>200-page SRS, frozen before coding begins</td>
+            <td>User stories with acceptance criteria — living backlog</td>
+          </tr>
+          <tr>
+            <td>Design</td>
+            <td>Detailed UML for every class before implementation</td>
+            <td>Lightweight architecture diagrams; details emerge in code</td>
+          </tr>
+          <tr>
+            <td>Code documentation</td>
+            <td>Separate manuals describing every function</td>
+            <td>Self-documenting code, inline comments where needed, README</td>
+          </tr>
+          <tr>
+            <td>Test plans</td>
+            <td>Exhaustive manual test scripts for every scenario</td>
+            <td>Automated test suites that double as living specifications</td>
+          </tr>
+          <tr>
+            <td>Status reporting</td>
+            <td>Weekly written status reports up the chain</td>
+            <td><span class="badge bd-green">Visible</span> Burndown charts, working demo at sprint review</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 13 — Scenario ── -->
+  <div class="slide slide-content" data-num="13 / 15">
+    <div class="slide-header"><div class="eyebrow">Putting It Together</div><h2>Scenario: A New Feature Request Arrives</h2></div>
+    <div class="slide-body">
+      <div class="scenario-wrap" style="flex:1">
+        <div class="scenario-card sc-old" style="flex:1">
+          <h3>📋 Process-Heavy Response</h3>
+          <ul>
+            <li>Request logged as a formal Change Request (CR-2231)</li>
+            <li>CR routed to Business Analyst for impact analysis</li>
+            <li>BA drafts updated requirements document — 2 weeks</li>
+            <li>Document circulated for review and sign-off — 1 week</li>
+            <li>Design document updated to reflect new requirement — 1 week</li>
+            <li>Only now does development begin</li>
+            <li>Total time to first line of code: ~4 weeks</li>
+            <li>If the request was based on a misunderstanding, this is discovered only after coding starts</li>
+          </ul>
+        </div>
+        <div class="scenario-card sc-new" style="flex:1">
+          <h3>💬 People + Working Software Response</h3>
+          <ul>
+            <li>Product Owner discusses the request directly with the requester — same day</li>
+            <li>Team huddles for 15 minutes — clarifies intent, sketches approach on a whiteboard</li>
+            <li>Written as a user story with acceptance criteria — 30 minutes</li>
+            <li>Added to the backlog; prioritised for the next sprint</li>
+            <li>Working prototype demoed within the sprint — 1–2 weeks</li>
+            <li>Requester sees real software, gives immediate feedback</li>
+            <li>Misunderstandings caught in days, not after weeks of paperwork</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 14 — Common Misconceptions ── -->
+  <div class="slide slide-content" data-num="14 / 15">
+    <div class="slide-header"><div class="eyebrow">Clearing Up Confusion</div><h2>Common Misconceptions About These Values</h2></div>
+    <div class="slide-body">
+      <div class="two-col">
+        <div class="col-panel cp-red">
+          <h3>❌ "Agile means no process"</h3>
+          <ul>
+            <li>Agile teams use Git, CI/CD, issue trackers, code review tools daily</li>
+            <li>The value is about <em>priority</em>, not <em>absence</em> — people and conversation come first when process and conversation conflict</li>
+          </ul>
+        </div>
+        <div class="col-panel cp-red">
+          <h3>❌ "Agile means no documentation"</h3>
+          <ul>
+            <li>READMEs, API docs, architecture diagrams, runbooks all still exist</li>
+            <li>The difference: documentation is written because it's <em>useful</em>, not because a phase gate requires it</li>
+          </ul>
+        </div>
+        <div class="col-panel cp-purple">
+          <h3>✅ "Individuals &amp; interactions" means…</h3>
+          <ul>
+            <li>When a tool or process gets in the way of solving the problem, the team has permission to talk it through and adapt</li>
+            <li>Trust people closest to the work to make good decisions</li>
+          </ul>
+        </div>
+        <div class="col-panel cp-purple">
+          <h3>✅ "Working software" means…</h3>
+          <ul>
+            <li>The best evidence of progress is something a user can interact with</li>
+            <li>Documentation supports working software — it does not substitute for it</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 15 — Takeaways ── -->
+  <div class="slide slide-content" data-num="15 / 15">
+    <div class="slide-header"><div class="eyebrow">Lecture Wrap-Up</div><h2>Key Takeaways &amp; What's Next</h2></div>
+    <div class="slide-body">
+      <div class="phase-list">
+        <div class="phase-row">
+          <div class="phase-num">💡</div>
+          <div class="phase-name" style="color:var(--purple)">People over process</div>
+          <div class="phase-desc">Processes and tools support people — they should never replace conversation, judgment, and direct problem-solving between team members.</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">💡</div>
+          <div class="phase-name" style="color:var(--purple)">Self-organisation works</div>
+          <div class="phase-desc">Teams given a clear goal, autonomy, and the right environment produce better architectures and designs than externally-dictated task breakdowns.</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">💡</div>
+          <div class="phase-name" style="color:var(--green)">Working software is truth</div>
+          <div class="phase-desc">Documents can be complete and wrong. Running, tested software is the one artifact that cannot fake its own correctness — it is the real measure of progress.</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">💡</div>
+          <div class="phase-name" style="color:var(--green)">Definition of Done</div>
+          <div class="phase-desc">"Working" is defined explicitly by the team: coded, reviewed, tested, integrated, deployed to staging, and demonstrable — not just "compiles."</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">💡</div>
+          <div class="phase-name" style="color:var(--amber)">Not "zero process/docs"</div>
+          <div class="phase-desc">Both values are about priority under conflict, not elimination. Agile teams still use tools and write documentation — just only what genuinely serves the work.</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-num">➡️</div>
+          <div class="phase-name" style="color:var(--green)">Next lecture</div>
+          <div class="phase-desc">The remaining two Agile values: customer collaboration over contract negotiation, and responding to change over following a plan.</div>
+        </div>
+      </div>
+      <div style="margin-top:.6em;font-size:clamp(9px,1.2vw,11px);color:var(--text3);text-align:center">
+        DevOps Overview · Unit I · Lecture 4 &nbsp;·&nbsp; Dr. Mohsin Furkh Dar &nbsp;·&nbsp; UPES Dehradun · Summer 2026
+      </div>
+    </div>
+  </div>
+
+ </div><!-- /.slide-wrap -->
+</div><!-- /#stage -->
+
+<div id="thumb-nav" role="navigation" aria-label="Slide thumbnails"></div>
+<div id="kbd-hint">← → or swipe</div>
+
+<script>
+  const TOTAL=15,slides=document.querySelectorAll('.slide');
+  let cur=1;
+  const counter=document.getElementById('slide-counter'),btnPrev=document.getElementById('btn-prev'),btnNext=document.getElementById('btn-next'),fill=document.getElementById('progress-fill'),thumbNav=document.getElementById('thumb-nav');
+  const labels=['Title','Agenda','Recap','§ Value 1','Why People First','Communication','Self-Organising','Environment','§ Value 2','Why Working SW','Definition of Done','Just Enough Docs','Scenario','Misconceptions','Takeaways'];
+  function goTo(n){
+    slides[cur-1].classList.remove('active');
+    cur=Math.max(1,Math.min(TOTAL,n));
+    slides[cur-1].classList.add('active');
+    counter.textContent=cur+' / '+TOTAL;
+    btnPrev.disabled=cur===1;btnNext.disabled=cur===TOTAL;
+    fill.style.width=(cur/TOTAL*100).toFixed(2)+'%';
+    document.querySelectorAll('.thumb').forEach((t,i)=>t.classList.toggle('active',i+1===cur));
+    const th=thumbNav.querySelectorAll('.thumb')[cur-1];
+    if(th)th.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+  }
+  function changeSlide(d){goTo(cur+d)}
+  labels.forEach((label,i)=>{
+    const th=document.createElement('div');
+    th.className='thumb'+(i===0?' active':'');
+    th.innerHTML='<span class="thumb-label">'+label+'</span><span class="thumb-num">'+(i+1)+'</span>';
+    th.onclick=()=>goTo(i+1);
+    thumbNav.appendChild(th);
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown')changeSlide(1);
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp')changeSlide(-1);
+    if(e.key==='Home')goTo(1);if(e.key==='End')goTo(TOTAL);
+  });
+  let tx0,ty0;
+  const stage=document.getElementById('stage');
+  stage.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY},{passive:true});
+  stage.addEventListener('touchend',e=>{
+    if(tx0===undefined)return;
+    const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;
+    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40)changeSlide(dx<0?1:-1);
+    tx0=ty0=undefined;
+  },{passive:true});
+</script>
+</body>
+</html>
