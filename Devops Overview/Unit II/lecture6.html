@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 6 – Introduction to DevOps & DevOps and Agile</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap');
+
+  :root {
+    --ink:      #0D1B2A;
+    --sky:      #1C6EA4;
+    --sky-lt:   #E8F4FD;
+    --teal:     #00897B;
+    --teal-lt:  #E0F2F1;
+    --amber:    #F59E0B;
+    --amber-lt: #FEF3C7;
+    --coral:    #E53E3E;
+    --coral-lt: #FFF5F5;
+    --slate:    #4A5568;
+    --mist:     #F7F9FC;
+    --white:    #FFFFFF;
+    --border:   #D1E3F0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0D1B2A;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── NAV BAR ─────────────────────────────────────── */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(13,27,42,0.97);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(28,110,164,0.4);
+  }
+  .navbar-brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--sky); letter-spacing: 0.04em;
+    line-height: 1.3;
+  }
+  .navbar-brand span { display: block; color: rgba(255,255,255,0.5); font-weight: 400; font-size: 0.68rem; }
+  .slide-counter {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem; color: rgba(255,255,255,0.5);
+    background: rgba(28,110,164,0.2);
+    padding: 4px 12px; border-radius: 20px;
+    border: 1px solid rgba(28,110,164,0.3);
+  }
+  .nav-dots {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    cursor: pointer; transition: all 0.25s;
+    border: none;
+  }
+  .dot.active { background: var(--sky); transform: scale(1.3); }
+
+  /* ── SLIDE CONTAINER ─────────────────────────────── */
+  .slides-wrapper {
+    padding-top: 64px;
+    min-height: 100vh;
+  }
+
+  .slide {
+    display: none;
+    min-height: calc(100vh - 64px);
+    padding: 32px 24px 80px;
+    max-width: 960px;
+    margin: 0 auto;
+    animation: fadeIn 0.35s ease;
+  }
+  .slide.active { display: flex; flex-direction: column; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── BOTTOM NAV ───────────────────────────────────── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(13,27,42,0.97);
+    border-top: 1px solid rgba(28,110,164,0.3);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 20px;
+    gap: 12px;
+  }
+  .btn {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.82rem; font-weight: 600;
+    padding: 8px 20px; border-radius: 8px;
+    border: none; cursor: pointer; transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .btn-prev {
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .btn-prev:hover { background: rgba(255,255,255,0.12); }
+  .btn-next {
+    background: var(--sky); color: #fff;
+  }
+  .btn-next:hover { background: #155d8e; }
+  .btn:disabled { opacity: 0.3; cursor: default; }
+
+  /* ── SLIDE COMPONENTS ────────────────────────────── */
+
+  /* Section tag */
+  .eyebrow {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sky); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .eyebrow::before {
+    content: ''; display: inline-block;
+    width: 24px; height: 2px; background: var(--sky);
+    flex-shrink: 0;
+  }
+
+  /* Big headings */
+  .h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.8rem, 5vw, 3.2rem);
+    font-weight: 700; line-height: 1.1;
+    color: #fff; margin-bottom: 16px;
+  }
+  .h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.3rem, 3.5vw, 2rem);
+    font-weight: 700; line-height: 1.2;
+    color: var(--ink); margin-bottom: 12px;
+  }
+  .h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem; font-weight: 600;
+    color: var(--ink); margin-bottom: 6px;
+  }
+
+  .lead {
+    font-size: 1rem; color: rgba(255,255,255,0.65);
+    line-height: 1.65; max-width: 560px;
+  }
+  .body-text {
+    font-size: 0.9rem; color: var(--slate); line-height: 1.7;
+  }
+
+  /* ── TITLE SLIDE ────────────────────────── */
+  .title-slide {
+    justify-content: center;
+    background: linear-gradient(135deg, #0D1B2A 0%, #12284A 60%, #0D3358 100%);
+    position: relative; overflow: hidden;
+    min-height: calc(100vh - 64px);
+  }
+  .title-slide::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 80% 40%, rgba(28,110,164,0.25) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .grid-bg {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(28,110,164,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(28,110,164,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .title-content { position: relative; z-index: 2; padding: 40px 0 20px; }
+  .course-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(28,110,164,0.2);
+    border: 1px solid rgba(28,110,164,0.4);
+    color: #78C0E0; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 20px; margin-bottom: 24px;
+  }
+  .highlight { color: #4FC3F7; }
+  .title-meta {
+    margin-top: 32px;
+    display: flex; flex-wrap: wrap; gap: 16px;
+  }
+  .meta-chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px; padding: 10px 16px;
+    font-size: 0.78rem; color: rgba(255,255,255,0.6);
+    line-height: 1.4;
+  }
+  .meta-chip strong { display: block; color: rgba(255,255,255,0.9); font-weight: 600; font-size: 0.82rem; }
+
+  .agenda-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-radius: 8px;
+    border-left: 3px solid var(--sky);
+    background: var(--sky-lt);
+    margin-bottom: 8px;
+    font-size: 0.88rem; font-weight: 500; color: var(--ink);
+  }
+  .agenda-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--sky); color: #fff;
+    font-size: 0.72rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── CONTENT SLIDE BASE ─────────────────── */
+  .content-slide {
+    background: var(--mist);
+    border-radius: 16px;
+    padding: 32px 28px;
+    flex: 1;
+  }
+
+  /* CARD GRID */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px; margin-top: 20px;
+  }
+  .card {
+    background: #fff; border-radius: 12px;
+    padding: 18px 16px;
+    border: 1px solid var(--border);
+    transition: box-shadow 0.2s;
+  }
+  .card:hover { box-shadow: 0 4px 16px rgba(28,110,164,0.12); }
+  .card-icon {
+    font-size: 1.6rem; margin-bottom: 10px; display: block;
+  }
+  .card-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.88rem; font-weight: 700;
+    color: var(--ink); margin-bottom: 6px;
+  }
+  .card-body { font-size: 0.82rem; color: var(--slate); line-height: 1.6; }
+
+  /* HIGHLIGHT BOX */
+  .highlight-box {
+    border-radius: 12px; padding: 18px 20px; margin: 16px 0;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .hb-sky   { background: var(--sky-lt);   border-left: 4px solid var(--sky); }
+  .hb-teal  { background: var(--teal-lt);  border-left: 4px solid var(--teal); }
+  .hb-amber { background: var(--amber-lt); border-left: 4px solid var(--amber); }
+  .hb-coral { background: var(--coral-lt); border-left: 4px solid var(--coral); }
+  .hb-icon  { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+  .hb-text  { font-size: 0.86rem; color: var(--slate); line-height: 1.65; }
+  .hb-text strong { color: var(--ink); font-weight: 600; }
+
+  /* TWO-COL */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-top: 16px;
+  }
+  @media (max-width: 580px) {
+    .two-col { grid-template-columns: 1fr; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+
+  .col-panel {
+    background: #fff; border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 18px 16px;
+  }
+  .col-panel-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.82rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+  .sky-label  { color: var(--sky); }
+  .teal-label { color: var(--teal); }
+  .coral-label{ color: var(--coral); }
+  .amber-label{ color: var(--amber); }
+
+  .bullet-list { list-style: none; padding: 0; }
+  .bullet-list li {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 0.83rem; color: var(--slate);
+    line-height: 1.6; padding: 5px 0;
+    border-bottom: 1px solid #F0F4F8;
+  }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list li::before {
+    content: '▸'; color: var(--sky); font-size: 0.7rem;
+    margin-top: 3px; flex-shrink: 0;
+  }
+  .bullet-list.teal li::before { color: var(--teal); }
+  .bullet-list.coral li::before { color: var(--coral); }
+
+  /* TIMELINE */
+  .timeline { position: relative; margin-top: 20px; padding-left: 0; }
+  .tl-item {
+    display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-start;
+  }
+  .tl-dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--sky); color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.72rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .tl-dot.teal  { background: var(--teal); }
+  .tl-dot.amber { background: var(--amber); }
+  .tl-dot.coral { background: var(--coral); }
+  .tl-content { flex: 1; }
+  .tl-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.82rem; font-weight: 700; color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .tl-desc { font-size: 0.8rem; color: var(--slate); line-height: 1.55; }
+
+  /* COMPARISON TABLE */
+  .comp-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.82rem; }
+  .comp-table th {
+    background: var(--ink); color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.78rem; font-weight: 600;
+    padding: 10px 14px; text-align: left;
+  }
+  .comp-table th:first-child { border-radius: 8px 0 0 0; width: 28%; }
+  .comp-table th:last-child  { border-radius: 0 8px 0 0; }
+  .comp-table td {
+    padding: 9px 14px; border-bottom: 1px solid var(--border);
+    color: var(--slate); vertical-align: top; line-height: 1.5;
+  }
+  .comp-table tr:nth-child(even) td { background: var(--sky-lt); }
+  .comp-table td:first-child {
+    font-weight: 600; color: var(--ink);
+  }
+
+  /* STAT CARDS */
+  .stat-row {
+    display: flex; gap: 14px; margin-top: 20px; flex-wrap: wrap;
+  }
+  .stat-card {
+    flex: 1; min-width: 130px;
+    background: var(--ink); border-radius: 12px;
+    padding: 18px 16px; text-align: center;
+  }
+  .stat-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2rem; font-weight: 700; color: #4FC3F7;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 0.72rem; color: rgba(255,255,255,0.55);
+    margin-top: 5px; line-height: 1.4;
+  }
+
+  /* PIPELINE */
+  .pipeline {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 0; margin: 20px 0;
+  }
+  .pipe-step {
+    background: var(--sky); color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem; font-weight: 600;
+    padding: 8px 14px; position: relative;
+    flex: 1; text-align: center; min-width: 80px;
+    margin: 2px 0;
+  }
+  .pipe-step:first-child { border-radius: 8px 0 0 8px; }
+  .pipe-step.teal   { background: var(--teal); }
+  .pipe-step.amber  { background: var(--amber); color: var(--ink); }
+  .pipe-step.coral  { background: var(--coral); }
+  .pipe-step.purple { background: #7E57C2; }
+  .pipe-step span { display: block; font-size: 0.65rem; font-weight: 400; opacity: 0.85; margin-top: 2px; }
+  @media (max-width: 480px) {
+    .pipeline { flex-direction: column; }
+    .pipe-step { border-radius: 0 !important; text-align: left; padding-left: 20px; }
+    .pipe-step:first-child { border-radius: 8px 8px 0 0 !important; }
+    .pipe-step:last-child  { border-radius: 0 0 8px 8px !important; }
+  }
+
+  /* BIG QUOTE */
+  .big-quote {
+    background: var(--ink);
+    border-radius: 14px; padding: 28px 24px;
+    margin: 20px 0; position: relative;
+  }
+  .big-quote::before {
+    content: '"'; font-family: Georgia, serif;
+    font-size: 6rem; color: rgba(28,110,164,0.3);
+    position: absolute; top: -10px; left: 16px;
+    line-height: 1;
+  }
+  .big-quote p {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+    color: #fff; line-height: 1.55;
+    position: relative; z-index: 1;
+    padding-left: 12px;
+  }
+  .big-quote cite {
+    display: block; margin-top: 12px; padding-left: 12px;
+    font-size: 0.75rem; color: rgba(255,255,255,0.45);
+    font-style: normal; letter-spacing: 0.04em;
+  }
+
+  /* KEY TAKEAWAY BANNER */
+  .takeaway {
+    background: linear-gradient(135deg, #0D1B2A, #12284A);
+    border-radius: 14px; padding: 20px 24px;
+    margin-top: 20px;
+    border: 1px solid rgba(28,110,164,0.3);
+  }
+  .takeaway-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--amber); margin-bottom: 8px;
+  }
+  .takeaway p {
+    font-size: 0.88rem; color: rgba(255,255,255,0.8); line-height: 1.65;
+  }
+
+  /* SUMMARY SLIDE */
+  .summary-slide {
+    background: linear-gradient(135deg, #0D1B2A 0%, #0D3358 100%);
+    border-radius: 16px; padding: 32px 28px;
+    flex: 1; position: relative; overflow: hidden;
+  }
+  .summary-slide::after {
+    content: '';
+    position: absolute; bottom: -40px; right: -40px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(rgba(28,110,164,0.2), transparent 70%);
+  }
+  .summary-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px; margin-top: 20px;
+  }
+  .summary-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(28,110,164,0.25);
+    border-radius: 10px; padding: 14px 16px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .summary-item .si-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem; font-weight: 700; color: var(--sky);
+    flex-shrink: 0; line-height: 1.2;
+  }
+  .summary-item .si-text {
+    font-size: 0.8rem; color: rgba(255,255,255,0.7); line-height: 1.55;
+  }
+  .summary-item .si-text strong { color: #fff; display: block; margin-bottom: 2px; }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    height: 3px; background: rgba(255,255,255,0.08);
+    position: fixed; top: 54px; left: 0; right: 0; z-index: 101;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--sky);
+    transition: width 0.35s ease;
+  }
+
+  /* venn */
+  .venn-wrap {
+    display: flex; justify-content: center;
+    margin: 16px 0;
+  }
+  .venn-wrap svg { max-width: 100%; height: auto; }
+
+  /* Ensure slides fill properly on mobile */
+  @media (max-width: 600px) {
+    .slide { padding: 16px 12px 80px; }
+    .content-slide { padding: 20px 16px; }
+    .summary-slide { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV BAR -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    DevOps Overview
+    <span>CSDV3016P/3017 · UPES Dehradun</span>
+  </div>
+  <div class="nav-dots" id="navDots"></div>
+  <div class="slide-counter" id="slideCounter">1 / 12</div>
+</nav>
+
+<!-- PROGRESS -->
+<div class="progress-bar-wrap">
+  <div class="progress-bar-fill" id="progressFill"></div>
+</div>
+
+<!-- SLIDES -->
+<div class="slides-wrapper">
+
+  <!-- ══ SLIDE 1: TITLE ══════════════════════════════════════ -->
+  <div class="slide title-slide active" id="slide-1">
+    <div class="grid-bg"></div>
+    <div class="title-content">
+      <div class="course-badge">📚 Week 2 · Unit II · Lecture 6</div>
+      <div class="h1">Introduction to <span class="highlight">DevOps</span><br>& DevOps and Agile</div>
+      <p class="lead">Understanding the cultural shift that bridged the Dev–Ops divide, and how DevOps and Agile work together to deliver software at speed.</p>
+      <div class="title-meta">
+        <div class="meta-chip"><strong>Dr. Mohsin Furkh Dar</strong>School of Computer Sciences</div>
+        <div class="meta-chip"><strong>Date</strong>Tue, 16 Jun 2026 · 9:00 – 10:00 AM</div>
+        <div class="meta-chip"><strong>Programme</strong>BTech CSE – 5th / 6th Semester</div>
+      </div>
+
+      <div style="margin-top:28px;">
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:12px;">Today's Agenda</div>
+        <div class="agenda-row"><div class="agenda-num">1</div>What is DevOps? — Definitions &amp; Origins</div>
+        <div class="agenda-row"><div class="agenda-num">2</div>The Dev vs Ops Wall of Confusion</div>
+        <div class="agenda-row"><div class="agenda-num">3</div>Core DevOps Principles (CAMS)</div>
+        <div class="agenda-row"><div class="agenda-num">4</div>DevOps and Agile — Relationship &amp; Differences</div>
+        <div class="agenda-row"><div class="agenda-num">5</div>DevOps Lifecycle Overview</div>
+        <div class="agenda-row"><div class="agenda-num">6</div>Real-World Benefits &amp; Industry Context</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 2: CONTEXT ════════════════════════════════════ -->
+  <div class="slide" id="slide-2">
+    <div class="content-slide">
+      <div class="eyebrow">Context &amp; Recap</div>
+      <div class="h2">Where We Are in the Course</div>
+      <div class="highlight-box hb-sky">
+        <div class="hb-icon">✅</div>
+        <div class="hb-text"><strong>Unit I (Completed):</strong> We covered the Waterfall Model, the Dev vs Ops Conflict, Agile Movement (2000), Agile vs Waterfall, Iterative Development, the Agile Manifesto, Customer Collaboration, and Responding to Change. You now have a solid foundation in <em>why</em> traditional approaches struggled.</div>
+      </div>
+      <div class="highlight-box hb-teal">
+        <div class="hb-icon">🚀</div>
+        <div class="hb-text"><strong>Unit II Begins Today:</strong> We now explore DevOps — the natural evolution that takes Agile ideas further, extends them to Operations, and ties together culture, automation, measurement, and sharing.</div>
+      </div>
+      <div class="two-col" style="margin-top:16px;">
+        <div class="col-panel">
+          <div class="col-panel-title sky-label">The Problem We Solved</div>
+          <ul class="bullet-list">
+            <li>Software delivered in big, slow batches (Waterfall)</li>
+            <li>Agile fixed the Dev side — smaller, faster iterations</li>
+            <li>But Ops was still a separate silo — the conflict remained</li>
+          </ul>
+        </div>
+        <div class="col-panel">
+          <div class="col-panel-title teal-label">The Problem DevOps Solves</div>
+          <ul class="bullet-list teal">
+            <li>Breaks the Dev ↔ Ops wall permanently</li>
+            <li>Automates the path from code to production</li>
+            <li>Enables continuous, reliable software delivery</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 3: WHAT IS DEVOPS ════════════════════════════ -->
+  <div class="slide" id="slide-3">
+    <div class="content-slide">
+      <div class="eyebrow">Definition</div>
+      <div class="h2">What Is DevOps?</div>
+
+      <div class="big-quote">
+        <p>DevOps is a set of practices that combines software <strong style="color:#4FC3F7">development (Dev)</strong> and IT <strong style="color:#4FC3F7">operations (Ops)</strong>, aiming to shorten the development lifecycle and provide continuous delivery with high software quality.</p>
+        <cite>— Wikipedia / Industry Consensus Definition</cite>
+      </div>
+
+      <div class="card-grid" style="margin-top:16px;">
+        <div class="card">
+          <span class="card-icon">🧑‍💻</span>
+          <div class="card-title">A Culture</div>
+          <div class="card-body">DevOps is first and foremost a <em>mindset shift</em> — shared ownership between developers and operations teams.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">⚙️</span>
+          <div class="card-title">A Practice</div>
+          <div class="card-body">Automation, CI/CD pipelines, infrastructure-as-code, continuous monitoring — translating culture into action.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">📐</span>
+          <div class="card-title">A Movement</div>
+          <div class="card-body">Emerged from the 2009 Velocity Conference talk by John Allspaw &amp; Paul Hammond: <em>"10+ deploys per day."</em></div>
+        </div>
+      </div>
+      <div class="highlight-box hb-amber" style="margin-top:14px;">
+        <div class="hb-icon">💡</div>
+        <div class="hb-text"><strong>Key Insight:</strong> DevOps is NOT just a set of tools. Tools enable DevOps but do not define it. You can use Jenkins, Docker, and Kubernetes yet still have silos — if the culture is wrong, DevOps fails.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4: HISTORY ═══════════════════════════════════ -->
+  <div class="slide" id="slide-4">
+    <div class="content-slide">
+      <div class="eyebrow">Origins</div>
+      <div class="h2">How DevOps Was Born</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot">2001</div>
+          <div class="tl-content">
+            <div class="tl-label">Agile Manifesto Published</div>
+            <div class="tl-desc">The 17 signatories publish the Agile Manifesto. Dev teams adopt iterative practices — but Ops teams are left out. Tension increases between fast-moving Dev and change-resistant Ops.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot teal">2008</div>
+          <div class="tl-content">
+            <div class="tl-label">Patrick Debois Starts the Conversation</div>
+            <div class="tl-desc">At the Agile Conference 2008, Patrick Debois (later called "the father of DevOps") presents ideas about bridging Dev and Ops. He sees firsthand the pain of siloed teams on a Belgian government project.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot amber">2009</div>
+          <div class="tl-content">
+            <div class="tl-label">Velocity Conference: "10 Deploys per Day"</div>
+            <div class="tl-desc">John Allspaw &amp; Paul Hammond from Flickr deliver the landmark talk showing that Dev and Ops working together can push 10+ production deployments per day safely. Patrick Debois responds by organizing the first <strong>DevOpsDays</strong> in Ghent, Belgium.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot coral">2013</div>
+          <div class="tl-content">
+            <div class="tl-label">The Phoenix Project</div>
+            <div class="tl-desc">Gene Kim, Kevin Behr &amp; George Spafford publish <em>The Phoenix Project</em> — a novel that popularizes DevOps principles for mainstream IT audiences. The "Three Ways" of DevOps are introduced.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot" style="background:#7E57C2;">Now</div>
+          <div class="tl-content">
+            <div class="tl-label">DevOps is Mainstream</div>
+            <div class="tl-desc">Major organizations (Amazon, Netflix, Google, Microsoft) deploy hundreds to thousands of times per day. DevOps is the default approach for cloud-native software delivery.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 5: WALL OF CONFUSION ════════════════════════ -->
+  <div class="slide" id="slide-5">
+    <div class="content-slide">
+      <div class="eyebrow">Core Problem</div>
+      <div class="h2">The "Wall of Confusion"</div>
+      <div class="highlight-box hb-coral">
+        <div class="hb-icon">🧱</div>
+        <div class="hb-text"><strong>The fundamental conflict:</strong> Developers are incentivized to <em>ship change fast</em>. Operations teams are incentivized to <em>keep systems stable</em>. These goals are naturally in tension — and that tension creates the "Wall of Confusion."</div>
+      </div>
+
+      <div class="two-col" style="margin-top:16px;">
+        <div class="col-panel" style="border-top: 3px solid var(--sky);">
+          <div class="col-panel-title sky-label">🧑‍💻 Development Team Goals</div>
+          <ul class="bullet-list">
+            <li>Ship new features quickly</li>
+            <li>Respond to user feedback fast</li>
+            <li>Experiment &amp; iterate</li>
+            <li>Deploy frequently</li>
+            <li>Innovation over stability</li>
+          </ul>
+        </div>
+        <div class="col-panel" style="border-top: 3px solid var(--coral);">
+          <div class="col-panel-title coral-label">🛠️ Operations Team Goals</div>
+          <ul class="bullet-list coral">
+            <li>Maintain uptime &amp; availability</li>
+            <li>Prevent system failures</li>
+            <li>Slow down risky changes</li>
+            <li>Deploy infrequently, predictably</li>
+            <li>Stability over innovation</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="takeaway">
+        <div class="takeaway-label">🎯 What DevOps Does</div>
+        <p>DevOps tears down this wall by creating <strong>shared responsibility</strong>, <strong>shared tools</strong>, and <strong>shared metrics</strong> between Dev and Ops. Both teams co-own the entire software lifecycle — from code to production to monitoring.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 6: CAMS ══════════════════════════════════════ -->
+  <div class="slide" id="slide-6">
+    <div class="content-slide">
+      <div class="eyebrow">Core Principles</div>
+      <div class="h2">CAMS — The Four Pillars of DevOps</div>
+      <p class="body-text" style="margin-bottom:16px;">Coined by Damon Edwards and John Willis, <strong>CAMS</strong> represents the foundational elements of DevOps culture. We'll study each pillar in depth in upcoming lectures.</p>
+
+      <div class="card-grid">
+        <div class="card" style="border-top: 3px solid var(--sky);">
+          <span class="card-icon">🎭</span>
+          <div class="card-title" style="color:var(--sky);">C — Culture</div>
+          <div class="card-body">People and processes first. Remove blame, build psychological safety, foster shared ownership between Dev, Ops, QA, and Business teams. <em>"Culture eats strategy for breakfast."</em></div>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--teal);">
+          <span class="card-icon">🤖</span>
+          <div class="card-title" style="color:var(--teal);">A — Automation</div>
+          <div class="card-body">Automate repetitive tasks: testing, deployments, provisioning, monitoring. Automation creates speed, consistency, and reduces human error in the delivery pipeline.</div>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--amber);">
+          <span class="card-icon">📊</span>
+          <div class="card-title" style="color:var(--amber);">M — Measurement</div>
+          <div class="card-body">Track everything — deployment frequency, lead time, mean time to recovery (MTTR), change failure rate. Data-driven decisions replace gut feel and finger-pointing.</div>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--coral);">
+          <span class="card-icon">🤝</span>
+          <div class="card-title" style="color:var(--coral);">S — Sharing</div>
+          <div class="card-body">Share knowledge, tools, and feedback openly across teams. Internal open-source practices, post-mortems without blame, cross-team transparency.</div>
+        </div>
+      </div>
+      <div class="highlight-box hb-sky" style="margin-top:14px;">
+        <div class="hb-icon">📌</div>
+        <div class="hb-text"><strong>Remember:</strong> CAMS is ordered deliberately. Without <em>Culture</em>, Automation is just machinery people resent. Without Measurement, you can't know if Automation is working. Without Sharing, improvements stay local.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 7: DEVOPS LIFECYCLE ══════════════════════════ -->
+  <div class="slide" id="slide-7">
+    <div class="content-slide">
+      <div class="eyebrow">Lifecycle</div>
+      <div class="h2">The DevOps Infinity Loop</div>
+      <p class="body-text" style="margin-bottom:16px;">DevOps operates as a continuous, never-ending loop connecting development activities (Plan → Code → Build → Test) with operations activities (Release → Deploy → Operate → Monitor). The figure-eight (∞) shape represents this unbroken cycle.</p>
+
+      <div class="pipeline">
+        <div class="pipe-step">📋 Plan<span>User Stories / Backlog</span></div>
+        <div class="pipe-step teal">💻 Code<span>Version Control (Git)</span></div>
+        <div class="pipe-step amber">🔨 Build<span>Compile / Package</span></div>
+        <div class="pipe-step coral">🧪 Test<span>Automated Testing</span></div>
+        <div class="pipe-step purple">🚀 Release<span>Versioning / Approval</span></div>
+        <div class="pipe-step" style="background:#2E7D32;">📦 Deploy<span>To Staging / Prod</span></div>
+        <div class="pipe-step" style="background:#37474F;">⚙️ Operate<span>Config / Scale</span></div>
+        <div class="pipe-step" style="background:#4527A0;">📡 Monitor<span>Logs / Alerts</span></div>
+      </div>
+
+      <div class="two-col" style="margin-top:16px;">
+        <div class="col-panel">
+          <div class="col-panel-title sky-label">Dev Side (Left Loop)</div>
+          <ul class="bullet-list">
+            <li><strong>Plan:</strong> Feature planning, sprint backlogs</li>
+            <li><strong>Code:</strong> Developers write &amp; commit code</li>
+            <li><strong>Build:</strong> CI server compiles the code</li>
+            <li><strong>Test:</strong> Automated unit, integration, regression tests</li>
+          </ul>
+        </div>
+        <div class="col-panel">
+          <div class="col-panel-title teal-label">Ops Side (Right Loop)</div>
+          <ul class="bullet-list teal">
+            <li><strong>Release:</strong> Version tagged, change approved</li>
+            <li><strong>Deploy:</strong> Pushed to staging then production</li>
+            <li><strong>Operate:</strong> Scaling, patching, configuration</li>
+            <li><strong>Monitor:</strong> Logs, metrics, user feedback</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 8: DEVOPS vs AGILE ══════════════════════════ -->
+  <div class="slide" id="slide-8">
+    <div class="content-slide">
+      <div class="eyebrow">Relationships</div>
+      <div class="h2">DevOps and Agile — Partners, Not Rivals</div>
+      <div class="highlight-box hb-teal">
+        <div class="hb-icon">🔗</div>
+        <div class="hb-text"><strong>Key Relationship:</strong> Agile is the <em>what</em> and <em>how</em> of building software iteratively. DevOps is the <em>how</em> of getting that software to users reliably and continuously. They are <strong>complementary practices</strong>, not alternatives.</div>
+      </div>
+
+      <table class="comp-table" style="margin-top:16px;">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Agile</th>
+            <th>DevOps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Primary Focus</td><td>Development process &amp; team collaboration</td><td>Full lifecycle from Dev through Operations</td></tr>
+          <tr><td>Team Scope</td><td>Dev + QA + Product (no Ops)</td><td>Dev + QA + Ops + Security (all silos)</td></tr>
+          <tr><td>Feedback Loop</td><td>Sprint reviews every 2–4 weeks</td><td>Continuous feedback from production monitoring</td></tr>
+          <tr><td>Key Output</td><td>Working software at end of sprint</td><td>Continuously deployed, monitored software</td></tr>
+          <tr><td>Delivery Speed</td><td>Faster than Waterfall (sprints)</td><td>Even faster (minutes to hours per release)</td></tr>
+          <tr><td>Automation Level</td><td>Low to moderate (tests, story tracking)</td><td>High (CI/CD pipelines, IaC, monitoring)</td></tr>
+          <tr><td>Mindset</td><td>Iterative, adaptive, customer-focused</td><td>Collaborative, automated, data-driven</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 9: AGILE ENABLES DEVOPS ══════════════════════ -->
+  <div class="slide" id="slide-9">
+    <div class="content-slide">
+      <div class="eyebrow">Relationship Deep Dive</div>
+      <div class="h2">How Agile Enables DevOps</div>
+      <p class="body-text" style="margin-bottom:16px;">Agile practices create the <em>pre-conditions</em> that make DevOps possible. You cannot practice DevOps effectively without already having some Agile discipline in place.</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <span class="card-icon">🔄</span>
+          <div class="card-title">Small, Frequent Commits</div>
+          <div class="card-body">Agile sprints encourage small feature increments, which are exactly what CI/CD pipelines are designed to handle efficiently. Large batches break CI/CD.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">🧪</span>
+          <div class="card-title">Test-Driven Development</div>
+          <div class="card-body">Agile's emphasis on TDD means code arrives at the CI pipeline with tests already written — enabling automated quality gates in DevOps pipelines.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">👥</span>
+          <div class="card-title">Cross-Functional Teams</div>
+          <div class="card-body">Agile's cross-functional team model is a prerequisite for DevOps — it breaks the developer-only silo and invites Ops and security members into the team early.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">🎯</span>
+          <div class="card-title">Definition of Done</div>
+          <div class="card-body">In DevOps-matured Agile teams, "Done" means not just coded and tested, but <em>deployed to production and monitored</em> — extending Agile's DoD into operations.</div>
+        </div>
+      </div>
+
+      <div class="takeaway">
+        <div class="takeaway-label">🎯 Bottom Line</div>
+        <p><strong>Agile without DevOps</strong> = Fast development, slow delivery (code piles up waiting for manual deployment). <strong>DevOps without Agile</strong> = Fast pipeline, but large, risky batches of code going through it. Together, they create a complete system of continuous value delivery.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 10: BENEFITS & STATS ════════════════════════ -->
+  <div class="slide" id="slide-10">
+    <div class="content-slide">
+      <div class="eyebrow">Industry Evidence</div>
+      <div class="h2">The Business Case for DevOps</div>
+      <p class="body-text" style="margin-bottom: 4px;">The DORA (DevOps Research &amp; Assessment) team at Google studies elite-performing engineering organizations annually. Their findings consistently show dramatic improvements from DevOps adoption.</p>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-num">208×</div>
+          <div class="stat-label">More frequent software deployments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">106×</div>
+          <div class="stat-label">Faster lead time from commit to deploy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">2,604×</div>
+          <div class="stat-label">Faster mean time to recover from failures</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">7×</div>
+          <div class="stat-label">Lower change failure rate</div>
+        </div>
+      </div>
+
+      <div style="font-size:0.7rem; color:var(--slate); margin-top:6px;">Source: 2019 State of DevOps Report — Elite vs Low performers</div>
+
+      <div class="two-col" style="margin-top:16px;">
+        <div class="col-panel">
+          <div class="col-panel-title sky-label">Real-World Examples</div>
+          <ul class="bullet-list">
+            <li><strong>Amazon:</strong> Deploys every 11.7 seconds on average</li>
+            <li><strong>Netflix:</strong> 100s of deployments per day, zero downtime</li>
+            <li><strong>Etsy:</strong> From 2 deploys/week to 50+ per day after DevOps adoption</li>
+          </ul>
+        </div>
+        <div class="col-panel">
+          <div class="col-panel-title teal-label">Key DORA Metrics (4 Golden Signals)</div>
+          <ul class="bullet-list teal">
+            <li><strong>Deployment Frequency</strong> — how often you deploy</li>
+            <li><strong>Lead Time for Changes</strong> — commit → production</li>
+            <li><strong>Mean Time to Recovery</strong> — how fast you fix incidents</li>
+            <li><strong>Change Failure Rate</strong> — % deployments causing incidents</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 11: COMMON MISCONCEPTIONS ═══════════════════ -->
+  <div class="slide" id="slide-11">
+    <div class="content-slide">
+      <div class="eyebrow">Clarifications</div>
+      <div class="h2">Common DevOps Misconceptions</div>
+
+      <div class="highlight-box hb-coral">
+        <div class="hb-icon">❌</div>
+        <div class="hb-text"><strong>"DevOps means Developers do Operations work"</strong> — False. DevOps means Dev and Ops collaborate and share responsibility. Developers don't replace SREs or sysadmins; they work together on shared goals.</div>
+      </div>
+      <div class="highlight-box hb-coral">
+        <div class="hb-icon">❌</div>
+        <div class="hb-text"><strong>"DevOps is just CI/CD"</strong> — False. CI/CD is one practice within DevOps. DevOps also includes cultural transformation, monitoring, security (DevSecOps), and organizational change.</div>
+      </div>
+      <div class="highlight-box hb-coral">
+        <div class="hb-icon">❌</div>
+        <div class="hb-text"><strong>"DevOps replaces Agile"</strong> — False. They are complementary. Agile manages <em>how</em> we develop software; DevOps manages <em>how</em> we deliver and operate it. Most mature teams practice both.</div>
+      </div>
+      <div class="highlight-box hb-teal">
+        <div class="hb-icon">✅</div>
+        <div class="hb-text"><strong>DevOps is:</strong> A cultural philosophy + a set of technical practices + organizational change + continuous improvement. Its success depends more on people and culture than on any specific tool or technology.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 12: SUMMARY ══════════════════════════════════ -->
+  <div class="slide" id="slide-12">
+    <div class="summary-slide">
+      <div class="eyebrow" style="color:#4FC3F7;">
+        <span style="background:#4FC3F7; height:2px; width:24px; display:inline-block; margin-right:8px; vertical-align:middle;"></span>
+        Lecture Summary
+      </div>
+      <div class="h1" style="font-size:clamp(1.4rem, 4vw, 2.2rem); margin-bottom:8px;">Key Takeaways</div>
+      <p style="font-size:0.85rem; color:rgba(255,255,255,0.5); margin-bottom:4px;">Lecture 6 — Introduction to DevOps &amp; DevOps and Agile</p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="si-num">1</div>
+          <div class="si-text"><strong>DevOps = Culture + Automation</strong>It bridges the Dev–Ops divide through shared ownership, not just tooling. Culture comes first.</div>
+        </div>
+        <div class="summary-item">
+          <div class="si-num">2</div>
+          <div class="si-text"><strong>Wall of Confusion</strong>Dev wants speed; Ops wants stability. DevOps resolves this conflict through shared goals and practices.</div>
+        </div>
+        <div class="summary-item">
+          <div class="si-num">3</div>
+          <div class="si-text"><strong>CAMS Framework</strong>Culture, Automation, Measurement, Sharing — the four pillars that define true DevOps adoption.</div>
+        </div>
+        <div class="summary-item">
+          <div class="si-num">4</div>
+          <div class="si-text"><strong>DevOps Lifecycle (∞)</strong>An 8-phase continuous loop: Plan → Code → Build → Test → Release → Deploy → Operate → Monitor.</div>
+        </div>
+        <div class="summary-item">
+          <div class="si-num">5</div>
+          <div class="si-text"><strong>Agile + DevOps Together</strong>Agile handles iterative development; DevOps handles continuous delivery and operations. They are partners.</div>
+        </div>
+        <div class="summary-item">
+          <div class="si-num">6</div>
+          <div class="si-text"><strong>Proven Business Value</strong>DORA research: Elite performers deploy 208× more often with 7× lower change failure rates than low performers.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px; background:rgba(28,110,164,0.15); border:1px solid rgba(28,110,164,0.3); border-radius:12px; padding:16px 18px;">
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--amber); margin-bottom:8px;">📚 Next Lecture</div>
+        <p style="font-size:0.85rem; color:rgba(255,255,255,0.75); line-height:1.6;"><strong style="color:#fff;">Lecture 7 (Mon, 22 Jun): Minimum Viable Product &amp; Application Deployment</strong> — We'll explore the MVP concept, why shipping fast beats shipping perfect, and how applications are deployed in a DevOps environment.</p>
+      </div>
+
+      <div style="margin-top:16px; text-align:center;">
+        <p style="font-size:0.75rem; color:rgba(255,255,255,0.3); letter-spacing:0.05em;">Dr. Mohsin Furkh Dar · School of Computer Sciences · UPES Dehradun</p>
+        <p style="font-size:0.72rem; color:rgba(255,255,255,0.2); margin-top:4px;">CSDV3016P / CSDV3017 · DevOps Overview · Summer 2026</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end slides-wrapper -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="btn btn-prev" id="btnPrev" onclick="navigate(-1)">← Previous</button>
+  <div style="font-family:'Space Grotesk',sans-serif; font-size:0.7rem; color:rgba(255,255,255,0.35); text-align:center; line-height:1.4; flex:1;" id="slideTitle">Welcome &amp; Course Overview</div>
+  <button class="btn btn-next" id="btnNext" onclick="navigate(1)">Next →</button>
+</nav>
+
+<script>
+  const TOTAL = 12;
+  const TITLES = [
+    "Welcome & Course Overview",
+    "Context & Recap — Unit I Complete",
+    "What Is DevOps?",
+    "How DevOps Was Born — Timeline",
+    "The Wall of Confusion",
+    "CAMS — The Four Pillars",
+    "The DevOps Infinity Loop",
+    "DevOps and Agile — Comparison",
+    "How Agile Enables DevOps",
+    "Business Case — DORA Metrics",
+    "Common DevOps Misconceptions",
+    "Summary & Key Takeaways"
+  ];
+
+  let current = 1;
+
+  function buildDots() {
+    const wrap = document.getElementById('navDots');
+    for (let i = 1; i <= TOTAL; i++) {
+      const d = document.createElement('button');
+      d.className = 'dot' + (i === 1 ? ' active' : '');
+      d.title = TITLES[i-1];
+      d.onclick = () => goTo(i);
+      wrap.appendChild(d);
+    }
+  }
+
+  function goTo(n) {
+    document.getElementById('slide-' + current).classList.remove('active');
+    document.querySelectorAll('.dot')[current - 1].classList.remove('active');
+    current = n;
+    document.getElementById('slide-' + current).classList.add('active');
+    document.querySelectorAll('.dot')[current - 1].classList.add('active');
+    document.getElementById('slideCounter').textContent = current + ' / ' + TOTAL;
+    document.getElementById('slideTitle').textContent = TITLES[current - 1];
+    document.getElementById('btnPrev').disabled = current === 1;
+    document.getElementById('btnNext').disabled = current === TOTAL;
+    document.getElementById('progressFill').style.width = ((current / TOTAL) * 100) + '%';
+    window.scrollTo(0, 0);
+  }
+
+  function navigate(dir) {
+    const next = current + dir;
+    if (next >= 1 && next <= TOTAL) goTo(next);
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   navigate(-1);
+  });
+
+  // Touch/swipe
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  buildDots();
+  goTo(1);
+</script>
+</body>
+</html>
