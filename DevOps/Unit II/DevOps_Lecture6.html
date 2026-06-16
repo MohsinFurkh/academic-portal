@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 6 – DevOps Tools for Agile | CSDV3017 | Dr. Mohsin Furkh Dar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg:        #0D1117;
+    --surface:   #161B22;
+    --card:      #1C2128;
+    --border:    #30363D;
+    --accent:    #F78166;
+    --accent2:   #79C0FF;
+    --accent3:   #56D364;
+    --accent4:   #D2A8FF;
+    --text:      #E6EDF3;
+    --muted:     #8B949E;
+    --tag-bg:    #21262D;
+    --slide-w:   960px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── TOP NAV ── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .course-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .topbar-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-btn {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--border); border-color: var(--accent2); }
+  .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 52px;
+    text-align: center;
+  }
+
+  /* ── SLIDES WRAPPER ── */
+  .slides-viewport {
+    overflow: hidden;
+    position: relative;
+  }
+  .slides-track {
+    display: flex;
+    transition: transform 0.42s cubic-bezier(0.4,0,0.2,1);
+  }
+  .slide {
+    min-width: 100%;
+    padding: 32px 20px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .slide-inner {
+    width: 100%;
+    max-width: var(--slide-w);
+  }
+
+  /* ── COMMON SLIDE ELEMENTS ── */
+  .slide-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .slide-heading {
+    font-size: clamp(26px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 14px;
+  }
+  .slide-sub {
+    font-size: clamp(14px, 2.2vw, 18px);
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 700px;
+  }
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--border) 60%, transparent 100%);
+    margin: 24px 0;
+  }
+
+  /* ── TITLE SLIDE ── */
+  .title-slide-inner {
+    min-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .lecture-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    margin-bottom: 28px;
+    width: fit-content;
+  }
+  .lecture-badge .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(1.4); }
+  }
+  .lecture-badge span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .title-main {
+    font-size: clamp(36px, 7vw, 72px);
+    font-weight: 800;
+    line-height: 1.08;
+    margin-bottom: 8px;
+  }
+  .title-main .highlight { color: var(--accent2); }
+  .title-sub-line {
+    font-size: clamp(16px, 2.8vw, 24px);
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+  .title-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 32px;
+  }
+  .meta-chip {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .meta-chip strong { color: var(--text); }
+  .title-objectives {
+    margin-top: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    max-width: 680px;
+  }
+  .title-objectives h4 {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .obj-list { list-style: none; }
+  .obj-list li {
+    display: flex;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--muted);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--tag-bg);
+  }
+  .obj-list li:last-child { border-bottom: none; }
+  .obj-list li::before {
+    content: '→';
+    color: var(--accent2);
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── GRID CARDS ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .card-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .card-body {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .card.accent-orange { border-left: 3px solid var(--accent); }
+  .card.accent-blue   { border-left: 3px solid var(--accent2); }
+  .card.accent-green  { border-left: 3px solid var(--accent3); }
+  .card.accent-purple { border-left: 3px solid var(--accent4); }
+
+  /* ── DEFINITION BOX ── */
+  .def-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin: 20px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .def-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+  }
+  .def-box .def-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .def-box .def-text {
+    font-size: clamp(15px, 2.4vw, 19px);
+    line-height: 1.6;
+    font-weight: 500;
+  }
+  .def-box .def-text em { color: var(--accent2); font-style: normal; font-weight: 700; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent2);
+    background: var(--surface);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.6;
+    font-style: italic;
+  }
+  .callout cite {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── COMPARISON TABLE ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .compare-table th {
+    background: var(--surface);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid var(--border);
+  }
+  .compare-table th:nth-child(2) { color: var(--accent); }
+  .compare-table th:nth-child(3) { color: var(--accent2); }
+  .compare-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--tag-bg);
+    color: var(--muted);
+    vertical-align: top;
+  }
+  .compare-table td:first-child { color: var(--text); font-weight: 500; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:hover td { background: var(--tag-bg); }
+
+  /* ── CASE STUDY BOX ── */
+  .case-study {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin: 20px 0;
+  }
+  .case-study h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .case-study .scenario {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .case-study .scenario h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .case-study .scenario p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .case-study .outcome {
+    background: rgba(86, 211, 100, 0.1);
+    border: 1px solid var(--accent3);
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+  .case-study .outcome h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent3);
+    margin-bottom: 10px;
+  }
+  .case-study .outcome p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── SUMMARY LIST ── */
+  .summary-list { list-style: none; margin-top: 20px; }
+  .summary-list li {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+  }
+  .summary-list li:last-child { border-bottom: none; }
+  .summary-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── FOOTER ── */
+  .slide-footer {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-left { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .footer-right { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 200;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s;
+  }
+
+  /* ── KEYBOARD HINT ── */
+  .kbd-hint {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--border);
+  }
+  .kbd-hint kbd {
+    color: var(--muted);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .slide { padding: 20px 12px 48px; }
+    .topbar { padding: 8px 12px; }
+    .compare-table { font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 9px 10px; }
+    .nav-btn { padding: 5px 10px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topbar">
+  <div class="topbar-left">
+    <a href="../index.html" style="text-decoration: none;"><span class="course-tag">CSDV3017</span></a>
+    <span class="topbar-title">DevOps · Lecture 6 · Summer 2026</span>
+  </div>
+  <div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" onclick="goSlide(-1)" disabled>← Prev</button>
+    <span class="slide-counter" id="counter">1 / 10</span>
+    <button class="nav-btn" id="nextBtn" onclick="goSlide(1)">Next →</button>
+  </div>
+</nav>
+
+<!-- SLIDES -->
+<div class="slides-viewport">
+<div class="slides-track" id="track">
+
+  <!-- ═══════════════════════════════ SLIDE 1 – TITLE ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+  <div class="title-slide-inner">
+    <div class="lecture-badge"><span class="dot"></span><span>CSDV3017 · Lecture 6 · 16 Jun 2026</span></div>
+    <div class="title-main">DevOps Tools for<br><span class="highlight">Agile</span></div>
+    <div class="title-sub-line">Differences Between Agile & DevOps · Case Study: Silos Development</div>
+    <p class="slide-sub">BTech CSE 6th Semester · School of Computer Sciences · UPES Dehradun</p>
+    <div class="title-meta">
+      <div class="meta-chip"><strong>Faculty:</strong> Dr. Mohsin Furkh Dar</div>
+      <div class="meta-chip"><strong>Mode:</strong> Online · MS Teams</div>
+      <div class="meta-chip"><strong>Credits:</strong> 3</div>
+      <div class="meta-chip"><strong>Session:</strong> Tue 14:00 – 15:00</div>
+    </div>
+    <div class="title-objectives">
+      <h4>Today's Learning Objectives</h4>
+      <ul class="obj-list">
+        <li>Understand the tools that support Agile practices within DevOps</li>
+        <li>Clarify the key differences between Agile and DevOps methodologies</li>
+        <li>Analyze a real-world case study of siloed development and its consequences</li>
+        <li>Recognize how DevOps tools enable and enhance Agile workflows</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+    <span class="footer-right">Slide 1 / 10</span>
+  </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 2 – AGILE TOOLS OVERVIEW ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Tooling for Agility</div>
+    <h1 class="slide-heading">DevOps Tools<br>for Agile</h1>
+    <p class="slide-sub">Agile practices require specific tools to be effective. DevOps provides the automation and integration that makes Agile scalable and sustainable.</p>
+    <div class="divider"></div>
+    <div class="cards-grid">
+      <div class="card accent-orange">
+        <span class="card-icon">📋</span>
+        <div class="card-title">Project Management</div>
+        <div class="card-body"><strong>Jira, Trello, Azure Boards</strong> — Track user stories, sprints, and backlogs. Enable Agile ceremonies like sprint planning and retrospectives.</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">🔄</span>
+        <div class="card-title">Kanban Boards</div>
+        <div class="card-body"><strong>Jira Kanban, Trello, GitHub Projects</strong> — Visualize workflow, limit WIP, manage flow. Real-time visibility into work in progress.</div>
+      </div>
+      <div class="card accent-green">
+        <span class="card-icon">💻</span>
+        <div class="card-title">Version Control</div>
+        <div class="card-body"><strong>Git, GitHub, GitLab</strong> — Enable feature branching, pull requests, and code reviews. Essential for collaborative Agile development.</div>
+      </div>
+      <div class="card accent-purple">
+        <span class="card-icon">🤖</span>
+        <div class="card-title">CI/CD Pipelines</div>
+        <div class="card-body"><strong>Jenkins, GitHub Actions, GitLab CI</strong> — Automate builds and tests on every commit. Enable continuous integration essential for Agile.</div>
+      </div>
+      <div class="card accent-orange">
+        <span class="card-icon">📊</span>
+        <div class="card-title">Communication</div>
+        <div class="card-body"><strong>Slack, Microsoft Teams</strong> — Real-time collaboration. Integrations with CI/CD tools provide instant notifications and status updates.</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">📝</span>
+        <div class="card-title">Documentation</div>
+        <div class="card-body"><strong>Confluence, Notion, GitHub Wiki</strong> — Living documentation that evolves with the product. Supports Agile principle of working software over comprehensive documentation.</div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 2 / 10</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 3 – AGILE TOOL INTEGRATION ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Integrated Workflow</div>
+    <h1 class="slide-heading">How Tools Enable<br>Agile at Scale</h1>
+    <p class="slide-sub">The power of DevOps tools for Agile comes from integration. Tools don't work in isolation — they form a connected ecosystem that supports the entire development lifecycle.</p>
+    <div class="def-box" style="margin-top:28px">
+      <div class="def-label">The Integrated Toolchain</div>
+      <p class="def-text">A Jira story triggers a Git branch. A pull request runs CI tests. Passing tests trigger a deployment to staging. Slack notifies the team. Monitoring alerts trigger incident response. <em>This automation is what makes Agile sustainable at scale.</em></p>
+    </div>
+    <div class="cards-grid" style="margin-top:20px">
+      <div class="card accent-orange">
+        <span class="card-icon">🔗</span>
+        <div class="card-title">Traceability</div>
+        <div class="card-body">Every feature can be traced from Jira story → Git commit → CI build → deployment → production metrics. Complete visibility from idea to impact.</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">⚡</span>
+        <div class="card-title">Automation</div>
+        <div class="card-body">Manual handoffs are eliminated. Tools communicate automatically. Developers focus on code, not process coordination.</div>
+      </div>
+      <div class="card accent-green">
+        <span class="card-icon">📊</span>
+        <div class="card-title">Metrics</div>
+        <div class="card-body">Agile metrics (velocity, cycle time) and DevOps metrics (deployment frequency, lead time) are automatically collected and visualized.</div>
+      </div>
+      <div class="card accent-purple">
+        <span class="card-icon">🔄</span>
+        <div class="card-title">Feedback Loops</div>
+        <div class="card-body">Fast feedback from automated tests, monitoring, and user analytics. Teams can iterate quickly based on data, not assumptions.</div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 3 / 10</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 4 – AGILE VS DEVOPS REVISITED ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Clarifying Concepts</div>
+    <h1 class="slide-heading">Agile vs DevOps:<br>Key Differences</h1>
+    <p class="slide-sub">While Agile and DevOps are complementary, they address different aspects of software delivery. Understanding these distinctions is crucial for effective implementation.</p>
+    <div style="overflow-x: auto;">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Dimension</th>
+          <th>Agile</th>
+          <th>DevOps</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Primary Focus</td><td>Software development process and methodology</td><td>End-to-end software delivery and operations</td></tr>
+        <tr><td>Scope</td><td>Development team (planning → coding → testing)</td><td>Entire organization (Dev + Ops + QA + Security)</td></tr>
+        <tr><td>Key Goal</td><td>Deliver working software frequently and respond to change</td><td>Automate and accelerate the path from code to production</td></tr>
+        <tr><td>Team Structure</td><td>Development teams with product owners</td><td>Cross-functional teams including operations</td></tr>
+        <tr><td>Delivery Cadence</td><td>Sprint-based (typically 1-4 weeks)</td><td>Continuous (multiple times per day possible)</td></tr>
+        <tr><td>Infrastructure</td><td>Not in scope</td><td>Core focus via IaC and cloud platforms</td></tr>
+        <tr><td>Measurement</td><td>Velocity, story points, sprint burndown</td><td>Deployment frequency, lead time, change failure rate, MTTR</td></tr>
+        <tr><td>Relationship</td><td colspan="2" style="color:var(--accent3); font-weight:600; text-align:center;">✓ DevOps extends Agile principles to operations — they work best together</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="callout" style="margin-top:20px">
+      Agile transformed how we develop software. DevOps transforms how we deliver and operate it. Together, they enable the full software lifecycle.
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 4 / 10</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 5 – WHERE THEY OVERLAP ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Common Ground</div>
+    <h1 class="slide-heading">Where Agile<br>& DevOps Overlap</h1>
+    <p class="slide-sub">Despite their differences, Agile and DevOps share core values and practices. This overlap is why they work so well together.</p>
+    <div class="cards-grid">
+      <div class="card accent-orange">
+        <span class="card-icon">🔄</span>
+        <div class="card-title">Iterative Delivery</div>
+        <div class="card-body">Both emphasize frequent, small releases rather than big bang deployments. Iteration is fundamental to both methodologies.</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">🤝</span>
+        <div class="card-title">Collaboration</div>
+        <div class="card-body">Both value cross-team collaboration. Agile breaks down walls between business and dev. DevOps breaks walls between dev and ops.</div>
+      </div>
+      <div class="card accent-green">
+        <span class="card-icon">📊</span>
+        <div class="card-title">Feedback Loops</div>
+        <div class="card-body">Both prioritize fast feedback. Agile through sprint reviews and customer feedback. DevOps through monitoring and automated testing.</div>
+      </div>
+      <div class="card accent-purple">
+        <span class="card-icon">📈</span>
+        <div class="card-title">Continuous Improvement</div>
+        <div class="card-body">Both embrace the Kaizen mindset — continuous improvement through retrospectives, metrics, and process refinement.</div>
+      </div>
+      <div class="card accent-orange">
+        <span class="card-icon">👤</span>
+        <div class="card-title">Customer Focus</div>
+        <div class="card-body">Both prioritize delivering value to customers. Agile through user stories. DevOps through reliable, fast delivery of features.</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">🔧</span>
+        <div class="card-title">Automation</div>
+        <div class="card-body">Both leverage automation to reduce manual work. Agile through automated testing. DevOps through automated pipelines and infrastructure.</div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 5 / 10</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 6 – CASE STUDY INTRO ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Case Study</div>
+    <h1 class="slide-heading">Case Study:<br>Silos Development</h1>
+    <p class="slide-sub">Let's examine a real-world scenario where traditional siloed development created problems, and how DevOps addressed them.</p>
+    <div class="def-box" style="margin-top:28px">
+      <div class="def-label">The Scenario</div>
+      <p class="def-text">A mid-sized financial services company with separate Development, QA, and Operations departments. Each team had its own management, goals, and tools. Communication happened through formal handoffs and tickets.</p>
+    </div>
+    <div class="cards-grid" style="margin-top:20px">
+      <div class="card accent-orange">
+        <span class="card-icon">👥</span>
+        <div class="card-title">Development Team</div>
+        <div class="card-body">Focused on feature velocity. Pushed code every 2 weeks. Measured on story points completed. "It works on my machine" was common.</div>
+      </div>
+      <div class="card accent-blue">
+        <span class="card-icon">🧪</span>
+        <div class="card-title">QA Team</div>
+        <div class="card-body">Received code for testing after sprint completion. Manual testing took 1-2 weeks. Found bugs late in the cycle. Measured on bugs found.</div>
+      </div>
+      <div class="card accent-green">
+        <span class="card-icon">🔧</span>
+        <div class="card-title">Operations Team</div>
+        <div class="card-body">Received deployments after QA approval. Manual deployment process took days. Focused on stability. "Don't break production" was the motto.</div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 6 / 10</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 7 – CASE STUDY PROBLEMS ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Case Study Analysis</div>
+    <h1 class="slide-heading">Problems Created<br>by Silos</h1>
+    <p class="slide-sub">The siloed structure created predictable problems that slowed delivery and reduced quality.</p>
+    <div class="case-study">
+      <div class="scenario">
+        <h4>🚨 Problem 1: The "Wall of Confusion"</h4>
+        <p>Development threw code "over the wall" to QA. QA threw it to Operations. Each handoff introduced delays, miscommunication, and blame-shifting. When something broke, no one took responsibility.</p>
+      </div>
+      <div class="scenario">
+        <h4>🚨 Problem 2: Late Bug Discovery</h4>
+        <p>Bugs found during QA testing had already been written weeks earlier. Developers had moved on to new features. Fixing bugs disrupted new work and extended timelines.</p>
+      </div>
+      <div class="scenario">
+        <h4>🚨 Problem 3: Deployment Anxiety</h4>
+        <p>Deployments were rare, risky events. Manual processes meant human error. Operations resisted frequent deployments because each one carried high risk of downtime.</p>
+      </div>
+      <div class="scenario">
+        <h4>🚨 Problem 4: Slow Time-to-Market</h4>
+        <p>From code complete to production took 4-6 weeks. Competitors with faster delivery captured market opportunities. The company lost competitive edge.</p>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 7 / 10</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 8 – CASE STUDY DEVOPS TRANSFORMATION ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Case Study Solution</div>
+    <h1 class="slide-heading">DevOps<br>Transformation</h1>
+    <p class="slide-sub">The company implemented DevOps practices to break down silos and accelerate delivery.</p>
+    <div class="case-study">
+      <div class="scenario">
+        <h4>✅ Solution 1: Cross-Functional Teams</h4>
+        <p>Reorganized into cross-functional teams with Dev, QA, and Ops working together. Shared goals and metrics. "You build it, you run it" became the principle.</p>
+      </div>
+      <div class="scenario">
+        <h4>✅ Solution 2: CI/CD Pipeline</h4>
+        <p>Implemented automated CI with Jenkins. Every commit triggered builds and tests. CD pipeline automated deployment to staging and production with manual approval gates.</p>
+      </div>
+      <div class="scenario">
+        <h4>✅ Solution 3: Infrastructure as Code</h4>
+        <p>Used Terraform to manage infrastructure. Environments became consistent and reproducible. Manual server configuration eliminated.</p>
+      </div>
+      <div class="scenario">
+        <h4>✅ Solution 4: Automated Testing</h4>
+        <p>Shifted testing left with automated unit and integration tests. QA focused on exploratory testing and test automation rather than manual regression.</p>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 8 / 10</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 9 – CASE STUDY OUTCOMES ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Case Study Results</div>
+    <h1 class="slide-heading">Transformation<br>Outcomes</h1>
+    <p class="slide-sub">The DevOps transformation delivered measurable improvements across delivery speed, quality, and team satisfaction.</p>
+    <div class="case-study">
+      <div class="outcome">
+        <h4>📈 Outcome 1: Deployment Frequency</h4>
+        <p>Increased from once every 4-6 weeks to multiple times per week. Time-to-market reduced by 75%. Features reached customers faster.</p>
+      </div>
+      <div class="outcome">
+        <h4>✅ Outcome 2: Quality Improvement</h4>
+        <p>Change failure rate dropped from 25% to 8%. Automated testing caught bugs early. Production incidents decreased significantly.</p>
+      </div>
+      <div class="outcome">
+        <h4>⚡ Outcome 3: Lead Time Reduction</h4>
+        <p>Lead time from commit to production reduced from 4 weeks to 2 days. Teams could iterate quickly based on customer feedback.</p>
+      </div>
+      <div class="outcome">
+        <h4>🤝 Outcome 4: Team Collaboration</h4>
+        <p>Blame culture eliminated. Teams shared responsibility for outcomes. Employee satisfaction improved. On-call rotation shared across team members.</p>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:20px">
+      The transformation took 18 months and required significant cultural change, but the business impact was clear: faster delivery, higher quality, and more engaged teams.
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 9 / 10</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 10 – SUMMARY ═══════════════════════════════ -->
+  <div class="slide">
+  <div class="slide-inner">
+    <div class="slide-eyebrow">Key Takeaways</div>
+    <h1 class="slide-heading">Summary: Tools,<br>Agile & DevOps</h1>
+    <p class="slide-sub">DevOps tools enable Agile practices at scale. Understanding the relationship between Agile and DevOps is essential for successful implementation.</p>
+    <ul class="summary-list">
+      <li><span class="summary-num">1</span>DevOps tools (Jira, Git, CI/CD, monitoring) provide the automation that makes Agile scalable</li>
+      <li><span class="summary-num">2</span>Integrated toolchains create traceability from user story to production deployment</li>
+      <li><span class="summary-num">3</span>Agile focuses on development methodology; DevOps focuses on end-to-end delivery and operations</li>
+      <li><span class="summary-num">4</span>Agile and DevOps share values: iteration, collaboration, feedback, and continuous improvement</li>
+      <li><span class="summary-num">5</span>Siloed development creates walls of confusion, late bug discovery, and slow delivery</li>
+      <li><span class="summary-num">6</span>DevOps transformation through cross-functional teams and automation delivers measurable business outcomes</li>
+    </ul>
+    <div class="callout" style="margin-top:24px">
+      Agile and DevOps are not competing methodologies — they are complementary. DevOps operationalizes Agile principles across the entire software lifecycle.
+    </div>
+    <div class="slide-footer">
+      <span class="footer-left">CSDV3017 · Summer Semester 2026</span>
+      <span class="footer-right">Slide 10 / 10</span>
+    </div>
+  </div>
+  </div>
+
+</div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="progress-bar">
+  <div class="progress-fill" id="progressFill"></div>
+</div>
+
+<!-- KEYBOARD HINT -->
+<div class="kbd-hint">
+  Use <kbd>←</kbd> <kbd>→</kbd> or swipe to navigate
+</div>
+
+<script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  const track = document.getElementById('track');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const progressFill = document.getElementById('progressFill');
+
+  function updateSlide() {
+    track.style.transform = `translateX(-${currentSlide * 100}%)`;
+    counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+    prevBtn.disabled = currentSlide === 0;
+    nextBtn.disabled = currentSlide === totalSlides - 1;
+    progressFill.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+  }
+
+  function goSlide(direction) {
+    currentSlide += direction;
+    if (currentSlide < 0) currentSlide = 0;
+    if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+    updateSlide();
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') goSlide(1);
+    if (e.key === 'ArrowLeft') goSlide(-1);
+  });
+
+  // Touch swipe support
+  let touchStartX = 0;
+  let touchEndX = 0;
+  document.addEventListener('touchstart', (e) => touchStartX = e.changedTouches[0].screenX);
+  document.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    if (touchStartX - touchEndX > 50) goSlide(1);
+    if (touchEndX - touchStartX > 50) goSlide(-1);
+  });
+
+  updateSlide();
+</script>
+
+</body>
+</html>
