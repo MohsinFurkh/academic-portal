@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CSDV3017 · Lecture 8 · Monolith vs Microservices, Cloud & Resiliency</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0E2235;
+      --bg-deep-2: #102A40;
+      --grid-line: rgba(255, 255, 255, 0.07);
+      --grid-line-strong: rgba(255, 255, 255, 0.14);
+      --paper: #F3EFE2;
+      --paper-2: #EAE4D2;
+      --ink: #16202B;
+      --ink-soft: #3C4A57;
+      --amber: #FF6A39;
+      --amber-deep: #D9501F;
+      --teal: #57C7B8;
+      --muted: #9FB4C7;
+      --line: #1D3A52;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'IBM Plex Sans', sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: var(--bg-deep);
+      font-family: var(--body);
+      color: var(--paper);
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(var(--grid-line-strong) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-strong) 1px, transparent 1px),
+        radial-gradient(ellipse at 20% -10%, var(--bg-deep-2), var(--bg-deep) 60%);
+      background-size: 16px 16px, 16px 16px, 96px 96px, 96px 96px, cover;
+      background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    #deck {
+      position: relative;
+      height: 100vh;
+      height: 100dvh;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .slides {
+      height: 100%;
+      width: 100%;
+      display: flex;
+      transition: transform .55s cubic-bezier(.65, 0, .35, 1);
+      will-change: transform;
+    }
+
+    .slide {
+      flex: 0 0 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: clamp(18px, 4vw, 56px) clamp(18px, 5vw, 72px) clamp(64px, 9vh, 96px);
+      overflow-y: auto;
+    }
+
+    .slide::before,
+    .slide::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--grid-line-strong);
+      opacity: .8;
+    }
+
+    .slide::before {
+      top: 14px;
+      left: 14px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .slide::after {
+      bottom: 70px;
+      right: 14px;
+      border-left: none;
+      border-top: none;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: clamp(11px, 1.4vw, 13px);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--teal);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .eyebrow .dash {
+      width: 22px;
+      height: 1px;
+      background: var(--teal);
+      display: inline-block;
+    }
+
+    h1.slide-title {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(28px, 5.4vw, 52px);
+      line-height: 1.06;
+      letter-spacing: -0.01em;
+      color: var(--paper);
+      margin-top: 14px;
+      max-width: 20ch;
+    }
+
+    .slide-body {
+      margin-top: clamp(18px, 3vh, 34px);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 4px;
+      padding: clamp(16px, 2.6vw, 26px) clamp(18px, 2.8vw, 30px);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, .35);
+      position: relative;
+    }
+
+    .card .tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--amber-deep);
+      font-weight: 600;
+    }
+
+    .card p,
+    .card li {
+      color: var(--ink-soft);
+      font-size: clamp(14px, 1.7vw, 17px);
+      line-height: 1.5;
+    }
+
+    .card h3 {
+      font-family: var(--display);
+      font-size: clamp(17px, 2.1vw, 21px);
+      color: var(--ink);
+      margin: 4px 0 8px;
+      font-weight: 600;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width:760px) {
+
+      .grid2,
+      .grid3,
+      .grid4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    ul.clean {
+      list-style: none;
+    }
+
+    ul.clean li {
+      position: relative;
+      padding-left: 18px;
+      margin-bottom: 6px;
+    }
+
+    ul.clean li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .6em;
+      width: 6px;
+      height: 6px;
+      background: var(--amber);
+      border-radius: 1px;
+      transform: rotate(45deg);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--line);
+      color: var(--teal);
+      background: rgba(87, 199, 184, .06);
+    }
+
+    .title-slide {
+      justify-content: center;
+    }
+
+    .title-slide .course-code {
+      font-family: var(--mono);
+      color: var(--amber);
+      font-size: clamp(13px, 1.8vw, 16px);
+      letter-spacing: .12em;
+    }
+
+    .title-slide h1 {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(32px, 6.6vw, 62px);
+      line-height: 1.04;
+      margin-top: 18px;
+      max-width: 18ch;
+    }
+
+    .title-slide .sub {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: clamp(14px, 2vw, 18px);
+      max-width: 50ch;
+      line-height: 1.5;
+    }
+
+    .meta-row {
+      margin-top: 34px;
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .meta-row b {
+      color: var(--paper);
+      display: block;
+      font-size: 14px;
+      margin-bottom: 2px;
+      font-family: var(--body);
+      font-weight: 600;
+    }
+
+    .vsline {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .vsline .seg {
+      flex: 1;
+      height: 2px;
+      background: var(--line);
+      position: relative;
+    }
+
+    .vsline .seg.done {
+      background: var(--teal);
+    }
+
+    .vsnode {
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      background: var(--bg-deep-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .vsnode.done {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .vsnode.now {
+      border-color: var(--amber);
+      color: var(--amber);
+      box-shadow: 0 0 0 4px rgba(255, 106, 57, .16);
+    }
+
+    /* ---- monolith block ---- */
+    .monolith {
+      background: var(--paper);
+      border-radius: 6px;
+      padding: 0;
+      overflow: hidden;
+      border: 2px solid var(--ink-soft);
+    }
+
+    .monolith .layer {
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      border-bottom: 1px dashed rgba(22, 32, 43, .18);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .monolith .layer:last-child {
+      border-bottom: none;
+    }
+
+    .monolith .layer b {
+      color: var(--ink);
+      font-family: var(--body);
+      font-weight: 600;
+      font-size: 12.5px;
+    }
+
+    .monolith-label {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      letter-spacing: .08em;
+    }
+
+    /* ---- microservices net ---- */
+    .msnet {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      padding: 6px 0;
+    }
+
+    .msnode {
+      background: var(--paper);
+      border-radius: 6px;
+      padding: 10px 12px;
+      text-align: center;
+      border-top: 3px solid var(--teal);
+      min-width: 84px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-soft);
+      position: relative;
+    }
+
+    .msnode b {
+      display: block;
+      font-family: var(--body);
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 12.5px;
+      margin-bottom: 2px;
+    }
+
+    .msnet-label {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      letter-spacing: .08em;
+    }
+
+    /* compare table */
+    .compare {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .compare th,
+    .compare td {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: clamp(12.5px, 1.6vw, 14.5px);
+    }
+
+    .compare th {
+      background: var(--paper-2);
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-size: 11px;
+      color: var(--ink-soft);
+    }
+
+    .compare td {
+      color: var(--ink);
+      border-top: 1px solid rgba(22, 32, 43, .1);
+    }
+
+    .compare td.lbl {
+      font-weight: 600;
+      color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: 11.5px;
+    }
+
+    /* resiliency ring nodes */
+    .resil-item {
+      background: var(--paper);
+      border-radius: 4px;
+      padding: 12px 14px;
+      border-top: 3px solid var(--amber);
+    }
+
+    .resil-item .num {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber-deep);
+    }
+
+    .resil-item h4 {
+      font-family: var(--display);
+      font-size: 14.5px;
+      color: var(--ink);
+      margin: 2px 0 4px;
+    }
+
+    .resil-item p {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      line-height: 1.4;
+    }
+
+    .stat {
+      font-family: var(--display);
+      font-weight: 700;
+      color: var(--amber-deep);
+      font-size: clamp(26px, 3.4vw, 38px);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin-top: 4px;
+    }
+
+    .titleblock {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(18px, 5vw, 72px);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .18));
+    }
+
+    .titleblock .sheet {
+      color: var(--amber);
+    }
+
+    .titleblock .center-track {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 16px;
+    }
+
+    .station {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--line);
+      border: 1px solid var(--line);
+      cursor: pointer;
+    }
+
+    .station.active {
+      background: var(--amber);
+      border-color: var(--amber);
+    }
+
+    .progress-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, .06);
+      z-index: 5;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--amber);
+      transition: width .5s cubic-bezier(.65, 0, .35, 1);
+    }
+
+    .navbtn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid var(--line);
+      color: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 6;
+      transition: background .2s, opacity .2s;
+      opacity: .7;
+    }
+
+    .navbtn:hover {
+      background: rgba(255, 255, 255, .12);
+      opacity: 1;
+    }
+
+    .navbtn:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 2px;
+    }
+
+    .navbtn.prev {
+      left: 14px;
+    }
+
+    .navbtn.next {
+      right: 14px;
+    }
+
+    @media (max-width:680px) {
+      .navbtn {
+        display: none;
+      }
+    }
+
+    .quote {
+      font-family: var(--display);
+      font-style: normal;
+      font-weight: 600;
+      font-size: clamp(18px, 2.6vw, 24px);
+      color: var(--paper);
+      line-height: 1.4;
+      border-left: 3px solid var(--amber);
+      padding-left: 18px;
+      max-width: 46ch;
+    }
+
+    .quote cite {
+      display: block;
+      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      font-style: normal;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .dark-note {
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 62ch;
+      line-height: 1.55;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slides {
+        transition: none;
+      }
+
+      .progress-fill {
+        transition: none;
+      }
+    }
+
+    @media (max-height:620px) {
+      .slide {
+        padding-top: 14px;
+        padding-bottom: 60px;
+      }
+
+      h1.slide-title {
+        font-size: clamp(22px, 4.4vw, 34px);
+      }
+    }
+
+    @media (max-width:760px) {
+      .grid4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="deck">
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <button class="navbtn prev" id="prevBtn" aria-label="Previous slide">&#8592;</button>
+    <button class="navbtn next" id="nextBtn" aria-label="Next slide">&#8594;</button>
+
+    <div class="slides" id="slides">
+
+      <!-- 1 : TITLE -->
+      <section class="slide title-slide">
+        <div class="course-code"><a href="../index.html">CSDV3017</a> &nbsp;·&nbsp; DEVOPS &nbsp;·&nbsp; SCHOOL OF
+          COMPUTER SCIENCE, UPES</div>
+        <h1>Monolith vs Microservices,<br>Cloud &amp; DevOps Resiliency</h1>
+        <p class="sub">Lecture 8 — how an application's architecture shapes the way a DevOps team builds, deploys, and
+          recovers it, and why the cloud changes the resiliency conversation.</p>
+        <div class="meta-row">
+          <div><b>Instructor</b>Dr. Mohsin Furkh Dar</div>
+          <div><b>Session</b>Week 3 · Tue, 23 Jun 2026</div>
+          <div><b>Time</b>12:00 – 13:00</div>
+          <div><b>Unit</b>Unit III</div>
+        </div>
+        <div class="vsline" style="margin-top:40px;">
+          <div class="vsnode done">I</div>
+          <div class="seg done"></div>
+          <div class="vsnode done">II</div>
+          <div class="seg done"></div>
+          <div class="vsnode now">III</div>
+          <div class="seg"></div>
+          <div class="vsnode">IV</div>
+          <div class="seg"></div>
+          <div class="vsnode">V</div>
+          <div class="seg"></div>
+          <div class="vsnode">VI</div>
+          <div class="seg"></div>
+          <div class="vsnode">VII</div>
+        </div>
+      </section>
+
+      <!-- 2 : RECAP + AGENDA -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WHERE WE LEFT OFF</div>
+        <h1 class="slide-title">Recap &amp; today's agenda</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Lecture 7 · Done</div>
+              <h3>DevOps Adoption, Lean &amp; Kaizen</h3>
+              <ul class="clean">
+                <li>DevOps adoption as a people–process–tech journey</li>
+                <li>Maturity path: crawl → walk → run</li>
+                <li>Lean thinking &amp; the 7 wastes (Muda)</li>
+                <li>Kaizen: continuous, incremental improvement</li>
+                <li>CALMS framework; common adoption challenges</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Lecture 8 · Today</div>
+              <h3>Architecture &amp; Resiliency</h3>
+              <ul class="clean">
+                <li>Monolithic vs microservices architecture</li>
+                <li>What "DevOps architecture" actually means</li>
+                <li>How deployment &amp; ownership change with architecture</li>
+                <li>Cloud-native resiliency: why it matters</li>
+                <li>Core resiliency patterns engineers rely on</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 : BRIDGE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE NEXT QUESTION</div>
+        <h1 class="slide-title">Adoption answered "how we work." Now: "what we're building."</h1>
+        <div class="slide-body">
+          <p class="quote">"The architecture of a system mirrors the communication structure of the organisation that
+            builds it."
+            <cite>— Conway's Law, still true in the cloud era</cite>
+          </p>
+          <p class="dark-note">A team's culture and pipeline only go so far if the application itself is built as one
+            giant, tightly coupled unit. Today we look at the two dominant shapes software takes — and how each one
+            changes the DevOps story.</p>
+        </div>
+      </section>
+
+      <!-- 4 : THE MONOLITH -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>ARCHITECTURE STYLE 1</div>
+        <h1 class="slide-title">The monolith</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <h3>One codebase, one deployable unit</h3>
+              <p>All modules — UI, business logic, data access — are built, tested, and deployed together as a single
+                artifact.</p>
+              <p style="margin-top:8px;">Simple to start, and for small teams or early-stage products, often the right
+                call.</p>
+            </div>
+            <div>
+              <div class="monolith">
+                <div class="layer"><b>UI Layer</b><span>web / mobile views</span></div>
+                <div class="layer"><b>Business Logic</b><span>orders, payments, users</span></div>
+                <div class="layer"><b>Data Access Layer</b><span>shared models</span></div>
+                <div class="layer"><b>Single Database</b><span>one schema</span></div>
+              </div>
+              <div class="monolith-label">ONE BUILD · ONE DEPLOY · ONE SCALING UNIT</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 : MONOLITH PROS/CONS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>TRADE-OFFS</div>
+        <h1 class="slide-title">Monolith: what you gain, what you give up</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Strengths</div>
+              <ul class="clean">
+                <li>Simple to develop, test, and deploy early on</li>
+                <li>Easy local debugging — everything runs in one process</li>
+                <li>No network latency between internal modules</li>
+                <li>One deployment pipeline to maintain</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Limitations</div>
+              <ul class="clean">
+                <li>One small change forces a full redeploy</li>
+                <li>Scaling means scaling the whole app, not just the busy part</li>
+                <li>Codebase grows harder to understand over time</li>
+                <li>A bug in one module can take the entire system down</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 : MICROSERVICES -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>ARCHITECTURE STYLE 2</div>
+        <h1 class="slide-title">Microservices</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <h3>Many small, independent services</h3>
+              <p>Each service owns one business capability — its own code, data, and deployment pipeline — and talks to
+                others over the network (APIs / events).</p>
+              <p style="margin-top:8px;">Teams can build, deploy, and scale each service on its own schedule.</p>
+            </div>
+            <div>
+              <div class="msnet">
+                <div class="msnode"><b>Users</b>service</div>
+                <div class="msnode"><b>Orders</b>service</div>
+                <div class="msnode"><b>Payments</b>service</div>
+                <div class="msnode"><b>Inventory</b>service</div>
+                <div class="msnode"><b>Notify</b>service</div>
+              </div>
+              <div class="msnet-label">EACH SERVICE: OWN CODE · OWN DATA · OWN DEPLOY</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 : MICROSERVICES PROS/CONS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>TRADE-OFFS</div>
+        <h1 class="slide-title">Microservices: what you gain, what you give up</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Strengths</div>
+              <ul class="clean">
+                <li>Each service deploys independently — faster releases</li>
+                <li>Scale only the services under real load</li>
+                <li>Teams can choose the best tech stack per service</li>
+                <li>A failure can be isolated to one service</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Limitations</div>
+              <ul class="clean">
+                <li>Distributed system complexity — network calls everywhere</li>
+                <li>Harder to debug and trace a request end-to-end</li>
+                <li>Needs strong DevOps maturity: CI/CD, monitoring, orchestration</li>
+                <li>Data consistency across services is genuinely hard</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 : COMPARISON TABLE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>SIDE BY SIDE</div>
+        <h1 class="slide-title">Monolith vs microservices, at a glance</h1>
+        <div class="slide-body">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Monolith</th>
+                <th>Microservices</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="lbl">Deployment</td>
+                <td>Single unit, all-or-nothing</td>
+                <td>Independent, per service</td>
+              </tr>
+              <tr>
+                <td class="lbl">Scaling</td>
+                <td>Scale the whole app</td>
+                <td>Scale only what needs it</td>
+              </tr>
+              <tr>
+                <td class="lbl">Team structure</td>
+                <td>One team, shared codebase</td>
+                <td>Small teams, one service each</td>
+              </tr>
+              <tr>
+                <td class="lbl">Fault isolation</td>
+                <td>One failure can affect all</td>
+                <td>Failures can stay contained</td>
+              </tr>
+              <tr>
+                <td class="lbl">Best fit</td>
+                <td>Small teams, early-stage products</td>
+                <td>Large, fast-growing, complex systems</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 9 : DEVOPS ARCHITECTURE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CONNECTING TO DEVOPS</div>
+        <h1 class="slide-title">What "DevOps architecture" means</h1>
+        <div class="slide-body">
+          <p class="dark-note">Architecture decides how DevOps gets practised day to day. The shape of the system sets
+            the shape of the pipeline, the ownership model, and even the on-call rotation.</p>
+          <div class="grid3">
+            <div class="card">
+              <div class="tag">Pipeline shape</div>
+              <h3>One pipeline vs many</h3>
+              <p>A monolith needs one CI/CD pipeline; microservices need one per service, often templated.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Ownership</div>
+              <h3>"You build it, you run it"</h3>
+              <p>Microservices push full lifecycle ownership onto the small team that built the service.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Observability</div>
+              <h3>Tracing across services</h3>
+              <p>Distributed systems need distributed tracing and centralised logging to stay debuggable.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 : CLOUD & RESILIENCY -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WHY THE CLOUD CHANGES THE GAME</div>
+        <h1 class="slide-title">Cloud &amp; DevOps resiliency</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <h3>What resiliency means here</h3>
+              <p>Resiliency is a system's ability to keep serving users — or recover quickly — when something inevitably
+                fails: a server, a network link, a dependency, even an entire data centre.</p>
+            </div>
+            <div class="card">
+              <h3>Why cloud makes it practical</h3>
+              <p>On-demand compute, managed load balancers, and multi-region infrastructure let teams design for failure
+                cheaply — something far harder to afford on fixed, on-premise hardware.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 : RESILIENCY PATTERNS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE TOOLKIT</div>
+        <h1 class="slide-title">Core resiliency patterns</h1>
+        <div class="slide-body">
+          <div class="grid4">
+            <div class="resil-item">
+              <div class="num">01</div>
+              <h4>Redundancy</h4>
+              <p>Run multiple instances so one failure isn't a service failure.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">02</div>
+              <h4>Auto-scaling</h4>
+              <p>Add or remove capacity automatically as demand changes.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">03</div>
+              <h4>Load balancing</h4>
+              <p>Spread traffic so no single instance is overwhelmed.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">04</div>
+              <h4>Health checks</h4>
+              <p>Continuously probe instances; remove unhealthy ones from rotation.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">05</div>
+              <h4>Circuit breakers</h4>
+              <p>Stop calling a failing dependency before it drags everything down.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">06</div>
+              <h4>Failover</h4>
+              <p>Automatically switch to a standby region or instance on failure.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">07</div>
+              <h4>Retries with backoff</h4>
+              <p>Retry transient failures intelligently, without overwhelming the system.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">08</div>
+              <h4>Graceful degradation</h4>
+              <p>Keep core features working even when a non-critical part fails.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 : ARCHITECTURE x RESILIENCY -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>PUTTING IT TOGETHER</div>
+        <h1 class="slide-title">Architecture choice shapes resiliency strategy</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Monolith</div>
+              <h3>Resiliency at the edges</h3>
+              <p>Typically resilient through redundant copies of the whole app behind a load balancer, plus a strong
+                database backup &amp; failover plan.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Microservices</div>
+              <h3>Resiliency built into the mesh</h3>
+              <p>Each service needs its own health checks, retries, and circuit breakers — resiliency becomes a property
+                of every connection, not just the perimeter.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 13 : DECISION FACTORS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CLASS DISCUSSION</div>
+        <h1 class="slide-title">So which one should you choose?</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Think it through</div>
+            <h3>There's no universally "better" architecture</h3>
+            <p>A two-person startup building an MVP and a large enterprise running a national e-commerce platform face
+              very different problems. Discuss: team size, expected scale, time-to-market pressure, and existing DevOps
+              maturity — which factors would push you toward a monolith, and which toward microservices?</p>
+          </div>
+          <div class="grid3">
+            <div class="card">
+              <div class="stat">01</div>
+              <div class="stat-label">Team size &amp; structure</div>
+            </div>
+            <div class="card">
+              <div class="stat">02</div>
+              <div class="stat-label">Expected scale &amp; growth</div>
+            </div>
+            <div class="card">
+              <div class="stat">03</div>
+              <div class="stat-label">Current DevOps maturity</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 14 : SUMMARY + NEXT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WRAP-UP</div>
+        <h1 class="slide-title">Today, in three lines</h1>
+        <div class="slide-body">
+          <div class="card">
+            <ul class="clean" style="font-size:clamp(14.5px,1.9vw,17px);">
+              <li>Monoliths are simple to start with but scale and deploy as one unit; microservices scale and deploy
+                independently but add distributed-systems complexity.</li>
+              <li>Architecture directly shapes your DevOps pipeline, ownership model, and observability needs.</li>
+              <li>Cloud infrastructure makes resiliency patterns — redundancy, auto-scaling, circuit breakers, failover
+                — practical and affordable.</li>
+            </ul>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Next lecture · Lecture 9</div>
+              <h3>Tue, 23 Jun 2026 · 14:00–15:00</h3>
+              <p>Resilience process: Detect, Alert, Respond, Refine.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Before next class</div>
+              <h3>Quick prep</h3>
+              <p>Think of an app you use daily — would you guess it's built as a monolith or microservices, and why?</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="titleblock">
+      <div>CSDV3017 · DEVOPS</div>
+      <div class="center-track" id="stationTrack"></div>
+      <div class="sheet" id="sheetCounter">SHEET 01/14</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slidesEl = document.getElementById('slides');
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      let current = 0;
+
+      const progressFill = document.getElementById('progressFill');
+      const sheetCounter = document.getElementById('sheetCounter');
+      const stationTrack = document.getElementById('stationTrack');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'station';
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('tabindex', '0');
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', () => go(i));
+        dot.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i); } });
+        stationTrack.appendChild(dot);
+      }
+      const dots = Array.from(stationTrack.children);
+
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+      function render() {
+        slidesEl.style.transform = 'translateX(' + (-current * 100) + '%)';
+        progressFill.style.width = ((current + 1) / total * 100) + '%';
+        sheetCounter.textContent = 'SHEET ' + pad(current + 1) + '/' + total;
+        dots.forEach((d, i) => d.classList.toggle('active', i === current));
+        prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+        nextBtn.style.visibility = current === total - 1 ? 'hidden' : 'visible';
+      }
+
+      function go(i) {
+        current = Math.max(0, Math.min(total - 1, i));
+        render();
+      }
+
+      prevBtn.addEventListener('click', () => go(current - 1));
+      nextBtn.addEventListener('click', () => go(current + 1));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') { go(current + 1); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(current - 1); }
+        else if (e.key === 'Home') { go(0); }
+        else if (e.key === 'End') { go(total - 1); }
+      });
+
+      let touchStartX = null, touchStartY = null;
+      slidesEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      slidesEl.addEventListener('touchend', (e) => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) go(current + 1); else go(current - 1);
+        }
+        touchStartX = null; touchStartY = null;
+      }, { passive: true });
+
+      render();
+    })();
+  </script>
+
+</body>
+
+</html>

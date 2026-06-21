@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CSDV3017 · Lecture 9 · Resilience Process — Detect, Alert, Respond, Refine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0E2235;
+      --bg-deep-2: #102A40;
+      --grid-line: rgba(255, 255, 255, 0.07);
+      --grid-line-strong: rgba(255, 255, 255, 0.14);
+      --paper: #F3EFE2;
+      --paper-2: #EAE4D2;
+      --ink: #16202B;
+      --ink-soft: #3C4A57;
+      --amber: #FF6A39;
+      --amber-deep: #D9501F;
+      --teal: #57C7B8;
+      --muted: #9FB4C7;
+      --line: #1D3A52;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'IBM Plex Sans', sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: var(--bg-deep);
+      font-family: var(--body);
+      color: var(--paper);
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(var(--grid-line-strong) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-strong) 1px, transparent 1px),
+        radial-gradient(ellipse at 20% -10%, var(--bg-deep-2), var(--bg-deep) 60%);
+      background-size: 16px 16px, 16px 16px, 96px 96px, 96px 96px, cover;
+      background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    #deck {
+      position: relative;
+      height: 100vh;
+      height: 100dvh;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .slides {
+      height: 100%;
+      width: 100%;
+      display: flex;
+      transition: transform .55s cubic-bezier(.65, 0, .35, 1);
+      will-change: transform;
+    }
+
+    .slide {
+      flex: 0 0 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: clamp(18px, 4vw, 56px) clamp(18px, 5vw, 72px) clamp(64px, 9vh, 96px);
+      overflow-y: auto;
+    }
+
+    .slide::before,
+    .slide::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--grid-line-strong);
+      opacity: .8;
+    }
+
+    .slide::before {
+      top: 14px;
+      left: 14px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .slide::after {
+      bottom: 70px;
+      right: 14px;
+      border-left: none;
+      border-top: none;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: clamp(11px, 1.4vw, 13px);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--teal);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .eyebrow .dash {
+      width: 22px;
+      height: 1px;
+      background: var(--teal);
+      display: inline-block;
+    }
+
+    h1.slide-title {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(28px, 5.4vw, 52px);
+      line-height: 1.06;
+      letter-spacing: -0.01em;
+      color: var(--paper);
+      margin-top: 14px;
+      max-width: 20ch;
+    }
+
+    .slide-body {
+      margin-top: clamp(18px, 3vh, 34px);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 4px;
+      padding: clamp(16px, 2.6vw, 26px) clamp(18px, 2.8vw, 30px);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, .35);
+      position: relative;
+    }
+
+    .card .tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--amber-deep);
+      font-weight: 600;
+    }
+
+    .card p,
+    .card li {
+      color: var(--ink-soft);
+      font-size: clamp(14px, 1.7vw, 17px);
+      line-height: 1.5;
+    }
+
+    .card h3 {
+      font-family: var(--display);
+      font-size: clamp(17px, 2.1vw, 21px);
+      color: var(--ink);
+      margin: 4px 0 8px;
+      font-weight: 600;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid2-loop {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width:760px) {
+
+      .grid2,
+      .grid3,
+      .grid4,
+      .grid2-loop {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    ul.clean {
+      list-style: none;
+    }
+
+    ul.clean li {
+      position: relative;
+      padding-left: 18px;
+      margin-bottom: 6px;
+    }
+
+    ul.clean li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .6em;
+      width: 6px;
+      height: 6px;
+      background: var(--amber);
+      border-radius: 1px;
+      transform: rotate(45deg);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--line);
+      color: var(--teal);
+      background: rgba(87, 199, 184, .06);
+    }
+
+    .title-slide {
+      justify-content: center;
+    }
+
+    .title-slide .course-code {
+      font-family: var(--mono);
+      color: var(--amber);
+      font-size: clamp(13px, 1.8vw, 16px);
+      letter-spacing: .12em;
+    }
+
+    .title-slide h1 {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(32px, 6.6vw, 62px);
+      line-height: 1.04;
+      margin-top: 18px;
+      max-width: 18ch;
+    }
+
+    .title-slide .sub {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: clamp(14px, 2vw, 18px);
+      max-width: 50ch;
+      line-height: 1.5;
+    }
+
+    .meta-row {
+      margin-top: 34px;
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .meta-row b {
+      color: var(--paper);
+      display: block;
+      font-size: 14px;
+      margin-bottom: 2px;
+      font-family: var(--body);
+      font-weight: 600;
+    }
+
+    .vsline {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .vsline .seg {
+      flex: 1;
+      height: 2px;
+      background: var(--line);
+      position: relative;
+    }
+
+    .vsline .seg.done {
+      background: var(--teal);
+    }
+
+    .vsnode {
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      background: var(--bg-deep-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .vsnode.done {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .vsnode.now {
+      border-color: var(--amber);
+      color: var(--amber);
+      box-shadow: 0 0 0 4px rgba(255, 106, 57, .16);
+    }
+
+    /* loop diagram labels */
+    .loopwrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .loop-svg {
+      width: 100%;
+      max-width: 340px;
+      height: auto;
+    }
+
+    .loop-caption {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-align: center;
+    }
+
+    .stagebar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .stagebar .step {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .05em;
+      padding: 5px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .stagebar .step.active {
+      border-color: var(--amber);
+      color: var(--amber);
+      background: rgba(255, 106, 57, .08);
+    }
+
+    .compare {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .compare th,
+    .compare td {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: clamp(12.5px, 1.6vw, 14.5px);
+    }
+
+    .compare th {
+      background: var(--paper-2);
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-size: 11px;
+      color: var(--ink-soft);
+    }
+
+    .compare td {
+      color: var(--ink);
+      border-top: 1px solid rgba(22, 32, 43, .1);
+    }
+
+    .compare td.lbl {
+      font-weight: 600;
+      color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: 11.5px;
+    }
+
+    .resil-item {
+      background: var(--paper);
+      border-radius: 4px;
+      padding: 12px 14px;
+      border-top: 3px solid var(--amber);
+    }
+
+    .resil-item .num {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber-deep);
+    }
+
+    .resil-item h4 {
+      font-family: var(--display);
+      font-size: 14.5px;
+      color: var(--ink);
+      margin: 2px 0 4px;
+    }
+
+    .resil-item p {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      line-height: 1.4;
+    }
+
+    .stat {
+      font-family: var(--display);
+      font-weight: 700;
+      color: var(--amber-deep);
+      font-size: clamp(24px, 3.2vw, 34px);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin-top: 4px;
+    }
+
+    .titleblock {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(18px, 5vw, 72px);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .18));
+    }
+
+    .titleblock .sheet {
+      color: var(--amber);
+    }
+
+    .titleblock .center-track {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 16px;
+    }
+
+    .station {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--line);
+      border: 1px solid var(--line);
+      cursor: pointer;
+    }
+
+    .station.active {
+      background: var(--amber);
+      border-color: var(--amber);
+    }
+
+    .progress-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, .06);
+      z-index: 5;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--amber);
+      transition: width .5s cubic-bezier(.65, 0, .35, 1);
+    }
+
+    .navbtn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid var(--line);
+      color: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 6;
+      transition: background .2s, opacity .2s;
+      opacity: .7;
+    }
+
+    .navbtn:hover {
+      background: rgba(255, 255, 255, .12);
+      opacity: 1;
+    }
+
+    .navbtn:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 2px;
+    }
+
+    .navbtn.prev {
+      left: 14px;
+    }
+
+    .navbtn.next {
+      right: 14px;
+    }
+
+    @media (max-width:680px) {
+      .navbtn {
+        display: none;
+      }
+    }
+
+    .quote {
+      font-family: var(--display);
+      font-style: normal;
+      font-weight: 600;
+      font-size: clamp(18px, 2.6vw, 24px);
+      color: var(--paper);
+      line-height: 1.4;
+      border-left: 3px solid var(--amber);
+      padding-left: 18px;
+      max-width: 46ch;
+    }
+
+    .quote cite {
+      display: block;
+      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      font-style: normal;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .dark-note {
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 62ch;
+      line-height: 1.55;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slides {
+        transition: none;
+      }
+
+      .progress-fill {
+        transition: none;
+      }
+    }
+
+    @media (max-height:620px) {
+      .slide {
+        padding-top: 14px;
+        padding-bottom: 60px;
+      }
+
+      h1.slide-title {
+        font-size: clamp(22px, 4.4vw, 34px);
+      }
+    }
+
+    @media (max-width:760px) {
+      .grid4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="deck">
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <button class="navbtn prev" id="prevBtn" aria-label="Previous slide">&#8592;</button>
+    <button class="navbtn next" id="nextBtn" aria-label="Next slide">&#8594;</button>
+
+    <div class="slides" id="slides">
+
+      <!-- 1 : TITLE -->
+      <section class="slide title-slide">
+        <div class="course-code"><a href="../index.html">CSDV3017</a> &nbsp;·&nbsp; DEVOPS &nbsp;·&nbsp; SCHOOL OF
+          COMPUTER SCIENCE, UPES</div>
+        <h1>The Resilience Process:<br>Detect, Alert, Respond, Refine</h1>
+        <p class="sub">Lecture 9 — turning the resiliency patterns from last class into a repeatable operational loop
+          that catches failure, reacts to it, and gets a little smarter every time.</p>
+        <div class="meta-row">
+          <div><b>Instructor</b>Dr. Mohsin Furkh Dar</div>
+          <div><b>Session</b>Week 3 · Tue, 23 Jun 2026</div>
+          <div><b>Time</b>14:00 – 15:00</div>
+          <div><b>Unit</b>Unit III</div>
+        </div>
+        <div class="vsline" style="margin-top:40px;">
+          <div class="vsnode done">I</div>
+          <div class="seg done"></div>
+          <div class="vsnode done">II</div>
+          <div class="seg done"></div>
+          <div class="vsnode now">III</div>
+          <div class="seg"></div>
+          <div class="vsnode">IV</div>
+          <div class="seg"></div>
+          <div class="vsnode">V</div>
+          <div class="seg"></div>
+          <div class="vsnode">VI</div>
+          <div class="seg"></div>
+          <div class="vsnode">VII</div>
+        </div>
+      </section>
+
+      <!-- 2 : RECAP + AGENDA -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WHERE WE LEFT OFF</div>
+        <h1 class="slide-title">Recap &amp; today's agenda</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Lecture 8 · Done</div>
+              <h3>Architecture &amp; Resiliency</h3>
+              <ul class="clean">
+                <li>Monolithic vs microservices architecture</li>
+                <li>How architecture shapes DevOps pipelines &amp; ownership</li>
+                <li>Resiliency patterns: redundancy, auto-scaling, circuit breakers...</li>
+                <li>Why cloud infrastructure makes resiliency affordable</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Lecture 9 · Today</div>
+              <h3>The Resilience Process</h3>
+              <ul class="clean">
+                <li>The four-stage loop: Detect → Alert → Respond → Refine</li>
+                <li>What happens, and which tools live, at each stage</li>
+                <li>Key metrics: MTTD, MTTA, MTTR, MTBF</li>
+                <li>Common pitfalls — and how the loop ties back to Kaizen</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 : BRIDGE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>FROM PATTERNS TO PROCESS</div>
+        <h1 class="slide-title">Patterns alone don't save you at 3 a.m.</h1>
+        <div class="slide-body">
+          <p class="quote">"Hope is not a strategy — but neither is a circuit breaker nobody is watching."
+            <cite>— why resiliency needs a process, not just patterns</cite>
+          </p>
+          <p class="dark-note">Redundancy and failover only help if a human — or an automated system — notices the
+            failure, reacts to it, and learns from it. That's exactly what the resilience process gives us.</p>
+        </div>
+      </section>
+
+      <!-- 4 : THE LOOP OVERVIEW -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE BIG PICTURE</div>
+        <h1 class="slide-title">A continuous loop, not a checklist</h1>
+        <div class="slide-body">
+          <div class="grid2-loop">
+            <div class="loopwrap">
+              <svg class="loop-svg" viewBox="0 0 400 380" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <marker id="arrow1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7"
+                    orient="auto-start-reverse">
+                    <path d="M0,0 L10,5 L0,10 z" fill="#9FB4C7" />
+                  </marker>
+                </defs>
+                <path d="M200,40 A130,130 0 0,1 330,170" fill="none" stroke="#9FB4C7" stroke-width="2"
+                  marker-end="url(#arrow1)" />
+                <path d="M330,170 A130,130 0 0,1 200,300" fill="none" stroke="#9FB4C7" stroke-width="2"
+                  marker-end="url(#arrow1)" />
+                <path d="M200,300 A130,130 0 0,1 70,170" fill="none" stroke="#9FB4C7" stroke-width="2"
+                  marker-end="url(#arrow1)" />
+                <path d="M70,170 A130,130 0 0,1 200,40" fill="none" stroke="#9FB4C7" stroke-width="2"
+                  marker-end="url(#arrow1)" />
+                <text x="200" y="175" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11"
+                  fill="#9FB4C7" letter-spacing="1">CONTINUOUS</text>
+                <text x="200" y="192" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11"
+                  fill="#9FB4C7" letter-spacing="1">RESILIENCE LOOP</text>
+                <circle cx="200" cy="40" r="34" fill="#F3EFE2" stroke="#FF6A39" stroke-width="3" />
+                <text x="200" y="45" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="700"
+                  font-size="14" fill="#16202B">Detect</text>
+                <circle cx="330" cy="170" r="34" fill="#F3EFE2" stroke="#57C7B8" stroke-width="3" />
+                <text x="330" y="175" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="700"
+                  font-size="14" fill="#16202B">Alert</text>
+                <circle cx="200" cy="300" r="34" fill="#F3EFE2" stroke="#57C7B8" stroke-width="3" />
+                <text x="200" y="305" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="700"
+                  font-size="14" fill="#16202B">Respond</text>
+                <circle cx="70" cy="170" r="34" fill="#F3EFE2" stroke="#57C7B8" stroke-width="3" />
+                <text x="70" y="175" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="700"
+                  font-size="14" fill="#16202B">Refine</text>
+              </svg>
+              <div class="loop-caption">EACH INCIDENT FEEDS THE NEXT CYCLE</div>
+            </div>
+            <div class="card">
+              <h3>Four stages, one purpose</h3>
+              <p>The resilience process is the operational habit that makes redundancy, failover and auto-scaling
+                actually work in practice — a loop a team runs every time something goes wrong, so the system gets
+                steadily harder to break.</p>
+              <ul class="clean" style="margin-top:10px;">
+                <li><b>Detect</b> — notice something is wrong</li>
+                <li><b>Alert</b> — get the right people informed, fast</li>
+                <li><b>Respond</b> — act to restore service</li>
+                <li><b>Refine</b> — learn, and close the gap for next time</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 : DETECT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>STAGE 1 OF 4</div>
+        <h1 class="slide-title">Detect — notice it before your users do</h1>
+        <div class="stagebar">
+          <span class="step active">1 · Detect</span><span class="step">2 · Alert</span><span class="step">3 ·
+            Respond</span><span class="step">4 · Refine</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <h3>What's happening here</h3>
+              <p>Continuous monitoring of metrics, logs, and traces watches for signs that something has drifted from
+                normal — latency spikes, error rates, failed health checks.</p>
+            </div>
+            <div class="card">
+              <h3>What good detection needs</h3>
+              <ul class="clean">
+                <li>Clear baselines — you must know "normal" to spot "wrong"</li>
+                <li>Metrics, logs, and distributed traces working together</li>
+                <li>Synthetic checks that test the user's actual journey</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 : ALERT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>STAGE 2 OF 4</div>
+        <h1 class="slide-title">Alert — get it to the right human, fast</h1>
+        <div class="stagebar">
+          <span class="step">1 · Detect</span><span class="step active">2 · Alert</span><span class="step">3 ·
+            Respond</span><span class="step">4 · Refine</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <h3>What's happening here</h3>
+              <p>A detected anomaly is turned into an alert: it's routed, prioritised, and pushed to whoever is on-call
+                — through chat, paging apps, or phone calls for the most severe cases.</p>
+            </div>
+            <div class="card">
+              <h3>What good alerting needs</h3>
+              <ul class="clean">
+                <li>Sensible thresholds — too sensitive causes alert fatigue</li>
+                <li>Clear severity levels, so urgency is obvious at a glance</li>
+                <li>A defined on-call rotation with backup escalation</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 : RESPOND -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>STAGE 3 OF 4</div>
+        <h1 class="slide-title">Respond — restore service, then breathe</h1>
+        <div class="stagebar">
+          <span class="step">1 · Detect</span><span class="step">2 · Alert</span><span class="step active">3 ·
+            Respond</span><span class="step">4 · Refine</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <h3>What's happening here</h3>
+              <p>The on-call engineer (or an automated system) acts to restore service — a rollback, a failover, a
+                restart, or a scripted remediation — guided by a runbook where one exists.</p>
+            </div>
+            <div class="card">
+              <h3>What good response needs</h3>
+              <ul class="clean">
+                <li>Runbooks for known failure modes, written before the fire</li>
+                <li>Automated remediation for the most common, well-understood issues</li>
+                <li>Calm, blameless communication while the incident is live</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 : REFINE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>STAGE 4 OF 4</div>
+        <h1 class="slide-title">Refine — close the loop</h1>
+        <div class="stagebar">
+          <span class="step">1 · Detect</span><span class="step">2 · Alert</span><span class="step">3 ·
+            Respond</span><span class="step active">4 · Refine</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <h3>What's happening here</h3>
+              <p>Once service is restored, the team runs a blameless postmortem: what failed, why detection or response
+                was slow, and what concrete change prevents a repeat.</p>
+            </div>
+            <div class="card">
+              <h3>This is Kaizen, applied to incidents</h3>
+              <p>Recall Lecture 7: Kaizen is continuous, incremental improvement made by the people doing the work.
+                Refine is that habit applied directly to reliability — every incident makes the system a little harder
+                to break next time.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 : TOOLS LANDSCAPE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE TOOLKIT</div>
+        <h1 class="slide-title">Tools, mapped to each stage</h1>
+        <div class="slide-body">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>Stage</th>
+                <th>Category</th>
+                <th>Example tools</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="lbl">Detect</td>
+                <td>Metrics, logs &amp; tracing</td>
+                <td>Prometheus, Grafana, ELK Stack, Datadog</td>
+              </tr>
+              <tr>
+                <td class="lbl">Alert</td>
+                <td>Paging &amp; notification</td>
+                <td>PagerDuty, Opsgenie, Slack/Teams integrations</td>
+              </tr>
+              <tr>
+                <td class="lbl">Respond</td>
+                <td>Runbooks &amp; automation</td>
+                <td>Ansible, scripted rollback, ChatOps bots</td>
+              </tr>
+              <tr>
+                <td class="lbl">Refine</td>
+                <td>Postmortem &amp; tracking</td>
+                <td>Shared incident docs, Jira/GitLab Tracker action items</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="dark-note">Tool names matter less than the discipline: each stage needs an owner, even if the "tool"
+            is a shared document.</p>
+        </div>
+      </section>
+
+      <!-- 10 : METRICS THAT MATTER -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>MEASURING THE LOOP</div>
+        <h1 class="slide-title">Metrics that matter</h1>
+        <div class="slide-body">
+          <div class="grid4">
+            <div class="resil-item">
+              <div class="num">MTTD</div>
+              <h4>Mean Time to Detect</h4>
+              <p>How long from failure starting to it being noticed.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">MTTA</div>
+              <h4>Mean Time to Acknowledge</h4>
+              <p>How long from alert firing to a human acknowledging it.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">MTTR</div>
+              <h4>Mean Time to Recover</h4>
+              <p>How long from failure to service being fully restored.</p>
+            </div>
+            <div class="resil-item">
+              <div class="num">MTBF</div>
+              <h4>Mean Time Between Failures</h4>
+              <p>How long, on average, the system runs before the next failure.</p>
+            </div>
+          </div>
+          <p class="dark-note">A healthy resilience process drives MTTD, MTTA and MTTR down over time — and pushes MTBF
+            up. That trend is the real evidence that "Refine" is working.</p>
+        </div>
+      </section>
+
+      <!-- 11 : PITFALLS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WHERE THE LOOP BREAKS</div>
+        <h1 class="slide-title">Common pitfalls</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Detect &amp; Alert</div>
+              <ul class="clean">
+                <li>Alert fatigue — too many low-value alerts, so real ones get ignored</li>
+                <li>No clear ownership — an alert fires, but nobody is sure whose job it is</li>
+                <li>Monitoring the server, not the user's actual experience</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Respond &amp; Refine</div>
+              <ul class="clean">
+                <li>No runbooks — every incident relearns the same lessons under pressure</li>
+                <li>Blame-driven postmortems that make people hide problems</li>
+                <li>Action items from postmortems that are written down and never done</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 : SCENARIO DISCUSSION -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CLASS DISCUSSION</div>
+        <h1 class="slide-title">Walk the loop on a real scenario</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Scenario</div>
+            <h3>Checkout service starts timing out at peak traffic</h3>
+            <p>A microservice from Lecture 8's "Orders" service starts timing out under heavy load. Walk through all
+              four stages: what would Detect catch first, who should Alert reach, what's a reasonable first Response,
+              and what's one concrete Refine action item for next sprint?</p>
+          </div>
+          <div class="grid4">
+            <div class="card">
+              <div class="stat">D</div>
+              <div class="stat-label">What signal fires first?</div>
+            </div>
+            <div class="card">
+              <div class="stat">A</div>
+              <div class="stat-label">Who gets paged?</div>
+            </div>
+            <div class="card">
+              <div class="stat">R</div>
+              <div class="stat-label">First safe action?</div>
+            </div>
+            <div class="card">
+              <div class="stat">R</div>
+              <div class="stat-label">One fix for next time?</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 13 : UNIT III SO FAR -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>UNIT III, SO FAR</div>
+        <h1 class="slide-title">How today connects back</h1>
+        <div class="slide-body">
+          <div class="grid3">
+            <div class="card">
+              <div class="tag">Lecture 7</div>
+              <h3>Adoption &amp; Kaizen</h3>
+              <p>Refine is Kaizen applied directly to incidents — small, continuous fixes after every failure.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Lecture 8</div>
+              <h3>Architecture &amp; Resiliency</h3>
+              <p>Redundancy, circuit breakers and failover are the raw material the Respond stage actually uses.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Lecture 9</div>
+              <h3>The Resilience Process</h3>
+              <p>The operational loop that makes all of the above real, every single day, on call.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 14 : SUMMARY + NEXT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WRAP-UP</div>
+        <h1 class="slide-title">Today, in three lines</h1>
+        <div class="slide-body">
+          <div class="card">
+            <ul class="clean" style="font-size:clamp(14.5px,1.9vw,17px);">
+              <li>Resilience is a loop — Detect, Alert, Respond, Refine — not a one-time setup.</li>
+              <li>Each stage needs clear ownership, the right tooling, and a defined process — not just good intentions.
+              </li>
+              <li>MTTD, MTTA, MTTR and MTBF tell you if the loop is actually improving over time.</li>
+            </ul>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Next lecture · Lecture 10</div>
+              <h3>Mon, 29 Jun 2026 · 14:00–15:00 · Unit IV</h3>
+              <p>DevOps principles; Version Control (SVN, Git, GitHub); Gitflow workflow; CI with GitHub Actions.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Before next class</div>
+              <h3>Quick prep</h3>
+              <p>Think of a time something broke and nobody noticed right away — which stage of this loop was missing?
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="titleblock">
+      <div>CSDV3017 · DEVOPS</div>
+      <div class="center-track" id="stationTrack"></div>
+      <div class="sheet" id="sheetCounter">SHEET 01/14</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slidesEl = document.getElementById('slides');
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      let current = 0;
+
+      const progressFill = document.getElementById('progressFill');
+      const sheetCounter = document.getElementById('sheetCounter');
+      const stationTrack = document.getElementById('stationTrack');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'station';
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('tabindex', '0');
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', () => go(i));
+        dot.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i); } });
+        stationTrack.appendChild(dot);
+      }
+      const dots = Array.from(stationTrack.children);
+
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+      function render() {
+        slidesEl.style.transform = 'translateX(' + (-current * 100) + '%)';
+        progressFill.style.width = ((current + 1) / total * 100) + '%';
+        sheetCounter.textContent = 'SHEET ' + pad(current + 1) + '/' + total;
+        dots.forEach((d, i) => d.classList.toggle('active', i === current));
+        prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+        nextBtn.style.visibility = current === total - 1 ? 'hidden' : 'visible';
+      }
+
+      function go(i) {
+        current = Math.max(0, Math.min(total - 1, i));
+        render();
+      }
+
+      prevBtn.addEventListener('click', () => go(current - 1));
+      nextBtn.addEventListener('click', () => go(current + 1));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') { go(current + 1); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(current - 1); }
+        else if (e.key === 'Home') { go(0); }
+        else if (e.key === 'End') { go(total - 1); }
+      });
+
+      let touchStartX = null, touchStartY = null;
+      slidesEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      slidesEl.addEventListener('touchend', (e) => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) go(current + 1); else go(current - 1);
+        }
+        touchStartX = null; touchStartY = null;
+      }, { passive: true });
+
+      render();
+    })();
+  </script>
+
+</body>
+
+</html>

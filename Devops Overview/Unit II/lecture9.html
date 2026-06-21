@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 9 – CAMS: Culture & Automation; Test-Driven Development</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap');
+
+    :root {
+      --ink: #0D1B2A;
+      --sky: #1C6EA4;
+      --sky-lt: #E8F4FD;
+      --teal: #00897B;
+      --teal-lt: #E0F2F1;
+      --amber: #F59E0B;
+      --amber-lt: #FEF3C7;
+      --coral: #E53E3E;
+      --coral-lt: #FFF5F5;
+      --slate: #4A5568;
+      --mist: #F7F9FC;
+      --white: #FFFFFF;
+      --border: #D1E3F0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0D1B2A;
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── NAV BAR ─────────────────────────────────────── */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(13, 27, 42, 0.97);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(28, 110, 164, 0.4);
+    }
+
+    .navbar-brand {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--sky);
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+    }
+
+    .navbar-brand span {
+      display: block;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 400;
+      font-size: 0.68rem;
+    }
+
+    .slide-counter {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+      background: rgba(28, 110, 164, 0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .nav-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.25s;
+      border: none;
+    }
+
+    .dot.active {
+      background: var(--sky);
+      transform: scale(1.3);
+    }
+
+    /* ── SLIDE CONTAINER ─────────────────────────────── */
+    .slides-wrapper {
+      padding-top: 64px;
+      min-height: 100vh;
+    }
+
+    .slide {
+      display: none;
+      min-height: calc(100vh - 64px);
+      padding: 32px 24px 80px;
+      max-width: 960px;
+      margin: 0 auto;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── BOTTOM NAV ───────────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(13, 27, 42, 0.97);
+      border-top: 1px solid rgba(28, 110, 164, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      gap: 12px;
+    }
+
+    .btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-prev {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-prev:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-next {
+      background: var(--sky);
+      color: #fff;
+    }
+
+    .btn-next:hover {
+      background: #155d8e;
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    /* ── SLIDE COMPONENTS ────────────────────────────── */
+
+    .eyebrow {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sky);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 2px;
+      background: var(--sky);
+      flex-shrink: 0;
+    }
+
+    .h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.3rem, 3.5vw, 2rem);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    .h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .lead {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.65);
+      line-height: 1.65;
+      max-width: 560px;
+    }
+
+    .body-text {
+      font-size: 0.9rem;
+      color: var(--slate);
+      line-height: 1.7;
+    }
+
+    /* ── TITLE SLIDE ────────────────────────── */
+    .title-slide {
+      justify-content: center;
+      background: linear-gradient(135deg, #0D1B2A 0%, #12284A 60%, #0D3358 100%);
+      position: relative;
+      overflow: hidden;
+      min-height: calc(100vh - 64px);
+    }
+
+    .title-slide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 80% 40%, rgba(28, 110, 164, 0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(28, 110, 164, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(28, 110, 164, 0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .title-content {
+      position: relative;
+      z-index: 2;
+      padding: 40px 0 20px;
+    }
+
+    .course-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(28, 110, 164, 0.2);
+      border: 1px solid rgba(28, 110, 164, 0.4);
+      color: #78C0E0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+
+    .highlight {
+      color: #4FC3F7;
+    }
+
+    .title-meta {
+      margin-top: 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .meta-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.4;
+    }
+
+    .meta-chip strong {
+      display: block;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+
+    .agenda-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border-left: 3px solid var(--sky);
+      background: var(--sky-lt);
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .agenda-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--sky);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── CONTENT SLIDE BASE ─────────────────── */
+    .content-slide {
+      background: var(--mist);
+      border-radius: 16px;
+      padding: 32px 28px;
+      flex: 1;
+    }
+
+    /* CARD GRID */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px 16px;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 16px rgba(28, 110, 164, 0.12);
+    }
+
+    .card-icon {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .card-body {
+      font-size: 0.82rem;
+      color: var(--slate);
+      line-height: 1.6;
+    }
+
+    /* HIGHLIGHT BOX */
+    .highlight-box {
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin: 16px 0;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .hb-sky {
+      background: var(--sky-lt);
+      border-left: 4px solid var(--sky);
+    }
+
+    .hb-teal {
+      background: var(--teal-lt);
+      border-left: 4px solid var(--teal);
+    }
+
+    .hb-amber {
+      background: var(--amber-lt);
+      border-left: 4px solid var(--amber);
+    }
+
+    .hb-coral {
+      background: var(--coral-lt);
+      border-left: 4px solid var(--coral);
+    }
+
+    .hb-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .hb-text {
+      font-size: 0.86rem;
+      color: var(--slate);
+      line-height: 1.65;
+    }
+
+    .hb-text strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* TWO-COL */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 580px) {
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .col-panel {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 18px 16px;
+    }
+
+    .col-panel-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .sky-label {
+      color: var(--sky);
+    }
+
+    .teal-label {
+      color: var(--teal);
+    }
+
+    .coral-label {
+      color: var(--coral);
+    }
+
+    .amber-label {
+      color: var(--amber);
+    }
+
+    .bullet-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .bullet-list li {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 0.83rem;
+      color: var(--slate);
+      line-height: 1.6;
+      padding: 5px 0;
+      border-bottom: 1px solid #F0F4F8;
+    }
+
+    .bullet-list li:last-child {
+      border-bottom: none;
+    }
+
+    .bullet-list li::before {
+      content: '▸';
+      color: var(--sky);
+      font-size: 0.7rem;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .bullet-list.teal li::before {
+      color: var(--teal);
+    }
+
+    .bullet-list.coral li::before {
+      color: var(--coral);
+    }
+
+    /* TIMELINE */
+    .timeline {
+      position: relative;
+      margin-top: 20px;
+      padding-left: 0;
+    }
+
+    .tl-item {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+
+    .tl-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--sky);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .tl-dot.teal {
+      background: var(--teal);
+    }
+
+    .tl-dot.amber {
+      background: var(--amber);
+    }
+
+    .tl-dot.coral {
+      background: var(--coral);
+    }
+
+    .tl-content {
+      flex: 1;
+    }
+
+    .tl-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+
+    .tl-desc {
+      font-size: 0.8rem;
+      color: var(--slate);
+      line-height: 1.55;
+    }
+
+    /* COMPARISON TABLE */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.82rem;
+    }
+
+    .comp-table th {
+      background: var(--ink);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .comp-table th:first-child {
+      border-radius: 8px 0 0 0;
+      width: 28%;
+    }
+
+    .comp-table th:last-child {
+      border-radius: 0 8px 0 0;
+    }
+
+    .comp-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--slate);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .comp-table tr:nth-child(even) td {
+      background: var(--sky-lt);
+    }
+
+    .comp-table td:first-child {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* STAT CARDS */
+    .stat-row {
+      display: flex;
+      gap: 14px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 130px;
+      background: var(--ink);
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #4FC3F7;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    /* PIPELINE */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin: 20px 0;
+    }
+
+    .pipe-step {
+      background: var(--sky);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      position: relative;
+      flex: 1;
+      text-align: center;
+      min-width: 80px;
+      margin: 2px 0;
+    }
+
+    .pipe-step:first-child {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .pipe-step.teal {
+      background: var(--teal);
+    }
+
+    .pipe-step.amber {
+      background: var(--amber);
+      color: var(--ink);
+    }
+
+    .pipe-step.coral {
+      background: var(--coral);
+    }
+
+    .pipe-step.purple {
+      background: #7E57C2;
+    }
+
+    .pipe-step span {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 400;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 480px) {
+      .pipeline {
+        flex-direction: column;
+      }
+
+      .pipe-step {
+        border-radius: 0 !important;
+        text-align: left;
+        padding-left: 20px;
+      }
+
+      .pipe-step:first-child {
+        border-radius: 8px 8px 0 0 !important;
+      }
+
+      .pipe-step:last-child {
+        border-radius: 0 0 8px 8px !important;
+      }
+    }
+
+    /* BIG QUOTE */
+    .big-quote {
+      background: var(--ink);
+      border-radius: 14px;
+      padding: 28px 24px;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .big-quote::before {
+      content: '"';
+      font-family: Georgia, serif;
+      font-size: 6rem;
+      color: rgba(28, 110, 164, 0.3);
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      line-height: 1;
+    }
+
+    .big-quote p {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+      color: #fff;
+      line-height: 1.55;
+      position: relative;
+      z-index: 1;
+      padding-left: 12px;
+    }
+
+    .big-quote cite {
+      display: block;
+      margin-top: 12px;
+      padding-left: 12px;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-style: normal;
+      letter-spacing: 0.04em;
+    }
+
+    /* KEY TAKEAWAY BANNER */
+    .takeaway {
+      background: linear-gradient(135deg, #0D1B2A, #12284A);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-top: 20px;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .takeaway-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+
+    .takeaway p {
+      font-size: 0.88rem;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.65;
+    }
+
+    /* SUMMARY SLIDE */
+    .summary-slide {
+      background: linear-gradient(135deg, #0D1B2A 0%, #0D3358 100%);
+      border-radius: 16px;
+      padding: 32px 28px;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-slide::after {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      right: -40px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(rgba(28, 110, 164, 0.2), transparent 70%);
+    }
+
+    .summary-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .summary-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(28, 110, 164, 0.25);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .summary-item .si-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--sky);
+      flex-shrink: 0;
+      line-height: 1.2;
+    }
+
+    .summary-item .si-text {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.55;
+    }
+
+    .summary-item .si-text strong {
+      color: #fff;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* PROGRESS BAR */
+    .progress-bar-wrap {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      position: fixed;
+      top: 54px;
+      left: 0;
+      right: 0;
+      z-index: 101;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--sky);
+      transition: width 0.35s ease;
+    }
+
+    /* CODE BLOCK */
+    .code-block {
+      background: #0D1B2A;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 12px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem;
+      color: #B8E0FF;
+      overflow-x: auto;
+      line-height: 1.6;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .code-block .cm {
+      color: #6B8CAE;
+    }
+
+    .code-block .kw {
+      color: #F59E0B;
+    }
+
+    .code-block .str {
+      color: #81C995;
+    }
+
+    .code-block .fn {
+      color: #82AAFF;
+    }
+
+    /* CAMS pillar focus box */
+    .pillar-focus {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--ink);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin: 16px 0;
+    }
+
+    .pillar-focus-icon {
+      font-size: 2.4rem;
+      flex-shrink: 0;
+    }
+
+    .pillar-focus-text {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.6;
+    }
+
+    .pillar-focus-text strong {
+      color: #fff;
+    }
+
+    /* TDD CYCLE */
+    .tdd-cycle {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0;
+      margin: 24px 0;
+      flex-wrap: wrap;
+    }
+
+    .tdd-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .tdd-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .tdd-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .tdd-sub {
+      font-size: 0.68rem;
+      color: var(--slate);
+      text-align: center;
+      max-width: 110px;
+    }
+
+    .tdd-arrow {
+      font-size: 1.4rem;
+      color: var(--border);
+      flex-shrink: 0;
+      padding: 0 4px;
+    }
+
+    @media (max-width: 600px) {
+      .tdd-cycle {
+        flex-direction: column;
+      }
+
+      .tdd-arrow {
+        transform: rotate(90deg);
+      }
+    }
+
+    /* Ensure slides fill properly on mobile */
+    @media (max-width: 600px) {
+      .slide {
+        padding: 16px 12px 80px;
+      }
+
+      .content-slide {
+        padding: 20px 16px;
+      }
+
+      .summary-slide {
+        padding: 20px 16px;
+      }
+
+      .code-block {
+        font-size: 0.65rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV BAR -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a href="../index.html" id="course-label" style="text-decoration: none;">
+        <strong>DevOps Overview</strong>
+        CSDV3016P/3017
+        BTech CSE Sem V · UPES Dehradun
+      </a>
+    </div>
+    <div class="nav-dots" id="navDots"></div>
+    <div class="slide-counter" id="slideCounter">1 / 14</div>
+  </nav>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill"></div>
+  </div>
+
+  <!-- SLIDES -->
+  <div class="slides-wrapper">
+
+    <!-- ══ SLIDE 1: TITLE ══════════════════════════════════════ -->
+    <div class="slide title-slide active" id="slide-1">
+      <div class="grid-bg"></div>
+      <div class="title-content">
+        <div class="course-badge">📚 Week 3 · Unit II · Lecture 9</div>
+        <div class="h1">CAMS — <span class="highlight">Culture</span> &<br>Automation; TDD</div>
+        <p class="lead">Going back to the foundations: why DevOps starts with people, not pipelines — and how
+          Test-Driven Development builds quality in from the very first line of code.</p>
+        <div class="title-meta">
+          <div class="meta-chip"><strong>Dr. Mohsin Furkh Dar</strong>School of Computer Sciences</div>
+          <div class="meta-chip"><strong>Date</strong>Tue, 23 Jun 2026 · 9:00 – 10:00 AM</div>
+          <div class="meta-chip"><strong>Programme</strong>BTech CSE – 5th / 6th Semester</div>
+        </div>
+
+        <div style="margin-top:28px;">
+          <div
+            style="font-family:'Space Grotesk',sans-serif; font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:12px;">
+            Today's Agenda</div>
+          <div class="agenda-row">
+            <div class="agenda-num">1</div>Recap — CI/CD & the Maturity Ladder
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">2</div>CAMS Revisited — Why We Return to Culture
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">3</div>Culture — Blameless, Collaborative, Shared Ownership
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">4</div>Automation — What, Why, and What NOT to Automate
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">5</div>Test-Driven Development (TDD) — Red, Green, Refactor
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">6</div>TDD in Practice — Benefits, Pitfalls & a Worked Example
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 2: RECAP ══════════════════════════════════════ -->
+    <div class="slide" id="slide-2">
+      <div class="content-slide">
+        <div class="eyebrow">Recap</div>
+        <div class="h2">Where We Left Off</div>
+        <div class="highlight-box hb-sky">
+          <div class="hb-icon">✅</div>
+          <div class="hb-text"><strong>Lecture 8:</strong> We studied Continuous Integration (frequent, tested merges)
+            and Continuous Delivery (always-releasable builds), along with the CI/CD maturity ladder: No Automation → CI
+            → Continuous Delivery → Continuous Deployment.</div>
+        </div>
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">🎯</div>
+          <div class="hb-text"><strong>Today:</strong> CI/CD pipelines are <em>automation</em> — but automation alone
+            doesn't make DevOps work. We return to the first letter of <strong>CAMS</strong> — <strong>Culture</strong>
+            — and pair it with <strong>Automation</strong>, then connect both to a concrete engineering practice:
+            <strong>Test-Driven Development (TDD)</strong>.</div>
+        </div>
+        <div class="two-col" style="margin-top:16px;">
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">Quick Reminder: CAMS</div>
+            <ul class="bullet-list">
+              <li><strong>C</strong>ulture — people &amp; mindset</li>
+              <li><strong>A</strong>utomation — tools &amp; pipelines</li>
+              <li><strong>M</strong>easurement — metrics &amp; data</li>
+              <li><strong>S</strong>haring — knowledge &amp; feedback</li>
+            </ul>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title teal-label">Why C and A Together Today</div>
+            <ul class="bullet-list teal">
+              <li>Automation without the right culture creates resentment, not adoption</li>
+              <li>Culture without automation stays a nice idea with no teeth</li>
+              <li>TDD is where both meet — a cultural discipline, enacted through automated tests</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 3: WHY CULTURE FIRST ═════════════════════════ -->
+    <div class="slide" id="slide-3">
+      <div class="content-slide">
+        <div class="eyebrow">Foundations</div>
+        <div class="h2">Why Culture Comes Before Tools</div>
+
+        <div class="pillar-focus">
+          <div class="pillar-focus-icon">🎭</div>
+          <div class="pillar-focus-text"><strong>Culture is the "C" in CAMS</strong> — and it's deliberately listed
+            first. You can buy every CI/CD tool on the market and still fail at DevOps if teams don't trust each other,
+            hide failures, or refuse to share ownership of production.</div>
+        </div>
+
+        <div class="big-quote">
+          <p>You can't buy DevOps — it's not a product on a shelf. <strong style="color:#4FC3F7">DevOps is a
+              culture</strong>, and tools merely amplify the culture that's already there, good or bad.</p>
+          <cite>— Common DevOps community wisdom</cite>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">🛠️</span>
+            <div class="card-title">Tools Amplify, Not Create</div>
+            <div class="card-body">A great CI/CD pipeline in a blame-driven team just automates the speed at which
+              failures get pinned on someone.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🤝</span>
+            <div class="card-title">Trust Enables Speed</div>
+            <div class="card-body">Teams that trust each other ship faster — they spend less time on defensive
+              documentation, sign-offs, and CYA processes.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🌱</span>
+            <div class="card-title">Culture Is Learnable</div>
+            <div class="card-body">Unlike personality, team culture is a set of practiced behaviors — blameless retros,
+              shared on-call, open communication — that can be deliberately built.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 4: BLAMELESS CULTURE ═════════════════════════ -->
+    <div class="slide" id="slide-4">
+      <div class="content-slide">
+        <div class="eyebrow">Culture Deep Dive</div>
+        <div class="h2">Building a Blameless, Collaborative Culture</div>
+        <p class="body-text" style="margin-bottom:16px;">DevOps culture rests on a few concrete, practiced behaviors —
+          not vague slogans about "teamwork."</p>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--coral);">
+            <div class="col-panel-title coral-label">🔥 Blame Culture (Avoid)</div>
+            <ul class="bullet-list coral">
+              <li>"Who broke the build?" as the first question after an incident</li>
+              <li>Developers hide mistakes out of fear</li>
+              <li>Postmortems become trials, not learning sessions</li>
+              <li>Ops and Dev blame each other for outages</li>
+              <li>People stop raising risks early to avoid being blamed later</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--teal);">
+            <div class="col-panel-title teal-label">✅ Blameless Culture (Build)</div>
+            <ul class="bullet-list teal">
+              <li>"What in our <em>system</em> allowed this to happen?" replaces "who did this?"</li>
+              <li>Mistakes are treated as data, not character flaws</li>
+              <li>Postmortems focus on process fixes, shared openly</li>
+              <li>Dev and Ops share on-call and incident response</li>
+              <li>Psychological safety lets people flag problems early</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-amber" style="margin-top:14px;">
+          <div class="hb-icon">💡</div>
+          <div class="hb-text"><strong>Key Insight:</strong> Blameless does not mean consequence-free. It means the
+            team's <em>first instinct</em> after a failure is to fix the system, not punish the person — because
+            punishing people for honest mistakes just teaches everyone to hide them next time.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 5: THREE WAYS OF DEVOPS CULTURE ═════════════ -->
+    <div class="slide" id="slide-5">
+      <div class="content-slide">
+        <div class="eyebrow">Framework</div>
+        <div class="h2">Gene Kim's "Three Ways" of DevOps</div>
+        <p class="body-text" style="margin-bottom:8px;">From <em>The Phoenix Project</em>, these three principles
+          describe the cultural and technical foundation of DevOps thinking.</p>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot">1</div>
+            <div class="tl-content">
+              <div class="tl-label">The First Way — Flow</div>
+              <div class="tl-desc">Optimize the entire system, not just one team's part of it. Work should flow
+                left-to-right (Dev → Ops → Customer) fast, visibly, and without being thrown "over the wall."</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot teal">2</div>
+            <div class="tl-content">
+              <div class="tl-label">The Second Way — Feedback</div>
+              <div class="tl-desc">Create fast, constant feedback loops right-to-left (Customer → Ops → Dev) so problems
+                are caught and fixed as close to their source as possible.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot amber">3</div>
+            <div class="tl-content">
+              <div class="tl-label">The Third Way — Continuous Learning</div>
+              <div class="tl-desc">Build a culture that encourages experimentation, takes risks, and learns from failure
+                through repetition and practice — turning every incident into organizational knowledge.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-sky" style="margin-top:14px;">
+          <div class="hb-icon">📌</div>
+          <div class="hb-text"><strong>Connecting back:</strong> CI/CD (Lecture 8) is the technical engine of "Flow."
+            Monitoring and metrics support "Feedback." Blameless postmortems and TDD support "Continuous Learning."
+            Culture and tools work as one system.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 6: WHAT IS AUTOMATION ═══════════════════════ -->
+    <div class="slide" id="slide-6">
+      <div class="content-slide">
+        <div class="eyebrow">Pillar Deep Dive</div>
+        <div class="h2">Automation — The "A" in CAMS</div>
+
+        <div class="pillar-focus">
+          <div class="pillar-focus-icon">🤖</div>
+          <div class="pillar-focus-text"><strong>Automation</strong> means removing manual, repetitive human steps from
+            the software delivery process — replacing them with reliable, repeatable, machine-executed processes.</div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">🔁</span>
+            <div class="card-title">Consistency</div>
+            <div class="card-body">A script runs the exact same way every time. A human, even a careful one, introduces
+              variation and occasional error.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">⚡</span>
+            <div class="card-title">Speed</div>
+            <div class="card-body">Automated tasks (builds, tests, deployments) run in minutes — tasks that might take a
+              human hours to do manually and correctly.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🧠</span>
+            <div class="card-title">Frees Human Judgment</div>
+            <div class="card-body">Automating routine work frees engineers to focus on creative problem-solving,
+              architecture, and decisions that actually need human judgment.</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-teal" style="margin-top:14px;">
+          <div class="hb-icon">🔗</div>
+          <div class="hb-text"><strong>Connecting to Lecture 8:</strong> CI/CD pipelines (Jenkins, GitHub Actions) are
+            Automation in action. Today we ask the deeper question: <em>what should we automate, and what should we
+              deliberately keep human?</em></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 7: WHAT TO AUTOMATE ══════════════════════════ -->
+    <div class="slide" id="slide-7">
+      <div class="content-slide">
+        <div class="eyebrow">Decision Framework</div>
+        <div class="h2">What to Automate (and What Not To)</div>
+
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>Automate?</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Code Builds &amp; Compilation</td>
+              <td>✅ Always</td>
+              <td>Mechanical, repetitive, zero judgment required</td>
+            </tr>
+            <tr>
+              <td>Unit / Integration Testing</td>
+              <td>✅ Always</td>
+              <td>Must run identically and instantly on every change</td>
+            </tr>
+            <tr>
+              <td>Infrastructure Provisioning</td>
+              <td>✅ Mostly (IaC)</td>
+              <td>Consistency across environments; avoids "snowflake servers"</td>
+            </tr>
+            <tr>
+              <td>Routine Deployments</td>
+              <td>✅ Mostly</td>
+              <td>Reduces human error and deployment fatigue</td>
+            </tr>
+            <tr>
+              <td>Production Release Decision</td>
+              <td>⚠️ Context-dependent</td>
+              <td>Business risk tolerance decides Delivery vs Deployment</td>
+            </tr>
+            <tr>
+              <td>Incident Root-Cause Analysis</td>
+              <td>❌ Keep Human</td>
+              <td>Requires judgment, context, and creative diagnosis</td>
+            </tr>
+            <tr>
+              <td>Architecture &amp; Design Decisions</td>
+              <td>❌ Keep Human</td>
+              <td>Requires understanding trade-offs unique to the business</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="highlight-box hb-coral" style="margin-top:14px;">
+          <div class="hb-icon">⚠️</div>
+          <div class="hb-text"><strong>Common Mistake — "Automating Chaos":</strong> Automating a broken, undocumented
+            manual process just makes it fail faster and more consistently. Fix and standardize the process first,
+            <em>then</em> automate it.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 8: AUTOMATION + CULTURE INTERACT ════════════ -->
+    <div class="slide" id="slide-8">
+      <div class="content-slide">
+        <div class="eyebrow">Synthesis</div>
+        <div class="h2">How Culture and Automation Reinforce Each Other</div>
+
+        <div class="two-col">
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">Culture Enables Good Automation</div>
+            <ul class="bullet-list">
+              <li>Trust lets teams automate deployments without fear of being blamed for failures</li>
+              <li>Shared ownership means everyone maintains the automation, not just one "DevOps person"</li>
+              <li>Psychological safety lets engineers admit when automation itself is broken</li>
+            </ul>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title teal-label">Automation Reinforces Good Culture</div>
+            <ul class="bullet-list teal">
+              <li>Removes the human bottleneck that often becomes a blame target</li>
+              <li>Makes processes transparent and visible to the whole team — no tribal knowledge</li>
+              <li>Frees time for collaboration instead of repetitive manual toil</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">🎯 Bottom Line</div>
+          <p>Culture and Automation are not sequential steps — they are a <strong>feedback loop</strong>. Good culture
+            makes teams willing to invest in automation; good automation removes the friction and blame that erode
+            culture. CAMS works because its pillars reinforce one another.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 9: INTRO TO TDD ══════════════════════════════ -->
+    <div class="slide" id="slide-9">
+      <div class="content-slide">
+        <div class="eyebrow">New Topic</div>
+        <div class="h2">What Is Test-Driven Development (TDD)?</div>
+
+        <div class="big-quote">
+          <p>Test-Driven Development is a software practice where you <strong style="color:#4FC3F7">write the test
+              before you write the code</strong> that makes it pass — letting tests drive the design of your
+            implementation.</p>
+          <cite>— Kent Beck, creator of TDD &amp; Extreme Programming (XP)</cite>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">📝</span>
+            <div class="card-title">Test First, Code Second</div>
+            <div class="card-body">You write a failing automated test that describes the behavior you want, before any
+              implementation exists.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🎯</span>
+            <div class="card-title">Design by Intent</div>
+            <div class="card-body">Writing the test first forces you to think about the interface and expected behavior
+              before getting lost in implementation details.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🔗</span>
+            <div class="card-title">The Cultural Link</div>
+            <div class="card-body">TDD is where Culture meets Automation: a disciplined team habit (Culture), enforced
+              through automated test suites (Automation) that feed directly into CI (Lecture 8).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 10: RED GREEN REFACTOR ══════════════════════ -->
+    <div class="slide" id="slide-10">
+      <div class="content-slide">
+        <div class="eyebrow">Core Cycle</div>
+        <div class="h2">The Red–Green–Refactor Cycle</div>
+        <p class="body-text" style="margin-bottom:8px;">TDD follows a short, disciplined, repeating cycle — typically
+          just minutes long per iteration.</p>
+
+        <div class="tdd-cycle">
+          <div class="tdd-node">
+            <div class="tdd-circle" style="background:var(--coral);">🔴</div>
+            <div class="tdd-label">RED</div>
+            <div class="tdd-sub">Write a failing test for behavior that doesn't exist yet</div>
+          </div>
+          <div class="tdd-arrow">→</div>
+          <div class="tdd-node">
+            <div class="tdd-circle" style="background:#2E7D32;">🟢</div>
+            <div class="tdd-label">GREEN</div>
+            <div class="tdd-sub">Write the simplest code that makes the test pass</div>
+          </div>
+          <div class="tdd-arrow">→</div>
+          <div class="tdd-node">
+            <div class="tdd-circle" style="background:var(--sky);">🔵</div>
+            <div class="tdd-label">REFACTOR</div>
+            <div class="tdd-sub">Clean up the code while keeping all tests passing</div>
+          </div>
+          <div class="tdd-arrow" style="transform: rotate(180deg);">↻</div>
+        </div>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot coral">🔴</div>
+            <div class="tl-content">
+              <div class="tl-label">Red — Write a Failing Test</div>
+              <div class="tl-desc">Write the smallest possible test for a new piece of behavior. Run it — it should fail
+                (since the code doesn't exist yet). This confirms the test is actually testing something.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:#2E7D32;">🟢</div>
+            <div class="tl-content">
+              <div class="tl-label">Green — Make It Pass</div>
+              <div class="tl-desc">Write the minimum amount of code needed to make the test pass — no more. Don't worry
+                about elegance yet; just get to green.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot teal">🔵</div>
+            <div class="tl-content">
+              <div class="tl-label">Refactor — Clean It Up</div>
+              <div class="tl-desc">Now improve the code's structure, naming, and design — removing duplication — while
+                continuously re-running tests to ensure nothing breaks.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 11: TDD WORKED EXAMPLE ═══════════════════════ -->
+    <div class="slide" id="slide-11">
+      <div class="content-slide">
+        <div class="eyebrow">Worked Example</div>
+        <div class="h2">TDD in Practice: A Simple Calculator Function</div>
+        <p class="body-text" style="margin-bottom:8px;">Goal: implement an <code>add(a, b)</code> function using TDD.
+        </p>
+
+        <div class="code-block">
+          <span class="cm">// STEP 1 — RED: write a failing test first</span>
+          <span class="fn">test</span>(<span class="str">'add(2, 3) should return 5'</span>, () => {
+          <span class="fn">expect</span>(<span class="fn">add</span>(2, 3)).<span class="fn">toBe</span>(5); <span
+            class="cm">// ❌ fails: add() doesn't exist</span>
+          });
+        </div>
+
+        <div class="code-block">
+          <span class="cm">// STEP 2 — GREEN: simplest code to pass</span>
+          <span class="kw">function</span> <span class="fn">add</span>(a, b) {
+          <span class="kw">return</span> 5; <span class="cm">// ✅ passes (hacky, but valid for now!)</span>
+          }
+        </div>
+
+        <div class="code-block">
+          <span class="cm">// STEP 2b — add a 2nd test to force a real implementation</span>
+          <span class="fn">test</span>(<span class="str">'add(10, 15) should return 25'</span>, () => {
+          <span class="fn">expect</span>(<span class="fn">add</span>(10, 15)).<span class="fn">toBe</span>(25); <span
+            class="cm">// ❌ fails with hardcoded "5"</span>
+          });
+
+          <span class="cm">// STEP 3 — REFACTOR: write the real, general implementation</span>
+          <span class="kw">function</span> <span class="fn">add</span>(a, b) {
+          <span class="kw">return</span> a + b; <span class="cm">// ✅ both tests now pass</span>
+          }
+        </div>
+
+        <div class="highlight-box hb-amber">
+          <div class="hb-icon">💡</div>
+          <div class="hb-text"><strong>Why the hardcoded "5" matters:</strong> It looks silly, but it illustrates TDD's
+            discipline — write only enough code to pass the current test. A second, different test then forces you
+            toward a genuinely correct, general solution.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 12: TDD BENEFITS & PITFALLS ═════════════════ -->
+    <div class="slide" id="slide-12">
+      <div class="content-slide">
+        <div class="eyebrow">Trade-offs</div>
+        <div class="h2">Benefits and Pitfalls of TDD</div>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--teal);">
+            <div class="col-panel-title teal-label">✅ Benefits</div>
+            <ul class="bullet-list teal">
+              <li>Built-in regression test suite — refactor fearlessly later</li>
+              <li>Forces clear thinking about requirements before coding</li>
+              <li>Naturally produces loosely-coupled, testable code</li>
+              <li>Feeds directly into CI pipelines (Lecture 8) — tests already exist for every commit</li>
+              <li>Serves as living documentation of expected behavior</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--coral);">
+            <div class="col-panel-title coral-label">⚠️ Pitfalls</div>
+            <ul class="bullet-list coral">
+              <li>Steep learning curve — takes practice to "think in tests"</li>
+              <li>Slower initial velocity while the habit is being built</li>
+              <li>Poorly-written tests can become brittle and slow teams down</li>
+              <li>Not well-suited to exploratory/throwaway prototyping code</li>
+              <li>Requires team-wide discipline — one developer skipping it weakens the whole suite</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-sky" style="margin-top:14px;">
+          <div class="hb-icon">📌</div>
+          <div class="hb-text"><strong>Where TDD fits in CAMS:</strong> TDD is a <em>cultural habit</em> (discipline,
+            team agreement) made real through <em>automation</em> (the test suite that runs in CI). It directly produces
+            the "self-testing build" practice we discussed in Lecture 8.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 13: MISCONCEPTIONS ════════════════════════════ -->
+    <div class="slide" id="slide-13">
+      <div class="content-slide">
+        <div class="eyebrow">Clarifications</div>
+        <div class="h2">Common Misconceptions</div>
+
+        <div class="highlight-box hb-coral">
+          <div class="hb-icon">❌</div>
+          <div class="hb-text"><strong>"TDD means writing all tests upfront, then all code"</strong> — False. TDD is a
+            tight, iterative micro-cycle — one small test, then one small piece of code, repeated continuously, not a
+            big upfront test-writing phase.</div>
+        </div>
+        <div class="highlight-box hb-coral">
+          <div class="hb-icon">❌</div>
+          <div class="hb-text"><strong>"DevOps culture means no accountability"</strong> — False. Blameless culture
+            means focusing on systemic fixes over personal blame — it does not mean ignoring repeated negligence or
+            skipping retrospectives.</div>
+        </div>
+        <div class="highlight-box hb-coral">
+          <div class="hb-icon">❌</div>
+          <div class="hb-text"><strong>"Automate everything, as fast as possible"</strong> — False. Automating a broken
+            or undocumented process just produces broken results faster. Standardize first, then automate.</div>
+        </div>
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">✅</div>
+          <div class="hb-text"><strong>Good Practice:</strong> Build psychological safety and shared ownership
+            (Culture), automate consistent and well-understood processes (Automation), and use TDD's Red-Green-Refactor
+            cycle to bake quality into code from the start.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 14: SUMMARY ══════════════════════════════════ -->
+    <div class="slide" id="slide-14">
+      <div class="summary-slide">
+        <div class="eyebrow" style="color:#4FC3F7;">
+          <span
+            style="background:#4FC3F7; height:2px; width:24px; display:inline-block; margin-right:8px; vertical-align:middle;"></span>
+          Lecture Summary
+        </div>
+        <div class="h1" style="font-size:clamp(1.4rem, 4vw, 2.2rem); margin-bottom:8px;">Key Takeaways</div>
+        <p style="font-size:0.85rem; color:rgba(255,255,255,0.5); margin-bottom:4px;">Lecture 9 — CAMS: Culture &amp;
+          Automation; Test-Driven Development</p>
+
+        <div class="summary-list">
+          <div class="summary-item">
+            <div class="si-num">1</div>
+            <div class="si-text"><strong>Culture Comes First</strong>Tools amplify culture, good or bad. DevOps tooling
+              fails without trust, shared ownership, and blameless practices.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">2</div>
+            <div class="si-text"><strong>Blameless &#8800; Consequence-Free</strong>Focus first on fixing the system,
+              not punishing the person — this is what makes early problem-reporting safe.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">3</div>
+            <div class="si-text"><strong>Gene Kim's Three Ways</strong>Flow, Feedback, and Continuous Learning describe
+              the cultural-technical foundation of DevOps thinking.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">4</div>
+            <div class="si-text"><strong>Automate Deliberately</strong>Automate consistent, well-understood processes.
+              Keep judgment-heavy work — root cause analysis, architecture — human.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">5</div>
+            <div class="si-text"><strong>TDD: Red–Green–Refactor</strong>Write a failing test, write minimal code to
+              pass it, then refactor — repeating in short, disciplined cycles.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">6</div>
+            <div class="si-text"><strong>TDD = Culture + Automation</strong>A disciplined team habit, enforced by an
+              automated test suite that plugs directly into CI pipelines.</div>
+          </div>
+        </div>
+
+        <div
+          style="margin-top:24px; background:rgba(28,110,164,0.15); border:1px solid rgba(28,110,164,0.3); border-radius:12px; padding:16px 18px;">
+          <div
+            style="font-family:'Space Grotesk',sans-serif; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--amber); margin-bottom:8px;">
+            📚 Next Lecture</div>
+          <p style="font-size:0.85rem; color:rgba(255,255,255,0.75); line-height:1.6;"><strong
+              style="color:#fff;">Lecture 10 (Mon, 29 Jun): CAMS — Measurement &amp; Sharing; Configuration
+              Management</strong> — We'll complete the CAMS framework with Measurement and Sharing, then introduce
+            Configuration Management as the next building block of DevOps automation.</p>
+        </div>
+
+        <div style="margin-top:16px; text-align:center;">
+          <p style="font-size:0.75rem; color:rgba(255,255,255,0.3); letter-spacing:0.05em;">Dr. Mohsin Furkh Dar ·
+            School of Computer Sciences · UPES Dehradun</p>
+          <p style="font-size:0.72rem; color:rgba(255,255,255,0.2); margin-top:4px;">CSDV3016P / CSDV3017 · DevOps
+            Overview · Summer 2026</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end slides-wrapper -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="btn btn-prev" id="btnPrev" onclick="navigate(-1)">← Previous</button>
+    <div
+      style="font-family:'Space Grotesk',sans-serif; font-size:0.7rem; color:rgba(255,255,255,0.35); text-align:center; line-height:1.4; flex:1;"
+      id="slideTitle">Welcome &amp; Lecture Overview</div>
+    <button class="btn btn-next" id="btnNext" onclick="navigate(1)">Next →</button>
+  </nav>
+
+  <script>
+    const TOTAL = 14;
+    const TITLES = [
+      "Welcome & Lecture Overview",
+      "Recap — Where We Left Off",
+      "Why Culture Comes Before Tools",
+      "Building a Blameless, Collaborative Culture",
+      "Gene Kim's Three Ways of DevOps",
+      "Automation — The 'A' in CAMS",
+      "What to Automate (and What Not To)",
+      "How Culture and Automation Reinforce Each Other",
+      "What Is Test-Driven Development (TDD)?",
+      "The Red–Green–Refactor Cycle",
+      "TDD in Practice: A Worked Example",
+      "Benefits and Pitfalls of TDD",
+      "Common Misconceptions",
+      "Summary & Key Takeaways"
+    ];
+
+    let current = 1;
+
+    function buildDots() {
+      const wrap = document.getElementById('navDots');
+      for (let i = 1; i <= TOTAL; i++) {
+        const d = document.createElement('button');
+        d.className = 'dot' + (i === 1 ? ' active' : '');
+        d.title = TITLES[i - 1];
+        d.onclick = () => goTo(i);
+        wrap.appendChild(d);
+      }
+    }
+
+    function goTo(n) {
+      document.getElementById('slide-' + current).classList.remove('active');
+      document.querySelectorAll('.dot')[current - 1].classList.remove('active');
+      current = n;
+      document.getElementById('slide-' + current).classList.add('active');
+      document.querySelectorAll('.dot')[current - 1].classList.add('active');
+      document.getElementById('slideCounter').textContent = current + ' / ' + TOTAL;
+      document.getElementById('slideTitle').textContent = TITLES[current - 1];
+      document.getElementById('btnPrev').disabled = current === 1;
+      document.getElementById('btnNext').disabled = current === TOTAL;
+      document.getElementById('progressFill').style.width = ((current / TOTAL) * 100) + '%';
+      window.scrollTo(0, 0);
+    }
+
+    function navigate(dir) {
+      const next = current + dir;
+      if (next >= 1 && next <= TOTAL) goTo(next);
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+    });
+
+    // Touch/swipe
+    let touchStartX = 0;
+    document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+    }, { passive: true });
+
+    buildDots();
+    goTo(1);
+  </script>
+</body>
+
+</html>
