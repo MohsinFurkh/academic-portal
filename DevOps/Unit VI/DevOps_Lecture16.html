@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CSDV3017 · Lecture 16 · Build Process, Test Cases & Automation Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0E2235;
+      --bg-deep-2: #102A40;
+      --grid-line: rgba(255, 255, 255, 0.07);
+      --grid-line-strong: rgba(255, 255, 255, 0.14);
+      --paper: #F3EFE2;
+      --paper-2: #EAE4D2;
+      --ink: #16202B;
+      --ink-soft: #3C4A57;
+      --amber: #FF6A39;
+      --amber-deep: #D9501F;
+      --teal: #57C7B8;
+      --muted: #9FB4C7;
+      --line: #1D3A52;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'IBM Plex Sans', sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; background: var(--bg-deep); font-family: var(--body);
+      color: var(--paper); overflow: hidden; -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(var(--grid-line-strong) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-strong) 1px, transparent 1px),
+        radial-gradient(ellipse at 20% -10%, var(--bg-deep-2), var(--bg-deep) 60%);
+      background-size: 16px 16px, 16px 16px, 96px 96px, 96px 96px, cover;
+    }
+
+    button { font-family: inherit; cursor: pointer; }
+    a { color: inherit; }
+
+    #deck { position: relative; height: 100vh; height: 100dvh; width: 100%; overflow: hidden; }
+
+    .slides {
+      height: 100%; width: 100%; display: flex;
+      transition: transform .55s cubic-bezier(.65, 0, .35, 1); will-change: transform;
+    }
+
+    .slide {
+      flex: 0 0 100%; height: 100%; position: relative;
+      display: flex; flex-direction: column;
+      padding: clamp(18px,4vw,56px) clamp(18px,5vw,72px) clamp(64px,9vh,96px);
+      overflow-y: auto;
+    }
+
+    .slide::before, .slide::after {
+      content: ""; position: absolute; width: 18px; height: 18px;
+      border: 1.5px solid var(--grid-line-strong); opacity: .8;
+    }
+    .slide::before { top: 14px; left: 14px; border-right: none; border-bottom: none; }
+    .slide::after { bottom: 70px; right: 14px; border-left: none; border-top: none; }
+
+    .eyebrow {
+      font-family: var(--mono); font-size: clamp(11px,1.4vw,13px);
+      letter-spacing: .14em; text-transform: uppercase; color: var(--teal);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .eyebrow .dash { width: 22px; height: 1px; background: var(--teal); display: inline-block; }
+
+    h1.slide-title {
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(28px,5.4vw,52px); line-height: 1.06;
+      letter-spacing: -0.01em; color: var(--paper); margin-top: 14px; max-width: 20ch;
+    }
+
+    .slide-body {
+      margin-top: clamp(18px,3vh,34px); flex: 1;
+      display: flex; flex-direction: column; justify-content: center; gap: 18px;
+    }
+
+    .card {
+      background: var(--paper); color: var(--ink); border-radius: 4px;
+      padding: clamp(16px,2.6vw,26px) clamp(18px,2.8vw,30px);
+      box-shadow: 0 14px 34px rgba(0,0,0,.35); position: relative;
+    }
+    .card .tag {
+      font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--amber-deep); font-weight: 600;
+    }
+    .card p, .card li { color: var(--ink-soft); font-size: clamp(14px,1.7vw,17px); line-height: 1.5; }
+    .card h3 {
+      font-family: var(--display); font-size: clamp(17px,2.1vw,21px);
+      color: var(--ink); margin: 4px 0 8px; font-weight: 600;
+    }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    @media (max-width:760px) { .grid2, .grid3, .grid4 { grid-template-columns: 1fr; } }
+
+    ul.clean { list-style: none; }
+    ul.clean li { position: relative; padding-left: 18px; margin-bottom: 6px; }
+    ul.clean li::before {
+      content: ""; position: absolute; left: 0; top: .6em;
+      width: 6px; height: 6px; background: var(--amber); border-radius: 1px; transform: rotate(45deg);
+    }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 11.5px; padding: 4px 10px;
+      border-radius: 99px; border: 1px solid var(--line); color: var(--teal);
+      background: rgba(87,199,184,.06);
+    }
+
+    .title-slide { justify-content: center; }
+    .title-slide .course-code {
+      font-family: var(--mono); color: var(--amber);
+      font-size: clamp(13px,1.8vw,16px); letter-spacing: .12em;
+    }
+    .title-slide h1 {
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(32px,6.6vw,62px); line-height: 1.04; margin-top: 18px; max-width: 18ch;
+    }
+    .title-slide .sub {
+      margin-top: 18px; color: var(--muted);
+      font-size: clamp(14px,2vw,18px); max-width: 50ch; line-height: 1.5;
+    }
+
+    .meta-row {
+      margin-top: 34px; display: flex; gap: 28px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 12.5px; color: var(--muted);
+    }
+    .meta-row b {
+      color: var(--paper); display: block; font-size: 14px;
+      margin-bottom: 2px; font-family: var(--body); font-weight: 600;
+    }
+
+    .vsline { display: flex; align-items: center; width: 100%; margin-top: 10px; }
+    .vsline .seg { flex: 1; height: 2px; background: var(--line); }
+    .vsline .seg.done { background: var(--teal); }
+    .vsnode {
+      flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid var(--line); background: var(--bg-deep-2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+    }
+    .vsnode.done { border-color: var(--teal); color: var(--teal); }
+    .vsnode.now { border-color: var(--amber); color: var(--amber); box-shadow: 0 0 0 4px rgba(255,106,57,.16); }
+
+    .compare {
+      width: 100%; border-collapse: collapse; background: var(--paper);
+      border-radius: 4px; overflow: hidden;
+    }
+    .compare th, .compare td { padding: 10px 14px; text-align: left; font-size: clamp(12.5px,1.6vw,14.5px); }
+    .compare th {
+      background: var(--paper-2); font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .06em; font-size: 11px; color: var(--ink-soft);
+    }
+    .compare td { color: var(--ink); border-top: 1px solid rgba(22,32,43,.1); }
+    .compare td.lbl { font-weight: 600; color: var(--ink-soft); font-family: var(--mono); font-size: 11.5px; }
+
+    .quote {
+      font-family: var(--display); font-style: normal; font-weight: 600;
+      font-size: clamp(18px,2.6vw,24px); color: var(--paper); line-height: 1.4;
+      border-left: 3px solid var(--amber); padding-left: 18px; max-width: 46ch;
+    }
+    .quote cite {
+      display: block; margin-top: 10px; font-family: var(--mono);
+      font-size: 12px; color: var(--muted); font-style: normal;
+    }
+
+    .dark-note { color: var(--muted); font-size: 13px; max-width: 62ch; line-height: 1.55; }
+
+    .code-card {
+      background: var(--ink); border-radius: 4px; padding: 18px 20px;
+      font-family: var(--mono); font-size: clamp(11.5px,1.3vw,13.5px); line-height: 1.65;
+      color: var(--paper); overflow-x: auto; box-shadow: 0 14px 34px rgba(0,0,0,.35);
+    }
+    .code-card .cm { color: var(--muted); }
+    .code-card .kw { color: var(--amber); }
+    .code-card .str { color: var(--teal); }
+    .code-card .fn { color: #82AAFF; }
+
+    .flow-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+    .flow-step {
+      font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em;
+      padding: 8px 14px; background: var(--paper); color: var(--ink);
+      font-weight: 600; text-align: center; min-width: 80px;
+    }
+    .flow-step:first-child { border-radius: 4px 0 0 4px; }
+    .flow-step:last-child { border-radius: 0 4px 4px 0; }
+    .flow-step.active { background: var(--amber); color: #fff; }
+    .flow-step.teal { background: var(--teal); color: var(--ink); }
+    .flow-step.dark { background: var(--ink); color: var(--paper); }
+    .flow-arrow { font-size: 18px; color: var(--muted); padding: 0 2px; }
+    @media (max-width:600px) {
+      .flow-row { flex-direction: column; gap: 4px; }
+      .flow-step { border-radius: 4px !important; width: 100%; }
+      .flow-arrow { transform: rotate(90deg); font-size: 14px; }
+    }
+
+    .stat { font-family: var(--display); font-weight: 700; color: var(--amber-deep); font-size: clamp(24px,3.2vw,34px); line-height: 1; }
+    .stat-label { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+
+    .case-accent {
+      border-left: 4px solid var(--teal);
+      padding-left: 16px;
+      margin-top: 8px;
+    }
+
+    .case-accent p { color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+    .titleblock {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(18px,5vw,72px); font-family: var(--mono); font-size: 11px;
+      color: var(--muted); border-top: 1px solid var(--line);
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.18));
+    }
+    .titleblock .sheet { color: var(--amber); }
+    .titleblock .center-track { flex: 1; display: flex; justify-content: center; gap: 6px; padding: 0 16px; }
+
+    .station {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--line); border: 1px solid var(--line); cursor: pointer;
+    }
+    .station.active { background: var(--amber); border-color: var(--amber); }
+
+    .progress-track { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,.06); z-index: 5; }
+    .progress-fill { height: 100%; background: var(--amber); transition: width .5s cubic-bezier(.65,0,.35,1); }
+
+    .navbtn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255,255,255,.05); border: 1px solid var(--line);
+      color: var(--paper); display: flex; align-items: center; justify-content: center;
+      z-index: 6; transition: background .2s, opacity .2s; opacity: .7;
+    }
+    .navbtn:hover { background: rgba(255,255,255,.12); opacity: 1; }
+    .navbtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .navbtn.prev { left: 14px; }
+    .navbtn.next { right: 14px; }
+    @media (max-width:680px) { .navbtn { display: none; } }
+
+    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+    @media (prefers-reduced-motion: reduce) { .slides { transition: none; } .progress-fill { transition: none; } }
+    @media (max-height:620px) {
+      .slide { padding-top: 14px; padding-bottom: 60px; }
+      h1.slide-title { font-size: clamp(22px,4.4vw,34px); }
+    }
+    @media (max-width:760px) { .grid4 { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+
+<body>
+
+  <div id="deck">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <button class="navbtn prev" id="prevBtn" aria-label="Previous slide">&#8592;</button>
+    <button class="navbtn next" id="nextBtn" aria-label="Next slide">&#8594;</button>
+
+    <div class="slides" id="slides">
+
+      <!-- 1 : TITLE -->
+      <section class="slide title-slide">
+        <div class="course-code"><a href="../index.html">CSDV3017</a> &nbsp;·&nbsp; DEVOPS &nbsp;·&nbsp; SCHOOL OF COMPUTER SCIENCE, UPES</div>
+        <h1>Build Processes, Test Automation &amp; Manual vs Automated Deployment</h1>
+        <p class="sub">Lecture 16 — exploring the software build cycle, writing effective test cases, deep diving into automation testing tools, and revisiting the IBM Case Study on continuous testing.</p>
+        <div class="meta-row">
+          <div><b>Instructor</b>Dr. Mohsin Furkh Dar</div>
+          <div><b>Session</b>Week 6 · Mon, 13 Jul 2026</div>
+          <div><b>Time</b>14:00 – 15:00</div>
+          <div><b>Unit</b>Unit VI</div>
+        </div>
+        <div class="vsline" style="margin-top:40px;">
+          <div class="vsnode done">I</div><div class="seg done"></div>
+          <div class="vsnode done">II</div><div class="seg done"></div>
+          <div class="vsnode done">III</div><div class="seg done"></div>
+          <div class="vsnode done">IV</div><div class="seg done"></div>
+          <div class="vsnode done">V</div><div class="seg done"></div>
+          <div class="vsnode now">VI</div><div class="seg"></div>
+          <div class="vsnode">VII</div>
+        </div>
+      </section>
+
+      <!-- 2 : RECAP + AGENDA -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WHERE WE LEFT OFF</div>
+        <h1 class="slide-title">Recap &amp; today's agenda</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Lecture 15 · Done</div>
+              <h3>Intro to Testing</h3>
+              <ul class="clean">
+                <li>Shift-Left testing: testing earlier in the cycle.</li>
+                <li>Verification (Dev) vs Validation (User).</li>
+                <li>White-box vs Black-box vs Gray-box.</li>
+                <li>The Testing Pyramid (Unit > Integration > E2E).</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Lecture 16 · Today</div>
+              <h3>Builds &amp; Automation</h3>
+              <ul class="clean">
+                <li>The software build process (compilation to artifact).</li>
+                <li>How to write effective test cases.</li>
+                <li>Automation tools in-depth (Selenium, Cypress, JUnit).</li>
+                <li>Manual vs Automated deployment risks.</li>
+                <li>IBM Case Study: Testing at enterprise scale.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 : THE BUILD PROCESS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>FROM CODE TO ARTIFACT</div>
+        <h1 class="slide-title">The Software Build Process</h1>
+        <div class="slide-body">
+          <div class="flow-row" style="margin-bottom:14px;">
+            <div class="flow-step">Source Code</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Compile</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Link/Resolve</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Package</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step active">Artifact</div>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">What is a Build?</div>
+              <h3>Transforming source into execution</h3>
+              <p>A build is the process of converting human-readable source code into a standalone, executable artifact that can be deployed to a server. It includes fetching dependencies, compiling code, running static analysis, and packaging everything together (e.g., into a <code>.jar</code> or a Docker image).</p>
+            </div>
+            <div class="card">
+              <div class="tag">Build Tools</div>
+              <h3>The Automation Engines</h3>
+              <ul class="clean">
+                <li><strong>Java:</strong> Maven, Gradle, Ant</li>
+                <li><strong>JavaScript/Node:</strong> npm, Webpack, Vite</li>
+                <li><strong>Python:</strong> pip, Poetry</li>
+                <li><strong>C++:</strong> Make, CMake</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 : WRITING TEST CASES -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>TEST DESIGN</div>
+        <h1 class="slide-title">How to write a Test Case</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Definition</div>
+            <h3>What is a Test Case?</h3>
+            <p>A specific set of conditions or variables under which a tester will determine whether an application satisfies requirements. Good test cases are deterministic: they have a clear setup, execution, and an unambiguous Pass/Fail expected outcome.</p>
+          </div>
+          <div class="grid2" style="margin-top:14px;">
+            <div class="card">
+              <div class="tag">The AAA Pattern</div>
+              <h3>Arrange, Act, Assert</h3>
+              <ul class="clean">
+                <li><strong>Arrange:</strong> Set up the initial state (e.g., create a mock user in the DB).</li>
+                <li><strong>Act:</strong> Execute the function or behavior being tested (e.g., call the <code>login()</code> function).</li>
+                <li><strong>Assert:</strong> Verify the result matches the expectation (e.g., check if the user received a 200 OK token).</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Test Case Anatomy</div>
+              <h3>Standard Fields</h3>
+              <ul class="clean">
+                <li><strong>Test ID:</strong> TC_LOGIN_01</li>
+                <li><strong>Description:</strong> Verify login with valid credentials.</li>
+                <li><strong>Pre-conditions:</strong> User must exist in the database.</li>
+                <li><strong>Test Steps:</strong> 1. Enter email. 2. Enter password. 3. Click Login.</li>
+                <li><strong>Expected Result:</strong> User is redirected to Dashboard.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 : JUNIT EXAMPLE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>UNIT TESTING (CODE)</div>
+        <h1 class="slide-title">The AAA Pattern in Code</h1>
+        <div class="slide-body">
+          <p class="dark-note" style="margin-bottom:8px;">A simple Java JUnit test demonstrating Arrange, Act, Assert.</p>
+          <div class="code-card">
+            <span class="kw">import</span> org.junit.jupiter.api.Test;<br>
+            <span class="kw">import static</span> org.junit.jupiter.api.Assertions.assertEquals;<br><br>
+            <span class="kw">public class</span> CalculatorTest {<br><br>
+            &nbsp;&nbsp;<span class="fn">@Test</span><br>
+            &nbsp;&nbsp;<span class="kw">public void</span> <span class="fn">testAddition</span>() {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">// 1. Arrange - set up the test data</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;Calculator calc = <span class="kw">new</span> Calculator();<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> a = <span class="fn">5</span>;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> b = <span class="fn">10</span>;<br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">// 2. Act - execute the method being tested</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> result = calc.add(a, b);<br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">// 3. Assert - verify the output is correct</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">assertEquals</span>(<span class="fn">15</span>, result, <span class="str">"5 + 10 should equal 15"</span>);<br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 : AUTOMATION TOOLS IN-DEPTH -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE AUTOMATION ECOSYSTEM</div>
+        <h1 class="slide-title">Automation Testing Tools</h1>
+        <div class="slide-body">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Type / Target</th>
+                <th>Language / Characteristics</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="lbl">Selenium</td>
+                <td>UI / Web (E2E testing)</td>
+                <td>Supports Java, Python, C#. The industry standard for browser automation, but can be slow and flaky.</td>
+              </tr>
+              <tr>
+                <td class="lbl">Cypress</td>
+                <td>UI / Web (Modern E2E)</td>
+                <td>JavaScript only. Runs directly in the browser, offering much faster execution and easier debugging than Selenium.</td>
+              </tr>
+              <tr>
+                <td class="lbl">Appium</td>
+                <td>Mobile (iOS / Android)</td>
+                <td>Essentially Selenium for mobile apps. Supports native and hybrid mobile testing.</td>
+              </tr>
+              <tr>
+                <td class="lbl">Postman / RestAssured</td>
+                <td>API / Integration testing</td>
+                <td>Tests RESTful APIs without UI overhead. Extremely fast and reliable.</td>
+              </tr>
+              <tr>
+                <td class="lbl">JUnit / TestNG</td>
+                <td>Unit Testing (Java)</td>
+                <td>The foundation of the testing pyramid for Java applications.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 7 : WHY AUTOMATE UI IS HARD -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE FLAKINESS PROBLEM</div>
+        <h1 class="slide-title">Why UI Automation is difficult</h1>
+        <div class="slide-body">
+          <p class="quote">"If you write 100 UI tests, you will spend more time fixing the tests than fixing the bugs they find."
+            <cite>— The reason the Testing Pyramid exists</cite>
+          </p>
+          <div class="grid3">
+            <div class="card">
+              <div class="tag">Problem 1</div>
+              <h3>Timing Issues</h3>
+              <p>The script clicks a button, but the page hasn't finished loading. The test fails (False Negative) even though the app works.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Problem 2</div>
+              <h3>Selector Changes</h3>
+              <p>The UI test looks for a button with ID <code>#login-btn-blue</code>. A developer renames it to <code>#login-btn-new</code>. The test breaks instantly.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Problem 3</div>
+              <h3>State Management</h3>
+              <p>E2E tests require complex database states. If Test B runs before Test A, it might delete the data Test A needs to run.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 : MANUAL VS AUTOMATED DEPLOYMENT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>DEPLOYMENT RISKS</div>
+        <h1 class="slide-title">Manual vs Automated Deployment</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Manual Deployment</div>
+              <h3>The 2:00 AM Nightmare</h3>
+              <ul class="clean">
+                <li>Ops team SSHs into production servers.</li>
+                <li>Follows a 20-page Word document of runbook instructions.</li>
+                <li>Types commands by hand: <code>git pull</code>, <code>npm install</code>, <code>pm2 restart</code>.</li>
+                <li><strong>Risk:</strong> Human error (typos). If a step is skipped, the system goes down. Rollbacks are entirely manual and chaotic.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Automated Deployment</div>
+              <h3>The Push-Button Dream</h3>
+              <ul class="clean">
+                <li>Pipeline script handles the deployment (e.g., Jenkins, GitHub Actions).</li>
+                <li>Uses tools like Ansible or Terraform.</li>
+                <li><strong>Risk:</strong> "Automated destruction." If a bad script is deployed, it can wipe out 100 servers just as fast as it can update them.</li>
+                <li><strong>Mitigation:</strong> Requires strict automated testing and Canary/Blue-Green deployments.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 : IBM CASE STUDY PART 2 -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CASE STUDY (CONT.)</div>
+        <h1 class="slide-title">IBM Case Study: Testing at Scale</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">The Challenge</div>
+            <h3>IBM Cloud Kubernetes Service (IKS)</h3>
+            <p>We saw in Lecture 13 that IBM moved from weekly, painful releases to multiple deployments per day using CI/CD. But <strong>how</strong> did they ensure quality when moving that fast? The answer was transforming their testing strategy.</p>
+          </div>
+          <div class="grid2" style="margin-top:14px;">
+            <div class="card">
+              <div class="tag">Before DevOps</div>
+              <h3>The QA Silo</h3>
+              <ul class="clean">
+                <li>Developers wrote code, threw it "over the wall" to QA.</li>
+                <li>QA performed manual regression testing for 3 days.</li>
+                <li>When bugs were found, developers had lost context of the code they wrote a week ago.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">After DevOps</div>
+              <h3>Shift-Left Automation</h3>
+              <ul class="clean">
+                <li>QA Engineers became "Automation Architects," building frameworks instead of clicking buttons.</li>
+                <li>Developers were required to write unit and integration tests alongside their features.</li>
+                <li>If the automated pipeline went Red (failed), fixing it became the team's #1 priority.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 : IBM OUTCOMES -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE RESULTS</div>
+        <h1 class="slide-title">The ROI of IBM's Testing Shift</h1>
+        <div class="slide-body">
+          <div class="grid3">
+            <div class="card" style="text-align:center;">
+              <div class="stat">Minutes</div>
+              <div class="stat-label">Feedback Loop</div>
+              <p style="margin-top:8px;">Developers knew if their code broke the build within 15 minutes, not 3 days.</p>
+            </div>
+            <div class="card" style="text-align:center;">
+              <div class="stat">Scale</div>
+              <div class="stat-label">Microservices Testing</div>
+              <p style="margin-top:8px;">Using API (Gray-box) testing, they could automatically test contracts between hundreds of services.</p>
+            </div>
+            <div class="card" style="text-align:center;">
+              <div class="stat">Zero</div>
+              <div class="stat-label">Manual Deployments</div>
+              <p style="margin-top:8px;">Because tests were trusted, deployments to production became entirely script-driven.</p>
+            </div>
+          </div>
+          <div class="case-accent" style="margin-top:16px;">
+            <p><strong>The ultimate lesson:</strong> You cannot achieve Continuous Deployment without Continuous Testing. Test automation is the prerequisite for speed.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 : SUMMARY + NEXT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WRAP-UP</div>
+        <h1 class="slide-title">Summary &amp; what's next</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Lecture 16 · Key Takeaways</div>
+            <h3>What you should remember</h3>
+            <ul class="clean">
+              <li><strong>Build Process:</strong> Converting source code into an executable artifact via tools like Maven or npm.</li>
+              <li><strong>Test Cases:</strong> Must follow the AAA pattern (Arrange, Act, Assert) for deterministic results.</li>
+              <li><strong>Automation Tools:</strong> Selenium (UI, slow), Cypress (UI, fast), Postman (API, reliable), JUnit (Unit, foundational).</li>
+              <li><strong>Deployments:</strong> Manual = human error risk. Automated = speed, but risks automated destruction without good tests.</li>
+              <li><strong>IBM Case Study:</strong> Achieving high-velocity deployments required shifting testing left and empowering developers to own quality.</li>
+            </ul>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Next Lecture · Lecture 17</div>
+              <h3>Mon, 13 Jul 2026 · 11:00–12:00 · Unit VII</h3>
+              <p>Wait, the plan says Unit VII starts! Issue tracking tools: Bugzilla, GitLab Tracker, Jira; Types of bugs and classification.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Unit VI Complete ✓</div>
+              <h3>You've finished Unit VI!</h3>
+              <p>We've conquered Testing and Deployment. Unit VII will wrap up the course with Issue Tracking and emerging tech in DevOps.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="titleblock">
+      <div>CSDV3017 · DEVOPS</div>
+      <div class="center-track" id="stationTrack"></div>
+      <div class="sheet" id="sheetCounter">SHEET 01/11</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slidesEl = document.getElementById('slides');
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      let current = 0;
+
+      const progressFill = document.getElementById('progressFill');
+      const sheetCounter = document.getElementById('sheetCounter');
+      const stationTrack = document.getElementById('stationTrack');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'station';
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('tabindex', '0');
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', () => go(i));
+        dot.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i); } });
+        stationTrack.appendChild(dot);
+      }
+      const dots = Array.from(stationTrack.children);
+
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+      function render() {
+        slidesEl.style.transform = 'translateX(' + (-current * 100) + '%)';
+        progressFill.style.width = ((current + 1) / total * 100) + '%';
+        sheetCounter.textContent = 'SHEET ' + pad(current + 1) + '/' + total;
+        dots.forEach((d, i) => d.classList.toggle('active', i === current));
+        prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+        nextBtn.style.visibility = current === total - 1 ? 'hidden' : 'visible';
+      }
+
+      function go(i) {
+        current = Math.max(0, Math.min(total - 1, i));
+        render();
+      }
+
+      prevBtn.addEventListener('click', () => go(current - 1));
+      nextBtn.addEventListener('click', () => go(current + 1));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') { go(current + 1); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(current - 1); }
+        else if (e.key === 'Home') { go(0); }
+        else if (e.key === 'End') { go(total - 1); }
+      });
+
+      let touchStartX = null, touchStartY = null;
+      slidesEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      slidesEl.addEventListener('touchend', (e) => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) go(current + 1); else go(current - 1);
+        }
+        touchStartX = null; touchStartY = null;
+      }, { passive: true });
+
+      render();
+    })();
+  </script>
+
+</body>
+
+</html>

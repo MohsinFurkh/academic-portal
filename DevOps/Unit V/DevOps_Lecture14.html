@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CSDV3017 · Lecture 14 · Hands-on: CI/CD Pipelines & Infrastructure Automation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0E2235;
+      --bg-deep-2: #102A40;
+      --grid-line: rgba(255, 255, 255, 0.07);
+      --grid-line-strong: rgba(255, 255, 255, 0.14);
+      --paper: #F3EFE2;
+      --paper-2: #EAE4D2;
+      --ink: #16202B;
+      --ink-soft: #3C4A57;
+      --amber: #FF6A39;
+      --amber-deep: #D9501F;
+      --teal: #57C7B8;
+      --muted: #9FB4C7;
+      --line: #1D3A52;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'IBM Plex Sans', sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; background: var(--bg-deep); font-family: var(--body);
+      color: var(--paper); overflow: hidden; -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(var(--grid-line-strong) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-strong) 1px, transparent 1px),
+        radial-gradient(ellipse at 20% -10%, var(--bg-deep-2), var(--bg-deep) 60%);
+      background-size: 16px 16px, 16px 16px, 96px 96px, 96px 96px, cover;
+    }
+
+    button { font-family: inherit; cursor: pointer; }
+    a { color: inherit; }
+
+    #deck { position: relative; height: 100vh; height: 100dvh; width: 100%; overflow: hidden; }
+
+    .slides {
+      height: 100%; width: 100%; display: flex;
+      transition: transform .55s cubic-bezier(.65, 0, .35, 1); will-change: transform;
+    }
+
+    .slide {
+      flex: 0 0 100%; height: 100%; position: relative;
+      display: flex; flex-direction: column;
+      padding: clamp(18px,4vw,56px) clamp(18px,5vw,72px) clamp(64px,9vh,96px);
+      overflow-y: auto;
+    }
+
+    .slide::before, .slide::after {
+      content: ""; position: absolute; width: 18px; height: 18px;
+      border: 1.5px solid var(--grid-line-strong); opacity: .8;
+    }
+    .slide::before { top: 14px; left: 14px; border-right: none; border-bottom: none; }
+    .slide::after { bottom: 70px; right: 14px; border-left: none; border-top: none; }
+
+    .eyebrow {
+      font-family: var(--mono); font-size: clamp(11px,1.4vw,13px);
+      letter-spacing: .14em; text-transform: uppercase; color: var(--teal);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .eyebrow .dash { width: 22px; height: 1px; background: var(--teal); display: inline-block; }
+
+    h1.slide-title {
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(28px,5.4vw,52px); line-height: 1.06;
+      letter-spacing: -0.01em; color: var(--paper); margin-top: 14px; max-width: 20ch;
+    }
+
+    .slide-body {
+      margin-top: clamp(18px,3vh,34px); flex: 1;
+      display: flex; flex-direction: column; justify-content: center; gap: 18px;
+    }
+
+    .card {
+      background: var(--paper); color: var(--ink); border-radius: 4px;
+      padding: clamp(16px,2.6vw,26px) clamp(18px,2.8vw,30px);
+      box-shadow: 0 14px 34px rgba(0,0,0,.35); position: relative;
+    }
+    .card .tag {
+      font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--amber-deep); font-weight: 600;
+    }
+    .card p, .card li { color: var(--ink-soft); font-size: clamp(14px,1.7vw,17px); line-height: 1.5; }
+    .card h3 {
+      font-family: var(--display); font-size: clamp(17px,2.1vw,21px);
+      color: var(--ink); margin: 4px 0 8px; font-weight: 600;
+    }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    @media (max-width:760px) { .grid2, .grid3, .grid4 { grid-template-columns: 1fr; } }
+
+    ul.clean { list-style: none; }
+    ul.clean li { position: relative; padding-left: 18px; margin-bottom: 6px; }
+    ul.clean li::before {
+      content: ""; position: absolute; left: 0; top: .6em;
+      width: 6px; height: 6px; background: var(--amber); border-radius: 1px; transform: rotate(45deg);
+    }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 11.5px; padding: 4px 10px;
+      border-radius: 99px; border: 1px solid var(--line); color: var(--teal);
+      background: rgba(87,199,184,.06);
+    }
+
+    .title-slide { justify-content: center; }
+    .title-slide .course-code {
+      font-family: var(--mono); color: var(--amber);
+      font-size: clamp(13px,1.8vw,16px); letter-spacing: .12em;
+    }
+    .title-slide h1 {
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(32px,6.6vw,62px); line-height: 1.04; margin-top: 18px; max-width: 18ch;
+    }
+    .title-slide .sub {
+      margin-top: 18px; color: var(--muted);
+      font-size: clamp(14px,2vw,18px); max-width: 50ch; line-height: 1.5;
+    }
+
+    .meta-row {
+      margin-top: 34px; display: flex; gap: 28px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 12.5px; color: var(--muted);
+    }
+    .meta-row b {
+      color: var(--paper); display: block; font-size: 14px;
+      margin-bottom: 2px; font-family: var(--body); font-weight: 600;
+    }
+
+    .vsline { display: flex; align-items: center; width: 100%; margin-top: 10px; }
+    .vsline .seg { flex: 1; height: 2px; background: var(--line); }
+    .vsline .seg.done { background: var(--teal); }
+    .vsnode {
+      flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid var(--line); background: var(--bg-deep-2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+    }
+    .vsnode.done { border-color: var(--teal); color: var(--teal); }
+    .vsnode.now { border-color: var(--amber); color: var(--amber); box-shadow: 0 0 0 4px rgba(255,106,57,.16); }
+
+    .compare {
+      width: 100%; border-collapse: collapse; background: var(--paper);
+      border-radius: 4px; overflow: hidden;
+    }
+    .compare th, .compare td { padding: 10px 14px; text-align: left; font-size: clamp(12.5px,1.6vw,14.5px); }
+    .compare th {
+      background: var(--paper-2); font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .06em; font-size: 11px; color: var(--ink-soft);
+    }
+    .compare td { color: var(--ink); border-top: 1px solid rgba(22,32,43,.1); }
+    .compare td.lbl { font-weight: 600; color: var(--ink-soft); font-family: var(--mono); font-size: 11.5px; }
+
+    .quote {
+      font-family: var(--display); font-style: normal; font-weight: 600;
+      font-size: clamp(18px,2.6vw,24px); color: var(--paper); line-height: 1.4;
+      border-left: 3px solid var(--amber); padding-left: 18px; max-width: 46ch;
+    }
+    .quote cite {
+      display: block; margin-top: 10px; font-family: var(--mono);
+      font-size: 12px; color: var(--muted); font-style: normal;
+    }
+
+    .dark-note { color: var(--muted); font-size: 13px; max-width: 62ch; line-height: 1.55; }
+
+    .code-card {
+      background: var(--ink); border-radius: 4px; padding: 18px 20px;
+      font-family: var(--mono); font-size: clamp(11.5px,1.3vw,13.5px); line-height: 1.65;
+      color: var(--paper); overflow-x: auto; box-shadow: 0 14px 34px rgba(0,0,0,.35);
+    }
+    .code-card .cm { color: var(--muted); }
+    .code-card .kw { color: var(--amber); }
+    .code-card .str { color: var(--teal); }
+    .code-card .fn { color: #82AAFF; }
+
+    .flow-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+    .flow-step {
+      font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em;
+      padding: 8px 14px; background: var(--paper); color: var(--ink);
+      font-weight: 600; text-align: center; min-width: 80px;
+    }
+    .flow-step:first-child { border-radius: 4px 0 0 4px; }
+    .flow-step:last-child { border-radius: 0 4px 4px 0; }
+    .flow-step.active { background: var(--amber); color: #fff; }
+    .flow-step.teal { background: var(--teal); color: var(--ink); }
+    .flow-step.dark { background: var(--ink); color: var(--paper); }
+    .flow-arrow { font-size: 18px; color: var(--muted); padding: 0 2px; }
+    @media (max-width:600px) {
+      .flow-row { flex-direction: column; gap: 4px; }
+      .flow-step { border-radius: 4px !important; width: 100%; }
+      .flow-arrow { transform: rotate(90deg); font-size: 14px; }
+    }
+
+    .titleblock {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(18px,5vw,72px); font-family: var(--mono); font-size: 11px;
+      color: var(--muted); border-top: 1px solid var(--line);
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.18));
+    }
+    .titleblock .sheet { color: var(--amber); }
+    .titleblock .center-track { flex: 1; display: flex; justify-content: center; gap: 6px; padding: 0 16px; }
+
+    .station {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--line); border: 1px solid var(--line); cursor: pointer;
+    }
+    .station.active { background: var(--amber); border-color: var(--amber); }
+
+    .progress-track { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,.06); z-index: 5; }
+    .progress-fill { height: 100%; background: var(--amber); transition: width .5s cubic-bezier(.65,0,.35,1); }
+
+    .navbtn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255,255,255,.05); border: 1px solid var(--line);
+      color: var(--paper); display: flex; align-items: center; justify-content: center;
+      z-index: 6; transition: background .2s, opacity .2s; opacity: .7;
+    }
+    .navbtn:hover { background: rgba(255,255,255,.12); opacity: 1; }
+    .navbtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .navbtn.prev { left: 14px; }
+    .navbtn.next { right: 14px; }
+    @media (max-width:680px) { .navbtn { display: none; } }
+
+    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+    @media (prefers-reduced-motion: reduce) { .slides { transition: none; } .progress-fill { transition: none; } }
+    @media (max-height:620px) {
+      .slide { padding-top: 14px; padding-bottom: 60px; }
+      h1.slide-title { font-size: clamp(22px,4.4vw,34px); }
+    }
+    @media (max-width:760px) { .grid4 { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+
+<body>
+
+  <div id="deck">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <button class="navbtn prev" id="prevBtn" aria-label="Previous slide">&#8592;</button>
+    <button class="navbtn next" id="nextBtn" aria-label="Next slide">&#8594;</button>
+
+    <div class="slides" id="slides">
+
+      <!-- 1 : TITLE -->
+      <section class="slide title-slide">
+        <div class="course-code"><a href="../index.html">CSDV3017</a> &nbsp;·&nbsp; DEVOPS &nbsp;·&nbsp; SCHOOL OF COMPUTER SCIENCE, UPES</div>
+        <h1>Hands-On: Setting Up CI/CD &amp; Infrastructure Automation</h1>
+        <p class="sub">Lecture 14 — rolling up our sleeves to write actual YAML workflows for GitHub Actions, creating Dockerfiles, and provisioning infrastructure using Terraform and Ansible playbooks.</p>
+        <div class="meta-row">
+          <div><b>Instructor</b>Dr. Mohsin Furkh Dar</div>
+          <div><b>Session</b>Week 5 · Tue, 07 Jul 2026</div>
+          <div><b>Time</b>12:00 – 13:00</div>
+          <div><b>Unit</b>Unit V</div>
+        </div>
+        <div class="vsline" style="margin-top:40px;">
+          <div class="vsnode done">I</div><div class="seg done"></div>
+          <div class="vsnode done">II</div><div class="seg done"></div>
+          <div class="vsnode done">III</div><div class="seg done"></div>
+          <div class="vsnode done">IV</div><div class="seg done"></div>
+          <div class="vsnode now">V</div><div class="seg"></div>
+          <div class="vsnode">VI</div><div class="seg"></div>
+          <div class="vsnode">VII</div>
+        </div>
+      </section>
+
+      <!-- 2 : AGENDA -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>PRACTICAL SESSION</div>
+        <h1 class="slide-title">Today's hands-on agenda</h1>
+        <div class="slide-body">
+          <div class="grid3">
+            <div class="card">
+              <div class="tag">Part 01</div>
+              <h3>Continuous Integration</h3>
+              <ul class="clean">
+                <li>Building a Node.js app</li>
+                <li>Writing a GitHub Actions YAML workflow</li>
+                <li>Running tests on every Push</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Part 02</div>
+              <h3>Containerization</h3>
+              <ul class="clean">
+                <li>Writing a Dockerfile</li>
+                <li>Building the Docker image</li>
+                <li>Running it locally</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Part 03</div>
+              <h3>Infrastructure Automation</h3>
+              <ul class="clean">
+                <li>Provisioning an AWS EC2 instance with Terraform</li>
+                <li>Configuring the instance with Ansible</li>
+              </ul>
+            </div>
+          </div>
+          <p class="dark-note" style="margin-top:14px;"><strong>Note:</strong> In this session, we will look at the exact code and command-line steps required to build out a complete pipeline from code to infrastructure.</p>
+        </div>
+      </section>
+
+      <!-- 3 : THE APP -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>STEP 0</div>
+        <h1 class="slide-title">The Target Application</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">The Codebase</div>
+              <h3>A simple Node.js API</h3>
+              <p>We have a basic Express application with a few endpoints. It uses <code>npm start</code> to run and <code>npm test</code> to run a suite of Jest tests.</p>
+            </div>
+            <div class="code-card" style="box-shadow:none;">
+              <span class="cm">// package.json scripts</span><br>
+              {<br>
+              &nbsp;&nbsp;<span class="str">"name"</span>: <span class="str">"devops-demo-api"</span>,<br>
+              &nbsp;&nbsp;<span class="str">"version"</span>: <span class="str">"1.0.0"</span>,<br>
+              &nbsp;&nbsp;<span class="str">"scripts"</span>: {<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"start"</span>: <span class="str">"node server.js"</span>,<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"test"</span>: <span class="str">"jest"</span><br>
+              &nbsp;&nbsp;},<br>
+              &nbsp;&nbsp;<span class="str">"dependencies"</span>: {<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"express"</span>: <span class="str">"^4.18.2"</span><br>
+              &nbsp;&nbsp;}<br>
+              }
+            </div>
+          </div>
+          <div class="flow-row" style="margin-top:14px;">
+            <div class="flow-step dark">Git Push</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">CI Pipeline (Test)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Docker Build</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step active">Terraform (Infra)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step active">Ansible (Config)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 : GITHUB ACTIONS CI -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>PART 01 : CI PIPELINE</div>
+        <h1 class="slide-title">Setting up GitHub Actions</h1>
+        <div class="slide-body">
+          <p class="dark-note" style="margin-bottom:8px;">File location: <code>.github/workflows/ci.yml</code></p>
+          <div class="code-card">
+            <span class="kw">name:</span> <span class="str">Node.js CI</span><br><br>
+            <span class="kw">on:</span><br>
+            &nbsp;&nbsp;<span class="kw">push:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">branches:</span> [ <span class="str">"main"</span> ]<br>
+            &nbsp;&nbsp;<span class="kw">pull_request:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">branches:</span> [ <span class="str">"main"</span> ]<br><br>
+            <span class="kw">jobs:</span><br>
+            &nbsp;&nbsp;<span class="kw">build-and-test:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">runs-on:</span> <span class="str">ubuntu-latest</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Checkout code</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">uses:</span> <span class="str">actions/checkout@v3</span><br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Set up Node.js</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">uses:</span> <span class="str">actions/setup-node@v3</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">with:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">node-version:</span> <span class="str">'18.x'</span><br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Install dependencies</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">run:</span> <span class="str">npm ci</span><br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Run Tests</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">run:</span> <span class="str">npm test</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 : CI EXPLAINED -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CI PIPELINE BREAKDOWN</div>
+        <h1 class="slide-title">What just happened?</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">The Trigger</div>
+              <h3>on: push &amp; pull_request</h3>
+              <p>This tells GitHub to run the pipeline automatically whenever someone pushes code to the <code>main</code> branch, or opens a Pull Request targeting <code>main</code>. This is the heart of Continuous Integration.</p>
+            </div>
+            <div class="card">
+              <div class="tag">The Runner</div>
+              <h3>runs-on: ubuntu-latest</h3>
+              <p>GitHub automatically provisions a clean, temporary Ubuntu virtual machine for us. We don't have to manage any servers to run our CI.</p>
+            </div>
+            <div class="card">
+              <div class="tag">The Actions</div>
+              <h3>uses: ...</h3>
+              <p>These are pre-built, community steps. <code>checkout@v3</code> clones our Git repo into the runner. <code>setup-node@v3</code> installs the correct version of Node.js.</p>
+            </div>
+            <div class="card">
+              <div class="tag">The Commands</div>
+              <h3>run: npm test</h3>
+              <p>These are the actual bash commands executed on the runner. <code>npm ci</code> strictly installs dependencies from the lockfile, and <code>npm test</code> executes Jest.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 : DOCKERFILE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>PART 02 : CONTAINERIZATION</div>
+        <h1 class="slide-title">Writing the Dockerfile</h1>
+        <div class="slide-body">
+          <p class="dark-note" style="margin-bottom:8px;">File location: <code>Dockerfile</code> (in the root of the project)</p>
+          <div class="code-card">
+            <span class="cm"># 1. Use the official Node.js image as our base</span><br>
+            <span class="kw">FROM</span> node:18-alpine<br><br>
+            <span class="cm"># 2. Set the working directory inside the container</span><br>
+            <span class="kw">WORKDIR</span> /app<br><br>
+            <span class="cm"># 3. Copy package.json and install dependencies</span><br>
+            <span class="kw">COPY</span> package*.json ./<br>
+            <span class="kw">RUN</span> npm ci --only=production<br><br>
+            <span class="cm"># 4. Copy the rest of the application code</span><br>
+            <span class="kw">COPY</span> . .<br><br>
+            <span class="cm"># 5. Expose the port the app runs on</span><br>
+            <span class="kw">EXPOSE</span> 3000<br><br>
+            <span class="cm"># 6. Define the command to start the app</span><br>
+            <span class="kw">CMD</span> ["npm", "start"]
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 : BUILDING AND RUNNING -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CONTAINER WORKFLOW</div>
+        <h1 class="slide-title">Building the image</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Command Line</div>
+            <h3>Building and running the Docker container</h3>
+            <p>Once the Dockerfile is written, we use the Docker CLI to build the immutable image and run it.</p>
+          </div>
+          <div class="code-card" style="margin-top:14px;">
+            <span class="cm"># Build the image and tag it (-t) as 'devops-api:v1'</span><br>
+            $ docker build -t devops-api:v1 .<br><br>
+            <span class="cm"># Output:</span><br>
+            <span class="cm"># => [internal] load build definition from Dockerfile</span><br>
+            <span class="cm"># => => transferring context: 2.11kB</span><br>
+            <span class="cm"># => [1/4] FROM docker.io/library/node:18-alpine</span><br>
+            <span class="cm"># ...</span><br>
+            <span class="cm"># => exporting to image</span><br><br>
+            <span class="cm"># Run the container in detached mode (-d) and map port 8080 to 3000 (-p)</span><br>
+            $ docker run -d -p 8080:3000 devops-api:v1<br><br>
+            <span class="cm"># Verify it's running</span><br>
+            $ docker ps
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 : TERRAFORM INFRA -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>PART 03 : INFRA AS CODE</div>
+        <h1 class="slide-title">Provisioning with Terraform</h1>
+        <div class="slide-body">
+          <p class="dark-note" style="margin-bottom:8px;">File location: <code>main.tf</code> (Now we need a server to run our container on).</p>
+          <div class="code-card">
+            <span class="kw">provider</span> <span class="str">"aws"</span> {<br>
+            &nbsp;&nbsp;<span class="kw">region</span> = <span class="str">"us-east-1"</span><br>
+            }<br><br>
+            <span class="kw">resource</span> <span class="str">"aws_security_group"</span> <span class="str">"web_sg"</span> {<br>
+            &nbsp;&nbsp;<span class="kw">name</span> = <span class="str">"allow_web_traffic"</span><br>
+            &nbsp;&nbsp;<span class="kw">ingress</span> {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">from_port</span>   = <span class="fn">80</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">to_port</span>     = <span class="fn">80</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">protocol</span>    = <span class="str">"tcp"</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">cidr_blocks</span> = [<span class="str">"0.0.0.0/0"</span>]<br>
+            &nbsp;&nbsp;}<br>
+            }<br><br>
+            <span class="kw">resource</span> <span class="str">"aws_instance"</span> <span class="str">"prod_server"</span> {<br>
+            &nbsp;&nbsp;<span class="kw">ami</span>                    = <span class="str">"ami-0c55b159cbfafe1f0"</span> <span class="cm"># Ubuntu</span><br>
+            &nbsp;&nbsp;<span class="kw">instance_type</span>          = <span class="str">"t2.micro"</span><br>
+            &nbsp;&nbsp;<span class="kw">vpc_security_group_ids</span> = [aws_security_group.web_sg.id]<br>
+            &nbsp;&nbsp;<span class="kw">key_name</span>               = <span class="str">"deploy_key"</span><br>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 : TERRAFORM EXECUTION -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>TERRAFORM WORKFLOW</div>
+        <h1 class="slide-title">Executing Terraform</h1>
+        <div class="slide-body">
+          <div class="grid3">
+            <div class="card">
+              <div class="tag">Initialize</div>
+              <h3>terraform init</h3>
+              <p>Downloads the AWS provider plugins needed to execute the code.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Plan</div>
+              <h3>terraform plan</h3>
+              <p>Generates an execution plan. It says: <em>"I will create 1 Security Group and 1 EC2 instance."</em></p>
+            </div>
+            <div class="card">
+              <div class="tag">Apply</div>
+              <h3>terraform apply</h3>
+              <p>Actually makes the API calls to AWS to create the resources. Generates a <code>terraform.tfstate</code> file.</p>
+            </div>
+          </div>
+          <div class="code-card" style="margin-top:14px;">
+            $ terraform apply<br><br>
+            <span class="cm"># Plan: 2 to add, 0 to change, 0 to destroy.</span><br>
+            <span class="cm"># Do you want to perform these actions?</span><br>
+            <span class="cm">#   Terraform will perform the actions described above.</span><br>
+            <span class="cm">#   Only 'yes' will be accepted to approve.</span><br><br>
+            <span class="str">Enter a value:</span> yes<br><br>
+            <span class="cm"># aws_instance.prod_server: Creating...</span><br>
+            <span class="cm"># Apply complete! Resources: 2 added, 0 changed, 0 destroyed.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 : ANSIBLE CONFIGURATION -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>PART 04 : CONFIG MANAGEMENT</div>
+        <h1 class="slide-title">Configuring the server with Ansible</h1>
+        <div class="slide-body">
+          <p class="dark-note" style="margin-bottom:8px;">Now that Terraform created the raw Ubuntu VM, we use Ansible to install Docker and run our application container.</p>
+          <div class="code-card">
+            <span class="cm"># deploy.yml (Ansible Playbook)</span><br><br>
+            - <span class="kw">name:</span> <span class="str">Setup Production Server</span><br>
+            &nbsp;&nbsp;<span class="kw">hosts:</span> <span class="str">prod_server</span><br>
+            &nbsp;&nbsp;<span class="kw">become:</span> <span class="str">yes</span><br><br>
+            &nbsp;&nbsp;<span class="kw">tasks:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Install Docker</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">apt:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">name:</span> <span class="str">docker.io</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">state:</span> <span class="str">present</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">update_cache:</span> <span class="str">yes</span><br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Ensure Docker is running</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">service:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">name:</span> <span class="str">docker</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">state:</span> <span class="str">started</span><br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Run our application container</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">community.docker.docker_container:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">name:</span> <span class="str">api_server</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">image:</span> <span class="str">myregistry/devops-api:v1</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">state:</span> <span class="str">started</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">ports:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="str">"80:3000"</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 : BRINGING IT ALL TOGETHER -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE FULL PIPELINE</div>
+        <h1 class="slide-title">The Complete DevOps Architecture</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">The Big Picture</div>
+            <h3>How these files interact</h3>
+            <p style="margin-bottom:12px;">We've just built a fully automated pipeline. If a developer changes code, here is what happens automatically:</p>
+            <ul class="clean">
+              <li><strong>Step 1:</strong> Developer pushes code to GitHub.</li>
+              <li><strong>Step 2:</strong> GitHub Actions reads <code>.github/workflows/ci.yml</code> and runs the Jest tests.</li>
+              <li><strong>Step 3:</strong> If tests pass, GitHub Actions reads the <code>Dockerfile</code>, builds the image, and pushes it to a registry.</li>
+              <li><strong>Step 4:</strong> GitHub Actions triggers Ansible (<code>deploy.yml</code>), which connects to the AWS server created by Terraform (<code>main.tf</code>).</li>
+              <li><strong>Step 5:</strong> Ansible pulls the new Docker image and restarts the container. The new version is live.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 : SUMMARY + NEXT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WRAP-UP</div>
+        <h1 class="slide-title">Summary &amp; what's next</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Lecture 14 · Key Takeaways</div>
+            <h3>What you should remember</h3>
+            <ul class="clean">
+              <li><strong>GitHub Actions (YAML):</strong> Uses <code>on: push</code> triggers, runs on virtual machines, executes shell commands.</li>
+              <li><strong>Dockerfile:</strong> The recipe for an image. <code>FROM</code>, <code>WORKDIR</code>, <code>COPY</code>, <code>RUN</code>, <code>CMD</code>.</li>
+              <li><strong>Terraform (HCL):</strong> Declarative infrastructure. <code>provider</code>, <code>resource</code>. Workflow is Init → Plan → Apply.</li>
+              <li><strong>Ansible (YAML):</strong> Configuration management. Uses playbooks and tasks to ensure a server is in the correct state (e.g., Docker installed and running).</li>
+            </ul>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Next Lecture · Lecture 15</div>
+              <h3>Tue, 07 Jul 2026 · 14:00–15:00 · Unit VI</h3>
+              <p>Introduction to Testing; Verification &amp; Validation; Types of Testing (White-box, Manual, Automation).</p>
+            </div>
+            <div class="card">
+              <div class="tag">Unit V Complete ✓</div>
+              <h3>You've finished Unit V!</h3>
+              <p>We've successfully moved from DevOps theory into actual implementation and coding. Unit VI will focus on the Testing phase of the lifecycle.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="titleblock">
+      <div>CSDV3017 · DEVOPS</div>
+      <div class="center-track" id="stationTrack"></div>
+      <div class="sheet" id="sheetCounter">SHEET 01/12</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slidesEl = document.getElementById('slides');
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      let current = 0;
+
+      const progressFill = document.getElementById('progressFill');
+      const sheetCounter = document.getElementById('sheetCounter');
+      const stationTrack = document.getElementById('stationTrack');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'station';
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('tabindex', '0');
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', () => go(i));
+        dot.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i); } });
+        stationTrack.appendChild(dot);
+      }
+      const dots = Array.from(stationTrack.children);
+
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+      function render() {
+        slidesEl.style.transform = 'translateX(' + (-current * 100) + '%)';
+        progressFill.style.width = ((current + 1) / total * 100) + '%';
+        sheetCounter.textContent = 'SHEET ' + pad(current + 1) + '/' + total;
+        dots.forEach((d, i) => d.classList.toggle('active', i === current));
+        prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+        nextBtn.style.visibility = current === total - 1 ? 'hidden' : 'visible';
+      }
+
+      function go(i) {
+        current = Math.max(0, Math.min(total - 1, i));
+        render();
+      }
+
+      prevBtn.addEventListener('click', () => go(current - 1));
+      nextBtn.addEventListener('click', () => go(current + 1));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') { go(current + 1); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(current - 1); }
+        else if (e.key === 'Home') { go(0); }
+        else if (e.key === 'End') { go(total - 1); }
+      });
+
+      let touchStartX = null, touchStartY = null;
+      slidesEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      slidesEl.addEventListener('touchend', (e) => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) go(current + 1); else go(current - 1);
+        }
+        touchStartX = null; touchStartY = null;
+      }, { passive: true });
+
+      render();
+    })();
+  </script>
+
+</body>
+
+</html>

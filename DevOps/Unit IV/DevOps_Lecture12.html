@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CSDV3017 · Lecture 12 · Metrics Tools; DevOps Lifecycle; Digital Transformation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0E2235;
+      --bg-deep-2: #102A40;
+      --grid-line: rgba(255, 255, 255, 0.07);
+      --grid-line-strong: rgba(255, 255, 255, 0.14);
+      --paper: #F3EFE2;
+      --paper-2: #EAE4D2;
+      --ink: #16202B;
+      --ink-soft: #3C4A57;
+      --amber: #FF6A39;
+      --amber-deep: #D9501F;
+      --teal: #57C7B8;
+      --muted: #9FB4C7;
+      --line: #1D3A52;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'IBM Plex Sans', sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; background: var(--bg-deep); font-family: var(--body);
+      color: var(--paper); overflow: hidden; -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(var(--grid-line-strong) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-strong) 1px, transparent 1px),
+        radial-gradient(ellipse at 20% -10%, var(--bg-deep-2), var(--bg-deep) 60%);
+      background-size: 16px 16px, 16px 16px, 96px 96px, 96px 96px, cover;
+    }
+
+    button { font-family: inherit; cursor: pointer; }
+    a { color: inherit; }
+
+    #deck { position: relative; height: 100vh; height: 100dvh; width: 100%; overflow: hidden; }
+
+    .slides {
+      height: 100%; width: 100%; display: flex;
+      transition: transform .55s cubic-bezier(.65, 0, .35, 1); will-change: transform;
+    }
+
+    .slide {
+      flex: 0 0 100%; height: 100%; position: relative;
+      display: flex; flex-direction: column;
+      padding: clamp(18px,4vw,56px) clamp(18px,5vw,72px) clamp(64px,9vh,96px);
+      overflow-y: auto;
+    }
+
+    .slide::before, .slide::after {
+      content: ""; position: absolute; width: 18px; height: 18px;
+      border: 1.5px solid var(--grid-line-strong); opacity: .8;
+    }
+    .slide::before { top: 14px; left: 14px; border-right: none; border-bottom: none; }
+    .slide::after { bottom: 70px; right: 14px; border-left: none; border-top: none; }
+
+    .eyebrow {
+      font-family: var(--mono); font-size: clamp(11px,1.4vw,13px);
+      letter-spacing: .14em; text-transform: uppercase; color: var(--teal);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .eyebrow .dash { width: 22px; height: 1px; background: var(--teal); display: inline-block; }
+
+    h1.slide-title {
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(28px,5.4vw,52px); line-height: 1.06;
+      letter-spacing: -0.01em; color: var(--paper); margin-top: 14px; max-width: 20ch;
+    }
+
+    .slide-body {
+      margin-top: clamp(18px,3vh,34px); flex: 1;
+      display: flex; flex-direction: column; justify-content: center; gap: 18px;
+    }
+
+    .card {
+      background: var(--paper); color: var(--ink); border-radius: 4px;
+      padding: clamp(16px,2.6vw,26px) clamp(18px,2.8vw,30px);
+      box-shadow: 0 14px 34px rgba(0,0,0,.35); position: relative;
+    }
+    .card .tag {
+      font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--amber-deep); font-weight: 600;
+    }
+    .card p, .card li { color: var(--ink-soft); font-size: clamp(14px,1.7vw,17px); line-height: 1.5; }
+    .card h3 {
+      font-family: var(--display); font-size: clamp(17px,2.1vw,21px);
+      color: var(--ink); margin: 4px 0 8px; font-weight: 600;
+    }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    @media (max-width:760px) { .grid2, .grid3, .grid4 { grid-template-columns: 1fr; } }
+
+    ul.clean { list-style: none; }
+    ul.clean li { position: relative; padding-left: 18px; margin-bottom: 6px; }
+    ul.clean li::before {
+      content: ""; position: absolute; left: 0; top: .6em;
+      width: 6px; height: 6px; background: var(--amber); border-radius: 1px; transform: rotate(45deg);
+    }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 11.5px; padding: 4px 10px;
+      border-radius: 99px; border: 1px solid var(--line); color: var(--teal);
+      background: rgba(87,199,184,.06);
+    }
+
+    .title-slide { justify-content: center; }
+    .title-slide .course-code {
+      font-family: var(--mono); color: var(--amber);
+      font-size: clamp(13px,1.8vw,16px); letter-spacing: .12em;
+    }
+    .title-slide h1 {
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(32px,6.6vw,62px); line-height: 1.04; margin-top: 18px; max-width: 18ch;
+    }
+    .title-slide .sub {
+      margin-top: 18px; color: var(--muted);
+      font-size: clamp(14px,2vw,18px); max-width: 50ch; line-height: 1.5;
+    }
+
+    .meta-row {
+      margin-top: 34px; display: flex; gap: 28px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 12.5px; color: var(--muted);
+    }
+    .meta-row b {
+      color: var(--paper); display: block; font-size: 14px;
+      margin-bottom: 2px; font-family: var(--body); font-weight: 600;
+    }
+
+    .vsline { display: flex; align-items: center; width: 100%; margin-top: 10px; }
+    .vsline .seg { flex: 1; height: 2px; background: var(--line); }
+    .vsline .seg.done { background: var(--teal); }
+    .vsnode {
+      flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid var(--line); background: var(--bg-deep-2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+    }
+    .vsnode.done { border-color: var(--teal); color: var(--teal); }
+    .vsnode.now { border-color: var(--amber); color: var(--amber); box-shadow: 0 0 0 4px rgba(255,106,57,.16); }
+
+    .compare {
+      width: 100%; border-collapse: collapse; background: var(--paper);
+      border-radius: 4px; overflow: hidden;
+    }
+    .compare th, .compare td { padding: 10px 14px; text-align: left; font-size: clamp(12.5px,1.6vw,14.5px); }
+    .compare th {
+      background: var(--paper-2); font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .06em; font-size: 11px; color: var(--ink-soft);
+    }
+    .compare td { color: var(--ink); border-top: 1px solid rgba(22,32,43,.1); }
+    .compare td.lbl { font-weight: 600; color: var(--ink-soft); font-family: var(--mono); font-size: 11.5px; }
+
+    .quote {
+      font-family: var(--display); font-style: normal; font-weight: 600;
+      font-size: clamp(18px,2.6vw,24px); color: var(--paper); line-height: 1.4;
+      border-left: 3px solid var(--amber); padding-left: 18px; max-width: 46ch;
+    }
+    .quote cite {
+      display: block; margin-top: 10px; font-family: var(--mono);
+      font-size: 12px; color: var(--muted); font-style: normal;
+    }
+
+    .dark-note { color: var(--muted); font-size: 13px; max-width: 62ch; line-height: 1.55; }
+
+    .code-card {
+      background: var(--ink); border-radius: 4px; padding: 18px 20px;
+      font-family: var(--mono); font-size: clamp(11.5px,1.3vw,13.5px); line-height: 1.65;
+      color: var(--paper); overflow-x: auto; box-shadow: 0 14px 34px rgba(0,0,0,.35);
+    }
+    .code-card .cm { color: var(--muted); }
+    .code-card .kw { color: var(--amber); }
+    .code-card .str { color: var(--teal); }
+    .code-card .fn { color: #82AAFF; }
+
+    .flow-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+    .flow-step {
+      font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em;
+      padding: 8px 14px; background: var(--paper); color: var(--ink);
+      font-weight: 600; text-align: center; min-width: 80px;
+    }
+    .flow-step:first-child { border-radius: 4px 0 0 4px; }
+    .flow-step:last-child { border-radius: 0 4px 4px 0; }
+    .flow-step.active { background: var(--amber); color: #fff; }
+    .flow-step.teal { background: var(--teal); color: var(--ink); }
+    .flow-step.dark { background: var(--ink); color: var(--paper); }
+    .flow-arrow { font-size: 18px; color: var(--muted); padding: 0 2px; }
+    @media (max-width:600px) {
+      .flow-row { flex-direction: column; gap: 4px; }
+      .flow-step { border-radius: 4px !important; width: 100%; }
+      .flow-arrow { transform: rotate(90deg); font-size: 14px; }
+    }
+
+    .stat { font-family: var(--display); font-weight: 700; color: var(--amber-deep); font-size: clamp(24px,3.2vw,34px); line-height: 1; }
+    .stat-label { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+
+    .case-accent {
+      border-left: 4px solid var(--teal);
+      padding-left: 16px;
+      margin-top: 8px;
+    }
+
+    .case-accent p { color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+    .titleblock {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(18px,5vw,72px); font-family: var(--mono); font-size: 11px;
+      color: var(--muted); border-top: 1px solid var(--line);
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.18));
+    }
+    .titleblock .sheet { color: var(--amber); }
+    .titleblock .center-track { flex: 1; display: flex; justify-content: center; gap: 6px; padding: 0 16px; }
+
+    .station {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--line); border: 1px solid var(--line); cursor: pointer;
+    }
+    .station.active { background: var(--amber); border-color: var(--amber); }
+
+    .progress-track { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,.06); z-index: 5; }
+    .progress-fill { height: 100%; background: var(--amber); transition: width .5s cubic-bezier(.65,0,.35,1); }
+
+    .navbtn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255,255,255,.05); border: 1px solid var(--line);
+      color: var(--paper); display: flex; align-items: center; justify-content: center;
+      z-index: 6; transition: background .2s, opacity .2s; opacity: .7;
+    }
+    .navbtn:hover { background: rgba(255,255,255,.12); opacity: 1; }
+    .navbtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .navbtn.prev { left: 14px; }
+    .navbtn.next { right: 14px; }
+    @media (max-width:680px) { .navbtn { display: none; } }
+
+    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+    @media (prefers-reduced-motion: reduce) { .slides { transition: none; } .progress-fill { transition: none; } }
+    @media (max-height:620px) {
+      .slide { padding-top: 14px; padding-bottom: 60px; }
+      h1.slide-title { font-size: clamp(22px,4.4vw,34px); }
+    }
+    @media (max-width:760px) { .grid4 { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+
+<body>
+
+  <div id="deck">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <button class="navbtn prev" id="prevBtn" aria-label="Previous slide">&#8592;</button>
+    <button class="navbtn next" id="nextBtn" aria-label="Next slide">&#8594;</button>
+
+    <div class="slides" id="slides">
+
+      <!-- 1 : TITLE -->
+      <section class="slide title-slide">
+        <div class="course-code"><a href="../index.html">CSDV3017</a> &nbsp;·&nbsp; DEVOPS &nbsp;·&nbsp; SCHOOL OF COMPUTER SCIENCE, UPES</div>
+        <h1>Metrics Tools, DevOps Lifecycle &amp; Digital Transformation</h1>
+        <p class="sub">Lecture 12 — measuring what matters with metrics dashboards, mapping the full DevOps lifecycle end-to-end, and understanding how DevOps powers digital transformation in modern enterprises.</p>
+        <div class="meta-row">
+          <div><b>Instructor</b>Dr. Mohsin Furkh Dar</div>
+          <div><b>Session</b>Week 4 · Tue, 30 Jun 2026</div>
+          <div><b>Time</b>14:00 – 15:00</div>
+          <div><b>Unit</b>Unit IV</div>
+        </div>
+        <div class="vsline" style="margin-top:40px;">
+          <div class="vsnode done">I</div><div class="seg done"></div>
+          <div class="vsnode done">II</div><div class="seg done"></div>
+          <div class="vsnode done">III</div><div class="seg done"></div>
+          <div class="vsnode now">IV</div><div class="seg"></div>
+          <div class="vsnode">V</div><div class="seg"></div>
+          <div class="vsnode">VI</div><div class="seg"></div>
+          <div class="vsnode">VII</div>
+        </div>
+      </section>
+
+      <!-- 2 : RECAP + AGENDA -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WHERE WE LEFT OFF</div>
+        <h1 class="slide-title">Recap &amp; today's agenda</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Lecture 11 · Done</div>
+              <h3>IaC, CD &amp; Jenkins</h3>
+              <ul class="clean">
+                <li>Infrastructure as Code — Terraform, Ansible, Puppet</li>
+                <li>Continuous Delivery (manual gate) vs Deployment (fully automated)</li>
+                <li>Deployment strategies: Blue-Green, Canary, Rolling</li>
+                <li>Jenkins — Controller/Agent, Jenkinsfile, pipeline stages</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Lecture 12 · Today</div>
+              <h3>Metrics, Lifecycle &amp; DX</h3>
+              <ul class="clean">
+                <li>Metrics tools — Prometheus, Grafana, ELK, Datadog</li>
+                <li>The DevOps lifecycle — the complete 8-phase infinity loop</li>
+                <li>Digital transformation — why DevOps is the engine behind it</li>
+                <li>Real-world case studies — Netflix, Amazon, Target</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 : WHY METRICS MATTER -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>MEASURE TO IMPROVE</div>
+        <h1 class="slide-title">If you can't measure it, you can't improve it</h1>
+        <div class="slide-body">
+          <p class="quote">"Without data, you're just another person with an opinion."
+            <cite>— W. Edwards Deming</cite>
+          </p>
+          <div class="grid3">
+            <div class="card">
+              <div class="tag">Question 01</div>
+              <h3>How fast do we ship?</h3>
+              <p>Deployment Frequency and Lead Time for Changes tell you how quickly ideas become running code in production.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Question 02</div>
+              <h3>How reliable are we?</h3>
+              <p>Change Failure Rate and MTTR tell you how often deployments break things and how quickly your team recovers.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Question 03</div>
+              <h3>Where's the bottleneck?</h3>
+              <p>Cycle time analytics reveal which pipeline stages are slow. Optimize the bottleneck and the whole system speeds up.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 : PROMETHEUS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>METRICS COLLECTION</div>
+        <h1 class="slide-title">Prometheus — the metrics engine</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">What Is It?</div>
+              <h3>Open-Source Metrics Database</h3>
+              <ul class="clean">
+                <li>Created at SoundCloud in 2012; now a CNCF graduated project</li>
+                <li><strong>Pull-based model:</strong> Prometheus scrapes metrics from your apps every 15s</li>
+                <li>Stores data as time-series (metric name + labels + timestamp + value)</li>
+                <li>Built-in query language: <strong>PromQL</strong></li>
+                <li>Alerting rules trigger when thresholds are breached</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Example</div>
+              <h3>What a metric looks like</h3>
+              <div class="code-card" style="margin-top:8px;box-shadow:none;">
+                <span class="cm"># A Prometheus metric exposed by your app</span><br><br>
+                <span class="kw">http_requests_total</span>{<br>
+                &nbsp;&nbsp;<span class="str">method="GET"</span>,<br>
+                &nbsp;&nbsp;<span class="str">endpoint="/api/users"</span>,<br>
+                &nbsp;&nbsp;<span class="str">status="200"</span><br>
+                } <span class="fn">14523</span><br><br>
+                <span class="cm"># PromQL: requests per second over 5 min</span><br>
+                <span class="kw">rate</span>(<span class="str">http_requests_total[5m]</span>)
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 : GRAFANA -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>VISUALIZATION</div>
+        <h1 class="slide-title">Grafana — making metrics beautiful</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Overview</div>
+              <h3>The Dashboard Tool</h3>
+              <ul class="clean">
+                <li>Open-source visualization platform; the "face" of Prometheus data</li>
+                <li>Connects to 50+ data sources (Prometheus, Elasticsearch, PostgreSQL, CloudWatch)</li>
+                <li>Drag-and-drop dashboard builder with real-time auto-refresh</li>
+                <li>Pre-built templates: Node Exporter (CPU/RAM), Kubernetes cluster, JVM, Nginx</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Example Dashboard</div>
+              <h3>What a Grafana panel shows</h3>
+              <ul class="clean">
+                <li><strong>Line chart:</strong> Request latency (p50, p95, p99) over 24 hours</li>
+                <li><strong>Gauge:</strong> Current CPU utilization — 67%</li>
+                <li><strong>Stat panel:</strong> Uptime: 99.97%</li>
+                <li><strong>Heatmap:</strong> Error rate distribution by hour of day</li>
+                <li><strong>Alert annotation:</strong> Red vertical line when an incident was detected</li>
+              </ul>
+            </div>
+          </div>
+          <p class="dark-note" style="margin-top:10px;"><strong>The Prometheus + Grafana stack</strong> is the industry standard for open-source monitoring. Prometheus collects and stores the data; Grafana queries PromQL and renders it as interactive dashboards.</p>
+        </div>
+      </section>
+
+      <!-- 6 : ELK + DATADOG -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>COMPLEMENTARY TOOLS</div>
+        <h1 class="slide-title">ELK Stack &amp; Datadog</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Open-Source</div>
+              <h3>ELK Stack (Logs)</h3>
+              <ul class="clean">
+                <li><strong>Elasticsearch:</strong> Distributed search engine — indexes and stores log data</li>
+                <li><strong>Logstash / Fluentd:</strong> Collects, parses, and ships logs from all servers</li>
+                <li><strong>Kibana:</strong> Web UI to search, filter, and visualize logs</li>
+                <li><strong>Example:</strong> Search all logs containing "NullPointerException" in the last 30 minutes, across 50 microservices, in one query</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Commercial / SaaS</div>
+              <h3>Datadog</h3>
+              <ul class="clean">
+                <li>All-in-one: metrics + logs + traces + security in a single platform</li>
+                <li>600+ integrations (AWS, K8s, Docker, Jenkins, GitHub)</li>
+                <li>AI-powered anomaly detection — spots unusual patterns automatically</li>
+                <li><strong>Example:</strong> Datadog detects that p99 latency spiked 300% after the latest deploy and auto-creates an incident in PagerDuty</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 : METRICS TOOLS COMPARISON -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>TOOL LANDSCAPE</div>
+        <h1 class="slide-title">Metrics tool comparison</h1>
+        <div class="slide-body">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Type</th>
+                <th>Best For</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="lbl">Prometheus</td>
+                <td>Metrics DB</td>
+                <td>Time-series metrics collection; alerting via AlertManager</td>
+                <td>Free (open-source)</td>
+              </tr>
+              <tr>
+                <td class="lbl">Grafana</td>
+                <td>Visualization</td>
+                <td>Dashboards for Prometheus, Elasticsearch, any data source</td>
+                <td>Free (OSS) / Cloud paid tier</td>
+              </tr>
+              <tr>
+                <td class="lbl">ELK Stack</td>
+                <td>Log Management</td>
+                <td>Centralized log search, analysis, and visualization</td>
+                <td>Free (OSS) / Elastic Cloud paid</td>
+              </tr>
+              <tr>
+                <td class="lbl">Datadog</td>
+                <td>All-in-One SaaS</td>
+                <td>Unified metrics + logs + traces + security</td>
+                <td>$15–$34 per host/month</td>
+              </tr>
+              <tr>
+                <td class="lbl">New Relic</td>
+                <td>APM SaaS</td>
+                <td>Application performance monitoring, distributed tracing</td>
+                <td>Free tier / $0.30 per GB ingested</td>
+              </tr>
+              <tr>
+                <td class="lbl">PagerDuty</td>
+                <td>Incident Mgmt</td>
+                <td>On-call scheduling, alert routing, escalation policies</td>
+                <td>$21–$41 per user/month</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 8 : DEVOPS LIFECYCLE OVERVIEW -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE BIG PICTURE</div>
+        <h1 class="slide-title">The DevOps Lifecycle — 8 phases</h1>
+        <div class="slide-body">
+          <div class="flow-row" style="margin-bottom:14px;">
+            <div class="flow-step active">Plan</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Code</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Build</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Test</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Release</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Deploy</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Operate</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step dark">Monitor</div>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Dev Loop (Left)</div>
+              <h3>Plan → Code → Build → Test</h3>
+              <ul class="clean">
+                <li><strong>Plan:</strong> User stories, sprint planning (Jira, Azure Boards)</li>
+                <li><strong>Code:</strong> Write features, branch in Git, open PRs</li>
+                <li><strong>Build:</strong> Compile code, resolve dependencies (Maven, npm)</li>
+                <li><strong>Test:</strong> Unit, integration, E2E tests run automatically</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Ops Loop (Right)</div>
+              <h3>Release → Deploy → Operate → Monitor</h3>
+              <ul class="clean">
+                <li><strong>Release:</strong> Package artifact, tag version, approve for deployment</li>
+                <li><strong>Deploy:</strong> Push to production via Blue-Green / Canary / Rolling</li>
+                <li><strong>Operate:</strong> Manage infrastructure, scale, handle incidents</li>
+                <li><strong>Monitor:</strong> Observe metrics, logs, traces → feed data back to Plan</li>
+              </ul>
+            </div>
+          </div>
+          <p class="dark-note" style="margin-top:8px;">The ∞ shape matters: Monitor feeds back into Plan. The loop never ends — every cycle makes the product better.</p>
+        </div>
+      </section>
+
+      <!-- 9 : LIFECYCLE TOOLS MAP -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>TOOLCHAIN MAP</div>
+        <h1 class="slide-title">One tool per lifecycle phase</h1>
+        <div class="slide-body">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>Phase</th>
+                <th>Activity</th>
+                <th>Example Tools</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="lbl">Plan</td>
+                <td>Requirements, user stories, sprint planning</td>
+                <td>Jira, Azure Boards, Trello, Linear</td>
+              </tr>
+              <tr>
+                <td class="lbl">Code</td>
+                <td>Write code, collaborate via PRs</td>
+                <td>VS Code, Git, GitHub, GitLab</td>
+              </tr>
+              <tr>
+                <td class="lbl">Build</td>
+                <td>Compile, resolve dependencies, package</td>
+                <td>Maven, Gradle, npm, Docker</td>
+              </tr>
+              <tr>
+                <td class="lbl">Test</td>
+                <td>Automated unit, integration, E2E testing</td>
+                <td>JUnit, pytest, Selenium, Cypress</td>
+              </tr>
+              <tr>
+                <td class="lbl">Release</td>
+                <td>Version tagging, approval gates</td>
+                <td>GitHub Releases, Jenkins, GitLab CI</td>
+              </tr>
+              <tr>
+                <td class="lbl">Deploy</td>
+                <td>Push to staging/production environments</td>
+                <td>Terraform, Ansible, Kubernetes, ArgoCD</td>
+              </tr>
+              <tr>
+                <td class="lbl">Operate</td>
+                <td>Manage infrastructure, auto-scale</td>
+                <td>AWS, Azure, GCP, Kubernetes, Puppet</td>
+              </tr>
+              <tr>
+                <td class="lbl">Monitor</td>
+                <td>Observe, alert, investigate</td>
+                <td>Prometheus, Grafana, ELK, Datadog, PagerDuty</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 10 : WHAT IS DIGITAL TRANSFORMATION -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>DIGITAL TRANSFORMATION</div>
+        <h1 class="slide-title">What is Digital Transformation?</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Definition</div>
+            <h3>Reimagining business through technology</h3>
+            <p>Digital Transformation (DX) is the process of using digital technology to fundamentally change how an organization operates, delivers value to customers, and competes in the market. It's not just "going digital" — it's rethinking business models, internal processes, and customer experiences from the ground up.</p>
+          </div>
+          <div class="grid3" style="margin-top:14px;">
+            <div class="card" style="text-align:center;">
+              <div class="stat">$3.9T</div>
+              <div class="stat-label">Global DX spending by 2027</div>
+              <p style="margin-top:6px;">Source: IDC, 2024</p>
+            </div>
+            <div class="card" style="text-align:center;">
+              <div class="stat">70%</div>
+              <div class="stat-label">of DX initiatives fail</div>
+              <p style="margin-top:6px;">Usually due to culture, not technology</p>
+            </div>
+            <div class="card" style="text-align:center;">
+              <div class="stat">2.5×</div>
+              <div class="stat-label">Revenue growth for DX leaders</div>
+              <p style="margin-top:6px;">vs. laggards (McKinsey, 2023)</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 : DX PILLARS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>FOUR PILLARS</div>
+        <h1 class="slide-title">The 4 pillars of Digital Transformation</h1>
+        <div class="slide-body">
+          <div class="grid4">
+            <div class="card">
+              <div class="tag">Pillar 01</div>
+              <h3>Customer Experience</h3>
+              <p>Personalization, omnichannel experiences, mobile-first design. Example: Netflix's AI-driven recommendations.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Pillar 02</div>
+              <h3>Operational Agility</h3>
+              <p>Automating internal workflows, reducing manual handoffs. Example: Amazon's automated warehouses and one-click ordering.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Pillar 03</div>
+              <h3>Workforce Enablement</h3>
+              <p>Cloud collaboration tools, self-service platforms, upskilling teams. Example: Microsoft Teams replacing email-first culture.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Pillar 04</div>
+              <h3>Digital Tech Integration</h3>
+              <p>Cloud, AI/ML, IoT, Big Data, microservices. Example: Tesla's over-the-air software updates to millions of cars.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 : DEVOPS AS THE ENGINE OF DX -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE CONNECTION</div>
+        <h1 class="slide-title">DevOps is the engine of Digital Transformation</h1>
+        <div class="slide-body">
+          <p class="quote">"You can't have digital transformation without DevOps. The speed of business depends on the speed of software."
+            <cite>— Gene Kim, The Phoenix Project</cite>
+          </p>
+          <div class="grid2" style="margin-top:14px;">
+            <div class="card">
+              <div class="tag">How DevOps Enables DX</div>
+              <h3>The multiplier effect</h3>
+              <ul class="clean">
+                <li><strong>Speed:</strong> CI/CD lets teams deploy features in hours, not months</li>
+                <li><strong>Reliability:</strong> Automated testing and monitoring reduce risk</li>
+                <li><strong>Scalability:</strong> IaC + containers spin up capacity on demand</li>
+                <li><strong>Experimentation:</strong> Feature flags + canary deploys enable A/B testing safely</li>
+                <li><strong>Feedback:</strong> Monitoring data feeds directly into product decisions</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Without DevOps</div>
+              <h3>DX bottleneck</h3>
+              <ul class="clean">
+                <li>Marketing promises a new feature → IT says "6 months"</li>
+                <li>Quarterly releases mean competitors ship first</li>
+                <li>Manual deployments cause weekend outages</li>
+                <li>No monitoring → customer complaints are the alerting system</li>
+                <li>"Transformation" becomes just a PowerPoint presentation</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 13 : CASE STUDY — NETFLIX -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CASE STUDY</div>
+        <h1 class="slide-title">Netflix — DevOps at planetary scale</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Before DevOps (2007)</div>
+              <h3>The old Netflix</h3>
+              <ul class="clean">
+                <li>Monolithic Java application running in its own data center</li>
+                <li>A single database corruption caused a 3-day outage</li>
+                <li>DVD mailing was still the primary business model</li>
+                <li>Deployments happened every few weeks with major downtime</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">After DevOps (Today)</div>
+              <h3>The Netflix machine</h3>
+              <ul class="clean">
+                <li>1,000+ microservices running on AWS</li>
+                <li>Thousands of deployments per day with zero downtime</li>
+                <li>Chaos Monkey — intentionally kills production servers to test resilience</li>
+                <li>238 million subscribers in 190 countries</li>
+              </ul>
+            </div>
+          </div>
+          <div class="case-accent">
+            <p><strong>Key lesson:</strong> Netflix didn't just adopt DevOps tools — they reimagined their entire culture and architecture. The "Freedom and Responsibility" culture empowers any engineer to deploy to production without approval, because automated testing and monitoring catch problems instantly.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 14 : CASE STUDY — AMAZON + TARGET -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>MORE EXAMPLES</div>
+        <h1 class="slide-title">Amazon &amp; Target — two ends of the spectrum</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Born-Digital Giant</div>
+              <h3>Amazon</h3>
+              <ul class="clean">
+                <li>Deploys code every <strong>11.7 seconds</strong> on average</li>
+                <li>Built AWS (the cloud itself) to solve their own scaling problems</li>
+                <li>"Two-pizza teams" — small, autonomous squads that own their service end-to-end</li>
+                <li>Every team runs its own CI/CD pipeline and on-call rotation</li>
+              </ul>
+              <p style="margin-top:8px;font-weight:600;color:var(--amber-deep);">Result: From bookstore to $1.5 trillion tech conglomerate.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Legacy Retailer Transformed</div>
+              <h3>Target</h3>
+              <ul class="clean">
+                <li>2013 data breach exposed 40M credit card records — a DX wake-up call</li>
+                <li>Moved from outsourced IT to 4,000 in-house engineers</li>
+                <li>Adopted microservices, Kubernetes, and CI/CD pipelines internally</li>
+                <li>Built custom tools: <strong>Drone</strong> (CI) and <strong>TAP</strong> (internal PaaS)</li>
+              </ul>
+              <p style="margin-top:8px;font-weight:600;color:var(--amber-deep);">Result: E-commerce revenue grew 195% (2019-2022).</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 15 : ROLE OF DEVOPS IN AN ORG -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>ORGANIZATIONAL ROLE</div>
+        <h1 class="slide-title">Where DevOps sits in a modern organization</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Key Roles</div>
+            <h3>DevOps is not a single team — it's a culture</h3>
+            <p style="margin-bottom:12px;">In mature organizations, DevOps isn't a silo; it's a shared responsibility. However, specific roles exist to enable it:</p>
+            <table class="compare" style="box-shadow:none;">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Responsibility</th>
+                  <th>Tools They Own</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="lbl">DevOps Engineer</td>
+                  <td>Build and maintain CI/CD pipelines, IaC, and developer tooling</td>
+                  <td>Jenkins, GitHub Actions, Terraform</td>
+                </tr>
+                <tr>
+                  <td class="lbl">SRE (Site Reliability)</td>
+                  <td>Define SLOs, manage incident response, reduce toil through automation</td>
+                  <td>Prometheus, PagerDuty, runbooks</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Platform Engineer</td>
+                  <td>Build the Internal Developer Platform (IDP) that abstracts infrastructure</td>
+                  <td>Kubernetes, Backstage, ArgoCD</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Cloud Architect</td>
+                  <td>Design cloud infrastructure, networking, security, cost optimization</td>
+                  <td>AWS, Azure, GCP console, Terraform</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 16 : SUMMARY + NEXT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WRAP-UP</div>
+        <h1 class="slide-title">Summary &amp; what's next</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Lecture 12 · Key Takeaways</div>
+            <h3>What you should remember</h3>
+            <ul class="clean">
+              <li><strong>Metrics Tools:</strong> Prometheus (collection) + Grafana (visualization); ELK (logs); Datadog (all-in-one SaaS)</li>
+              <li><strong>DevOps Lifecycle:</strong> 8 phases in an infinity loop — Plan → Code → Build → Test → Release → Deploy → Operate → Monitor → back to Plan</li>
+              <li><strong>Digital Transformation:</strong> Reimagining business through technology; 4 pillars: CX, Operational Agility, Workforce, Tech Integration</li>
+              <li><strong>DevOps as DX Engine:</strong> Speed, reliability, scalability, experimentation, and feedback are what make DX real — not just PowerPoint</li>
+              <li><strong>Case Studies:</strong> Netflix (monolith → 1,000 microservices), Amazon (deploy every 11.7s), Target (legacy → modern engineering)</li>
+            </ul>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Next Lecture · Lecture 13</div>
+              <h3>Mon, 06 Jul 2026 · 14:00–15:00 · Unit V</h3>
+              <p>Selecting right DevOps tools; Docker &amp; Kubernetes; Puppet &amp; Ansible; Monitoring tools; IBM Case Study: CI/CD.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Unit IV Complete ✓</div>
+              <h3>You've finished Unit IV!</h3>
+              <p>Lectures 10-12 covered DevOps principles, Git, Gitflow, CI, IaC, CD, Jenkins, metrics, lifecycle, and DX. Next: hands-on tooling in Unit V.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="titleblock">
+      <div>CSDV3017 · DEVOPS</div>
+      <div class="center-track" id="stationTrack"></div>
+      <div class="sheet" id="sheetCounter">SHEET 01/16</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slidesEl = document.getElementById('slides');
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      let current = 0;
+
+      const progressFill = document.getElementById('progressFill');
+      const sheetCounter = document.getElementById('sheetCounter');
+      const stationTrack = document.getElementById('stationTrack');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'station';
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('tabindex', '0');
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', () => go(i));
+        dot.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i); } });
+        stationTrack.appendChild(dot);
+      }
+      const dots = Array.from(stationTrack.children);
+
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+      function render() {
+        slidesEl.style.transform = 'translateX(' + (-current * 100) + '%)';
+        progressFill.style.width = ((current + 1) / total * 100) + '%';
+        sheetCounter.textContent = 'SHEET ' + pad(current + 1) + '/' + total;
+        dots.forEach((d, i) => d.classList.toggle('active', i === current));
+        prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+        nextBtn.style.visibility = current === total - 1 ? 'hidden' : 'visible';
+      }
+
+      function go(i) {
+        current = Math.max(0, Math.min(total - 1, i));
+        render();
+      }
+
+      prevBtn.addEventListener('click', () => go(current - 1));
+      nextBtn.addEventListener('click', () => go(current + 1));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') { go(current + 1); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(current - 1); }
+        else if (e.key === 'Home') { go(0); }
+        else if (e.key === 'End') { go(total - 1); }
+      });
+
+      let touchStartX = null, touchStartY = null;
+      slidesEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      slidesEl.addEventListener('touchend', (e) => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) go(current + 1); else go(current - 1);
+        }
+        touchStartX = null; touchStartY = null;
+      }, { passive: true });
+
+      render();
+    })();
+  </script>
+
+</body>
+
+</html>

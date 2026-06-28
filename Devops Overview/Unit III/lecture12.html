@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 12 – Typical Toolkit for DevOps; Introduction to CI/CD</title>
+  <meta name="description" content="Lecture 12 of DevOps Overview course at UPES Dehradun — Exploring the typical DevOps toolchain across the software lifecycle and a deep introduction to CI/CD pipelines.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap');
+
+    :root {
+      --ink: #0D1B2A;
+      --sky: #1C6EA4;
+      --sky-lt: #E8F4FD;
+      --teal: #00897B;
+      --teal-lt: #E0F2F1;
+      --amber: #F59E0B;
+      --amber-lt: #FEF3C7;
+      --coral: #E53E3E;
+      --coral-lt: #FFF5F5;
+      --slate: #4A5568;
+      --mist: #F7F9FC;
+      --white: #FFFFFF;
+      --border: #D1E3F0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0D1B2A;
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── NAV BAR ─────────────────────────────────────── */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(13, 27, 42, 0.97);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(28, 110, 164, 0.4);
+    }
+
+    .navbar-brand {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--sky);
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+    }
+
+    .navbar-brand span {
+      display: block;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 400;
+      font-size: 0.68rem;
+    }
+
+    .slide-counter {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+      background: rgba(28, 110, 164, 0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .nav-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.25s;
+      border: none;
+    }
+
+    .dot.active {
+      background: var(--sky);
+      transform: scale(1.3);
+    }
+
+    /* ── SLIDE CONTAINER ─────────────────────────────── */
+    .slides-wrapper {
+      padding-top: 64px;
+      min-height: 100vh;
+    }
+
+    .slide {
+      display: none;
+      min-height: calc(100vh - 64px);
+      padding: 32px 24px 80px;
+      max-width: 960px;
+      margin: 0 auto;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── BOTTOM NAV ───────────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(13, 27, 42, 0.97);
+      border-top: 1px solid rgba(28, 110, 164, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      gap: 12px;
+    }
+
+    .btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-prev {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-prev:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-next {
+      background: var(--sky);
+      color: #fff;
+    }
+
+    .btn-next:hover {
+      background: #155d8e;
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    /* ── SLIDE COMPONENTS ────────────────────────────── */
+
+    .eyebrow {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sky);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 2px;
+      background: var(--sky);
+      flex-shrink: 0;
+    }
+
+    .h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.3rem, 3.5vw, 2rem);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    .h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .lead {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.65);
+      line-height: 1.65;
+      max-width: 560px;
+    }
+
+    .body-text {
+      font-size: 0.9rem;
+      color: var(--slate);
+      line-height: 1.7;
+    }
+
+    /* ── TITLE SLIDE ────────────────────────── */
+    .title-slide {
+      justify-content: center;
+      background: linear-gradient(135deg, #0D1B2A 0%, #12284A 60%, #0D3358 100%);
+      position: relative;
+      overflow: hidden;
+      min-height: calc(100vh - 64px);
+    }
+
+    .title-slide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 80% 40%, rgba(28, 110, 164, 0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(28, 110, 164, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(28, 110, 164, 0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .title-content {
+      position: relative;
+      z-index: 2;
+      padding: 40px 0 20px;
+    }
+
+    .course-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(28, 110, 164, 0.2);
+      border: 1px solid rgba(28, 110, 164, 0.4);
+      color: #78C0E0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+
+    .highlight {
+      color: #4FC3F7;
+    }
+
+    .title-meta {
+      margin-top: 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .meta-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.4;
+    }
+
+    .meta-chip strong {
+      display: block;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+
+    .agenda-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border-left: 3px solid var(--sky);
+      background: var(--sky-lt);
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .agenda-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--sky);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── CONTENT SLIDE BASE ─────────────────── */
+    .content-slide {
+      background: var(--mist);
+      border-radius: 16px;
+      padding: 32px 28px;
+      flex: 1;
+    }
+
+    /* CARD GRID */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px 16px;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 16px rgba(28, 110, 164, 0.12);
+    }
+
+    .card-icon {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .card-body {
+      font-size: 0.82rem;
+      color: var(--slate);
+      line-height: 1.6;
+    }
+
+    /* HIGHLIGHT BOX */
+    .highlight-box {
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin: 16px 0;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .hb-sky {
+      background: var(--sky-lt);
+      border-left: 4px solid var(--sky);
+    }
+
+    .hb-teal {
+      background: var(--teal-lt);
+      border-left: 4px solid var(--teal);
+    }
+
+    .hb-amber {
+      background: var(--amber-lt);
+      border-left: 4px solid var(--amber);
+    }
+
+    .hb-coral {
+      background: var(--coral-lt);
+      border-left: 4px solid var(--coral);
+    }
+
+    .hb-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .hb-text {
+      font-size: 0.86rem;
+      color: var(--slate);
+      line-height: 1.65;
+    }
+
+    .hb-text strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* TWO-COL */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 580px) {
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .col-panel {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 18px 16px;
+    }
+
+    .col-panel-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .sky-label {
+      color: var(--sky);
+    }
+
+    .teal-label {
+      color: var(--teal);
+    }
+
+    .coral-label {
+      color: var(--coral);
+    }
+
+    .amber-label {
+      color: var(--amber);
+    }
+
+    .bullet-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .bullet-list li {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 0.83rem;
+      color: var(--slate);
+      line-height: 1.6;
+      padding: 5px 0;
+      border-bottom: 1px solid #F0F4F8;
+    }
+
+    .bullet-list li:last-child {
+      border-bottom: none;
+    }
+
+    .bullet-list li::before {
+      content: '▸';
+      color: var(--sky);
+      font-size: 0.7rem;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .bullet-list.teal li::before {
+      color: var(--teal);
+    }
+
+    .bullet-list.coral li::before {
+      color: var(--coral);
+    }
+
+    .bullet-list.amber li::before {
+      color: var(--amber);
+    }
+
+    /* TIMELINE */
+    .timeline {
+      position: relative;
+      margin-top: 20px;
+      padding-left: 0;
+    }
+
+    .tl-item {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+
+    .tl-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--sky);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .tl-dot.teal {
+      background: var(--teal);
+    }
+
+    .tl-dot.amber {
+      background: var(--amber);
+    }
+
+    .tl-dot.coral {
+      background: var(--coral);
+    }
+
+    .tl-content {
+      flex: 1;
+    }
+
+    .tl-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+
+    .tl-desc {
+      font-size: 0.8rem;
+      color: var(--slate);
+      line-height: 1.55;
+    }
+
+    /* COMPARISON TABLE */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.82rem;
+    }
+
+    .comp-table th {
+      background: var(--ink);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .comp-table th:first-child {
+      border-radius: 8px 0 0 0;
+      width: 22%;
+    }
+
+    .comp-table th:last-child {
+      border-radius: 0 8px 0 0;
+    }
+
+    .comp-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--slate);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .comp-table tr:nth-child(even) td {
+      background: var(--sky-lt);
+    }
+
+    .comp-table td:first-child {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* STAT CARDS */
+    .stat-row {
+      display: flex;
+      gap: 14px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 130px;
+      background: var(--ink);
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #4FC3F7;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    /* PIPELINE */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin: 20px 0;
+    }
+
+    .pipe-step {
+      background: var(--sky);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      position: relative;
+      flex: 1;
+      text-align: center;
+      min-width: 80px;
+      margin: 2px 0;
+    }
+
+    .pipe-step:first-child {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .pipe-step:last-child {
+      border-radius: 0 8px 8px 0;
+    }
+
+    .pipe-step.teal {
+      background: var(--teal);
+    }
+
+    .pipe-step.amber {
+      background: var(--amber);
+      color: var(--ink);
+    }
+
+    .pipe-step.coral {
+      background: var(--coral);
+    }
+
+    .pipe-step.purple {
+      background: #7E57C2;
+    }
+
+    .pipe-step.dark {
+      background: #2D3748;
+    }
+
+    .pipe-step span {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 400;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 480px) {
+      .pipeline {
+        flex-direction: column;
+      }
+
+      .pipe-step {
+        border-radius: 0 !important;
+        text-align: left;
+        padding-left: 20px;
+      }
+
+      .pipe-step:first-child {
+        border-radius: 8px 8px 0 0 !important;
+      }
+
+      .pipe-step:last-child {
+        border-radius: 0 0 8px 8px !important;
+      }
+    }
+
+    /* BIG QUOTE */
+    .big-quote {
+      background: var(--ink);
+      border-radius: 14px;
+      padding: 28px 24px;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .big-quote::before {
+      content: '"';
+      font-family: Georgia, serif;
+      font-size: 6rem;
+      color: rgba(28, 110, 164, 0.3);
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      line-height: 1;
+    }
+
+    .big-quote p {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+      color: #fff;
+      line-height: 1.55;
+      position: relative;
+      z-index: 1;
+      padding-left: 12px;
+    }
+
+    .big-quote cite {
+      display: block;
+      margin-top: 12px;
+      padding-left: 12px;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-style: normal;
+      letter-spacing: 0.04em;
+    }
+
+    /* KEY TAKEAWAY BANNER */
+    .takeaway {
+      background: linear-gradient(135deg, #0D1B2A, #12284A);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-top: 20px;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .takeaway-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+
+    .takeaway p {
+      font-size: 0.88rem;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.65;
+    }
+
+    /* SUMMARY SLIDE */
+    .summary-slide {
+      background: linear-gradient(135deg, #0D1B2A 0%, #0D3358 100%);
+      border-radius: 16px;
+      padding: 32px 28px;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-slide::after {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      right: -40px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(rgba(28, 110, 164, 0.2), transparent 70%);
+    }
+
+    .summary-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .summary-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(28, 110, 164, 0.25);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .summary-item .si-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--sky);
+      flex-shrink: 0;
+      line-height: 1.2;
+    }
+
+    .summary-item .si-text {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.55;
+    }
+
+    .summary-item .si-text strong {
+      color: #fff;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* PROGRESS BAR */
+    .progress-bar-wrap {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      position: fixed;
+      top: 54px;
+      left: 0;
+      right: 0;
+      z-index: 101;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--sky);
+      transition: width 0.35s ease;
+    }
+
+    /* CODE BLOCK */
+    .code-block {
+      background: #0D1B2A;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 12px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem;
+      color: #B8E0FF;
+      overflow-x: auto;
+      line-height: 1.6;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .code-block .cm {
+      color: #6B8CAE;
+    }
+
+    .code-block .kw {
+      color: #F59E0B;
+    }
+
+    .code-block .str {
+      color: #81C995;
+    }
+
+    .code-block .fn {
+      color: #82AAFF;
+    }
+
+    /* PILLAR FOCUS BOX */
+    .pillar-focus {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--ink);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin: 16px 0;
+    }
+
+    .pillar-focus-icon {
+      font-size: 2.4rem;
+      flex-shrink: 0;
+    }
+
+    .pillar-focus-text {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.6;
+    }
+
+    .pillar-focus-text strong {
+      color: #fff;
+    }
+
+    /* TOOLCHAIN STRIP */
+    .toolchain-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .tool-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 12px;
+      text-align: center;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+
+    .tool-card:hover {
+      box-shadow: 0 4px 16px rgba(28, 110, 164, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .tool-card-emoji {
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .tool-card-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+
+    .tool-card-cat {
+      font-size: 0.68rem;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 480px) {
+      .toolchain-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Ensure slides fill properly on mobile */
+    @media (max-width: 600px) {
+      .slide {
+        padding: 16px 12px 80px;
+      }
+
+      .content-slide {
+        padding: 20px 16px;
+      }
+
+      .summary-slide {
+        padding: 20px 16px;
+      }
+
+      .code-block {
+        font-size: 0.65rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV BAR -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a href="../index.html" id="course-label" style="text-decoration: none;">
+        <strong>DevOps Overview</strong>
+        CSDV3016P/3017
+        BTech CSE Sem V · UPES Dehradun
+      </a>
+    </div>
+    <div class="nav-dots" id="navDots"></div>
+    <div class="slide-counter" id="slideCounter">1 / 15</div>
+  </nav>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill"></div>
+  </div>
+
+  <!-- SLIDES -->
+  <div class="slides-wrapper">
+
+    <!-- ══ SLIDE 1: TITLE ══════════════════════════════════════ -->
+    <div class="slide title-slide active" id="slide-1">
+      <div class="grid-bg"></div>
+      <div class="title-content">
+        <div class="course-badge">📚 Week 4 · Unit III · Lecture 12</div>
+        <div class="h1">DevOps <span class="highlight">Toolkit</span>;<br>Intro to CI/CD</div>
+        <p class="lead">Mapping the complete DevOps toolchain — from code to production — and diving deep into
+          Continuous Integration and Continuous Delivery pipelines as the engine of modern software delivery.</p>
+        <div class="title-meta">
+          <div class="meta-chip"><strong>Dr. Mohsin Furkh Dar</strong>School of Computer Sciences</div>
+          <div class="meta-chip"><strong>Date</strong>Tue, 30 Jun 2026 · 9:00 – 10:00 AM</div>
+          <div class="meta-chip"><strong>Programme</strong>BTech CSE – Summer Semester</div>
+        </div>
+
+        <div style="margin-top:28px;">
+          <div
+            style="font-family:'Space Grotesk',sans-serif; font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:12px;">
+            Today's Agenda</div>
+          <div class="agenda-row">
+            <div class="agenda-num">1</div>Recap — Unit II Wrap-Up &amp; Welcome to Unit III
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">2</div>The DevOps Toolchain — Plan to Operate
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">3</div>Tool Categories &amp; Popular Choices
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">4</div>CI Deep Dive — Continuous Integration
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">5</div>CD Deep Dive — Delivery vs. Deployment
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">6</div>Building a CI/CD Pipeline &amp; Key Takeaways
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 2: RECAP ══════════════════════════════════════ -->
+    <div class="slide" id="slide-2">
+      <div class="content-slide">
+        <div class="eyebrow">Recap &amp; Transition</div>
+        <div class="h2">From Principles to Tools</div>
+        <div class="highlight-box hb-sky">
+          <div class="hb-icon">✅</div>
+          <div class="hb-text"><strong>Unit II Complete:</strong> We covered the full DevOps philosophy —
+            Agile + DevOps, MVP, CI/CD concepts, the CAMS framework (Culture, Automation, Measurement, Sharing),
+            TDD, Configuration Management, Infrastructure Automation, RCA, Blamelessness, and Organizational
+            Learning.</div>
+        </div>
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">🎯</div>
+          <div class="hb-text"><strong>Unit III begins:</strong> Now we move from <em>"what DevOps is"</em> to
+            <em>"what tools DevOps uses."</em> This unit maps the complete DevOps toolchain and goes hands-on
+            with CI/CD pipelines and version control systems.</div>
+        </div>
+        <div class="two-col" style="margin-top:16px;">
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">Unit II — Principles ✔️</div>
+            <ul class="bullet-list">
+              <li>CAMS framework — the "why" of DevOps</li>
+              <li>CI/CD — the concept (what it means)</li>
+              <li>IaC &amp; Configuration Management</li>
+              <li>Blamelessness &amp; learning culture</li>
+            </ul>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title teal-label">Unit III — Toolkit 📍</div>
+            <ul class="bullet-list teal">
+              <li>Concrete tools for each DevOps phase</li>
+              <li>CI/CD — the tooling (Jenkins, GitHub Actions, etc.)</li>
+              <li>Version Control Systems — Git in depth</li>
+              <li>Hands-on pipeline construction</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 3: THE DEVOPS TOOLCHAIN ══════════════════════ -->
+    <div class="slide" id="slide-3">
+      <div class="content-slide">
+        <div class="eyebrow">The Big Picture</div>
+        <div class="h2">The DevOps Toolchain — End to End</div>
+        <p class="body-text" style="margin-bottom:16px;">The DevOps toolchain spans the <strong>entire software
+            lifecycle</strong> — from planning a feature to operating it in production. Each phase has specialized
+          tools, but they all connect into a continuous flow.</p>
+
+        <div class="pipeline">
+          <div class="pipe-step">Plan<span>Ideas &amp; tasks</span></div>
+          <div class="pipe-step teal">Code<span>Write &amp; review</span></div>
+          <div class="pipe-step amber">Build<span>Compile &amp; package</span></div>
+          <div class="pipe-step coral">Test<span>Verify quality</span></div>
+          <div class="pipe-step purple">Release<span>Approve &amp; tag</span></div>
+          <div class="pipe-step dark">Deploy<span>Ship to prod</span></div>
+          <div class="pipe-step">Operate<span>Run &amp; scale</span></div>
+          <div class="pipe-step teal">Monitor<span>Observe &amp; alert</span></div>
+        </div>
+
+        <div class="highlight-box hb-sky">
+          <div class="hb-icon">♻️</div>
+          <div class="hb-text"><strong>It's an infinity loop, not a straight line.</strong> The DevOps toolchain
+            is often drawn as an ∞ symbol — the left loop (Plan → Code → Build → Test) is the "Dev" side, and the
+            right loop (Release → Deploy → Operate → Monitor) is the "Ops" side. Monitoring feeds back into
+            planning — closing the loop.</div>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">🔑 Key Principle</div>
+          <p><strong>Tools enable, but don't define DevOps.</strong> A team with the wrong culture but perfect tools
+            will still fail. But a team with the right culture and the <em>right</em> tools can deliver software
+            faster and more reliably than either alone. Tools are the <em>force multiplier</em>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 4: PLAN & CODE TOOLS ═════════════════════════ -->
+    <div class="slide" id="slide-4">
+      <div class="content-slide">
+        <div class="eyebrow">Toolchain — Plan &amp; Code</div>
+        <div class="h2">Planning &amp; Coding Tools</div>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--sky);">
+            <div class="col-panel-title sky-label">📋 Plan</div>
+            <ul class="bullet-list">
+              <li><strong>Jira</strong> — industry-standard project tracking, sprints, backlogs, Kanban boards</li>
+              <li><strong>Azure Boards</strong> — Microsoft's integrated planning tool (part of Azure DevOps)</li>
+              <li><strong>Trello</strong> — simple Kanban-style boards for smaller teams</li>
+              <li><strong>Linear</strong> — modern, fast issue tracker popular with startups</li>
+              <li><strong>GitHub Issues / Projects</strong> — lightweight planning directly in your code repo</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--teal);">
+            <div class="col-panel-title teal-label">💻 Code</div>
+            <ul class="bullet-list teal">
+              <li><strong>VS Code</strong> — dominant code editor with rich extension ecosystem</li>
+              <li><strong>Git</strong> — distributed version control (we'll study this in depth in L13–14)</li>
+              <li><strong>GitHub / GitLab / Bitbucket</strong> — hosted Git repositories with collaboration features</li>
+              <li><strong>Code Review Tools</strong> — pull requests, Gerrit, Crucible</li>
+              <li><strong>AI Assistants</strong> — GitHub Copilot, Gemini Code Assist — AI-powered code generation</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="toolchain-strip">
+          <div class="tool-card">
+            <span class="tool-card-emoji">📊</span>
+            <div class="tool-card-name">Jira</div>
+            <div class="tool-card-cat">Planning</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">📝</span>
+            <div class="tool-card-name">VS Code</div>
+            <div class="tool-card-cat">Editor</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🔀</span>
+            <div class="tool-card-name">Git</div>
+            <div class="tool-card-cat">VCS</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🐙</span>
+            <div class="tool-card-name">GitHub</div>
+            <div class="tool-card-cat">Platform</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🦊</span>
+            <div class="tool-card-name">GitLab</div>
+            <div class="tool-card-cat">Platform</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 5: BUILD & TEST TOOLS ════════════════════════ -->
+    <div class="slide" id="slide-5">
+      <div class="content-slide">
+        <div class="eyebrow">Toolchain — Build &amp; Test</div>
+        <div class="h2">Build &amp; Test Tools</div>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--amber);">
+            <div class="col-panel-title amber-label">🔨 Build</div>
+            <ul class="bullet-list amber">
+              <li><strong>Maven / Gradle</strong> — Java project build &amp; dependency management</li>
+              <li><strong>npm / Yarn / pnpm</strong> — JavaScript/Node.js package managers &amp; build tools</li>
+              <li><strong>Docker</strong> — builds container images from Dockerfiles</li>
+              <li><strong>Webpack / Vite</strong> — frontend bundlers that compile, minify, and optimize</li>
+              <li><strong>Make / CMake</strong> — classic build automation for C/C++ and polyglot projects</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--coral);">
+            <div class="col-panel-title coral-label">🧪 Test</div>
+            <ul class="bullet-list coral">
+              <li><strong>JUnit / TestNG</strong> — Java unit testing frameworks</li>
+              <li><strong>pytest</strong> — Python testing framework (simple, powerful)</li>
+              <li><strong>Jest / Mocha</strong> — JavaScript testing frameworks</li>
+              <li><strong>Selenium / Playwright / Cypress</strong> — browser-based UI/E2E testing</li>
+              <li><strong>SonarQube</strong> — code quality and security analysis (static analysis)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="toolchain-strip">
+          <div class="tool-card">
+            <span class="tool-card-emoji">☕</span>
+            <div class="tool-card-name">Maven</div>
+            <div class="tool-card-cat">Build</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🐳</span>
+            <div class="tool-card-name">Docker</div>
+            <div class="tool-card-cat">Build + Run</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🧪</span>
+            <div class="tool-card-name">pytest</div>
+            <div class="tool-card-cat">Testing</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🎭</span>
+            <div class="tool-card-name">Playwright</div>
+            <div class="tool-card-cat">E2E Testing</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🔍</span>
+            <div class="tool-card-name">SonarQube</div>
+            <div class="tool-card-cat">Quality</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-amber" style="margin-top:14px;">
+          <div class="hb-icon">⚡</div>
+          <div class="hb-text"><strong>The build + test combination is the heart of CI.</strong> Every code push
+            triggers a build, and every build runs automated tests. If either fails, the pipeline stops and the
+            developer is notified immediately — catching bugs within minutes, not weeks.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 6: RELEASE, DEPLOY, OPERATE, MONITOR ═════════ -->
+    <div class="slide" id="slide-6">
+      <div class="content-slide">
+        <div class="eyebrow">Toolchain — Release to Monitor</div>
+        <div class="h2">Release, Deploy, Operate &amp; Monitor</div>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">🏷️</span>
+            <div class="card-title">Release</div>
+            <div class="card-body"><strong>Tools:</strong> GitHub Releases, GitLab Release, semantic-release.
+              Tag a version, generate changelogs, approve for deployment. Release ≠ Deploy — release means
+              "it's ready," deploy means "it's live."</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🚀</span>
+            <div class="card-title">Deploy</div>
+            <div class="card-body"><strong>Tools:</strong> Kubernetes, Helm, ArgoCD, AWS CodeDeploy, Ansible.
+              Push the released artifact to production environments. Strategies: blue-green, canary, rolling
+              update.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">⚙️</span>
+            <div class="card-title">Operate</div>
+            <div class="card-body"><strong>Tools:</strong> Kubernetes, Terraform, Ansible, PagerDuty.
+              Keep the system running — scaling, patching, incident response, on-call rotation, and runbook
+              execution.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">📊</span>
+            <div class="card-title">Monitor</div>
+            <div class="card-body"><strong>Tools:</strong> Prometheus, Grafana, Datadog, ELK Stack (Elasticsearch,
+              Logstash, Kibana), New Relic. Collect metrics, logs, and traces — then alert when things go wrong.</div>
+          </div>
+        </div>
+
+        <div class="toolchain-strip">
+          <div class="tool-card">
+            <span class="tool-card-emoji">☸️</span>
+            <div class="tool-card-name">Kubernetes</div>
+            <div class="tool-card-cat">Deploy + Operate</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🔥</span>
+            <div class="tool-card-name">Prometheus</div>
+            <div class="tool-card-cat">Monitoring</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">📈</span>
+            <div class="tool-card-name">Grafana</div>
+            <div class="tool-card-cat">Dashboards</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">🐕</span>
+            <div class="tool-card-name">Datadog</div>
+            <div class="tool-card-cat">Observability</div>
+          </div>
+          <div class="tool-card">
+            <span class="tool-card-emoji">📟</span>
+            <div class="tool-card-name">PagerDuty</div>
+            <div class="tool-card-cat">Incident Mgmt</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 7: FULL TOOLCHAIN TABLE ══════════════════════ -->
+    <div class="slide" id="slide-7">
+      <div class="content-slide">
+        <div class="eyebrow">Reference</div>
+        <div class="h2">DevOps Toolchain — Complete Map</div>
+        <p class="body-text" style="margin-bottom:12px;">A single reference table mapping every DevOps phase to its
+          category and the most popular tools in the industry.</p>
+
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Phase</th>
+              <th>Category</th>
+              <th>Popular Tools</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Plan</td>
+              <td>Project Management</td>
+              <td>Jira, Azure Boards, Linear, Trello, GitHub Projects</td>
+            </tr>
+            <tr>
+              <td>Code</td>
+              <td>VCS &amp; Editors</td>
+              <td>Git, GitHub, GitLab, Bitbucket, VS Code</td>
+            </tr>
+            <tr>
+              <td>Build</td>
+              <td>Build Automation</td>
+              <td>Maven, Gradle, npm, Docker, Webpack, Vite</td>
+            </tr>
+            <tr>
+              <td>Test</td>
+              <td>Testing Frameworks</td>
+              <td>JUnit, pytest, Jest, Selenium, Playwright, SonarQube</td>
+            </tr>
+            <tr>
+              <td>CI/CD</td>
+              <td>Pipeline Engines</td>
+              <td>Jenkins, GitHub Actions, GitLab CI, CircleCI, Travis CI</td>
+            </tr>
+            <tr>
+              <td>Release</td>
+              <td>Artifact &amp; Registry</td>
+              <td>Docker Hub, Nexus, JFrog Artifactory, GitHub Packages</td>
+            </tr>
+            <tr>
+              <td>Deploy</td>
+              <td>Deployment &amp; Orchestration</td>
+              <td>Kubernetes, Helm, ArgoCD, Ansible, Terraform</td>
+            </tr>
+            <tr>
+              <td>Operate</td>
+              <td>Infrastructure &amp; Incident</td>
+              <td>Kubernetes, Terraform, PagerDuty, Opsgenie</td>
+            </tr>
+            <tr>
+              <td>Monitor</td>
+              <td>Observability</td>
+              <td>Prometheus, Grafana, Datadog, ELK Stack, New Relic</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="highlight-box hb-teal" style="margin-top:14px;">
+          <div class="hb-icon">💡</div>
+          <div class="hb-text"><strong>No single tool covers everything.</strong> DevOps teams assemble a
+            <em>toolchain</em> — a curated set of tools that integrate well together. Many organizations adopt
+            all-in-one platforms (GitLab, Azure DevOps, GitHub) to reduce integration overhead while still
+            adding specialized tools where needed.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 8: CI/CD INTRODUCTION ════════════════════════ -->
+    <div class="slide" id="slide-8">
+      <div class="content-slide">
+        <div class="eyebrow">CI/CD Introduction</div>
+        <div class="h2">What Is CI/CD? — The Engine of DevOps</div>
+
+        <div class="pillar-focus">
+          <div class="pillar-focus-icon">🔄</div>
+          <div class="pillar-focus-text"><strong>CI/CD</strong> stands for <strong>Continuous Integration</strong>
+            and <strong>Continuous Delivery / Deployment</strong>. It's the automated pipeline that takes code
+            from a developer's laptop to production — building, testing, and deploying it with minimal
+            human intervention.</div>
+        </div>
+
+        <div class="big-quote">
+          <p>CI/CD is not a tool — it's a <strong style="color:#4FC3F7">practice</strong> backed by tools.
+            The practice says: integrate frequently, test automatically, deliver reliably. The tools make
+            that practice possible at scale.</p>
+          <cite>— Martin Fowler, ThoughtWorks</cite>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-num">CI</div>
+            <div class="stat-label">Continuous<br>Integration</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">CD</div>
+            <div class="stat-label">Continuous<br>Delivery</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">CD</div>
+            <div class="stat-label">Continuous<br>Deployment</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-amber" style="margin-top:14px;">
+          <div class="hb-icon">⚠️</div>
+          <div class="hb-text"><strong>Note the two "CD"s:</strong> <em>Continuous Delivery</em> means the code
+            is always in a deployable state, but a human approves the final push to production.
+            <em>Continuous Deployment</em> means every passing build goes to production automatically — no
+            human gate. Most teams start with Delivery and graduate to Deployment.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 9: CI DEEP DIVE ══════════════════════════════ -->
+    <div class="slide" id="slide-9">
+      <div class="content-slide">
+        <div class="eyebrow">Continuous Integration</div>
+        <div class="h2">CI — Integrate Early, Integrate Often</div>
+        <p class="body-text" style="margin-bottom:16px;">Continuous Integration is the practice of merging all
+          developer working copies to a shared mainline <strong>multiple times a day</strong>, with each merge
+          verified by an automated build and test suite.</p>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot">1</div>
+            <div class="tl-content">
+              <div class="tl-label">Developer Commits Code</div>
+              <div class="tl-desc">A developer finishes a small unit of work and pushes it to the shared
+                repository (e.g., a Git push to a feature branch, then opens a Pull Request).</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot teal">2</div>
+            <div class="tl-content">
+              <div class="tl-label">CI Server Detects Change</div>
+              <div class="tl-desc">The CI server (Jenkins, GitHub Actions, etc.) detects the new commit via
+                a webhook and triggers a pipeline run automatically.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot amber">3</div>
+            <div class="tl-content">
+              <div class="tl-label">Build &amp; Compile</div>
+              <div class="tl-desc">The pipeline compiles the code, resolves dependencies, and produces a build
+                artifact (JAR, Docker image, binary). If the build fails — pipeline stops, developer is notified.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot coral">4</div>
+            <div class="tl-content">
+              <div class="tl-label">Run Automated Tests</div>
+              <div class="tl-desc">Unit tests, integration tests, and linting run automatically. If any test
+                fails — pipeline stops, developer is notified. Fast feedback: typically under 10 minutes.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:#7E57C2">5</div>
+            <div class="tl-content">
+              <div class="tl-label">Report Results</div>
+              <div class="tl-desc">Green ✅ = code is safe to merge. Red ❌ = something broke, fix it before merging.
+                Results appear directly on the Pull Request — visible to the whole team.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">🔑 CI Rules</div>
+          <p><strong>1.</strong> Commit at least once a day. <strong>2.</strong> Every commit triggers a build.
+            <strong>3.</strong> Fix broken builds immediately — never leave the pipeline red. <strong>4.</strong>
+            Keep the build fast (&lt; 10 minutes). <strong>5.</strong> Test in a production-like environment.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 10: CD DEEP DIVE ═════════════════════════════ -->
+    <div class="slide" id="slide-10">
+      <div class="content-slide">
+        <div class="eyebrow">Continuous Delivery &amp; Deployment</div>
+        <div class="h2">CD — From Build to Production</div>
+        <p class="body-text" style="margin-bottom:16px;">After CI ensures the code is buildable and passes tests,
+          CD extends the pipeline to <strong>package, stage, and deploy</strong> the software — either with a
+          manual approval gate (Delivery) or fully automatically (Deployment).</p>
+
+        <div class="pipeline">
+          <div class="pipe-step">Commit<span>Developer</span></div>
+          <div class="pipe-step teal">Build<span>CI server</span></div>
+          <div class="pipe-step amber">Test<span>Automated</span></div>
+          <div class="pipe-step coral">Stage<span>Pre-prod</span></div>
+          <div class="pipe-step purple">Approve?<span>Human gate</span></div>
+          <div class="pipe-step dark">Production<span>Live!</span></div>
+        </div>
+
+        <div class="two-col" style="margin-top:16px;">
+          <div class="col-panel" style="border-top: 3px solid var(--sky);">
+            <div class="col-panel-title sky-label">🚢 Continuous Delivery</div>
+            <ul class="bullet-list">
+              <li>Code is always in a <em>deployable state</em> after passing CI</li>
+              <li>Deployed to staging automatically for further testing</li>
+              <li>A <strong>human approves</strong> the final push to production</li>
+              <li>Suitable for: regulated industries, critical systems, teams starting with DevOps</li>
+              <li>Example: GitHub's ship-it workflow — PR merged → staging → PM clicks "Deploy"</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--teal);">
+            <div class="col-panel-title teal-label">⚡ Continuous Deployment</div>
+            <ul class="bullet-list teal">
+              <li>Every commit that passes all tests goes to production <strong>automatically</strong></li>
+              <li>No human gate — full automation from commit to live</li>
+              <li>Requires: excellent test coverage, feature flags, monitoring</li>
+              <li>Suitable for: mature teams, SaaS products, low-risk changes</li>
+              <li>Example: Netflix deploys hundreds of times per day — fully automated</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 11: CI/CD TOOLS COMPARISON ═══════════════════ -->
+    <div class="slide" id="slide-11">
+      <div class="content-slide">
+        <div class="eyebrow">CI/CD Tooling</div>
+        <div class="h2">Popular CI/CD Tools</div>
+        <p class="body-text" style="margin-bottom:12px;">The CI/CD market has evolved from monolithic servers
+          (Jenkins) to cloud-native, YAML-based pipeline-as-code platforms.</p>
+
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Type</th>
+              <th>Pipeline Definition</th>
+              <th>Key Strength</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Jenkins</td>
+              <td>Self-hosted</td>
+              <td>Jenkinsfile (Groovy)</td>
+              <td>Mature, 1800+ plugins, highly customizable</td>
+            </tr>
+            <tr>
+              <td>GitHub Actions</td>
+              <td>Cloud (GitHub)</td>
+              <td>YAML workflows</td>
+              <td>Deep GitHub integration, marketplace of actions</td>
+            </tr>
+            <tr>
+              <td>GitLab CI</td>
+              <td>Cloud / Self-hosted</td>
+              <td>.gitlab-ci.yml</td>
+              <td>All-in-one platform (VCS + CI/CD + Registry)</td>
+            </tr>
+            <tr>
+              <td>CircleCI</td>
+              <td>Cloud</td>
+              <td>YAML config</td>
+              <td>Fast execution, excellent Docker support</td>
+            </tr>
+            <tr>
+              <td>Azure Pipelines</td>
+              <td>Cloud (Azure)</td>
+              <td>YAML / GUI</td>
+              <td>Deep Azure integration, multi-platform</td>
+            </tr>
+            <tr>
+              <td>ArgoCD</td>
+              <td>Kubernetes-native</td>
+              <td>GitOps (Git repos)</td>
+              <td>Declarative, Git-driven deployments for K8s</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="highlight-box hb-sky" style="margin-top:14px;">
+          <div class="hb-icon">📈</div>
+          <div class="hb-text"><strong>Industry trend:</strong> The market is shifting from self-hosted (Jenkins)
+            to cloud-native, pipeline-as-code platforms (GitHub Actions, GitLab CI). The advantage: no server
+            maintenance, built-in runners, and tight VCS integration. Jenkins remains dominant in enterprises
+            with existing investments.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 12: GITHUB ACTIONS EXAMPLE ═══════════════════ -->
+    <div class="slide" id="slide-12">
+      <div class="content-slide">
+        <div class="eyebrow">Hands-On Example</div>
+        <div class="h2">A Real CI/CD Pipeline — GitHub Actions</div>
+        <p class="body-text" style="margin-bottom:12px;">Here's a complete CI pipeline defined in a single YAML
+          file. This file lives in your repo at <code>.github/workflows/ci.yml</code>.</p>
+
+        <div class="code-block">
+          <span class="cm"># .github/workflows/ci.yml</span><br>
+          <span class="kw">name:</span> <span class="str">CI Pipeline</span><br>
+          <br>
+          <span class="kw">on:</span><br>
+          &nbsp;&nbsp;<span class="kw">push:</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">branches:</span> [<span class="str">main</span>, <span class="str">develop</span>]<br>
+          &nbsp;&nbsp;<span class="kw">pull_request:</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">branches:</span> [<span class="str">main</span>]<br>
+          <br>
+          <span class="kw">jobs:</span><br>
+          &nbsp;&nbsp;<span class="fn">build-and-test:</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">runs-on:</span> <span class="str">ubuntu-latest</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps:</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">uses:</span> <span class="str">actions/checkout@v4</span><br>
+          <br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Set up Node.js</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">uses:</span> <span class="str">actions/setup-node@v4</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">with:</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">node-version:</span> <span class="str">20</span><br>
+          <br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Install dependencies</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">run:</span> <span class="fn">npm ci</span><br>
+          <br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Run linter</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">run:</span> <span class="fn">npm run lint</span><br>
+          <br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Run tests</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">run:</span> <span class="fn">npm test</span><br>
+          <br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">name:</span> <span class="str">Build application</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">run:</span> <span class="fn">npm run build</span>
+        </div>
+
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">📄</div>
+          <div class="hb-text"><strong>Pipeline-as-Code:</strong> The pipeline definition lives <em>in the same
+              repository</em> as the application code. It's version controlled, code-reviewed via PRs, and
+            treated exactly like application code. This is a key DevOps principle — <em>everything as code</em>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 13: DEPLOYMENT STRATEGIES ════════════════════ -->
+    <div class="slide" id="slide-13">
+      <div class="content-slide">
+        <div class="eyebrow">Deployment Strategies</div>
+        <div class="h2">How Code Reaches Production</div>
+        <p class="body-text" style="margin-bottom:16px;">Not all deployments are the same. Different strategies
+          balance speed, risk, and resource usage.</p>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">🔄</span>
+            <div class="card-title">Rolling Update</div>
+            <div class="card-body">Replace instances one-by-one with the new version. At any point, both old and
+              new versions are running. <strong>Used by:</strong> Kubernetes default. <strong>Risk:</strong> low,
+              but rollback is slow.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🔵🟢</span>
+            <div class="card-title">Blue-Green</div>
+            <div class="card-body">Run two identical environments (Blue = current, Green = new). Switch traffic
+              from Blue to Green in one step. <strong>Benefit:</strong> instant rollback — just switch back.
+              <strong>Cost:</strong> double the infrastructure.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🐦</span>
+            <div class="card-title">Canary Release</div>
+            <div class="card-body">Route a small % of traffic (e.g., 5%) to the new version. Monitor for errors.
+              If stable, gradually increase to 100%. <strong>Benefit:</strong> minimal blast radius.
+              <strong>Used by:</strong> Netflix, Google.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🚩</span>
+            <div class="card-title">Feature Flags</div>
+            <div class="card-body">Deploy the code to production but hide the feature behind a toggle. Enable
+              for specific users or groups. <strong>Benefit:</strong> decouple deployment from release.
+              <strong>Tools:</strong> LaunchDarkly, Unleash.</div>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">💡 Strategy Selection</div>
+          <p><strong>Rolling:</strong> for routine, low-risk updates. <strong>Blue-Green:</strong> when instant
+            rollback is critical. <strong>Canary:</strong> for user-facing changes with uncertain impact.
+            <strong>Feature Flags:</strong> when you want to deploy daily but release features independently.
+            Most mature teams combine all four.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 14: CI/CD MATURITY MODEL ═════════════════════ -->
+    <div class="slide" id="slide-14">
+      <div class="content-slide">
+        <div class="eyebrow">Maturity</div>
+        <div class="h2">CI/CD Maturity Model</div>
+        <p class="body-text" style="margin-bottom:16px;">Teams don't jump to full CI/CD overnight. Here's the
+          typical progression from manual to fully automated delivery.</p>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot">L0</div>
+            <div class="tl-content">
+              <div class="tl-label">Level 0 — Manual Everything</div>
+              <div class="tl-desc">Builds are run on a developer's machine. Tests are manual. Deployment is via
+                SSH and copy-paste. No version control for infrastructure. "It works on my machine."</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot teal">L1</div>
+            <div class="tl-content">
+              <div class="tl-label">Level 1 — Continuous Integration</div>
+              <div class="tl-desc">Automated builds on every commit. Unit tests run automatically. Broken builds
+                are fixed within hours. Code is in a shared Git repository with pull requests.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot amber">L2</div>
+            <div class="tl-content">
+              <div class="tl-label">Level 2 — Continuous Delivery</div>
+              <div class="tl-desc">Automated deployment to staging. Integration + E2E tests. Code is always in a
+                deployable state. Production deployment requires one-click approval.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot coral">L3</div>
+            <div class="tl-content">
+              <div class="tl-label">Level 3 — Continuous Deployment</div>
+              <div class="tl-desc">Every passing commit goes to production automatically. Feature flags control
+                feature visibility. Canary deployments with automated rollback. Full observability.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:#7E57C2">L4</div>
+            <div class="tl-content">
+              <div class="tl-label">Level 4 — Continuous Operations</div>
+              <div class="tl-desc">Self-healing infrastructure. Auto-scaling. Chaos engineering. Zero-downtime
+                deployments. The pipeline handles everything — humans focus on innovation, not operations.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 15: SUMMARY ══════════════════════════════════ -->
+    <div class="slide" id="slide-15">
+      <div class="summary-slide">
+        <div class="eyebrow" style="color:#78C0E0;">Summary</div>
+        <div class="h2" style="color:#fff;">Key Takeaways — Lecture 12</div>
+        <p style="color:rgba(255,255,255,0.6); font-size:0.88rem; line-height:1.6; margin-bottom:8px;">
+          Today we mapped the complete DevOps toolchain and dove deep into CI/CD as the core automation engine
+          of modern software delivery.
+        </p>
+
+        <div class="summary-list">
+          <div class="summary-item">
+            <div class="si-num">01</div>
+            <div class="si-text"><strong>DevOps Toolchain</strong>Eight phases: Plan → Code → Build → Test → Release →
+              Deploy → Operate → Monitor — forming an infinity loop where monitoring feeds back into planning.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">02</div>
+            <div class="si-text"><strong>Tool Categories</strong>Each phase has specialized tools — from Jira (Plan)
+              to Prometheus (Monitor). Teams assemble a toolchain; no single tool covers everything.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">03</div>
+            <div class="si-text"><strong>CI — Continuous Integration</strong>Merge frequently, build automatically,
+              test every commit. Keep the build fast (&lt;10 min) and fix red builds immediately.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">04</div>
+            <div class="si-text"><strong>CD — Delivery vs. Deployment</strong>Delivery = always deployable + human
+              approval. Deployment = fully automated to production. Most teams progress from Delivery to Deployment.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">05</div>
+            <div class="si-text"><strong>Deployment Strategies</strong>Rolling, Blue-Green, Canary, Feature Flags —
+              each balances speed, risk, and cost differently. Mature teams combine multiple strategies.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">06</div>
+            <div class="si-text"><strong>Next: Lecture 13</strong>Version Control System overview and the history
+              of SCM — the foundation that makes CI/CD possible.</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-teal"
+          style="margin-top:18px; background:rgba(0,137,123,0.1); border-left-color:var(--teal);">
+          <div class="hb-icon">🎯</div>
+          <div class="hb-text" style="color:rgba(255,255,255,0.75);"><strong style="color:#fff;">Exam tip:</strong> Be
+            able to list the 8 phases of the DevOps toolchain with one tool per phase. Know the difference between
+            CI, Continuous Delivery, and Continuous Deployment. Understand all four deployment strategies (rolling,
+            blue-green, canary, feature flags). Be able to read a basic GitHub Actions YAML pipeline.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="btn btn-prev" id="btnPrev" onclick="navigate(-1)" disabled>← Prev</button>
+    <div
+      style="font-family:'Space Grotesk',sans-serif; font-size:0.7rem; color:rgba(255,255,255,0.35); text-align:center; line-height:1.4; flex:1;"
+      id="slideTitle">Welcome &amp; Lecture Overview</div>
+    <button class="btn btn-next" id="btnNext" onclick="navigate(1)">Next →</button>
+  </nav>
+
+  <script>
+    const TOTAL = 15;
+    const TITLES = [
+      "Welcome & Lecture Overview",
+      "From Principles to Tools",
+      "The DevOps Toolchain — End to End",
+      "Planning & Coding Tools",
+      "Build & Test Tools",
+      "Release, Deploy, Operate & Monitor",
+      "DevOps Toolchain — Complete Map",
+      "What Is CI/CD?",
+      "CI — Integrate Early, Integrate Often",
+      "CD — From Build to Production",
+      "Popular CI/CD Tools",
+      "A Real CI/CD Pipeline — GitHub Actions",
+      "Deployment Strategies",
+      "CI/CD Maturity Model",
+      "Summary & Key Takeaways"
+    ];
+
+    let current = 1;
+
+    function buildDots() {
+      const wrap = document.getElementById('navDots');
+      for (let i = 1; i <= TOTAL; i++) {
+        const d = document.createElement('button');
+        d.className = 'dot' + (i === 1 ? ' active' : '');
+        d.title = TITLES[i - 1];
+        d.onclick = () => goTo(i);
+        wrap.appendChild(d);
+      }
+    }
+
+    function goTo(n) {
+      document.getElementById('slide-' + current).classList.remove('active');
+      document.querySelectorAll('.dot')[current - 1].classList.remove('active');
+      current = n;
+      document.getElementById('slide-' + current).classList.add('active');
+      document.querySelectorAll('.dot')[current - 1].classList.add('active');
+      document.getElementById('slideCounter').textContent = current + ' / ' + TOTAL;
+      document.getElementById('slideTitle').textContent = TITLES[current - 1];
+      document.getElementById('btnPrev').disabled = current === 1;
+      document.getElementById('btnNext').disabled = current === TOTAL;
+      document.getElementById('progressFill').style.width = ((current / TOTAL) * 100) + '%';
+      window.scrollTo(0, 0);
+    }
+
+    function navigate(dir) {
+      const next = current + dir;
+      if (next >= 1 && next <= TOTAL) goTo(next);
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+    });
+
+    // Touch/swipe
+    let touchStartX = 0;
+    document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+    }, { passive: true });
+
+    buildDots();
+    goTo(1);
+  </script>
+</body>
+
+</html>

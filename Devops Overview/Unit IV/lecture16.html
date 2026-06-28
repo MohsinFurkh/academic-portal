@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 16 – Advantages of DVCS; Resetting Local Environment; Revert</title>
+  <meta name="description" content="Lecture 16 of DevOps Overview course at UPES Dehradun — Deep dive into DVCS advantages and how to undo mistakes using git reset and git revert.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap');
+
+    :root {
+      --ink: #0D1B2A;
+      --sky: #1C6EA4;
+      --sky-lt: #E8F4FD;
+      --teal: #00897B;
+      --teal-lt: #E0F2F1;
+      --amber: #F59E0B;
+      --amber-lt: #FEF3C7;
+      --coral: #E53E3E;
+      --coral-lt: #FFF5F5;
+      --slate: #4A5568;
+      --mist: #F7F9FC;
+      --white: #FFFFFF;
+      --border: #D1E3F0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0D1B2A;
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(13, 27, 42, 0.97); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px; border-bottom: 1px solid rgba(28, 110, 164, 0.4);
+    }
+    .navbar-brand {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.78rem;
+      font-weight: 600; color: var(--sky); letter-spacing: 0.04em; line-height: 1.3;
+    }
+    .navbar-brand span { display: block; color: rgba(255,255,255,0.5); font-weight: 400; font-size: 0.68rem; }
+    .slide-counter {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.75rem;
+      color: rgba(255,255,255,0.5); background: rgba(28,110,164,0.2);
+      padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(28,110,164,0.3);
+    }
+    .nav-dots { display: flex; gap: 6px; align-items: center; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2);
+      cursor: pointer; transition: all 0.25s; border: none;
+    }
+    .dot.active { background: var(--sky); transform: scale(1.3); }
+
+    .slides-wrapper { padding-top: 64px; min-height: 100vh; }
+    .slide {
+      display: none; min-height: calc(100vh - 64px); padding: 32px 24px 80px;
+      max-width: 960px; margin: 0 auto; animation: fadeIn 0.35s ease;
+    }
+    .slide.active { display: flex; flex-direction: column; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(13,27,42,0.97); border-top: 1px solid rgba(28,110,164,0.3);
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; gap: 12px;
+    }
+    .btn {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 600;
+      padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 0.02em;
+    }
+    .btn-prev { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.1); }
+    .btn-prev:hover { background: rgba(255,255,255,0.12); }
+    .btn-next { background: var(--sky); color: #fff; }
+    .btn-next:hover { background: #155d8e; }
+    .btn:disabled { opacity: 0.3; cursor: default; }
+
+    .eyebrow {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--sky);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .eyebrow::before { content: ''; display: inline-block; width: 24px; height: 2px; background: var(--sky); flex-shrink: 0; }
+
+    .h1 {
+      font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 700; line-height: 1.1; color: #fff; margin-bottom: 16px;
+    }
+    .h2 {
+      font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.3rem, 3.5vw, 2rem);
+      font-weight: 700; line-height: 1.2; color: var(--ink); margin-bottom: 12px;
+    }
+    .h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .lead { font-size: 1rem; color: rgba(255,255,255,0.65); line-height: 1.65; max-width: 560px; }
+    .body-text { font-size: 0.9rem; color: var(--slate); line-height: 1.7; }
+
+    .title-slide {
+      justify-content: center;
+      background: linear-gradient(135deg, #0D1B2A 0%, #12284A 60%, #0D3358 100%);
+      position: relative; overflow: hidden; min-height: calc(100vh - 64px);
+    }
+    .title-slide::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 80% 40%, rgba(28,110,164,0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .grid-bg {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: linear-gradient(rgba(28,110,164,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(28,110,164,0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .title-content { position: relative; z-index: 2; padding: 40px 0 20px; }
+    .course-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(28,110,164,0.2); border: 1px solid rgba(28,110,164,0.4);
+      color: #78C0E0; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 5px 14px; border-radius: 20px; margin-bottom: 24px;
+    }
+    .highlight { color: #4FC3F7; }
+    .title-meta { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 16px; }
+    .meta-chip {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px; padding: 10px 16px; font-size: 0.78rem;
+      color: rgba(255,255,255,0.6); line-height: 1.4;
+    }
+    .meta-chip strong { display: block; color: rgba(255,255,255,0.9); font-weight: 600; font-size: 0.82rem; }
+    .agenda-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border-radius: 8px; border-left: 3px solid var(--sky); background: var(--sky-lt);
+      margin-bottom: 8px; font-size: 0.88rem; font-weight: 500; color: var(--ink);
+    }
+    .agenda-num {
+      width: 24px; height: 24px; border-radius: 50%; background: var(--sky); color: #fff;
+      font-size: 0.72rem; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+    }
+
+    .content-slide { background: var(--mist); border-radius: 16px; padding: 32px 28px; flex: 1; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 20px; }
+    .card { background: #fff; border-radius: 12px; padding: 18px 16px; border: 1px solid var(--border); transition: box-shadow 0.2s; }
+    .card:hover { box-shadow: 0 4px 16px rgba(28,110,164,0.12); }
+    .card-icon { font-size: 1.6rem; margin-bottom: 10px; display: block; }
+    .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.88rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .card-body { font-size: 0.82rem; color: var(--slate); line-height: 1.6; }
+
+    .highlight-box { border-radius: 12px; padding: 18px 20px; margin: 16px 0; display: flex; gap: 14px; align-items: flex-start; }
+    .hb-sky { background: var(--sky-lt); border-left: 4px solid var(--sky); }
+    .hb-teal { background: var(--teal-lt); border-left: 4px solid var(--teal); }
+    .hb-amber { background: var(--amber-lt); border-left: 4px solid var(--amber); }
+    .hb-coral { background: var(--coral-lt); border-left: 4px solid var(--coral); }
+    .hb-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+    .hb-text { font-size: 0.86rem; color: var(--slate); line-height: 1.65; }
+    .hb-text strong { color: var(--ink); font-weight: 600; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    @media (max-width: 580px) { .two-col { grid-template-columns: 1fr; } .card-grid { grid-template-columns: 1fr; } }
+    .col-panel { background: #fff; border-radius: 12px; border: 1px solid var(--border); padding: 18px 16px; }
+    .col-panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    .sky-label { color: var(--sky); }
+    .teal-label { color: var(--teal); }
+    .coral-label { color: var(--coral); }
+    .amber-label { color: var(--amber); }
+
+    .bullet-list { list-style: none; padding: 0; }
+    .bullet-list li {
+      display: flex; gap: 8px; align-items: flex-start; font-size: 0.83rem;
+      color: var(--slate); line-height: 1.6; padding: 5px 0; border-bottom: 1px solid #F0F4F8;
+    }
+    .bullet-list li:last-child { border-bottom: none; }
+    .bullet-list li::before { content: '▸'; color: var(--sky); font-size: 0.7rem; margin-top: 3px; flex-shrink: 0; }
+    .bullet-list.teal li::before { color: var(--teal); }
+    .bullet-list.coral li::before { color: var(--coral); }
+    .bullet-list.amber li::before { color: var(--amber); }
+
+    .comp-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.82rem; }
+    .comp-table th {
+      background: var(--ink); color: #fff; font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem; font-weight: 600; padding: 10px 14px; text-align: left;
+    }
+    .comp-table th:first-child { border-radius: 8px 0 0 0; }
+    .comp-table th:last-child { border-radius: 0 8px 0 0; }
+    .comp-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--slate); vertical-align: top; line-height: 1.5; }
+    .comp-table tr:nth-child(even) td { background: var(--sky-lt); }
+    .comp-table td:first-child { font-weight: 600; color: var(--ink); }
+
+    .big-quote {
+      background: var(--ink); border-radius: 14px; padding: 28px 24px;
+      margin: 20px 0; position: relative;
+    }
+    .big-quote::before {
+      content: '"'; font-family: Georgia, serif; font-size: 6rem;
+      color: rgba(28,110,164,0.3); position: absolute; top: -10px; left: 16px; line-height: 1;
+    }
+    .big-quote p {
+      font-family: 'Space Grotesk', sans-serif; font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+      color: #fff; line-height: 1.55; position: relative; z-index: 1; padding-left: 12px;
+    }
+    .big-quote cite {
+      display: block; margin-top: 12px; padding-left: 12px; font-size: 0.75rem;
+      color: rgba(255,255,255,0.45); font-style: normal; letter-spacing: 0.04em;
+    }
+
+    .takeaway {
+      background: linear-gradient(135deg, #0D1B2A, #12284A); border-radius: 14px;
+      padding: 20px 24px; margin-top: 20px; border: 1px solid rgba(28,110,164,0.3);
+    }
+    .takeaway-label {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
+    }
+    .takeaway p { font-size: 0.88rem; color: rgba(255,255,255,0.8); line-height: 1.65; }
+
+    .summary-slide {
+      background: linear-gradient(135deg, #0D1B2A 0%, #0D3358 100%); border-radius: 16px;
+      padding: 32px 28px; flex: 1; position: relative; overflow: hidden;
+    }
+    .summary-slide::after {
+      content: ''; position: absolute; bottom: -40px; right: -40px; width: 200px; height: 200px;
+      border-radius: 50%; background: radial-gradient(rgba(28,110,164,0.2), transparent 70%);
+    }
+    .summary-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 20px; }
+    .summary-item {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(28,110,164,0.25);
+      border-radius: 10px; padding: 14px 16px; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .summary-item .si-num { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--sky); flex-shrink: 0; line-height: 1.2; }
+    .summary-item .si-text { font-size: 0.8rem; color: rgba(255,255,255,0.7); line-height: 1.55; }
+    .summary-item .si-text strong { color: #fff; display: block; margin-bottom: 2px; }
+
+    .progress-bar-wrap { height: 3px; background: rgba(255,255,255,0.08); position: fixed; top: 54px; left: 0; right: 0; z-index: 101; }
+    .progress-bar-fill { height: 100%; background: var(--sky); transition: width 0.35s ease; }
+
+    .code-block {
+      background: #0D1B2A; border-radius: 10px; padding: 14px 16px; margin: 12px 0;
+      font-family: 'Courier New', monospace; font-size: 0.75rem; color: #B8E0FF;
+      overflow-x: auto; line-height: 1.6; border: 1px solid rgba(28,110,164,0.3);
+    }
+    .code-block .cm { color: #6B8CAE; }
+    .code-block .kw { color: #F59E0B; }
+    .code-block .str { color: #81C995; }
+    .code-block .fn { color: #82AAFF; }
+    .code-block .arg { color: #F48FB1; }
+
+    .pillar-focus {
+      display: flex; align-items: center; gap: 16px; background: var(--ink);
+      border-radius: 14px; padding: 20px 22px; margin: 16px 0;
+    }
+    .pillar-focus-icon { font-size: 2.4rem; flex-shrink: 0; }
+    .pillar-focus-text { font-size: 0.85rem; color: rgba(255,255,255,0.75); line-height: 1.6; }
+    .pillar-focus-text strong { color: #fff; }
+
+    .reset-viz {
+      display: flex; flex-direction: column; gap: 10px; margin-top: 20px;
+    }
+    .reset-row {
+      display: flex; align-items: center; background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px; gap: 16px;
+    }
+    .reset-flag {
+      background: var(--ink); color: #fff; font-family: 'Courier New', monospace;
+      font-weight: bold; font-size: 0.8rem; padding: 6px 12px; border-radius: 6px; min-width: 100px; text-align: center;
+    }
+    .reset-flag.soft { border-bottom: 4px solid var(--teal); }
+    .reset-flag.mixed { border-bottom: 4px solid var(--amber); }
+    .reset-flag.hard { border-bottom: 4px solid var(--coral); }
+    
+    .status-badge {
+      font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+      background: #F0F4F8; color: var(--slate); border: 1px solid #D1E3F0; text-transform: uppercase;
+    }
+    .status-badge.kept { background: var(--teal-lt); color: var(--teal); border-color: var(--teal); }
+    .status-badge.wiped { background: var(--coral-lt); color: var(--coral); border-color: var(--coral); text-decoration: line-through; }
+
+    @media (max-width: 600px) {
+      .slide { padding: 16px 12px 80px; }
+      .content-slide { padding: 20px 16px; }
+      .summary-slide { padding: 20px 16px; }
+      .code-block { font-size: 0.65rem; }
+      .reset-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a href="../index.html" id="course-label" style="text-decoration: none;">
+        <strong>DevOps Overview</strong>
+        CSDV3016P/3017
+        BTech CSE Sem V · UPES Dehradun
+      </a>
+    </div>
+    <div class="nav-dots" id="navDots"></div>
+    <div class="slide-counter" id="slideCounter">1 / 14</div>
+  </nav>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill"></div>
+  </div>
+
+  <div class="slides-wrapper">
+
+    <!-- ══ SLIDE 1: TITLE ══════════════════════════════════════ -->
+    <div class="slide title-slide active" id="slide-1">
+      <div class="grid-bg"></div>
+      <div class="title-content">
+        <div class="course-badge">📚 Week 6 · Unit IV · Lecture 16</div>
+        <div class="h1">DVCS Advantages &amp; <br><span class="highlight">Undoing Mistakes</span></div>
+        <p class="lead">A deeper look at the operational advantages of DVCS, followed by a critical survival skill in Git: how to safely reset your environment and cancel changes using <code>git reset</code> and <code>git revert</code>.</p>
+        <div class="title-meta">
+          <div class="meta-chip"><strong>Dr. Mohsin Furkh Dar</strong>School of Computer Sciences</div>
+          <div class="meta-chip"><strong>Date</strong>Mon, 13 Jul 2026 · 9:00 – 10:00 AM</div>
+          <div class="meta-chip"><strong>Programme</strong>BTech CSE – Summer Semester</div>
+        </div>
+
+        <div style="margin-top:28px;">
+          <div style="font-family:'Space Grotesk',sans-serif; font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:12px;">
+            Today's Agenda</div>
+          <div class="agenda-row"><div class="agenda-num">1</div>Recap — The Local Repository &amp; The Three Trees</div>
+          <div class="agenda-row"><div class="agenda-num">2</div>Summarizing the Advantages of DVCS</div>
+          <div class="agenda-row"><div class="agenda-num">3</div>The Inevitability of Mistakes in Version Control</div>
+          <div class="agenda-row"><div class="agenda-num">4</div>Understanding <code>git reset</code> &amp; Its Three Flavors</div>
+          <div class="agenda-row"><div class="agenda-num">5</div>Understanding <code>git revert</code> — Safe Cancellation</div>
+          <div class="agenda-row"><div class="agenda-num">6</div>Reset vs Revert: The Golden Rule of Git History</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 2: RECAP ══════════════════════════════════════ -->
+    <div class="slide" id="slide-2">
+      <div class="content-slide">
+        <div class="eyebrow">Recap</div>
+        <div class="h2">Where We Left Off</div>
+        <div class="highlight-box hb-sky">
+          <div class="hb-icon">✅</div>
+          <div class="hb-text"><strong>Lecture 15:</strong> We learned that in a Distributed VCS, every developer has a full clone of the repository. We explored Git's "Three Trees": the Working Directory (modified), Staging Area (staged), and Local Repository (committed).</div>
+        </div>
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">🎯</div>
+          <div class="hb-text"><strong>Today:</strong> We'll summarize why this architecture is so powerful for DevOps teams. Then, we will tackle the most common question developers have when learning Git: <em>"I messed up. How do I go backward?"</em> We will learn how to undo changes safely.</div>
+        </div>
+        
+        <div class="two-col" style="margin-top:16px;">
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">The Challenge</div>
+            <p class="body-text">Because Git tracks everything locally before you push, you have incredible power to rewrite history. But with that power comes the danger of wiping out your own work.</p>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title teal-label">The Tools</div>
+            <p class="body-text">We will master two distinct tools today: <strong>Reset</strong> (rewinding history locally) and <strong>Revert</strong> (cancelling history publicly).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 3: ADVANTAGES OF DVCS ═════════════════════════ -->
+    <div class="slide" id="slide-3">
+      <div class="content-slide">
+        <div class="eyebrow">Big Picture</div>
+        <div class="h2">The Advantages of DVCS in DevOps</div>
+        <p class="body-text" style="margin-bottom:16px;">Before we dive into commands, let's crystallize <em>why</em> DVCS (Git) became the bedrock of modern DevOps and CI/CD pipelines.</p>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">⚡</span>
+            <div class="card-title">Performance & Speed</div>
+            <div class="card-body">Operations like <code>git status</code>, <code>git log</code>, and <code>git commit</code> are instantaneous because they don't require network calls to a central server.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🔀</span>
+            <div class="card-title">Branching is Cheap</div>
+            <div class="card-body">Git branches are just 40-byte pointers. This enables the "Feature Branch Workflow," where every tiny task gets its own isolated branch (crucial for CI triggers).</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">✈️</span>
+            <div class="card-title">Offline Capabilities</div>
+            <div class="card-body">Developers can work on a plane or during an outage. You can commit dozens of times locally, and push only when you have a connection and the code is stable.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🛡️</span>
+            <div class="card-title">No Single Point of Failure</div>
+            <div class="card-body">If the GitHub server explodes, no data is lost. Any developer's laptop has the full repository history and can act as the new master server.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 4: THE INEVITABILITY OF MISTAKES ══════════════ -->
+    <div class="slide" id="slide-4">
+      <div class="content-slide">
+        <div class="eyebrow">Reality Check</div>
+        <div class="h2">Making Mistakes in Git</div>
+        
+        <div class="pillar-focus">
+          <div class="pillar-focus-icon">🤦</div>
+          <div class="pillar-focus-text">Every developer, regardless of experience, makes mistakes in version control. You commit to the wrong branch, you stage files you didn't mean to, or you push code that breaks the build. Git gives you the tools to fix <em>almost</em> anything.</div>
+        </div>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--amber);">
+            <div class="col-panel-title amber-label">Common Local Mistakes</div>
+            <ul class="bullet-list amber">
+              <li>I staged a file I didn't want to commit.</li>
+              <li>I committed too early (forgot a file).</li>
+              <li>My last 3 commits are a mess and I want to start over, but keep the code.</li>
+              <li>I want to completely wipe out my current work and go back to yesterday.</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--coral);">
+            <div class="col-panel-title coral-label">Common Remote Mistakes</div>
+            <ul class="bullet-list coral">
+              <li>I pushed a commit that broke the production environment.</li>
+              <li>I merged a feature branch that was full of bugs.</li>
+              <li>I pushed a hardcoded password to GitHub.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">🔑 The Two Fixes</div>
+          <p>For <strong>Local Mistakes</strong>, we use <code>git reset</code>. For <strong>Remote/Shared Mistakes</strong>, we use <code>git revert</code>. Mixing these up is the #1 cause of repository chaos.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 5: GIT RESET OVERVIEW ═════════════════════════ -->
+    <div class="slide" id="slide-5">
+      <div class="content-slide">
+        <div class="eyebrow">Git Reset</div>
+        <div class="h2">Resetting the Local Environment</div>
+        
+        <div class="big-quote" style="padding: 18px 24px; margin-top: 0;">
+          <p style="font-size: 1rem;"><code style="color:var(--amber);">git reset</code> is a time machine. It moves your current branch pointer backward in time to an older commit, essentially erasing the commits that came after it from the branch history.</p>
+        </div>
+
+        <p class="body-text" style="margin-top:16px;">The complexity of <code>git reset</code> comes from the <strong>Three Trees</strong> (Working Directory, Staging Area, Local Repo). When you rewind the Local Repo back in time, what should Git do with the code in your Working Directory and Staging Area?</p>
+        
+        <p class="body-text" style="font-weight: 600; margin-top: 10px; color: var(--ink);">Git gives you three choices (flags):</p>
+        
+        <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="card" style="border-top: 4px solid var(--teal);">
+            <div class="card-title">1. --soft</div>
+            <div class="card-body">Moves the repo pointer back, but keeps your files exactly as they are, <strong>staged</strong> and ready to commit again.</div>
+          </div>
+          <div class="card" style="border-top: 4px solid var(--amber);">
+            <div class="card-title">2. --mixed (Default)</div>
+            <div class="card-body">Moves pointer back, keeps your files as they are, but <strong>unstages</strong> them. You must <code>git add</code> again.</div>
+          </div>
+          <div class="card" style="border-top: 4px solid var(--coral);">
+            <div class="card-title">3. --hard</div>
+            <div class="card-body"><strong>DANGEROUS.</strong> Moves pointer back and <strong>wipes out</strong> all your working files to match that exact past moment.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 6: THE THREE FLAVORS OF RESET ═════════════════ -->
+    <div class="slide" id="slide-6">
+      <div class="content-slide">
+        <div class="eyebrow">Visualizing Reset</div>
+        <div class="h2">How the Three Trees React</div>
+        <p class="body-text">Imagine you commit a file, realize you made a typo, and want to undo the commit. You run <code>git reset HEAD~1</code> (go back 1 commit). Here is what happens to your file under each flag:</p>
+
+        <div class="reset-viz">
+          <div class="reset-row">
+            <div class="reset-flag soft">--soft</div>
+            <div style="flex:1;">
+              <strong>Working Dir:</strong> <span class="status-badge kept">Kept</span> 
+              <span style="margin:0 10px; color:#ccc;">|</span>
+              <strong>Staging Area:</strong> <span class="status-badge kept">Kept (Staged)</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--slate); max-width:250px;">Use case: "I just want to change my commit message."</div>
+          </div>
+
+          <div class="reset-row">
+            <div class="reset-flag mixed">--mixed</div>
+            <div style="flex:1;">
+              <strong>Working Dir:</strong> <span class="status-badge kept">Kept</span> 
+              <span style="margin:0 10px; color:#ccc;">|</span>
+              <strong>Staging Area:</strong> <span class="status-badge wiped">Wiped (Unstaged)</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--slate); max-width:250px;">Use case: "I want to uncommit these files and split them into two separate commits."</div>
+          </div>
+
+          <div class="reset-row">
+            <div class="reset-flag hard">--hard</div>
+            <div style="flex:1;">
+              <strong>Working Dir:</strong> <span class="status-badge wiped">Wiped</span> 
+              <span style="margin:0 10px; color:#ccc;">|</span>
+              <strong>Staging Area:</strong> <span class="status-badge wiped">Wiped</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--slate); max-width:250px;">Use case: "My code is completely broken. Throw it all away and take me back to yesterday."</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-coral" style="margin-top:16px;">
+          <div class="hb-icon">⚠️</div>
+          <div class="hb-text"><strong>Warning:</strong> <code>git reset --hard</code> is one of the few commands in Git that can cause <strong>permanent data loss</strong>. If you have uncommitted work in your working directory and you run a hard reset, Git overwrites those files. They are gone forever.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 7: RESET HANDS-ON ═════════════════════════════ -->
+    <div class="slide" id="slide-7">
+      <div class="content-slide">
+        <div class="eyebrow">Commands</div>
+        <div class="h2">Hands-on: Resetting Local Commits</div>
+
+        <div class="code-block">
+          <span class="cm"># Scenario: You made 3 commits locally. They are a mess.</span><br>
+          <span class="cm"># You want to go back 3 commits, but KEEP your code changes.</span><br>
+          <span class="fn">git reset --mixed</span> <span class="arg">HEAD~3</span><br>
+          <span class="cm"># (Your files remain in your editor, but are now untracked/unstaged)</span><br><br>
+
+          <span class="cm"># Scenario: You want to completely discard your last commit</span><br>
+          <span class="cm"># AND all the changes you made in the files.</span><br>
+          <span class="fn">git reset --hard</span> <span class="arg">HEAD~1</span><br><br>
+
+          <span class="cm"># Scenario: You accidentally staged a file you didn't mean to.</span><br>
+          <span class="cm"># (This is a reset of the Staging Area, not a commit)</span><br>
+          <span class="fn">git reset</span> <span class="arg">file_i_dont_want.txt</span><br>
+          <span class="cm"># (Unstages the file, but keeps your edits in the working directory)</span><br><br>
+          
+          <span class="cm"># Scenario: You want to jump to a specific commit hash.</span><br>
+          <span class="fn">git reset --hard</span> <span class="arg">a1b2c3d4</span>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">💡 HEAD and Tildes</div>
+          <p><code>HEAD</code> always points to your current location (usually the latest commit on your branch). <code>HEAD~1</code> means "one commit before HEAD". <code>HEAD~3</code> means "three commits before HEAD".</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 8: GIT REVERT OVERVIEW ════════════════════════ -->
+    <div class="slide" id="slide-8">
+      <div class="content-slide">
+        <div class="eyebrow">Git Revert</div>
+        <div class="h2">Revert: Safely Cancelling Changes</div>
+        
+        <p class="body-text" style="margin-bottom:16px;">What happens if you already pushed your broken commit to GitHub? <strong>You cannot use reset.</strong> If you rewind history locally and try to push, GitHub will reject it because your history no longer matches the server's history.</p>
+
+        <div class="pillar-focus" style="background:var(--teal-lt); border-left: 4px solid var(--teal);">
+          <div class="pillar-focus-icon">🔄</div>
+          <div class="pillar-focus-text" style="color:var(--ink);">Instead of erasing the past (Reset), <code style="color:var(--teal); font-weight:bold;">git revert</code> creates a <strong>brand new commit</strong> that does the exact opposite of the bad commit. It cancels the changes out mathematically.</div>
+        </div>
+
+        <div class="two-col">
+          <div class="col-panel">
+            <div class="col-panel-title teal-label">How it Works</div>
+            <ul class="bullet-list teal">
+              <li>If the bad commit added the line <code>print("bug")</code>...</li>
+              <li><code>git revert</code> creates a new commit that deletes <code>print("bug")</code>.</li>
+              <li>History moves <em>forward</em>, never backward.</li>
+            </ul>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">Why it's Safe</div>
+            <ul class="bullet-list">
+              <li>It preserves the audit trail (you see the mistake AND the fix).</li>
+              <li>Because it creates a new commit, you can safely <code>git push</code> it to the shared server.</li>
+              <li>It doesn't disrupt any teammates who already pulled the bad commit.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 9: REVERT HANDS-ON ════════════════════════════ -->
+    <div class="slide" id="slide-9">
+      <div class="content-slide">
+        <div class="eyebrow">Commands</div>
+        <div class="h2">Hands-on: Reverting Commits</div>
+
+        <div class="code-block">
+          <span class="cm"># Find the hash of the commit that broke production</span><br>
+          <span class="fn">git log --oneline</span><br>
+          <span class="cm"># e3f4a2b (HEAD -> main) Added new feature</span><br>
+          <span class="cm"># 9c8b7a6 Buggy commit that broke everything</span><br>
+          <span class="cm"># 1a2b3c4 Initial commit</span><br><br>
+
+          <span class="cm"># Revert the specific buggy commit</span><br>
+          <span class="fn">git revert</span> <span class="arg">9c8b7a6</span><br><br>
+
+          <span class="cm"># Git will automatically open your text editor to confirm the commit message:</span><br>
+          <span class="cm"># "Revert 'Buggy commit that broke everything'"</span><br><br>
+          
+          <span class="cm"># Now, push the fix to the server</span><br>
+          <span class="fn">git push origin main</span>
+        </div>
+
+        <div class="highlight-box hb-amber" style="margin-top:16px;">
+          <div class="hb-icon">🔀</div>
+          <div class="hb-text"><strong>Revert Conflicts:</strong> If you try to revert an old commit, and the code around it has changed significantly since then, Git might not know how to automatically undo it. This results in a <strong>merge conflict</strong> that you must resolve manually before the revert commit can be finalized.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 10: RESET VS REVERT COMPARISON ════════════════ -->
+    <div class="slide" id="slide-10">
+      <div class="content-slide">
+        <div class="eyebrow">Comparison</div>
+        <div class="h2">Reset vs. Revert</div>
+
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th><code>git reset</code></th>
+              <th><code>git revert</code></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Action</strong></td>
+              <td>Erases commits by rewinding the branch pointer.</td>
+              <td>Creates a new commit that undoes the changes.</td>
+            </tr>
+            <tr>
+              <td><strong>Direction of History</strong></td>
+              <td>Moves Backward (Rewrites history).</td>
+              <td>Moves Forward (Appends to history).</td>
+            </tr>
+            <tr>
+              <td><strong>Audit Trail</strong></td>
+              <td>Lost. The "bad" commits disappear entirely.</td>
+              <td>Preserved. You see the mistake and the undo.</td>
+            </tr>
+            <tr>
+              <td><strong>Use Case</strong></td>
+              <td>Cleaning up local, private commits before sharing.</td>
+              <td>Fixing mistakes that have already been shared.</td>
+            </tr>
+            <tr>
+              <td><strong>Danger Level</strong></td>
+              <td>High (Can lose local work, breaks shared branches).</td>
+              <td>Low (Safe for public branches).</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="diagram-box" style="padding: 14px; margin-top: 14px;">
+          <div style="text-align:center; flex:1;">
+            <div style="font-size:0.8rem; font-weight:bold; color:var(--coral); margin-bottom:6px;">Reset (Erases C)</div>
+            <code style="background:var(--mist); padding:4px 8px; border-radius:4px;">A -- B -- <del style="color:red;">C</del> (HEAD is now B)</code>
+          </div>
+          <div style="text-align:center; flex:1; border-left: 1px solid var(--border);">
+            <div style="font-size:0.8rem; font-weight:bold; color:var(--teal); margin-bottom:6px;">Revert (Adds D to cancel C)</div>
+            <code style="background:var(--mist); padding:4px 8px; border-radius:4px;">A -- B -- C -- D (Revert of C)</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 11: THE GOLDEN RULE ═══════════════════════════ -->
+    <div class="slide" id="slide-11">
+      <div class="content-slide">
+        <div class="eyebrow">Best Practices</div>
+        <div class="h2">The Golden Rule of Git History</div>
+        
+        <div class="big-quote" style="border-left: 6px solid var(--coral); background: rgba(229, 62, 62, 0.05); padding: 30px;">
+          <p style="color: var(--ink); font-size: 1.4rem; font-weight: 700; line-height: 1.4; text-align: center;">
+            Never rewrite history that has been pushed to a shared repository.
+          </p>
+        </div>
+
+        <div class="two-col" style="margin-top:20px;">
+          <div class="col-panel">
+            <div class="col-panel-title coral-label">Why is it bad?</div>
+            <p class="body-text">If you <code>reset</code> a pushed commit and force-push (<code>git push -f</code>), you change the timeline on the server. If a teammate has already pulled that commit and based their work on it, their local repository is now out of sync with the server. When they try to push, chaos and complex merge conflicts ensue.</p>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title teal-label">The DevOps Standard</div>
+            <ul class="bullet-list teal">
+              <li><strong>Local branch:</strong> Reset, amend, and rewrite as much as you want to make it clean.</li>
+              <li><strong>Main/Master branch:</strong> Never reset. Always use <code>revert</code> to fix production bugs, ensuring an immutable audit trail.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 12: CLEANING UNTRACKED FILES ══════════════════ -->
+    <div class="slide" id="slide-12">
+      <div class="content-slide">
+        <div class="eyebrow">Bonus Tool</div>
+        <div class="h2">Git Clean — Sweeping the Floor</div>
+        <p class="body-text" style="margin-bottom:16px;"><code>git reset --hard</code> wipes out changes to <em>tracked</em> files. But what if you have a bunch of <em>untracked</em> files (e.g., build logs, compiled binaries, temporary files) cluttering your directory?</p>
+
+        <div class="pillar-focus">
+          <div class="pillar-focus-icon">🧹</div>
+          <div class="pillar-focus-text"><code>git clean</code> is the companion to <code>git reset</code>. It removes untracked files from your working directory. Together, <code>reset --hard</code> and <code>clean</code> will restore your repository to a 100% pristine state.</div>
+        </div>
+
+        <div class="code-block">
+          <span class="cm"># 1. Dry Run (Safe): Show what WOULD be deleted, but don't do it yet</span><br>
+          <span class="fn">git clean -n</span><br><br>
+
+          <span class="cm"># 2. Force delete untracked files</span><br>
+          <span class="fn">git clean -f</span><br><br>
+
+          <span class="cm"># 3. Force delete untracked files AND untracked directories</span><br>
+          <span class="fn">git clean -fd</span><br><br>
+
+          <span class="cm"># THE ULTIMATE PANIC BUTTON (Restores repo to exact last commit state)</span><br>
+          <span class="fn">git reset --hard HEAD</span><br>
+          <span class="fn">git clean -fd</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 13: SUMMARY ══════════════════════════════════ -->
+    <div class="slide" id="slide-13">
+      <div class="summary-slide">
+        <div class="eyebrow" style="color:#78C0E0;">Summary</div>
+        <div class="h2" style="color:#fff;">Key Takeaways — Lecture 16</div>
+        <p style="color:rgba(255,255,255,0.6); font-size:0.88rem; line-height:1.6; margin-bottom:8px;">
+          Today we learned how to wield Git's time-travel capabilities responsibly, distinguishing between local cleanups and public fixes.
+        </p>
+
+        <div class="summary-list">
+          <div class="summary-item">
+            <div class="si-num">01</div>
+            <div class="si-text"><strong>DVCS Advantages</strong>Speed, cheap branching, offline work, and no single point of failure are why Git dominates DevOps.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">02</div>
+            <div class="si-text"><strong>Git Reset</strong>Rewinds local history. Used to undo mistakes <em>before</em> they are shared.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">03</div>
+            <div class="si-text"><strong>Reset Flavors</strong><code>--soft</code> (keeps staged), <code>--mixed</code> (keeps unstaged), <code>--hard</code> (wipes working dir).</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">04</div>
+            <div class="si-text"><strong>Git Revert</strong>Creates a new commit that cancels out a previous one. Moves history forward.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">05</div>
+            <div class="si-text"><strong>The Golden Rule</strong>Never rewrite (reset) history that has been shared (pushed). Always use Revert for shared branches.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">06</div>
+            <div class="si-text"><strong>Next: Lecture 17</strong>We move to Unit V: Monitoring and DevSecOps. We leave Git behind and look at application health and security in pipelines.</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-teal"
+          style="margin-top:18px; background:rgba(0,137,123,0.1); border-left-color:var(--teal);">
+          <div class="hb-icon">🎯</div>
+          <div class="hb-text" style="color:rgba(255,255,255,0.75);"><strong style="color:#fff;">Exam tip:</strong> Be able to compare <code>reset</code> vs <code>revert</code>. Know the exact difference between <code>reset --soft</code>, <code>--mixed</code>, and <code>--hard</code>. Know the Golden Rule of Git History.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="btn btn-prev" id="btnPrev" onclick="navigate(-1)" disabled>← Prev</button>
+    <div style="font-family:'Space Grotesk',sans-serif; font-size:0.7rem; color:rgba(255,255,255,0.35); text-align:center; line-height:1.4; flex:1;"
+      id="slideTitle">Welcome &amp; Lecture Overview</div>
+    <button class="btn btn-next" id="btnNext" onclick="navigate(1)">Next →</button>
+  </nav>
+
+  <script>
+    const TOTAL = 13;
+    const TITLES = [
+      "Welcome & Lecture Overview",
+      "Recap — Where We Left Off",
+      "The Advantages of DVCS in DevOps",
+      "Making Mistakes in Git",
+      "Resetting the Local Environment",
+      "How the Three Trees React",
+      "Hands-on: Resetting Local Commits",
+      "Revert: Safely Cancelling Changes",
+      "Hands-on: Reverting Commits",
+      "Reset vs. Revert",
+      "The Golden Rule of Git History",
+      "Git Clean — Sweeping the Floor",
+      "Summary & Key Takeaways"
+    ];
+
+    let current = 1;
+
+    function buildDots() {
+      const wrap = document.getElementById('navDots');
+      for (let i = 1; i <= TOTAL; i++) {
+        const d = document.createElement('button');
+        d.className = 'dot' + (i === 1 ? ' active' : '');
+        d.title = TITLES[i - 1];
+        d.onclick = () => goTo(i);
+        wrap.appendChild(d);
+      }
+    }
+
+    function goTo(n) {
+      document.getElementById('slide-' + current).classList.remove('active');
+      document.querySelectorAll('.dot')[current - 1].classList.remove('active');
+      current = n;
+      document.getElementById('slide-' + current).classList.add('active');
+      document.querySelectorAll('.dot')[current - 1].classList.add('active');
+      document.getElementById('slideCounter').textContent = current + ' / ' + TOTAL;
+      document.getElementById('slideTitle').textContent = TITLES[current - 1];
+      document.getElementById('btnPrev').disabled = current === 1;
+      document.getElementById('btnNext').disabled = current === TOTAL;
+      document.getElementById('progressFill').style.width = ((current / TOTAL) * 100) + '%';
+      window.scrollTo(0, 0);
+    }
+
+    function navigate(dir) {
+      const next = current + dir;
+      if (next >= 1 && next <= TOTAL) goTo(next);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+    });
+
+    let touchStartX = 0;
+    document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+    }, { passive: true });
+
+    buildDots();
+    goTo(1);
+  </script>
+</body>
+
+</html>

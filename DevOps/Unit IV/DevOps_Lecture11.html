@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CSDV3017 · Lecture 11 · Infrastructure as Code; CD; Continuous Monitoring; Jenkins Pipeline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0E2235;
+      --bg-deep-2: #102A40;
+      --grid-line: rgba(255, 255, 255, 0.07);
+      --grid-line-strong: rgba(255, 255, 255, 0.14);
+      --paper: #F3EFE2;
+      --paper-2: #EAE4D2;
+      --ink: #16202B;
+      --ink-soft: #3C4A57;
+      --amber: #FF6A39;
+      --amber-deep: #D9501F;
+      --teal: #57C7B8;
+      --muted: #9FB4C7;
+      --line: #1D3A52;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'IBM Plex Sans', sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-deep);
+      font-family: var(--body);
+      color: var(--paper);
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(var(--grid-line-strong) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-strong) 1px, transparent 1px),
+        radial-gradient(ellipse at 20% -10%, var(--bg-deep-2), var(--bg-deep) 60%);
+      background-size: 16px 16px, 16px 16px, 96px 96px, 96px 96px, cover;
+    }
+
+    button { font-family: inherit; cursor: pointer; }
+    a { color: inherit; }
+
+    #deck { position: relative; height: 100vh; height: 100dvh; width: 100%; overflow: hidden; }
+
+    .slides {
+      height: 100%; width: 100%; display: flex;
+      transition: transform .55s cubic-bezier(.65, 0, .35, 1);
+      will-change: transform;
+    }
+
+    .slide {
+      flex: 0 0 100%; height: 100%; position: relative;
+      display: flex; flex-direction: column;
+      padding: clamp(18px,4vw,56px) clamp(18px,5vw,72px) clamp(64px,9vh,96px);
+      overflow-y: auto;
+    }
+
+    .slide::before, .slide::after {
+      content: ""; position: absolute; width: 18px; height: 18px;
+      border: 1.5px solid var(--grid-line-strong); opacity: .8;
+    }
+    .slide::before { top: 14px; left: 14px; border-right: none; border-bottom: none; }
+    .slide::after { bottom: 70px; right: 14px; border-left: none; border-top: none; }
+
+    .eyebrow {
+      font-family: var(--mono); font-size: clamp(11px,1.4vw,13px);
+      letter-spacing: .14em; text-transform: uppercase; color: var(--teal);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .eyebrow .dash { width: 22px; height: 1px; background: var(--teal); display: inline-block; }
+
+    h1.slide-title {
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(28px,5.4vw,52px); line-height: 1.06;
+      letter-spacing: -0.01em; color: var(--paper); margin-top: 14px; max-width: 20ch;
+    }
+
+    .slide-body {
+      margin-top: clamp(18px,3vh,34px); flex: 1;
+      display: flex; flex-direction: column; justify-content: center; gap: 18px;
+    }
+
+    .card {
+      background: var(--paper); color: var(--ink); border-radius: 4px;
+      padding: clamp(16px,2.6vw,26px) clamp(18px,2.8vw,30px);
+      box-shadow: 0 14px 34px rgba(0,0,0,.35); position: relative;
+    }
+    .card .tag {
+      font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--amber-deep); font-weight: 600;
+    }
+    .card p, .card li { color: var(--ink-soft); font-size: clamp(14px,1.7vw,17px); line-height: 1.5; }
+    .card h3 {
+      font-family: var(--display); font-size: clamp(17px,2.1vw,21px);
+      color: var(--ink); margin: 4px 0 8px; font-weight: 600;
+    }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    @media (max-width:760px) { .grid2, .grid3, .grid4 { grid-template-columns: 1fr; } }
+
+    ul.clean { list-style: none; }
+    ul.clean li { position: relative; padding-left: 18px; margin-bottom: 6px; }
+    ul.clean li::before {
+      content: ""; position: absolute; left: 0; top: .6em;
+      width: 6px; height: 6px; background: var(--amber); border-radius: 1px; transform: rotate(45deg);
+    }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 11.5px; padding: 4px 10px;
+      border-radius: 99px; border: 1px solid var(--line); color: var(--teal);
+      background: rgba(87,199,184,.06);
+    }
+
+    .title-slide { justify-content: center; }
+    .title-slide .course-code {
+      font-family: var(--mono); color: var(--amber);
+      font-size: clamp(13px,1.8vw,16px); letter-spacing: .12em;
+    }
+    .title-slide h1 {
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(32px,6.6vw,62px); line-height: 1.04; margin-top: 18px; max-width: 18ch;
+    }
+    .title-slide .sub {
+      margin-top: 18px; color: var(--muted);
+      font-size: clamp(14px,2vw,18px); max-width: 50ch; line-height: 1.5;
+    }
+
+    .meta-row {
+      margin-top: 34px; display: flex; gap: 28px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 12.5px; color: var(--muted);
+    }
+    .meta-row b {
+      color: var(--paper); display: block; font-size: 14px;
+      margin-bottom: 2px; font-family: var(--body); font-weight: 600;
+    }
+
+    .vsline { display: flex; align-items: center; width: 100%; margin-top: 10px; }
+    .vsline .seg { flex: 1; height: 2px; background: var(--line); }
+    .vsline .seg.done { background: var(--teal); }
+    .vsnode {
+      flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid var(--line); background: var(--bg-deep-2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+    }
+    .vsnode.done { border-color: var(--teal); color: var(--teal); }
+    .vsnode.now { border-color: var(--amber); color: var(--amber); box-shadow: 0 0 0 4px rgba(255,106,57,.16); }
+
+    .compare {
+      width: 100%; border-collapse: collapse; background: var(--paper);
+      border-radius: 4px; overflow: hidden;
+    }
+    .compare th, .compare td { padding: 10px 14px; text-align: left; font-size: clamp(12.5px,1.6vw,14.5px); }
+    .compare th {
+      background: var(--paper-2); font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .06em; font-size: 11px; color: var(--ink-soft);
+    }
+    .compare td { color: var(--ink); border-top: 1px solid rgba(22,32,43,.1); }
+    .compare td.lbl { font-weight: 600; color: var(--ink-soft); font-family: var(--mono); font-size: 11.5px; }
+
+    .quote {
+      font-family: var(--display); font-style: normal; font-weight: 600;
+      font-size: clamp(18px,2.6vw,24px); color: var(--paper); line-height: 1.4;
+      border-left: 3px solid var(--amber); padding-left: 18px; max-width: 46ch;
+    }
+    .quote cite {
+      display: block; margin-top: 10px; font-family: var(--mono);
+      font-size: 12px; color: var(--muted); font-style: normal;
+    }
+
+    .dark-note { color: var(--muted); font-size: 13px; max-width: 62ch; line-height: 1.55; }
+
+    .code-card {
+      background: var(--ink); border-radius: 4px; padding: 18px 20px;
+      font-family: var(--mono); font-size: clamp(11.5px,1.3vw,13.5px); line-height: 1.65;
+      color: var(--paper); overflow-x: auto; box-shadow: 0 14px 34px rgba(0,0,0,.35);
+    }
+    .code-card .cm { color: var(--muted); }
+    .code-card .kw { color: var(--amber); }
+    .code-card .str { color: var(--teal); }
+    .code-card .fn { color: #82AAFF; }
+
+    .flow-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+    .flow-step {
+      font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em;
+      padding: 8px 14px; background: var(--paper); color: var(--ink);
+      font-weight: 600; text-align: center; min-width: 80px;
+    }
+    .flow-step:first-child { border-radius: 4px 0 0 4px; }
+    .flow-step:last-child { border-radius: 0 4px 4px 0; }
+    .flow-step.active { background: var(--amber); color: #fff; }
+    .flow-step.teal { background: var(--teal); color: var(--ink); }
+    .flow-step.dark { background: var(--ink); color: var(--paper); }
+    .flow-arrow { font-size: 18px; color: var(--muted); padding: 0 2px; }
+    @media (max-width:600px) {
+      .flow-row { flex-direction: column; gap: 4px; }
+      .flow-step { border-radius: 4px !important; width: 100%; }
+      .flow-arrow { transform: rotate(90deg); font-size: 14px; }
+    }
+
+    .stagebar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .stagebar .step {
+      font-family: var(--mono); font-size: 11px; letter-spacing: .05em;
+      padding: 5px 10px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted);
+    }
+    .stagebar .step.active { border-color: var(--amber); color: var(--amber); background: rgba(255,106,57,.08); }
+
+    .stat { font-family: var(--display); font-weight: 700; color: var(--amber-deep); font-size: clamp(24px,3.2vw,34px); line-height: 1; }
+    .stat-label { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+
+    .titleblock {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(18px,5vw,72px); font-family: var(--mono); font-size: 11px;
+      color: var(--muted); border-top: 1px solid var(--line);
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.18));
+    }
+    .titleblock .sheet { color: var(--amber); }
+    .titleblock .center-track { flex: 1; display: flex; justify-content: center; gap: 6px; padding: 0 16px; }
+
+    .station {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--line); border: 1px solid var(--line); cursor: pointer;
+    }
+    .station.active { background: var(--amber); border-color: var(--amber); }
+
+    .progress-track { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,.06); z-index: 5; }
+    .progress-fill { height: 100%; background: var(--amber); transition: width .5s cubic-bezier(.65,0,.35,1); }
+
+    .navbtn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255,255,255,.05); border: 1px solid var(--line);
+      color: var(--paper); display: flex; align-items: center; justify-content: center;
+      z-index: 6; transition: background .2s, opacity .2s; opacity: .7;
+    }
+    .navbtn:hover { background: rgba(255,255,255,.12); opacity: 1; }
+    .navbtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .navbtn.prev { left: 14px; }
+    .navbtn.next { right: 14px; }
+    @media (max-width:680px) { .navbtn { display: none; } }
+
+    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+    @media (prefers-reduced-motion: reduce) { .slides { transition: none; } .progress-fill { transition: none; } }
+    @media (max-height:620px) {
+      .slide { padding-top: 14px; padding-bottom: 60px; }
+      h1.slide-title { font-size: clamp(22px,4.4vw,34px); }
+    }
+    @media (max-width:760px) { .grid4 { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+
+<body>
+
+  <div id="deck">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <button class="navbtn prev" id="prevBtn" aria-label="Previous slide">&#8592;</button>
+    <button class="navbtn next" id="nextBtn" aria-label="Next slide">&#8594;</button>
+
+    <div class="slides" id="slides">
+
+      <!-- 1 : TITLE -->
+      <section class="slide title-slide">
+        <div class="course-code"><a href="../index.html">CSDV3017</a> &nbsp;·&nbsp; DEVOPS &nbsp;·&nbsp; SCHOOL OF COMPUTER SCIENCE, UPES</div>
+        <h1>Infrastructure as Code,<br>CD &amp; Jenkins Pipelines</h1>
+        <p class="sub">Lecture 11 — from manually configuring servers to declaring infrastructure in code, automating the path to production with Continuous Delivery, and building industrial-grade pipelines with Jenkins.</p>
+        <div class="meta-row">
+          <div><b>Instructor</b>Dr. Mohsin Furkh Dar</div>
+          <div><b>Session</b>Week 4 · Tue, 30 Jun 2026</div>
+          <div><b>Time</b>12:00 – 13:00</div>
+          <div><b>Unit</b>Unit IV</div>
+        </div>
+        <div class="vsline" style="margin-top:40px;">
+          <div class="vsnode done">I</div><div class="seg done"></div>
+          <div class="vsnode done">II</div><div class="seg done"></div>
+          <div class="vsnode done">III</div><div class="seg done"></div>
+          <div class="vsnode now">IV</div><div class="seg"></div>
+          <div class="vsnode">V</div><div class="seg"></div>
+          <div class="vsnode">VI</div><div class="seg"></div>
+          <div class="vsnode">VII</div>
+        </div>
+      </section>
+
+      <!-- 2 : RECAP + AGENDA -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WHERE WE LEFT OFF</div>
+        <h1 class="slide-title">Recap &amp; today's agenda</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Lecture 10 · Done</div>
+              <h3>Principles, VCS &amp; CI</h3>
+              <ul class="clean">
+                <li>4 core DevOps principles (Systems Thinking, Feedback, Experimentation, Automation)</li>
+                <li>SVN (centralized) → Git (distributed) evolution</li>
+                <li>Gitflow branching: main, develop, feature, release, hotfix</li>
+                <li>CI with GitHub Actions — YAML workflows, Workflow → Job → Step</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Lecture 11 · Today</div>
+              <h3>IaC, CD &amp; Jenkins</h3>
+              <ul class="clean">
+                <li>Infrastructure as Code — what it is, why it matters, key tools</li>
+                <li>Continuous Delivery vs Continuous Deployment</li>
+                <li>Continuous Monitoring — closing the feedback loop</li>
+                <li>Jenkins — the OG of CI/CD pipelines, Jenkinsfile deep dive</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 : THE PROBLEM IaC SOLVES -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE PROBLEM</div>
+        <h1 class="slide-title">Why manual infrastructure is a nightmare</h1>
+        <div class="slide-body">
+          <p class="quote">"The server was configured by hand 3 years ago by someone who has since left the company. Nobody knows what's on it. Nobody dares touch it."
+            <cite>— the "Snowflake Server" anti-pattern</cite>
+          </p>
+          <div class="grid3">
+            <div class="card">
+              <div class="tag">Problem 01</div>
+              <h3>Snowflakes</h3>
+              <p>Every server is unique. Subtle differences cause "works in staging, breaks in production" bugs that take days to diagnose.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Problem 02</div>
+              <h3>Configuration Drift</h3>
+              <p>Over time, manual patches and hotfixes cause servers to diverge from their original state. No two servers in the "same" cluster are actually identical.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Problem 03</div>
+              <h3>Disaster Recovery</h3>
+              <p>If a manually configured server dies, rebuilding it from scratch takes weeks of guesswork. There is no "blueprint" to follow.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 : WHAT IS IaC -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>THE SOLUTION</div>
+        <h1 class="slide-title">Infrastructure as Code (IaC)</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Definition</div>
+            <h3>What is Infrastructure as Code?</h3>
+            <p>IaC is the practice of managing and provisioning computing infrastructure through machine-readable definition files, rather than through manual hardware configuration or interactive tools. Infrastructure is treated exactly like application source code — versioned in Git, reviewed in Pull Requests, and tested automatically.</p>
+          </div>
+          <div class="grid2" style="margin-top:14px;">
+            <div class="card">
+              <div class="tag">Key Benefits</div>
+              <h3>Why IaC matters</h3>
+              <ul class="clean">
+                <li><strong>Reproducibility:</strong> Spin up identical environments in minutes</li>
+                <li><strong>Version Control:</strong> Every infra change is tracked in Git</li>
+                <li><strong>Self-Documenting:</strong> The code IS the documentation</li>
+                <li><strong>Scalability:</strong> Deploy 1 or 1,000 servers with the same file</li>
+                <li><strong>Auditability:</strong> Git blame shows who changed what and when</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Two Approaches</div>
+              <h3>Declarative vs Imperative</h3>
+              <ul class="clean">
+                <li><strong>Declarative:</strong> "I want 3 servers with 8GB RAM running Nginx." The tool figures out how. (Terraform, Kubernetes YAML)</li>
+                <li><strong>Imperative:</strong> "Step 1: Create a VM. Step 2: Install Nginx. Step 3: Open port 80." You tell the tool exactly what to do. (Ansible playbooks, shell scripts)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 : IaC TOOLS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>IaC TOOLBOX</div>
+        <h1 class="slide-title">The major IaC tools</h1>
+        <div class="slide-body">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Type</th>
+                <th>Primary Use</th>
+                <th>Language</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="lbl">Terraform</td>
+                <td>Declarative</td>
+                <td>Provisioning cloud resources (AWS VPCs, EC2, S3, Azure VMs). Multi-cloud.</td>
+                <td>HCL (.tf files)</td>
+              </tr>
+              <tr>
+                <td class="lbl">Ansible</td>
+                <td>Imperative (Procedural)</td>
+                <td>Configuration management — install software, manage files, run commands on existing servers.</td>
+                <td>YAML (.yml playbooks)</td>
+              </tr>
+              <tr>
+                <td class="lbl">Puppet</td>
+                <td>Declarative</td>
+                <td>Configuration management for large fleets; agent-based enforcement of desired state.</td>
+                <td>Puppet DSL (.pp manifests)</td>
+              </tr>
+              <tr>
+                <td class="lbl">CloudFormation</td>
+                <td>Declarative</td>
+                <td>AWS-only provisioning. Deep integration with AWS services.</td>
+                <td>JSON / YAML</td>
+              </tr>
+              <tr>
+                <td class="lbl">Docker / K8s</td>
+                <td>Declarative</td>
+                <td>Container images (Dockerfile) and orchestration (K8s YAML manifests).</td>
+                <td>Dockerfile / YAML</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="dark-note" style="margin-top:10px;"><strong>Key distinction:</strong> Terraform provisions the infrastructure (creates the servers). Ansible/Puppet configure what runs on them. In practice, teams use Terraform + Ansible together.</p>
+        </div>
+      </section>
+
+      <!-- 6 : TERRAFORM EXAMPLE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>HANDS-ON</div>
+        <h1 class="slide-title">Terraform in 30 seconds</h1>
+        <div class="slide-body">
+          <div class="code-card">
+            <span class="cm"># main.tf — Provision an AWS EC2 instance</span><br><br>
+            <span class="kw">provider</span> <span class="str">"aws"</span> {<br>
+            &nbsp;&nbsp;<span class="kw">region</span> = <span class="str">"ap-south-1"</span> &nbsp;&nbsp;<span class="cm"># Mumbai</span><br>
+            }<br><br>
+            <span class="kw">resource</span> <span class="str">"aws_instance"</span> <span class="str">"web_server"</span> {<br>
+            &nbsp;&nbsp;<span class="kw">ami</span>           = <span class="str">"ami-0c55b159cbfafe1f0"</span><br>
+            &nbsp;&nbsp;<span class="kw">instance_type</span> = <span class="str">"t2.micro"</span><br><br>
+            &nbsp;&nbsp;<span class="kw">tags</span> = {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">Name</span> = <span class="str">"DevOps-Demo-Server"</span><br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+          <div class="grid3" style="margin-top:14px;">
+            <div class="card">
+              <div class="tag">Step 1</div>
+              <h3>terraform init</h3>
+              <p>Downloads the AWS provider plugin.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Step 2</div>
+              <h3>terraform plan</h3>
+              <p>Dry run — shows what WILL be created without doing it.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Step 3</div>
+              <h3>terraform apply</h3>
+              <p>Actually creates the EC2 instance in AWS. Type "yes" to confirm.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 : CD — DELIVERY vs DEPLOYMENT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CONTINUOUS DELIVERY</div>
+        <h1 class="slide-title">Continuous Delivery vs Deployment</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Continuous Delivery</div>
+              <h3>Always Ready to Ship</h3>
+              <ul class="clean">
+                <li>Every code change passes through automated build, test, and staging</li>
+                <li>The artifact is production-ready at all times</li>
+                <li>A <strong>human approves</strong> the final deployment to production (manual gate)</li>
+                <li>Used by: banks, healthcare, government — regulated industries</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Continuous Deployment</div>
+              <h3>Fully Automated to Production</h3>
+              <ul class="clean">
+                <li>Same pipeline as Delivery, but the manual gate is removed</li>
+                <li>Every commit that passes all tests is automatically deployed to production</li>
+                <li><strong>No human approval</strong> — the pipeline is the gatekeeper</li>
+                <li>Used by: Netflix, Facebook, Etsy — dozens of deploys per day</li>
+              </ul>
+            </div>
+          </div>
+          <div class="flow-row" style="margin-top:16px;">
+            <div class="flow-step">Code</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Build</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Unit Tests</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Integration Tests</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Staging</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step active">Manual Gate?</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step dark">Production</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 : DEPLOYMENT STRATEGIES -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>DEPLOYMENT PATTERNS</div>
+        <h1 class="slide-title">How to deploy safely</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Strategy 01</div>
+              <h3>Blue-Green Deployment</h3>
+              <p>Run two identical production environments. "Blue" is live. Deploy new version to "Green." Switch the load balancer to Green. If it fails, switch back to Blue instantly.</p>
+              <p style="margin-top:8px;font-weight:600;color:var(--amber-deep);">⚡ Zero-downtime rollback.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Strategy 02</div>
+              <h3>Canary Deployment</h3>
+              <p>Route 5% of real user traffic to the new version. Monitor error rates and latency. If healthy, gradually ramp to 25% → 50% → 100%. If unhealthy, abort and roll back.</p>
+              <p style="margin-top:8px;font-weight:600;color:var(--amber-deep);">🐦 Named after canaries in coal mines.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Strategy 03</div>
+              <h3>Rolling Update</h3>
+              <p>Replace instances one at a time. Server 1 is updated while 2-10 handle traffic. Then Server 2, etc. Used by Kubernetes by default.</p>
+              <p style="margin-top:8px;font-weight:600;color:var(--amber-deep);">🔄 No extra infrastructure needed.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Anti-Pattern</div>
+              <h3>Big Bang Deployment</h3>
+              <p>Take the entire system offline, deploy the new version, pray, and bring it back up. High risk, maximum downtime, zero rollback path.</p>
+              <p style="margin-top:8px;font-weight:600;color:var(--amber-deep);">🚫 Avoid in modern DevOps.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 : CONTINUOUS MONITORING -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>CLOSING THE LOOP</div>
+        <h1 class="slide-title">Continuous Monitoring</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Definition</div>
+            <h3>What is Continuous Monitoring?</h3>
+            <p>The practice of automatically and constantly observing infrastructure, applications, and security posture in real-time. It generates the feedback data that flows back from the "Operate/Monitor" phase into the "Plan" phase, completing the DevOps infinity loop.</p>
+          </div>
+          <div class="grid3" style="margin-top:14px;">
+            <div class="card">
+              <div class="tag">Layer 1</div>
+              <h3>Infrastructure</h3>
+              <ul class="clean">
+                <li>CPU, Memory, Disk, Network</li>
+                <li>Container health (K8s pod restarts)</li>
+                <li>Tools: Prometheus, Grafana, Datadog</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Layer 2</div>
+              <h3>Application (APM)</h3>
+              <ul class="clean">
+                <li>Response times, Error rates, Throughput</li>
+                <li>Database query profiling</li>
+                <li>Tools: New Relic, Dynatrace, OpenTelemetry</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Layer 3</div>
+              <h3>Logs &amp; Security</h3>
+              <ul class="clean">
+                <li>Centralized log aggregation (ELK/EFK)</li>
+                <li>Security event monitoring (SIEM)</li>
+                <li>Tools: Splunk, Elastic, PagerDuty</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 : MONITORING METRICS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>KEY METRICS</div>
+        <h1 class="slide-title">The 4 DORA metrics</h1>
+        <div class="slide-body">
+          <p class="dark-note" style="margin-bottom:8px;">The DevOps Research and Assessment (DORA) team at Google identified four key metrics that predict software delivery performance. Elite teams score high on all four.</p>
+          <div class="grid4">
+            <div class="card" style="text-align:center;">
+              <div class="stat">DF</div>
+              <div class="stat-label">Deployment Frequency</div>
+              <p style="margin-top:8px;">How often code is deployed to production. Elite: multiple times/day.</p>
+            </div>
+            <div class="card" style="text-align:center;">
+              <div class="stat">LT</div>
+              <div class="stat-label">Lead Time for Changes</div>
+              <p style="margin-top:8px;">Time from commit to production. Elite: less than 1 hour.</p>
+            </div>
+            <div class="card" style="text-align:center;">
+              <div class="stat">CFR</div>
+              <div class="stat-label">Change Failure Rate</div>
+              <p style="margin-top:8px;">% of deployments that cause a failure. Elite: 0-15%.</p>
+            </div>
+            <div class="card" style="text-align:center;">
+              <div class="stat">MTTR</div>
+              <div class="stat-label">Mean Time to Recovery</div>
+              <p style="margin-top:8px;">Time to restore service after a failure. Elite: less than 1 hour.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 : WHAT IS JENKINS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>JENKINS</div>
+        <h1 class="slide-title">Jenkins — the original CI/CD engine</h1>
+        <div class="slide-body">
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Overview</div>
+              <h3>What is Jenkins?</h3>
+              <ul class="clean">
+                <li>Open-source automation server, started in 2004 as "Hudson"</li>
+                <li>Self-hosted (runs on your own servers, not in the cloud like GitHub Actions)</li>
+                <li>1,800+ plugins for every conceivable integration</li>
+                <li>Still the most widely used CI/CD tool in enterprises</li>
+                <li>Written in Java; runs on any OS with a JVM</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Architecture</div>
+              <h3>Controller + Agent Model</h3>
+              <ul class="clean">
+                <li><strong>Controller (Master):</strong> Manages the UI, schedules builds, distributes work</li>
+                <li><strong>Agents (Slaves):</strong> Worker machines that actually execute the build steps</li>
+                <li>Agents can be VMs, Docker containers, or Kubernetes pods</li>
+                <li>This model scales horizontally — add more agents as workload grows</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 : JENKINS vs GITHUB ACTIONS -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>COMPARISON</div>
+        <h1 class="slide-title">Jenkins vs GitHub Actions</h1>
+        <div class="slide-body">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Jenkins</th>
+                <th>GitHub Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="lbl">Hosting</td>
+                <td>Self-hosted (you manage the server)</td>
+                <td>Cloud-hosted (GitHub manages runners)</td>
+              </tr>
+              <tr>
+                <td class="lbl">Setup</td>
+                <td>Install Java, Jenkins, configure manually</td>
+                <td>Zero setup — add a YAML file to your repo</td>
+              </tr>
+              <tr>
+                <td class="lbl">Config</td>
+                <td>Jenkinsfile (Groovy DSL)</td>
+                <td>.github/workflows/*.yml (YAML)</td>
+              </tr>
+              <tr>
+                <td class="lbl">Plugins</td>
+                <td>1,800+ (massive ecosystem, but some are outdated)</td>
+                <td>Marketplace Actions (modern, community-driven)</td>
+              </tr>
+              <tr>
+                <td class="lbl">Best For</td>
+                <td>Complex enterprise pipelines with many integrations</td>
+                <td>GitHub-native projects wanting fast, simple CI/CD</td>
+              </tr>
+              <tr>
+                <td class="lbl">Cost</td>
+                <td>Free software, but you pay for server infrastructure</td>
+                <td>Free tier (2,000 min/month); pay-per-minute after</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 13 : JENKINSFILE -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>HANDS-ON</div>
+        <h1 class="slide-title">A Declarative Jenkinsfile</h1>
+        <div class="slide-body">
+          <div class="code-card">
+            <span class="cm">// Jenkinsfile (Declarative Pipeline)</span><br><br>
+            <span class="kw">pipeline</span> {<br>
+            &nbsp;&nbsp;<span class="kw">agent</span> <span class="str">any</span><br><br>
+            &nbsp;&nbsp;<span class="kw">stages</span> {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">stage</span>(<span class="str">'Build'</span>) {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps</span> {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">sh</span> <span class="str">'mvn clean compile'</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">stage</span>(<span class="str">'Test'</span>) {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps</span> {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">sh</span> <span class="str">'mvn test'</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">stage</span>(<span class="str">'Deploy'</span>) {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">when</span> { <span class="kw">branch</span> <span class="str">'main'</span> }<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps</span> {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">sh</span> <span class="str">'./deploy.sh production'</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;<span class="kw">post</span> {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">failure</span> { <span class="fn">mail</span> <span class="kw">to:</span> <span class="str">'team@example.com'</span>, <span class="kw">subject:</span> <span class="str">'Build Failed!'</span> }<br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+          <p class="dark-note" style="margin-top:10px;"><strong>Key concepts:</strong> <code>pipeline</code> wraps everything. <code>agent any</code> means run on any available worker. <code>stages</code> run sequentially. The <code>when</code> directive ensures Deploy only runs on the <code>main</code> branch. <code>post</code> handles success/failure notifications.</p>
+        </div>
+      </section>
+
+      <!-- 14 : JENKINS PIPELINE STAGES -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>PIPELINE ANATOMY</div>
+        <h1 class="slide-title">A real-world Jenkins pipeline</h1>
+        <div class="slide-body">
+          <div class="flow-row" style="margin-bottom:18px;">
+            <div class="flow-step">Checkout</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Build</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Unit Test</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">SAST Scan</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Docker Build</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step teal">Push to Registry</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step active">Deploy Staging</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step dark">Deploy Prod</div>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Left Side (CI)</div>
+              <h3>Build &amp; Verify</h3>
+              <ul class="clean">
+                <li><strong>Checkout:</strong> Clone code from Git</li>
+                <li><strong>Build:</strong> Compile source code (<code>mvn compile</code>, <code>npm build</code>)</li>
+                <li><strong>Unit Test:</strong> Run automated tests</li>
+                <li><strong>SAST Scan:</strong> Static security analysis (SonarQube)</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="tag">Right Side (CD)</div>
+              <h3>Package &amp; Deploy</h3>
+              <ul class="clean">
+                <li><strong>Docker Build:</strong> Package app into a container image</li>
+                <li><strong>Push to Registry:</strong> Upload image to Docker Hub / ECR</li>
+                <li><strong>Deploy Staging:</strong> Deploy to a staging environment for E2E tests</li>
+                <li><strong>Deploy Prod:</strong> Deploy to production (manual or auto gate)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 15 : SUMMARY + NEXT -->
+      <section class="slide">
+        <div class="eyebrow"><span class="dash"></span>WRAP-UP</div>
+        <h1 class="slide-title">Summary &amp; what's next</h1>
+        <div class="slide-body">
+          <div class="card">
+            <div class="tag">Lecture 11 · Key Takeaways</div>
+            <h3>What you should remember</h3>
+            <ul class="clean">
+              <li><strong>IaC:</strong> Infrastructure defined in code files (Terraform, Ansible), versioned in Git, reproducible and auditable</li>
+              <li><strong>Declarative vs Imperative:</strong> "What I want" (Terraform) vs "How to do it" (Ansible)</li>
+              <li><strong>CD:</strong> Continuous Delivery = manual gate before prod; Continuous Deployment = fully automated</li>
+              <li><strong>Deployment Strategies:</strong> Blue-Green (instant rollback), Canary (gradual ramp), Rolling (one-at-a-time)</li>
+              <li><strong>Monitoring:</strong> Infrastructure + APM + Logs; DORA metrics (DF, LT, CFR, MTTR)</li>
+              <li><strong>Jenkins:</strong> Self-hosted CI/CD; Controller + Agent architecture; Declarative Jenkinsfile (pipeline → stages → steps)</li>
+            </ul>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="tag">Next Lecture · Lecture 12</div>
+              <h3>Tue, 30 Jun 2026 · 14:00–15:00 · Unit IV</h3>
+              <p>Metrics tools; DevOps lifecycle; Digital transformation &amp; role of DevOps.</p>
+            </div>
+            <div class="card">
+              <div class="tag">Before next class</div>
+              <h3>Quick prep</h3>
+              <p>Think about which DORA metric your future team would struggle with most and why. We'll discuss digital transformation through the lens of these metrics.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="titleblock">
+      <div>CSDV3017 · DEVOPS</div>
+      <div class="center-track" id="stationTrack"></div>
+      <div class="sheet" id="sheetCounter">SHEET 01/15</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slidesEl = document.getElementById('slides');
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      let current = 0;
+
+      const progressFill = document.getElementById('progressFill');
+      const sheetCounter = document.getElementById('sheetCounter');
+      const stationTrack = document.getElementById('stationTrack');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'station';
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('tabindex', '0');
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', () => go(i));
+        dot.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i); } });
+        stationTrack.appendChild(dot);
+      }
+      const dots = Array.from(stationTrack.children);
+
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+      function render() {
+        slidesEl.style.transform = 'translateX(' + (-current * 100) + '%)';
+        progressFill.style.width = ((current + 1) / total * 100) + '%';
+        sheetCounter.textContent = 'SHEET ' + pad(current + 1) + '/' + total;
+        dots.forEach((d, i) => d.classList.toggle('active', i === current));
+        prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+        nextBtn.style.visibility = current === total - 1 ? 'hidden' : 'visible';
+      }
+
+      function go(i) {
+        current = Math.max(0, Math.min(total - 1, i));
+        render();
+      }
+
+      prevBtn.addEventListener('click', () => go(current - 1));
+      nextBtn.addEventListener('click', () => go(current + 1));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') { go(current + 1); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(current - 1); }
+        else if (e.key === 'Home') { go(0); }
+        else if (e.key === 'End') { go(total - 1); }
+      });
+
+      let touchStartX = null, touchStartY = null;
+      slidesEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      slidesEl.addEventListener('touchend', (e) => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) go(current + 1); else go(current - 1);
+        }
+        touchStartX = null; touchStartY = null;
+      }, { passive: true });
+
+      render();
+    })();
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 11 – Infrastructure Automation; Root Cause Analysis; Blamelessness; Organizational Learning</title>
+  <meta name="description" content="Lecture 11 of DevOps Overview course at UPES Dehradun — Infrastructure Automation, Root Cause Analysis, Blameless Post-Mortems, and Organizational Learning.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap');
+
+    :root {
+      --ink: #0D1B2A;
+      --sky: #1C6EA4;
+      --sky-lt: #E8F4FD;
+      --teal: #00897B;
+      --teal-lt: #E0F2F1;
+      --amber: #F59E0B;
+      --amber-lt: #FEF3C7;
+      --coral: #E53E3E;
+      --coral-lt: #FFF5F5;
+      --slate: #4A5568;
+      --mist: #F7F9FC;
+      --white: #FFFFFF;
+      --border: #D1E3F0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0D1B2A;
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── NAV BAR ─────────────────────────────────────── */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(13, 27, 42, 0.97);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(28, 110, 164, 0.4);
+    }
+
+    .navbar-brand {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--sky);
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+    }
+
+    .navbar-brand span {
+      display: block;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 400;
+      font-size: 0.68rem;
+    }
+
+    .slide-counter {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+      background: rgba(28, 110, 164, 0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .nav-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.25s;
+      border: none;
+    }
+
+    .dot.active {
+      background: var(--sky);
+      transform: scale(1.3);
+    }
+
+    /* ── SLIDE CONTAINER ─────────────────────────────── */
+    .slides-wrapper {
+      padding-top: 64px;
+      min-height: 100vh;
+    }
+
+    .slide {
+      display: none;
+      min-height: calc(100vh - 64px);
+      padding: 32px 24px 80px;
+      max-width: 960px;
+      margin: 0 auto;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── BOTTOM NAV ───────────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(13, 27, 42, 0.97);
+      border-top: 1px solid rgba(28, 110, 164, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      gap: 12px;
+    }
+
+    .btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-prev {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-prev:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-next {
+      background: var(--sky);
+      color: #fff;
+    }
+
+    .btn-next:hover {
+      background: #155d8e;
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    /* ── SLIDE COMPONENTS ────────────────────────────── */
+
+    .eyebrow {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sky);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 2px;
+      background: var(--sky);
+      flex-shrink: 0;
+    }
+
+    .h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.3rem, 3.5vw, 2rem);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    .h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .lead {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.65);
+      line-height: 1.65;
+      max-width: 560px;
+    }
+
+    .body-text {
+      font-size: 0.9rem;
+      color: var(--slate);
+      line-height: 1.7;
+    }
+
+    /* ── TITLE SLIDE ────────────────────────── */
+    .title-slide {
+      justify-content: center;
+      background: linear-gradient(135deg, #0D1B2A 0%, #12284A 60%, #0D3358 100%);
+      position: relative;
+      overflow: hidden;
+      min-height: calc(100vh - 64px);
+    }
+
+    .title-slide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 80% 40%, rgba(28, 110, 164, 0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(28, 110, 164, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(28, 110, 164, 0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .title-content {
+      position: relative;
+      z-index: 2;
+      padding: 40px 0 20px;
+    }
+
+    .course-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(28, 110, 164, 0.2);
+      border: 1px solid rgba(28, 110, 164, 0.4);
+      color: #78C0E0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+
+    .highlight {
+      color: #4FC3F7;
+    }
+
+    .title-meta {
+      margin-top: 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .meta-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.4;
+    }
+
+    .meta-chip strong {
+      display: block;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+
+    .agenda-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border-left: 3px solid var(--sky);
+      background: var(--sky-lt);
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .agenda-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--sky);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── CONTENT SLIDE BASE ─────────────────── */
+    .content-slide {
+      background: var(--mist);
+      border-radius: 16px;
+      padding: 32px 28px;
+      flex: 1;
+    }
+
+    /* CARD GRID */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px 16px;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 16px rgba(28, 110, 164, 0.12);
+    }
+
+    .card-icon {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .card-body {
+      font-size: 0.82rem;
+      color: var(--slate);
+      line-height: 1.6;
+    }
+
+    /* HIGHLIGHT BOX */
+    .highlight-box {
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin: 16px 0;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .hb-sky {
+      background: var(--sky-lt);
+      border-left: 4px solid var(--sky);
+    }
+
+    .hb-teal {
+      background: var(--teal-lt);
+      border-left: 4px solid var(--teal);
+    }
+
+    .hb-amber {
+      background: var(--amber-lt);
+      border-left: 4px solid var(--amber);
+    }
+
+    .hb-coral {
+      background: var(--coral-lt);
+      border-left: 4px solid var(--coral);
+    }
+
+    .hb-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .hb-text {
+      font-size: 0.86rem;
+      color: var(--slate);
+      line-height: 1.65;
+    }
+
+    .hb-text strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* TWO-COL */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 580px) {
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .col-panel {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 18px 16px;
+    }
+
+    .col-panel-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .sky-label {
+      color: var(--sky);
+    }
+
+    .teal-label {
+      color: var(--teal);
+    }
+
+    .coral-label {
+      color: var(--coral);
+    }
+
+    .amber-label {
+      color: var(--amber);
+    }
+
+    .bullet-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .bullet-list li {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 0.83rem;
+      color: var(--slate);
+      line-height: 1.6;
+      padding: 5px 0;
+      border-bottom: 1px solid #F0F4F8;
+    }
+
+    .bullet-list li:last-child {
+      border-bottom: none;
+    }
+
+    .bullet-list li::before {
+      content: '▸';
+      color: var(--sky);
+      font-size: 0.7rem;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .bullet-list.teal li::before {
+      color: var(--teal);
+    }
+
+    .bullet-list.coral li::before {
+      color: var(--coral);
+    }
+
+    .bullet-list.amber li::before {
+      color: var(--amber);
+    }
+
+    /* TIMELINE */
+    .timeline {
+      position: relative;
+      margin-top: 20px;
+      padding-left: 0;
+    }
+
+    .tl-item {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+
+    .tl-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--sky);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .tl-dot.teal {
+      background: var(--teal);
+    }
+
+    .tl-dot.amber {
+      background: var(--amber);
+    }
+
+    .tl-dot.coral {
+      background: var(--coral);
+    }
+
+    .tl-content {
+      flex: 1;
+    }
+
+    .tl-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+
+    .tl-desc {
+      font-size: 0.8rem;
+      color: var(--slate);
+      line-height: 1.55;
+    }
+
+    /* COMPARISON TABLE */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.82rem;
+    }
+
+    .comp-table th {
+      background: var(--ink);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .comp-table th:first-child {
+      border-radius: 8px 0 0 0;
+      width: 28%;
+    }
+
+    .comp-table th:last-child {
+      border-radius: 0 8px 0 0;
+    }
+
+    .comp-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--slate);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .comp-table tr:nth-child(even) td {
+      background: var(--sky-lt);
+    }
+
+    .comp-table td:first-child {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* STAT CARDS */
+    .stat-row {
+      display: flex;
+      gap: 14px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 130px;
+      background: var(--ink);
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #4FC3F7;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    /* PIPELINE */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin: 20px 0;
+    }
+
+    .pipe-step {
+      background: var(--sky);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      position: relative;
+      flex: 1;
+      text-align: center;
+      min-width: 80px;
+      margin: 2px 0;
+    }
+
+    .pipe-step:first-child {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .pipe-step:last-child {
+      border-radius: 0 8px 8px 0;
+    }
+
+    .pipe-step.teal {
+      background: var(--teal);
+    }
+
+    .pipe-step.amber {
+      background: var(--amber);
+      color: var(--ink);
+    }
+
+    .pipe-step.coral {
+      background: var(--coral);
+    }
+
+    .pipe-step.purple {
+      background: #7E57C2;
+    }
+
+    .pipe-step span {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 400;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 480px) {
+      .pipeline {
+        flex-direction: column;
+      }
+
+      .pipe-step {
+        border-radius: 0 !important;
+        text-align: left;
+        padding-left: 20px;
+      }
+
+      .pipe-step:first-child {
+        border-radius: 8px 8px 0 0 !important;
+      }
+
+      .pipe-step:last-child {
+        border-radius: 0 0 8px 8px !important;
+      }
+    }
+
+    /* BIG QUOTE */
+    .big-quote {
+      background: var(--ink);
+      border-radius: 14px;
+      padding: 28px 24px;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .big-quote::before {
+      content: '"';
+      font-family: Georgia, serif;
+      font-size: 6rem;
+      color: rgba(28, 110, 164, 0.3);
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      line-height: 1;
+    }
+
+    .big-quote p {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+      color: #fff;
+      line-height: 1.55;
+      position: relative;
+      z-index: 1;
+      padding-left: 12px;
+    }
+
+    .big-quote cite {
+      display: block;
+      margin-top: 12px;
+      padding-left: 12px;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-style: normal;
+      letter-spacing: 0.04em;
+    }
+
+    /* KEY TAKEAWAY BANNER */
+    .takeaway {
+      background: linear-gradient(135deg, #0D1B2A, #12284A);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-top: 20px;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .takeaway-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+
+    .takeaway p {
+      font-size: 0.88rem;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.65;
+    }
+
+    /* SUMMARY SLIDE */
+    .summary-slide {
+      background: linear-gradient(135deg, #0D1B2A 0%, #0D3358 100%);
+      border-radius: 16px;
+      padding: 32px 28px;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-slide::after {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      right: -40px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(rgba(28, 110, 164, 0.2), transparent 70%);
+    }
+
+    .summary-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .summary-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(28, 110, 164, 0.25);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .summary-item .si-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--sky);
+      flex-shrink: 0;
+      line-height: 1.2;
+    }
+
+    .summary-item .si-text {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.55;
+    }
+
+    .summary-item .si-text strong {
+      color: #fff;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* PROGRESS BAR */
+    .progress-bar-wrap {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      position: fixed;
+      top: 54px;
+      left: 0;
+      right: 0;
+      z-index: 101;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--sky);
+      transition: width 0.35s ease;
+    }
+
+    /* CODE BLOCK */
+    .code-block {
+      background: #0D1B2A;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 12px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem;
+      color: #B8E0FF;
+      overflow-x: auto;
+      line-height: 1.6;
+      border: 1px solid rgba(28, 110, 164, 0.3);
+    }
+
+    .code-block .cm {
+      color: #6B8CAE;
+    }
+
+    .code-block .kw {
+      color: #F59E0B;
+    }
+
+    .code-block .str {
+      color: #81C995;
+    }
+
+    .code-block .fn {
+      color: #82AAFF;
+    }
+
+    /* PILLAR FOCUS BOX */
+    .pillar-focus {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--ink);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin: 16px 0;
+    }
+
+    .pillar-focus-icon {
+      font-size: 2.4rem;
+      flex-shrink: 0;
+    }
+
+    .pillar-focus-text {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.6;
+    }
+
+    .pillar-focus-text strong {
+      color: #fff;
+    }
+
+    /* RCA FISHBONE */
+    .fishbone {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .fishbone-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .fishbone-category {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--sky);
+      padding: 6px 14px;
+      border-radius: 8px;
+      min-width: 100px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .fishbone-category.teal { background: var(--teal); }
+    .fishbone-category.amber { background: var(--amber); color: var(--ink); }
+    .fishbone-category.coral { background: var(--coral); }
+    .fishbone-category.purple { background: #7E57C2; }
+
+    .fishbone-line {
+      flex: 1;
+      height: 2px;
+      background: var(--border);
+      position: relative;
+    }
+
+    .fishbone-causes {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex: 2;
+    }
+
+    .fishbone-cause {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      color: var(--slate);
+    }
+
+    @media (max-width: 580px) {
+      .fishbone-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .fishbone-line {
+        display: none;
+      }
+    }
+
+    /* LEARNING LOOP */
+    .learning-loop {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin: 24px 0;
+    }
+
+    .loop-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .loop-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .loop-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--ink);
+      text-align: center;
+    }
+
+    .loop-sub {
+      font-size: 0.68rem;
+      color: var(--slate);
+      text-align: center;
+      max-width: 110px;
+    }
+
+    .loop-arrow {
+      font-size: 1.4rem;
+      color: var(--border);
+      flex-shrink: 0;
+      padding: 0 4px;
+    }
+
+    @media (max-width: 600px) {
+      .learning-loop {
+        flex-direction: column;
+      }
+
+      .loop-arrow {
+        transform: rotate(90deg);
+      }
+    }
+
+    /* Ensure slides fill properly on mobile */
+    @media (max-width: 600px) {
+      .slide {
+        padding: 16px 12px 80px;
+      }
+
+      .content-slide {
+        padding: 20px 16px;
+      }
+
+      .summary-slide {
+        padding: 20px 16px;
+      }
+
+      .code-block {
+        font-size: 0.65rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV BAR -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a href="../index.html" id="course-label" style="text-decoration: none;">
+        <strong>DevOps Overview</strong>
+        CSDV3016P/3017
+        BTech CSE Sem V · UPES Dehradun
+      </a>
+    </div>
+    <div class="nav-dots" id="navDots"></div>
+    <div class="slide-counter" id="slideCounter">1 / 15</div>
+  </nav>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill"></div>
+  </div>
+
+  <!-- SLIDES -->
+  <div class="slides-wrapper">
+
+    <!-- ══ SLIDE 1: TITLE ══════════════════════════════════════ -->
+    <div class="slide title-slide active" id="slide-1">
+      <div class="grid-bg"></div>
+      <div class="title-content">
+        <div class="course-badge">📚 Week 4 · Unit II · Lecture 11</div>
+        <div class="h1"><span class="highlight">Infrastructure</span> Automation;<br>RCA &amp; Blamelessness</div>
+        <p class="lead">Automating infrastructure at scale, diagnosing failures through Root Cause Analysis,
+          building blameless cultures, and turning every incident into organizational learning.</p>
+        <div class="title-meta">
+          <div class="meta-chip"><strong>Dr. Mohsin Furkh Dar</strong>School of Computer Sciences</div>
+          <div class="meta-chip"><strong>Date</strong>Mon, 29 Jun 2026 · 11:00 AM – 12:00 PM</div>
+          <div class="meta-chip"><strong>Programme</strong>BTech CSE – Summer Semester</div>
+        </div>
+
+        <div style="margin-top:28px;">
+          <div
+            style="font-family:'Space Grotesk',sans-serif; font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:12px;">
+            Today's Agenda</div>
+          <div class="agenda-row">
+            <div class="agenda-num">1</div>Recap — CAMS Complete, Configuration Management
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">2</div>Infrastructure Automation — Beyond CM
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">3</div>IaC Patterns — Immutable Infra &amp; Containers
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">4</div>Root Cause Analysis — 5 Whys &amp; Fishbone
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">5</div>Blameless Post-Mortems — Structure &amp; Practice
+          </div>
+          <div class="agenda-row">
+            <div class="agenda-num">6</div>Organizational Learning &amp; Unit II Wrap-Up
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 2: RECAP ══════════════════════════════════════ -->
+    <div class="slide" id="slide-2">
+      <div class="content-slide">
+        <div class="eyebrow">Recap</div>
+        <div class="h2">Where We Left Off</div>
+        <div class="highlight-box hb-sky">
+          <div class="hb-icon">✅</div>
+          <div class="hb-text"><strong>Lecture 10:</strong> We completed the CAMS framework — <strong>Measurement</strong>
+            (DORA four key metrics, meaningful vs. vanity metrics) and <strong>Sharing</strong> (knowledge distribution,
+            bus factor, ChatOps). We then introduced <strong>Configuration Management</strong> — pets vs. cattle, IaC,
+            and CM tools like Ansible, Puppet, Chef, and Terraform.</div>
+        </div>
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">🎯</div>
+          <div class="hb-text"><strong>Today:</strong> We go deeper into <strong>Infrastructure Automation</strong>
+            patterns, then shift to the human side — <strong>Root Cause Analysis</strong> techniques,
+            <strong>Blameless Post-Mortems</strong>, and <strong>Organizational Learning</strong>. This is the
+            <em>final lecture of Unit II</em>, tying together all the DevOps principles we've covered.</div>
+        </div>
+        <div class="two-col" style="margin-top:16px;">
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">Unit II Journey (Lectures 6–11)</div>
+            <ul class="bullet-list">
+              <li><strong>L6:</strong> DevOps intro, DevOps &amp; Agile ✔️</li>
+              <li><strong>L7:</strong> MVP, Application Deployment ✔️</li>
+              <li><strong>L8:</strong> CI/CD pipelines ✔️</li>
+              <li><strong>L9:</strong> CAMS: Culture &amp; Automation, TDD ✔️</li>
+              <li><strong>L10:</strong> CAMS: Measurement &amp; Sharing, CM ✔️</li>
+              <li><strong>L11:</strong> Infra Automation, RCA, Learning 📍</li>
+            </ul>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title teal-label">Why This Lecture Matters</div>
+            <ul class="bullet-list teal">
+              <li>Infrastructure automation scales what CM started — from servers to entire environments</li>
+              <li>RCA and blamelessness turn failures into the most valuable learning opportunities</li>
+              <li>Organizational learning closes the loop — making the whole team smarter after every incident</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 3: INFRASTRUCTURE AUTOMATION ═════════════════ -->
+    <div class="slide" id="slide-3">
+      <div class="content-slide">
+        <div class="eyebrow">Infrastructure Automation</div>
+        <div class="h2">Beyond Configuration Management</div>
+
+        <div class="pillar-focus">
+          <div class="pillar-focus-icon">🏗️</div>
+          <div class="pillar-focus-text"><strong>Infrastructure Automation</strong> extends CM to the full lifecycle of
+            infrastructure — not just configuring servers, but provisioning, scaling, monitoring, and
+            decommissioning them <em>automatically</em>. The goal: zero manual touch from request to running
+            service.</div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">📦</span>
+            <div class="card-title">Provisioning</div>
+            <div class="card-body">Automatically create VMs, networks, databases, and load balancers. Tools:
+              Terraform, AWS CloudFormation, Azure ARM Templates, Pulumi.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">⚙️</span>
+            <div class="card-title">Configuration</div>
+            <div class="card-body">Set up the software inside provisioned resources — packages, users, files,
+              services. Tools: Ansible, Puppet, Chef, SaltStack.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">📈</span>
+            <div class="card-title">Orchestration</div>
+            <div class="card-body">Coordinate multi-step deployments across many servers — rolling updates, blue-green
+              deploys, canary releases. Tools: Kubernetes, Docker Swarm, Nomad.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">📊</span>
+            <div class="card-title">Monitoring &amp; Healing</div>
+            <div class="card-body">Detect failures and auto-remediate — restart crashed services, scale up under load,
+              replace unhealthy nodes. Tools: Prometheus + AlertManager, Datadog, PagerDuty.</div>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">🔗 The Automation Spectrum</div>
+          <p>Infrastructure Automation moves through four levels: <strong>Manual</strong> → <strong>Scripted</strong>
+            (bash scripts) → <strong>Declarative IaC</strong> (Terraform, Ansible) → <strong>Self-Healing</strong>
+            (Kubernetes auto-scaling, auto-restart). The goal is to push as far right as practical.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 4: IMMUTABLE INFRASTRUCTURE ══════════════════ -->
+    <div class="slide" id="slide-4">
+      <div class="content-slide">
+        <div class="eyebrow">IaC Pattern</div>
+        <div class="h2">Immutable Infrastructure</div>
+        <p class="body-text" style="margin-bottom:16px;">Instead of updating servers in place (mutable), you replace
+          them entirely with new, pre-built images. Every change = a new image, not a patch on the old one.</p>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--coral);">
+            <div class="col-panel-title coral-label">🔄 Mutable (Traditional)</div>
+            <ul class="bullet-list coral">
+              <li>Update packages on running servers via SSH</li>
+              <li>Each server accumulates unique patches over time</li>
+              <li>Drift between servers — "works on server A but not B"</li>
+              <li>Rollback is painful — undo each change manually</li>
+              <li>Hard to reproduce the exact state of any server</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--teal);">
+            <div class="col-panel-title teal-label">🔒 Immutable (Modern)</div>
+            <ul class="bullet-list teal">
+              <li>Build a new image (AMI, Docker image) with all changes baked in</li>
+              <li>Deploy by replacing old instances with new ones</li>
+              <li>Every instance is identical — zero drift</li>
+              <li>Rollback = redeploy the previous image (seconds, not hours)</li>
+              <li>Full reproducibility — the image <em>is</em> the documentation</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="pipeline" style="margin-top:20px;">
+          <div class="pipe-step">Code Change<span>App or infra</span></div>
+          <div class="pipe-step teal">Build Image<span>Docker / AMI</span></div>
+          <div class="pipe-step amber">Test Image<span>Automated tests</span></div>
+          <div class="pipe-step coral">Deploy New<span>Replace old</span></div>
+          <div class="pipe-step purple">Destroy Old<span>Clean up</span></div>
+        </div>
+
+        <div class="highlight-box hb-sky" style="margin-top:14px;">
+          <div class="hb-icon">🐳</div>
+          <div class="hb-text"><strong>Containers are immutable infrastructure.</strong> A Docker container is built
+            from a Dockerfile, producing an identical image every time. You never SSH into a container to fix it —
+            you rebuild the image and redeploy. This is immutability in practice.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 5: CONTAINERS & ORCHESTRATION ════════════════ -->
+    <div class="slide" id="slide-5">
+      <div class="content-slide">
+        <div class="eyebrow">Containers &amp; Orchestration</div>
+        <div class="h2">Containers as Infrastructure Units</div>
+        <p class="body-text" style="margin-bottom:12px;">Containers package an application with all its dependencies
+          into a single, portable unit. Orchestrators manage fleets of containers at scale.</p>
+
+        <div class="code-block">
+          <span class="cm"># Example: Dockerfile for a Node.js application</span><br>
+          <span class="kw">FROM</span> <span class="str">node:18-alpine</span><br>
+          <span class="kw">WORKDIR</span> <span class="str">/app</span><br>
+          <span class="kw">COPY</span> package*.json ./<br>
+          <span class="kw">RUN</span> <span class="fn">npm ci</span> <span class="str">--production</span><br>
+          <span class="kw">COPY</span> . .<br>
+          <span class="kw">EXPOSE</span> <span class="str">3000</span><br>
+          <span class="kw">CMD</span> [<span class="str">"node"</span>, <span class="str">"server.js"</span>]
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-num">VM</div>
+            <div class="stat-label">Minutes to<br>boot, GBs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">🐳</div>
+            <div class="stat-label">Seconds to<br>start, MBs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">K8s</div>
+            <div class="stat-label">Auto-scale<br>Auto-heal</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">∞</div>
+            <div class="stat-label">Identical<br>anywhere</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-amber" style="margin-top:14px;">
+          <div class="hb-icon">☸️</div>
+          <div class="hb-text"><strong>Kubernetes (K8s)</strong> is the industry standard container orchestrator. It
+            handles scheduling, scaling, rolling updates, self-healing (restart failed containers), service discovery,
+            and load balancing — all declaratively defined in YAML manifests.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 6: WHY INCIDENTS HAPPEN ══════════════════════ -->
+    <div class="slide" id="slide-6">
+      <div class="content-slide">
+        <div class="eyebrow">Incident Response</div>
+        <div class="h2">Why Incidents Happen — A Systems View</div>
+
+        <div class="big-quote">
+          <p>Every system is perfectly designed to get the results it gets. If your system produces failures,
+            <strong style="color:#4FC3F7">look at the system, not the person</strong> who triggered the failure.</p>
+          <cite>— W. Edwards Deming (adapted)</cite>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">⚡</span>
+            <div class="card-title">Complex Systems Fail</div>
+            <div class="card-body">Modern distributed systems have millions of interactions. Failures aren't caused
+              by one mistake — they emerge from the interaction of multiple contributing factors.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🧊</span>
+            <div class="card-title">Latent Conditions</div>
+            <div class="card-body">Most failures have "latent" preconditions — misconfigurations, technical debt,
+              missing alerts — that existed long before the triggering event.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">👤</span>
+            <div class="card-title">Human Error Is a Symptom</div>
+            <div class="card-body">When someone "causes" an outage, ask: why did the system allow that action? Why
+              wasn't there a safety net? The human is the last link, not the root cause.</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-coral" style="margin-top:14px;">
+          <div class="hb-icon">🚨</div>
+          <div class="hb-text"><strong>Key shift:</strong> Traditional thinking asks <em>"Who caused this?"</em> —
+            DevOps thinking asks <em>"What in our system allowed this to happen, and how do we prevent it
+              systemically?"</em> This is the foundation of blamelessness and Root Cause Analysis.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 7: ROOT CAUSE ANALYSIS ═══════════════════════ -->
+    <div class="slide" id="slide-7">
+      <div class="content-slide">
+        <div class="eyebrow">Root Cause Analysis</div>
+        <div class="h2">RCA Techniques: The 5 Whys</div>
+        <p class="body-text" style="margin-bottom:16px;">Root Cause Analysis (RCA) is a structured method for
+          identifying the underlying cause of a problem — not just the surface symptom. The simplest technique is
+          the <strong>5 Whys</strong>.</p>
+
+        <div class="pillar-focus">
+          <div class="pillar-focus-icon">🔍</div>
+          <div class="pillar-focus-text"><strong>The 5 Whys:</strong> Start with the problem and ask "Why?" repeatedly
+            (typically 5 times) until you reach a systemic root cause. The key rule: each answer must describe a
+            <em>system condition</em>, not blame a person.</div>
+        </div>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot">W1</div>
+            <div class="tl-content">
+              <div class="tl-label">Problem: The website went down for 30 minutes</div>
+              <div class="tl-desc"><strong>Why?</strong> The database ran out of disk space.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot teal">W2</div>
+            <div class="tl-content">
+              <div class="tl-label">Why did the database run out of disk space?</div>
+              <div class="tl-desc">Old log files were never cleaned up — they grew to 500 GB.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot amber">W3</div>
+            <div class="tl-content">
+              <div class="tl-label">Why were old log files never cleaned up?</div>
+              <div class="tl-desc">There was no automated log rotation configured for that database.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot coral">W4</div>
+            <div class="tl-content">
+              <div class="tl-label">Why was there no automated log rotation?</div>
+              <div class="tl-desc">The database was set up manually, and log rotation wasn't in the setup checklist.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:#7E57C2">W5</div>
+            <div class="tl-content">
+              <div class="tl-label">Why wasn't log rotation in the setup checklist?</div>
+              <div class="tl-desc"><strong style="color:var(--ink);">Root Cause:</strong> Database provisioning is
+                manual and lacks an IaC template that includes log rotation by default.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">💡 The Fix</div>
+          <p><strong>Action item:</strong> Create an Ansible/Terraform template for database provisioning that includes
+            automated log rotation, disk space monitoring, and alerts at 80% capacity. <em>This prevents the entire
+            class of failures</em>, not just the one incident.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 8: FISHBONE DIAGRAM ══════════════════════════ -->
+    <div class="slide" id="slide-8">
+      <div class="content-slide">
+        <div class="eyebrow">RCA Techniques</div>
+        <div class="h2">Ishikawa (Fishbone) Diagram</div>
+        <p class="body-text" style="margin-bottom:16px;">For complex incidents with multiple contributing factors,
+          the <strong>Fishbone Diagram</strong> (Ishikawa) organizes potential causes into categories. It's useful when
+          the 5 Whys leads to multiple branches.</p>
+
+        <div class="fishbone">
+          <div class="fishbone-row">
+            <div class="fishbone-category">People</div>
+            <div class="fishbone-line"></div>
+            <div class="fishbone-causes">
+              <span class="fishbone-cause">Insufficient training</span>
+              <span class="fishbone-cause">No on-call rotation</span>
+              <span class="fishbone-cause">Knowledge in one person's head</span>
+            </div>
+          </div>
+          <div class="fishbone-row">
+            <div class="fishbone-category teal">Process</div>
+            <div class="fishbone-line"></div>
+            <div class="fishbone-causes">
+              <span class="fishbone-cause">No change approval</span>
+              <span class="fishbone-cause">Missing runbook</span>
+              <span class="fishbone-cause">No staging test before prod</span>
+            </div>
+          </div>
+          <div class="fishbone-row">
+            <div class="fishbone-category amber">Tools</div>
+            <div class="fishbone-line"></div>
+            <div class="fishbone-causes">
+              <span class="fishbone-cause">No monitoring alerts</span>
+              <span class="fishbone-cause">Outdated CI/CD pipeline</span>
+              <span class="fishbone-cause">Missing rollback automation</span>
+            </div>
+          </div>
+          <div class="fishbone-row">
+            <div class="fishbone-category coral">Environment</div>
+            <div class="fishbone-line"></div>
+            <div class="fishbone-causes">
+              <span class="fishbone-cause">Staging ≠ Prod config</span>
+              <span class="fishbone-cause">Network latency spike</span>
+              <span class="fishbone-cause">Cloud provider rate limits</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">📋</div>
+          <div class="hb-text"><strong>How to use it:</strong> Draw the "spine" (problem statement) on the right, then
+            brainstorm causes in each category. Multiple causes from different categories often combine to produce a
+            failure. The fishbone reveals <em>systemic patterns</em> — e.g., "we keep having People + Process
+            failures → we need better onboarding and runbooks."</div>
+        </div>
+
+        <div class="two-col" style="margin-top:14px;">
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">When to Use 5 Whys</div>
+            <ul class="bullet-list">
+              <li>Simple, linear incident with a clear chain of events</li>
+              <li>Quick post-mortem needed (15–30 min)</li>
+              <li>Single failure mode — one thing went wrong</li>
+            </ul>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title amber-label">When to Use Fishbone</div>
+            <ul class="bullet-list amber">
+              <li>Complex incident with multiple contributing factors</li>
+              <li>Deep-dive post-mortem (1–2 hours)</li>
+              <li>Recurring failures — need to find systemic patterns</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 9: BLAMELESSNESS ═════════════════════════════ -->
+    <div class="slide" id="slide-9">
+      <div class="content-slide">
+        <div class="eyebrow">Blamelessness</div>
+        <div class="h2">What Blamelessness Really Means</div>
+
+        <div class="big-quote">
+          <p>Blamelessness does not mean <em>accountability-free</em>. It means we hold the <strong
+              style="color:#4FC3F7">system accountable</strong> for allowing the failure — and we hold
+            <strong style="color:#4FC3F7">people accountable for learning</strong> from it and improving the system.
+          </p>
+          <cite>— John Allspaw, former CTO of Etsy</cite>
+        </div>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--coral);">
+            <div class="col-panel-title coral-label">🚫 Blame-Driven Response</div>
+            <ul class="bullet-list coral">
+              <li>"Who did this?" → finds a name, not a fix</li>
+              <li>Punish the person → they hide mistakes next time</li>
+              <li>Fear spreads → people stop taking risks or flagging issues</li>
+              <li>Same failure happens again — because the system wasn't fixed</li>
+              <li>Post-mortem becomes a trial — nobody is honest</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--teal);">
+            <div class="col-panel-title teal-label">✅ Blameless Response</div>
+            <ul class="bullet-list teal">
+              <li>"What allowed this?" → finds a systemic cause</li>
+              <li>Fix the system → add guardrails, automation, alerts</li>
+              <li>Safety spreads → people report near-misses early</li>
+              <li>Failure rate drops — because the system gets stronger</li>
+              <li>Post-mortem becomes a learning session — everyone contributes</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-amber" style="margin-top:14px;">
+          <div class="hb-icon">⚠️</div>
+          <div class="hb-text"><strong>Common misconception:</strong> "Blameless means nobody is responsible." No —
+            people are still accountable for following processes. But when the <em>process itself</em> fails, you fix the
+            process, not the person. If someone can accidentally delete production with one command, the problem is that
+            the command exists — not that someone ran it.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 10: BLAMELESS POST-MORTEM STRUCTURE ══════════ -->
+    <div class="slide" id="slide-10">
+      <div class="content-slide">
+        <div class="eyebrow">Post-Mortem</div>
+        <div class="h2">Anatomy of a Blameless Post-Mortem</div>
+        <p class="body-text" style="margin-bottom:16px;">A blameless post-mortem is a structured meeting held
+          <em>after</em> an incident, focused on learning and prevention — never on punishment. Here's the standard
+          template used by companies like Google, Etsy, and Netflix.</p>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot">1</div>
+            <div class="tl-content">
+              <div class="tl-label">Incident Summary</div>
+              <div class="tl-desc">What happened? When? How long was the impact? How many users were affected?
+                A factual, one-paragraph description — no blame, just data.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot teal">2</div>
+            <div class="tl-content">
+              <div class="tl-label">Timeline of Events</div>
+              <div class="tl-desc">A minute-by-minute timeline: when the issue started, when it was detected, what
+                actions were taken, when it was resolved. Include who did what — as a record, not as blame.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot amber">3</div>
+            <div class="tl-content">
+              <div class="tl-label">Root Cause Analysis</div>
+              <div class="tl-desc">Apply the 5 Whys or Fishbone to find the systemic root cause. Focus on system
+                conditions, not individual actions. "The deploy script lacked a rollback check" — not "Dev X forgot
+                to check."</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot coral">4</div>
+            <div class="tl-content">
+              <div class="tl-label">Contributing Factors</div>
+              <div class="tl-desc">List everything that made the incident possible or worse: missing monitoring,
+                lack of staging tests, unclear runbooks, team fatigue, etc.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:#7E57C2">5</div>
+            <div class="tl-content">
+              <div class="tl-label">Action Items (with Owners &amp; Deadlines)</div>
+              <div class="tl-desc">Concrete, measurable fixes: "Add disk space alert at 80% — owned by Ops team —
+                due by July 5." Without action items with deadlines, a post-mortem is just storytelling.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-sky" style="margin-top:14px;">
+          <div class="hb-icon">🌐</div>
+          <div class="hb-text"><strong>Share it widely.</strong> Post the post-mortem to an internal wiki or Slack
+            channel — not just the team that was involved. Other teams learn from your failures, preventing the same
+            issue across the organization. This is "Sharing" from CAMS in action.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 11: GOOGLE SRE POST-MORTEM EXAMPLE ═══════════ -->
+    <div class="slide" id="slide-11">
+      <div class="content-slide">
+        <div class="eyebrow">Real-World Example</div>
+        <div class="h2">Post-Mortem in Practice: SRE at Google</div>
+        <p class="body-text" style="margin-bottom:16px;">Google's Site Reliability Engineering (SRE) team has
+          published their post-mortem culture and templates. Here are their guiding principles.</p>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">📝</span>
+            <div class="card-title">Write It Down</div>
+            <div class="card-body">Every significant incident gets a written post-mortem. It's a living document —
+              updated as new information surfaces. Verbal-only retros are insufficient.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🤝</span>
+            <div class="card-title">Blameless by Default</div>
+            <div class="card-body">Google SRE's post-mortem template explicitly removes blame language. The focus
+              is: "What did we learn?" and "What will we change?" — never "Who made the mistake?"</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">📊</span>
+            <div class="card-title">Track Action Items</div>
+            <div class="card-body">Post-mortems without follow-up are useless. Google tracks every action item in
+              a bug tracker with owners and SLAs. Unresolved items are escalated.</div>
+          </div>
+        </div>
+
+        <table class="comp-table" style="margin-top:16px;">
+          <thead>
+            <tr>
+              <th>Principle</th>
+              <th>What It Means</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Assume good intent</td>
+              <td>Everyone involved was trying to do the right thing with the information they had at the time</td>
+            </tr>
+            <tr>
+              <td>Focus on systems</td>
+              <td>Ask how the system, tools, and processes allowed the failure — not why a person failed</td>
+            </tr>
+            <tr>
+              <td>No counterfactuals</td>
+              <td>Don't say "If only they had…" — focus on what actually happened and what to change going forward</td>
+            </tr>
+            <tr>
+              <td>Celebrate the post-mortem</td>
+              <td>Writing a post-mortem should be seen as a positive contribution, not a chore or punishment</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 12: ORGANIZATIONAL LEARNING ══════════════════ -->
+    <div class="slide" id="slide-12">
+      <div class="content-slide">
+        <div class="eyebrow">Organizational Learning</div>
+        <div class="h2">From Incidents to Intelligence</div>
+
+        <div class="pillar-focus">
+          <div class="pillar-focus-icon">🧠</div>
+          <div class="pillar-focus-text"><strong>Organizational Learning</strong> is the process by which an
+            organization acquires, retains, and transfers knowledge — so that the <em>entire team</em> gets smarter
+            from every incident, not just the people who were on-call that night.</div>
+        </div>
+
+        <div class="learning-loop">
+          <div class="loop-node">
+            <div class="loop-circle" style="background:var(--sky);">🔥</div>
+            <div class="loop-label">Incident</div>
+            <div class="loop-sub">Something breaks</div>
+          </div>
+          <div class="loop-arrow">→</div>
+          <div class="loop-node">
+            <div class="loop-circle" style="background:var(--teal);">🔍</div>
+            <div class="loop-label">Analyze</div>
+            <div class="loop-sub">RCA + Post-mortem</div>
+          </div>
+          <div class="loop-arrow">→</div>
+          <div class="loop-node">
+            <div class="loop-circle" style="background:var(--amber);">📖</div>
+            <div class="loop-label">Learn</div>
+            <div class="loop-sub">Document &amp; share</div>
+          </div>
+          <div class="loop-arrow">→</div>
+          <div class="loop-node">
+            <div class="loop-circle" style="background:#7E57C2;">🛡️</div>
+            <div class="loop-label">Prevent</div>
+            <div class="loop-sub">Fix system &amp; automate</div>
+          </div>
+          <div class="loop-arrow">→</div>
+          <div class="loop-node">
+            <div class="loop-circle" style="background:var(--coral);">💪</div>
+            <div class="loop-label">Stronger</div>
+            <div class="loop-sub">Resilient org</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">🔄</div>
+          <div class="hb-text"><strong>The Learning Loop never stops.</strong> Each incident is an opportunity to
+            make the system more resilient. Organizations that learn fastest from failures outperform those that try
+            to prevent all failures — because in complex systems, failures are inevitable.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 13: PETER SENGE'S FIVE DISCIPLINES ═══════════ -->
+    <div class="slide" id="slide-13">
+      <div class="content-slide">
+        <div class="eyebrow">Theory Foundation</div>
+        <div class="h2">Senge's Learning Organization</div>
+        <p class="body-text" style="margin-bottom:16px;">Peter Senge's <em>The Fifth Discipline</em> (1990) defined
+          the concept of a "Learning Organization." DevOps adopted these ideas directly.</p>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">🎯</span>
+            <div class="card-title">Personal Mastery</div>
+            <div class="card-body">Individuals commit to lifelong learning — staying current with new tools,
+              practices, and techniques. DevOps teams invest in training and experimentation time.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🧠</span>
+            <div class="card-title">Mental Models</div>
+            <div class="card-body">Challenge assumptions — "We've always done it this way" is the enemy. DevOps
+              challenges the wall between Dev and Ops as a flawed mental model.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🌟</span>
+            <div class="card-title">Shared Vision</div>
+            <div class="card-body">The entire team aligns on a common goal — fast, reliable delivery of value to
+              users. Not "Dev ships fast" vs. "Ops keeps things stable."</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">👥</span>
+            <div class="card-title">Team Learning</div>
+            <div class="card-body">Teams learn together through retrospectives, post-mortems, pair programming,
+              and shared on-call. Collective intelligence > individual brilliance.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🔗</span>
+            <div class="card-title">Systems Thinking</div>
+            <div class="card-body">See the whole system, not just your part. An Ops problem is a Dev problem is a
+              business problem. This is "the fifth discipline" — and it's the heart of DevOps.</div>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <div class="takeaway-label">🔑 Connection to DevOps</div>
+          <p>Every CAMS pillar maps to Senge's disciplines: <strong>Culture</strong> = mental models + shared vision,
+            <strong>Automation</strong> = personal mastery with tools, <strong>Measurement</strong> = systems thinking
+            with data, <strong>Sharing</strong> = team learning. DevOps <em>is</em> a learning organization applied
+            to software delivery.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 14: PRACTICES FOR ORG LEARNING ═══════════════ -->
+    <div class="slide" id="slide-14">
+      <div class="content-slide">
+        <div class="eyebrow">Practices</div>
+        <div class="h2">Building a Learning Organization</div>
+        <p class="body-text" style="margin-bottom:16px;">Concrete practices that transform incidents into
+          organizational intelligence.</p>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--sky);">
+            <div class="col-panel-title sky-label">📚 Knowledge Capture</div>
+            <ul class="bullet-list">
+              <li><strong>Post-Mortem Library</strong> — searchable archive of all past incidents and their fixes</li>
+              <li><strong>Runbooks</strong> — step-by-step operational guides, kept up-to-date after every incident</li>
+              <li><strong>Architecture Decision Records (ADRs)</strong> — document <em>why</em> decisions were made,
+                not just what</li>
+              <li><strong>Internal Blogs / RFCs</strong> — engineers write about what they learned and share proposals
+              </li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--teal);">
+            <div class="col-panel-title teal-label">🔄 Knowledge Transfer</div>
+            <ul class="bullet-list teal">
+              <li><strong>Failure Friday / Game Day</strong> — intentionally inject failures and practice the response
+              </li>
+              <li><strong>Rotation Programs</strong> — engineers rotate across Dev, Ops, and SRE teams</li>
+              <li><strong>Shadowing On-Call</strong> — new team members shadow experienced on-call engineers</li>
+              <li><strong>Weekly Incident Review</strong> — entire team reviews one past incident for lessons</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-amber" style="margin-top:14px;">
+          <div class="hb-icon">🎮</div>
+          <div class="hb-text"><strong>Chaos Engineering</strong> (pioneered by Netflix) takes this further:
+            deliberately introduce failures in production to test resilience. The tool <strong>Chaos Monkey</strong>
+            randomly terminates production instances to ensure the system can handle it. If your system can't survive
+            one server dying, you'll find out on a Tuesday morning — not during a holiday traffic spike.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 15: SUMMARY & UNIT II WRAP-UP ════════════════ -->
+    <div class="slide" id="slide-15">
+      <div class="summary-slide">
+        <div class="eyebrow" style="color:#78C0E0;">Summary &amp; Unit II Wrap-Up</div>
+        <div class="h2" style="color:#fff;">Key Takeaways — Lecture 11 &amp; Unit II</div>
+        <p style="color:rgba(255,255,255,0.6); font-size:0.88rem; line-height:1.6; margin-bottom:8px;">
+          This lecture completed Unit II by connecting infrastructure automation with the human practices that make
+          DevOps sustainable — RCA, blamelessness, and organizational learning.
+        </p>
+
+        <div class="summary-list">
+          <div class="summary-item">
+            <div class="si-num">01</div>
+            <div class="si-text"><strong>Infrastructure Automation</strong>Goes beyond CM — covers provisioning, config,
+              orchestration, and self-healing. Immutable infrastructure and containers eliminate drift and enable
+              instant rollbacks.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">02</div>
+            <div class="si-text"><strong>Root Cause Analysis</strong>Use the 5 Whys for simple incidents and Fishbone
+              diagrams for complex ones. Always seek systemic causes, not individual blame.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">03</div>
+            <div class="si-text"><strong>Blameless Post-Mortems</strong>Structured documents with timeline, RCA,
+              contributing factors, and action items. Share widely. Assume good intent. Fix systems, not people.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">04</div>
+            <div class="si-text"><strong>Organizational Learning</strong>Incidents → Analysis → Learning → Prevention →
+              Stronger. Senge's five disciplines provide the theoretical foundation. DevOps is a learning
+              organization.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">05</div>
+            <div class="si-text"><strong>Unit II Complete</strong>From DevOps + Agile (L6) through MVP, CI/CD, CAMS,
+              TDD, CM, infra automation, and learning — Unit II gave you the full DevOps philosophy and practices.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">06</div>
+            <div class="si-text"><strong>Up Next: Unit III</strong>Typical toolkit for DevOps, CI/CD tooling in depth,
+              and Version Control Systems — moving from principles to hands-on tools.</div>
+          </div>
+        </div>
+
+        <div class="highlight-box hb-teal"
+          style="margin-top:18px; background:rgba(0,137,123,0.1); border-left-color:var(--teal);">
+          <div class="hb-icon">🎯</div>
+          <div class="hb-text" style="color:rgba(255,255,255,0.75);"><strong style="color:#fff;">Exam tip:</strong> Be
+            able to explain the 5 Whys with a worked example. Know the structure of a blameless post-mortem (5 sections).
+            Understand immutable vs. mutable infrastructure. Know Senge's five disciplines and how they map to CAMS.
+            Distinguish "blame" from "accountability" in DevOps culture.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="btn btn-prev" id="btnPrev" onclick="navigate(-1)" disabled>← Prev</button>
+    <div
+      style="font-family:'Space Grotesk',sans-serif; font-size:0.7rem; color:rgba(255,255,255,0.35); text-align:center; line-height:1.4; flex:1;"
+      id="slideTitle">Welcome &amp; Lecture Overview</div>
+    <button class="btn btn-next" id="btnNext" onclick="navigate(1)">Next →</button>
+  </nav>
+
+  <script>
+    const TOTAL = 15;
+    const TITLES = [
+      "Welcome & Lecture Overview",
+      "Recap — Where We Left Off",
+      "Infrastructure Automation — Beyond CM",
+      "Immutable Infrastructure",
+      "Containers & Orchestration",
+      "Why Incidents Happen — A Systems View",
+      "RCA: The 5 Whys",
+      "Ishikawa (Fishbone) Diagram",
+      "What Blamelessness Really Means",
+      "Anatomy of a Blameless Post-Mortem",
+      "Post-Mortem in Practice: Google SRE",
+      "Organizational Learning — From Incidents to Intelligence",
+      "Senge's Learning Organization",
+      "Building a Learning Organization",
+      "Summary & Unit II Wrap-Up"
+    ];
+
+    let current = 1;
+
+    function buildDots() {
+      const wrap = document.getElementById('navDots');
+      for (let i = 1; i <= TOTAL; i++) {
+        const d = document.createElement('button');
+        d.className = 'dot' + (i === 1 ? ' active' : '');
+        d.title = TITLES[i - 1];
+        d.onclick = () => goTo(i);
+        wrap.appendChild(d);
+      }
+    }
+
+    function goTo(n) {
+      document.getElementById('slide-' + current).classList.remove('active');
+      document.querySelectorAll('.dot')[current - 1].classList.remove('active');
+      current = n;
+      document.getElementById('slide-' + current).classList.add('active');
+      document.querySelectorAll('.dot')[current - 1].classList.add('active');
+      document.getElementById('slideCounter').textContent = current + ' / ' + TOTAL;
+      document.getElementById('slideTitle').textContent = TITLES[current - 1];
+      document.getElementById('btnPrev').disabled = current === 1;
+      document.getElementById('btnNext').disabled = current === TOTAL;
+      document.getElementById('progressFill').style.width = ((current / TOTAL) * 100) + '%';
+      window.scrollTo(0, 0);
+    }
+
+    function navigate(dir) {
+      const next = current + dir;
+      if (next >= 1 && next <= TOTAL) goTo(next);
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+    });
+
+    // Touch/swipe
+    let touchStartX = 0;
+    document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+    }, { passive: true });
+
+    buildDots();
+    goTo(1);
+  </script>
+</body>
+
+</html>

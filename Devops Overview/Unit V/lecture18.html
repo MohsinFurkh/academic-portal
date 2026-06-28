@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 18 – Security & Compliance; DevSecOps Principles; Recap & Wrap-up</title>
+  <meta name="description" content="Final Lecture of DevOps Overview course at UPES Dehradun — Covering DevSecOps, shifting left, pipeline security controls, and a complete course wrap-up.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap');
+
+    :root {
+      --ink: #0D1B2A;
+      --sky: #1C6EA4;
+      --sky-lt: #E8F4FD;
+      --teal: #00897B;
+      --teal-lt: #E0F2F1;
+      --amber: #F59E0B;
+      --amber-lt: #FEF3C7;
+      --coral: #E53E3E;
+      --coral-lt: #FFF5F5;
+      --slate: #4A5568;
+      --mist: #F7F9FC;
+      --white: #FFFFFF;
+      --border: #D1E3F0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0D1B2A;
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(13, 27, 42, 0.97); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px; border-bottom: 1px solid rgba(28, 110, 164, 0.4);
+    }
+    .navbar-brand {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.78rem;
+      font-weight: 600; color: var(--sky); letter-spacing: 0.04em; line-height: 1.3;
+    }
+    .navbar-brand span { display: block; color: rgba(255,255,255,0.5); font-weight: 400; font-size: 0.68rem; }
+    .slide-counter {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.75rem;
+      color: rgba(255,255,255,0.5); background: rgba(28,110,164,0.2);
+      padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(28,110,164,0.3);
+    }
+    .nav-dots { display: flex; gap: 6px; align-items: center; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2);
+      cursor: pointer; transition: all 0.25s; border: none;
+    }
+    .dot.active { background: var(--sky); transform: scale(1.3); }
+
+    .slides-wrapper { padding-top: 64px; min-height: 100vh; }
+    .slide {
+      display: none; min-height: calc(100vh - 64px); padding: 32px 24px 80px;
+      max-width: 960px; margin: 0 auto; animation: fadeIn 0.35s ease;
+    }
+    .slide.active { display: flex; flex-direction: column; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(13,27,42,0.97); border-top: 1px solid rgba(28,110,164,0.3);
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; gap: 12px;
+    }
+    .btn {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 600;
+      padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 0.02em;
+    }
+    .btn-prev { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.1); }
+    .btn-prev:hover { background: rgba(255,255,255,0.12); }
+    .btn-next { background: var(--sky); color: #fff; }
+    .btn-next:hover { background: #155d8e; }
+    .btn:disabled { opacity: 0.3; cursor: default; }
+
+    .eyebrow {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--sky);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .eyebrow::before { content: ''; display: inline-block; width: 24px; height: 2px; background: var(--sky); flex-shrink: 0; }
+
+    .h1 {
+      font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 700; line-height: 1.1; color: #fff; margin-bottom: 16px;
+    }
+    .h2 {
+      font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.3rem, 3.5vw, 2rem);
+      font-weight: 700; line-height: 1.2; color: var(--ink); margin-bottom: 12px;
+    }
+    .h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .lead { font-size: 1rem; color: rgba(255,255,255,0.65); line-height: 1.65; max-width: 560px; }
+    .body-text { font-size: 0.9rem; color: var(--slate); line-height: 1.7; }
+
+    .title-slide {
+      justify-content: center;
+      background: linear-gradient(135deg, #0D1B2A 0%, #12284A 60%, #0D3358 100%);
+      position: relative; overflow: hidden; min-height: calc(100vh - 64px);
+    }
+    .title-slide::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 80% 40%, rgba(28,110,164,0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .grid-bg {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: linear-gradient(rgba(28,110,164,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(28,110,164,0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .title-content { position: relative; z-index: 2; padding: 40px 0 20px; }
+    .course-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(28,110,164,0.2); border: 1px solid rgba(28,110,164,0.4);
+      color: #78C0E0; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 5px 14px; border-radius: 20px; margin-bottom: 24px;
+    }
+    .highlight { color: #4FC3F7; }
+    .title-meta { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 16px; }
+    .meta-chip {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px; padding: 10px 16px; font-size: 0.78rem;
+      color: rgba(255,255,255,0.6); line-height: 1.4;
+    }
+    .meta-chip strong { display: block; color: rgba(255,255,255,0.9); font-weight: 600; font-size: 0.82rem; }
+    .agenda-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border-radius: 8px; border-left: 3px solid var(--sky); background: var(--sky-lt);
+      margin-bottom: 8px; font-size: 0.88rem; font-weight: 500; color: var(--ink);
+    }
+    .agenda-num {
+      width: 24px; height: 24px; border-radius: 50%; background: var(--sky); color: #fff;
+      font-size: 0.72rem; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+    }
+
+    .content-slide { background: var(--mist); border-radius: 16px; padding: 32px 28px; flex: 1; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 20px; }
+    .card { background: #fff; border-radius: 12px; padding: 18px 16px; border: 1px solid var(--border); transition: box-shadow 0.2s; }
+    .card:hover { box-shadow: 0 4px 16px rgba(28,110,164,0.12); }
+    .card-icon { font-size: 1.6rem; margin-bottom: 10px; display: block; }
+    .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.88rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .card-body { font-size: 0.82rem; color: var(--slate); line-height: 1.6; }
+
+    .highlight-box { border-radius: 12px; padding: 18px 20px; margin: 16px 0; display: flex; gap: 14px; align-items: flex-start; }
+    .hb-sky { background: var(--sky-lt); border-left: 4px solid var(--sky); }
+    .hb-teal { background: var(--teal-lt); border-left: 4px solid var(--teal); }
+    .hb-amber { background: var(--amber-lt); border-left: 4px solid var(--amber); }
+    .hb-coral { background: var(--coral-lt); border-left: 4px solid var(--coral); }
+    .hb-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+    .hb-text { font-size: 0.86rem; color: var(--slate); line-height: 1.65; }
+    .hb-text strong { color: var(--ink); font-weight: 600; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    @media (max-width: 580px) { .two-col { grid-template-columns: 1fr; } .card-grid { grid-template-columns: 1fr; } }
+    .col-panel { background: #fff; border-radius: 12px; border: 1px solid var(--border); padding: 18px 16px; }
+    .col-panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    .sky-label { color: var(--sky); }
+    .teal-label { color: var(--teal); }
+    .coral-label { color: var(--coral); }
+    .amber-label { color: var(--amber); }
+
+    .bullet-list { list-style: none; padding: 0; }
+    .bullet-list li {
+      display: flex; gap: 8px; align-items: flex-start; font-size: 0.83rem;
+      color: var(--slate); line-height: 1.6; padding: 5px 0; border-bottom: 1px solid #F0F4F8;
+    }
+    .bullet-list li:last-child { border-bottom: none; }
+    .bullet-list li::before { content: '▸'; color: var(--sky); font-size: 0.7rem; margin-top: 3px; flex-shrink: 0; }
+    .bullet-list.teal li::before { color: var(--teal); }
+    .bullet-list.coral li::before { color: var(--coral); }
+    .bullet-list.amber li::before { color: var(--amber); }
+
+    .pipeline { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin: 20px 0; }
+    .pipe-step {
+      background: var(--sky); color: #fff; font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem; font-weight: 600; padding: 8px 14px; position: relative;
+      flex: 1; text-align: center; min-width: 80px; margin: 2px 0;
+    }
+    .pipe-step:first-child { border-radius: 8px 0 0 8px; }
+    .pipe-step:last-child { border-radius: 0 8px 8px 0; }
+    .pipe-step.teal { background: var(--teal); }
+    .pipe-step.amber { background: var(--amber); color: var(--ink); }
+    .pipe-step.coral { background: var(--coral); }
+    .pipe-step.purple { background: #7E57C2; }
+    .pipe-step.dark { background: #2D3748; }
+    .pipe-step span { display: block; font-size: 0.65rem; font-weight: 400; opacity: 0.85; margin-top: 2px; }
+    @media (max-width: 480px) {
+      .pipeline { flex-direction: column; }
+      .pipe-step { border-radius: 0 !important; text-align: left; padding-left: 20px; }
+      .pipe-step:first-child { border-radius: 8px 8px 0 0 !important; }
+      .pipe-step:last-child { border-radius: 0 0 8px 8px !important; }
+    }
+
+    .big-quote {
+      background: var(--ink); border-radius: 14px; padding: 28px 24px;
+      margin: 20px 0; position: relative;
+    }
+    .big-quote::before {
+      content: '"'; font-family: Georgia, serif; font-size: 6rem;
+      color: rgba(28,110,164,0.3); position: absolute; top: -10px; left: 16px; line-height: 1;
+    }
+    .big-quote p {
+      font-family: 'Space Grotesk', sans-serif; font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+      color: #fff; line-height: 1.55; position: relative; z-index: 1; padding-left: 12px;
+    }
+    .big-quote cite {
+      display: block; margin-top: 12px; padding-left: 12px; font-size: 0.75rem;
+      color: rgba(255,255,255,0.45); font-style: normal; letter-spacing: 0.04em;
+    }
+
+    .takeaway {
+      background: linear-gradient(135deg, #0D1B2A, #12284A); border-radius: 14px;
+      padding: 20px 24px; margin-top: 20px; border: 1px solid rgba(28,110,164,0.3);
+    }
+    .takeaway-label {
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
+    }
+    .takeaway p { font-size: 0.88rem; color: rgba(255,255,255,0.8); line-height: 1.65; }
+
+    .summary-slide {
+      background: linear-gradient(135deg, #0D1B2A 0%, #0D3358 100%); border-radius: 16px;
+      padding: 32px 28px; flex: 1; position: relative; overflow: hidden;
+    }
+    .summary-slide::after {
+      content: ''; position: absolute; bottom: -40px; right: -40px; width: 200px; height: 200px;
+      border-radius: 50%; background: radial-gradient(rgba(28,110,164,0.2), transparent 70%);
+    }
+    .summary-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 20px; }
+    .summary-item {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(28,110,164,0.25);
+      border-radius: 10px; padding: 14px 16px; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .summary-item .si-num { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--sky); flex-shrink: 0; line-height: 1.2; }
+    .summary-item .si-text { font-size: 0.8rem; color: rgba(255,255,255,0.7); line-height: 1.55; }
+    .summary-item .si-text strong { color: #fff; display: block; margin-bottom: 2px; }
+
+    .progress-bar-wrap { height: 3px; background: rgba(255,255,255,0.08); position: fixed; top: 54px; left: 0; right: 0; z-index: 101; }
+    .progress-bar-fill { height: 100%; background: var(--sky); transition: width 0.35s ease; }
+
+    .pillar-focus {
+      display: flex; align-items: center; gap: 16px; background: var(--ink);
+      border-radius: 14px; padding: 20px 22px; margin: 16px 0;
+    }
+    .pillar-focus-icon { font-size: 2.4rem; flex-shrink: 0; }
+    .pillar-focus-text { font-size: 0.85rem; color: rgba(255,255,255,0.75); line-height: 1.6; }
+    .pillar-focus-text strong { color: #fff; }
+
+    .thank-you-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 16px;
+      padding: 40px; text-align: center; margin-top: 40px; box-shadow: 0 10px 30px rgba(28,110,164,0.1);
+    }
+    .thank-you-icon { font-size: 4rem; margin-bottom: 20px; }
+    .thank-you-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+    .thank-you-text { font-size: 1rem; color: var(--slate); line-height: 1.6; max-width: 500px; margin: 0 auto; }
+
+    @media (max-width: 600px) {
+      .slide { padding: 16px 12px 80px; }
+      .content-slide { padding: 20px 16px; }
+      .summary-slide { padding: 20px 16px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a href="../index.html" id="course-label" style="text-decoration: none;">
+        <strong>DevOps Overview</strong>
+        CSDV3016P/3017
+        BTech CSE Sem V · UPES Dehradun
+      </a>
+    </div>
+    <div class="nav-dots" id="navDots"></div>
+    <div class="slide-counter" id="slideCounter">1 / 14</div>
+  </nav>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill"></div>
+  </div>
+
+  <div class="slides-wrapper">
+
+    <!-- ══ SLIDE 1: TITLE ══════════════════════════════════════ -->
+    <div class="slide title-slide active" id="slide-1">
+      <div class="grid-bg"></div>
+      <div class="title-content">
+        <div class="course-badge">📚 Week 6 · Unit V · Lecture 18</div>
+        <div class="h1">DevSecOps &amp;<br><span class="highlight">Course Wrap-up</span></div>
+        <p class="lead">The final lecture! We explore how security integrates into the DevOps pipeline, the philosophy of "Shifting Left", and conclude with a full review of our journey across the infinity loop.</p>
+        <div class="title-meta">
+          <div class="meta-chip"><strong>Dr. Mohsin Furkh Dar</strong>School of Computer Sciences</div>
+          <div class="meta-chip"><strong>Date</strong>Tue, 14 Jul 2026 · 9:00 – 10:00 AM</div>
+          <div class="meta-chip"><strong>Programme</strong>BTech CSE – Summer Semester</div>
+        </div>
+
+        <div style="margin-top:28px;">
+          <div style="font-family:'Space Grotesk',sans-serif; font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:12px;">
+            Today's Agenda</div>
+          <div class="agenda-row"><div class="agenda-num">1</div>The Traditional Security Problem</div>
+          <div class="agenda-row"><div class="agenda-num">2</div>What is DevSecOps? (Shifting Left)</div>
+          <div class="agenda-row"><div class="agenda-num">3</div>Security in the CI/CD Pipeline (SAST, DAST, SCA)</div>
+          <div class="agenda-row"><div class="agenda-num">4</div>Security &amp; Compliance (IAM, Audits)</div>
+          <div class="agenda-row"><div class="agenda-num">5</div>Course Wrap-up: The Full Infinity Loop</div>
+          <div class="agenda-row"><div class="agenda-num">6</div>Final Words &amp; Next Steps</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 2: RECAP ══════════════════════════════════════ -->
+    <div class="slide" id="slide-2">
+      <div class="content-slide">
+        <div class="eyebrow">Recap</div>
+        <div class="h2">Where We Left Off</div>
+        <div class="highlight-box hb-sky">
+          <div class="hb-icon">✅</div>
+          <div class="hb-text"><strong>Lecture 17:</strong> We completed the operational side of DevOps by exploring Monitoring and Observability. We learned about the ELK stack for logs, distributed tracing, and how to use metrics to prevent outages.</div>
+        </div>
+        <div class="highlight-box hb-teal">
+          <div class="hb-icon">🎯</div>
+          <div class="hb-text"><strong>Today:</strong> We tackle the final frontier: <strong>Security</strong>. Historically, Security and DevOps were at odds. DevOps wanted speed; Security wanted safety. We will learn how <strong>DevSecOps</strong> merges the two. Then, we will wrap up the entire course.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 3: THE SECURITY PROBLEM ═══════════════════════ -->
+    <div class="slide" id="slide-3">
+      <div class="content-slide">
+        <div class="eyebrow">The Context</div>
+        <div class="h2">The Traditional Security Problem</div>
+        <p class="body-text" style="margin-bottom:16px;">In traditional IT (and even early DevOps), security was an afterthought. It was treated as a "gate" at the very end of the software development lifecycle.</p>
+
+        <div class="two-col">
+          <div class="col-panel" style="border-top: 3px solid var(--coral);">
+            <div class="col-panel-title coral-label">The Old Workflow</div>
+            <ul class="bullet-list coral">
+              <li>Developers write code for 6 months.</li>
+              <li>Code is sent to the Security Team.</li>
+              <li>Security runs manual penetration tests for 2 weeks.</li>
+              <li>They return a 500-page PDF of vulnerabilities.</li>
+              <li>Release is delayed by months. Developers are angry.</li>
+            </ul>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--teal);">
+            <div class="col-panel-title teal-label">The Conflict</div>
+            <ul class="bullet-list teal">
+              <li><strong>DevOps Goal:</strong> Deploy 10 times a day. Move fast.</li>
+              <li><strong>Security Goal:</strong> Zero vulnerabilities. Move cautiously.</li>
+              <li>The traditional security gate breaks the CI/CD pipeline entirely. It creates an enormous bottleneck.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 4: WHAT IS DEVSECOPS? ═════════════════════════ -->
+    <div class="slide" id="slide-4">
+      <div class="content-slide">
+        <div class="eyebrow">The Solution</div>
+        <div class="h2">What is DevSecOps?</div>
+        
+        <div class="big-quote">
+          <p>DevSecOps is the philosophy of integrating security practices <strong style="color:var(--sky);">within</strong> the DevOps process, rather than acting as a gate at the end. Security becomes everyone's responsibility, automated directly into the CI/CD pipeline.</p>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">🤝</span>
+            <div class="card-title">Shared Responsibility</div>
+            <div class="card-body">Security is no longer a separate silo. Developers are trained to write secure code, and security engineers write automated tests instead of manual audits.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🤖</span>
+            <div class="card-title">Automation First</div>
+            <div class="card-body">Manual security reviews cannot scale to 10 deployments a day. DevSecOps relies heavily on automated scanning tools built into the build pipeline.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">⏪</span>
+            <div class="card-title">"Shift Left"</div>
+            <div class="card-body">Moving security checks as early as possible (to the "left" of the timeline) in the software development lifecycle (SDLC).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 5: SHIFTING LEFT ══════════════════════════════ -->
+    <div class="slide" id="slide-5">
+      <div class="content-slide">
+        <div class="eyebrow">Core Concept</div>
+        <div class="h2">The "Shift Left" Principle</div>
+        <p class="body-text" style="margin-bottom:16px;">The cost to fix a security bug increases exponentially the later it is found.</p>
+
+        <div class="pipeline">
+          <div class="pipe-step coral">Design<span>$10 to fix</span></div>
+          <div class="pipe-step amber">Code<span>$100 to fix</span></div>
+          <div class="pipe-step teal">Test<span>$1,000 to fix</span></div>
+          <div class="pipe-step purple">Production<span>$100,000+ (Breach)</span></div>
+        </div>
+
+        <div class="pillar-focus" style="background:var(--sky-lt); border-left: 4px solid var(--sky);">
+          <div class="pillar-focus-icon">⬅️</div>
+          <div class="pillar-focus-text" style="color:var(--ink);"><strong>Shift Left</strong> means we move our security testing from the "Test/Production" phase back to the "Design/Code" phase. We scan code as it is being typed in the IDE, and we scan it automatically the moment a developer commits to Git.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 6: CI/CD SECURITY CONTROLS (1) ════════════════ -->
+    <div class="slide" id="slide-6">
+      <div class="content-slide">
+        <div class="eyebrow">Pipeline Tools</div>
+        <div class="h2">Security in the CI/CD Pipeline</div>
+        <p class="body-text" style="margin-bottom:16px;">How do we automate security? By adding specific scanning tools as mandatory steps in our CI pipeline. If a scan fails, the build breaks, and the code cannot be deployed.</p>
+
+        <div class="two-col">
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">SAST (Static Application Security Testing)</div>
+            <ul class="bullet-list">
+              <li><strong>What:</strong> Scans the source code from the inside without running it (White-box testing).</li>
+              <li><strong>Finds:</strong> SQL injection, Cross-Site Scripting (XSS), hardcoded passwords, buffer overflows.</li>
+              <li><strong>Tools:</strong> SonarQube, Checkmarx, Fortify.</li>
+              <li><strong>When:</strong> Runs immediately after <code>git commit</code>.</li>
+            </ul>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title amber-label">DAST (Dynamic Application Security Testing)</div>
+            <ul class="bullet-list amber">
+              <li><strong>What:</strong> Scans the running application from the outside, acting like a hacker (Black-box testing).</li>
+              <li><strong>Finds:</strong> Authentication bypasses, server misconfigurations, runtime errors.</li>
+              <li><strong>Tools:</strong> OWASP ZAP, Burp Suite.</li>
+              <li><strong>When:</strong> Runs after the app is deployed to a staging environment.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 7: CI/CD SECURITY CONTROLS (2) ════════════════ -->
+    <div class="slide" id="slide-7">
+      <div class="content-slide">
+        <div class="eyebrow">More Pipeline Tools</div>
+        <div class="h2">Dependencies & Containers</div>
+
+        <div class="two-col">
+          <div class="col-panel">
+            <div class="col-panel-title teal-label">SCA (Software Composition Analysis)</div>
+            <ul class="bullet-list teal">
+              <li><strong>The Problem:</strong> 80% of modern apps are open-source libraries (npm, maven, pip). What if one has a vulnerability?</li>
+              <li><strong>What:</strong> SCA scans your <code>package.json</code> or <code>pom.xml</code> against databases of known CVEs (Common Vulnerabilities and Exposures).</li>
+              <li><strong>Tools:</strong> Snyk, Dependabot (GitHub), OWASP Dependency-Check.</li>
+            </ul>
+          </div>
+          <div class="col-panel">
+            <div class="col-panel-title purple-label" style="color:#7E57C2;">Container Scanning</div>
+            <ul class="bullet-list" style="--list-color: #7E57C2;">
+              <li><strong>The Problem:</strong> Docker images can contain outdated OS packages with severe vulnerabilities.</li>
+              <li><strong>What:</strong> Scans the Docker image layers for known OS-level vulnerabilities before pushing to the registry.</li>
+              <li><strong>Tools:</strong> Trivy, Clair, Docker Scout.</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="takeaway" style="margin-top:16px;">
+          <div class="takeaway-label">💡 The Golden Rule of Secrets</div>
+          <p><strong>NEVER commit passwords, API keys, or AWS tokens to Git.</strong> Use Secret Scanning tools (like GitGuardian or TruffleHog) in your pipeline to block any commit that contains a suspected secret. Manage secrets using a vault (e.g., HashiCorp Vault, AWS Secrets Manager).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 8: COMPLIANCE & IAM ═══════════════════════════ -->
+    <div class="slide" id="slide-8">
+      <div class="content-slide">
+        <div class="eyebrow">Governance</div>
+        <div class="h2">Security &amp; Compliance Policies</div>
+        
+        <div class="card-grid">
+          <div class="card">
+            <span class="card-icon">🛂</span>
+            <div class="card-title">IAM & RBAC</div>
+            <div class="card-body"><strong>Identity & Access Management / Role-Based Access Control:</strong> Ensure developers only have access to what they need. "Principle of Least Privilege." Developers shouldn't have root access to Production databases.</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">📜</span>
+            <div class="card-title">Compliance as Code</div>
+            <div class="card-body">Automating checks for regulations (GDPR, HIPAA, PCI-DSS). E.g., a script that automatically fails an infrastructure deployment if an AWS S3 bucket is set to "public read".</div>
+          </div>
+          <div class="card">
+            <span class="card-icon">🕵️</span>
+            <div class="card-title">Audit Trails</div>
+            <div class="card-body">Every action must be logged. Because everything in DevOps is "as Code" (stored in Git), Git provides an unforgeable audit trail of who changed exactly what infrastructure, and when.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 9: COURSE WRAP-UP START ═══════════════════════ -->
+    <div class="slide" id="slide-9">
+      <div class="content-slide" style="background: linear-gradient(135deg, var(--sky-lt), #fff);">
+        <div class="eyebrow">Course Wrap-up</div>
+        <div class="h2" style="text-align:center; font-size:2.5rem; margin-top:20px;">The DevOps Journey</div>
+        <p class="body-text" style="text-align:center; max-width:600px; margin: 0 auto 30px;">Over the past 6 weeks, we've journeyed from the origins of Agile to the cutting edge of DevSecOps. Let's pull it all together into the big picture.</p>
+        
+        <div class="two-col" style="gap:24px;">
+          <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+            <div style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem; font-weight:700; color:var(--sky); margin-bottom:12px;">Unit I: Fundamentals</div>
+            <p style="font-size:0.85rem; color:var(--slate); line-height:1.6;">We learned that DevOps is not a tool; it's a culture. It arose to solve the "Wall of Confusion" between Dev (who want change) and Ops (who want stability). We studied Agile, Lean, and ITIL.</p>
+          </div>
+          <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+            <div style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem; font-weight:700; color:var(--amber); margin-bottom:12px;">Unit II: Principles</div>
+            <p style="font-size:0.85rem; color:var(--slate); line-height:1.6;">We explored the CAMS model (Culture, Automation, Measurement, Sharing). We discussed Blameless Root Cause Analysis and why organizational learning is more important than punishing failure.</p>
+          </div>
+          <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+            <div style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem; font-weight:700; color:var(--teal); margin-bottom:12px;">Unit III: Toolchain & CI/CD</div>
+            <p style="font-size:0.85rem; color:var(--slate); line-height:1.6;">We mapped the Infinity Loop. We learned how Continuous Integration (build/test) and Continuous Delivery/Deployment automate the path from code to production. We traced the history of SCM to Git.</p>
+          </div>
+          <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+            <div style="font-family:'Space Grotesk',sans-serif; font-size:1.1rem; font-weight:700; color:var(--coral); margin-bottom:12px;">Unit IV & V: Advanced Practices</div>
+            <p style="font-size:0.85rem; color:var(--slate); line-height:1.6;">We dove deep into Distributed VCS, local repositories, and fixing mistakes. Finally, we covered observability (logs, metrics, traces) and how to secure the pipeline with DevSecOps.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 10: THE INFINITY LOOP REALIZED ════════════════ -->
+    <div class="slide" id="slide-10">
+      <div class="content-slide">
+        <div class="eyebrow">The Big Picture</div>
+        <div class="h2">The Infinity Loop: Fully Realized</div>
+        
+        <div class="pipeline" style="margin-top: 30px;">
+          <div class="pipe-step" style="background:#2D3748;">Plan<span>Jira / Boards</span></div>
+          <div class="pipe-step" style="background:#2B6CB0;">Code<span>Git / VSCode</span></div>
+          <div class="pipe-step" style="background:#2C7A7B;">Build<span>Maven / Docker</span></div>
+          <div class="pipe-step" style="background:#C05621;">Test<span>JUnit / Selenium</span></div>
+          <div class="pipe-step" style="background:#9B2C2C;">Release<span>Jenkins / Actions</span></div>
+          <div class="pipe-step" style="background:#702459;">Deploy<span>ArgoCD / Terraform</span></div>
+          <div class="pipe-step" style="background:#285E61;">Operate<span>Kubernetes</span></div>
+          <div class="pipe-step" style="background:#276749;">Monitor<span>ELK / Prometheus</span></div>
+        </div>
+
+        <div class="pillar-focus" style="margin-top:40px;">
+          <div class="pillar-focus-icon">♾️</div>
+          <div class="pillar-focus-text">This loop never stops. The metrics gathered in the <strong>Monitor</strong> phase (e.g., "users abandon the checkout page because it's slow") feed directly into the <strong>Plan</strong> phase for the next sprint. The security vulnerabilities found in CI feed back into Code. It is a cycle of continuous feedback and continuous improvement.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 11: CULTURAL REMINDER ═════════════════════════ -->
+    <div class="slide" id="slide-11">
+      <div class="content-slide">
+        <div class="eyebrow">Final Thought</div>
+        <div class="h2">A Reminder: Tools Don't Make DevOps</div>
+        
+        <div class="two-col">
+          <div class="col-panel">
+            <div class="col-panel-title sky-label">The DevOps Illusion</div>
+            <p class="body-text">You can buy Jenkins, install Kubernetes, use Git, and automate all your testing. But if the Dev team and Ops team still hate each other, if deployments require 5 layers of management approval, and if engineers are fired for making mistakes...</p>
+            <p class="body-text" style="font-weight:bold; color:var(--coral); margin-top:10px;">...You do not have DevOps. You just have expensive tools.</p>
+          </div>
+          <div class="col-panel" style="border-top: 3px solid var(--amber);">
+            <div class="col-panel-title amber-label">The Core of DevOps</div>
+            <ul class="bullet-list amber">
+              <li><strong>Empathy:</strong> Understanding the pain points of other teams.</li>
+              <li><strong>Collaboration:</strong> Shared goals, shared metrics, shared pagers.</li>
+              <li><strong>Psychological Safety:</strong> The freedom to fail, learn, and improve without fear of blame.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 12: SUMMARY & FAREWELL ════════════════════════ -->
+    <div class="slide" id="slide-12">
+      <div class="summary-slide">
+        <div class="eyebrow" style="color:#78C0E0;">Conclusion</div>
+        <div class="h2" style="color:#fff;">Final Summary — Lecture 18</div>
+        <p style="color:rgba(255,255,255,0.6); font-size:0.88rem; line-height:1.6; margin-bottom:8px;">
+          Security must be built-in, not bolted on.
+        </p>
+
+        <div class="summary-list">
+          <div class="summary-item">
+            <div class="si-num">01</div>
+            <div class="si-text"><strong>DevSecOps</strong>Integrating security natively into the DevOps pipeline and culture, removing the traditional "security gate" bottleneck.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">02</div>
+            <div class="si-text"><strong>Shift Left</strong>Moving testing and security checks as early in the SDLC as possible to reduce the cost and impact of fixing vulnerabilities.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">03</div>
+            <div class="si-text"><strong>Pipeline Tools</strong>SAST (Static/Source), DAST (Dynamic/Runtime), SCA (Dependencies), and Secret Scanning.</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">04</div>
+            <div class="si-text"><strong>Continuous Improvement</strong>DevOps is an infinite loop. The end of the pipeline (Monitoring) feeds the beginning (Planning).</div>
+          </div>
+          <div class="summary-item">
+            <div class="si-num">05</div>
+            <div class="si-text"><strong>Culture over Tools</strong>Automation is useless without a culture of empathy, collaboration, and blameless learning.</div>
+          </div>
+        </div>
+
+        <div class="thank-you-card">
+          <div class="thank-you-icon">🎓</div>
+          <div class="thank-you-title">End of Course</div>
+          <div class="thank-you-text">Thank you for joining the DevOps Overview course. Good luck on your final exams, and best of luck building the software of the future!</div>
+          <div style="margin-top:20px; font-weight:bold; color:var(--sky);">— Dr. Mohsin Furkh Dar</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="btn btn-prev" id="btnPrev" onclick="navigate(-1)" disabled>← Prev</button>
+    <div style="font-family:'Space Grotesk',sans-serif; font-size:0.7rem; color:rgba(255,255,255,0.35); text-align:center; line-height:1.4; flex:1;"
+      id="slideTitle">Welcome &amp; Lecture Overview</div>
+    <button class="btn btn-next" id="btnNext" onclick="navigate(1)">Next →</button>
+  </nav>
+
+  <script>
+    const TOTAL = 12;
+    const TITLES = [
+      "Welcome & Lecture Overview",
+      "Recap — Where We Left Off",
+      "The Traditional Security Problem",
+      "What is DevSecOps?",
+      "The 'Shift Left' Principle",
+      "Security in the CI/CD Pipeline",
+      "Dependencies & Containers",
+      "Security & Compliance Policies",
+      "Course Wrap-up: The Journey",
+      "The Infinity Loop: Fully Realized",
+      "A Reminder: Tools Don't Make DevOps",
+      "Final Summary & Farewell"
+    ];
+
+    let current = 1;
+
+    function buildDots() {
+      const wrap = document.getElementById('navDots');
+      for (let i = 1; i <= TOTAL; i++) {
+        const d = document.createElement('button');
+        d.className = 'dot' + (i === 1 ? ' active' : '');
+        d.title = TITLES[i - 1];
+        d.onclick = () => goTo(i);
+        wrap.appendChild(d);
+      }
+    }
+
+    function goTo(n) {
+      document.getElementById('slide-' + current).classList.remove('active');
+      document.querySelectorAll('.dot')[current - 1].classList.remove('active');
+      current = n;
+      document.getElementById('slide-' + current).classList.add('active');
+      document.querySelectorAll('.dot')[current - 1].classList.add('active');
+      document.getElementById('slideCounter').textContent = current + ' / ' + TOTAL;
+      document.getElementById('slideTitle').textContent = TITLES[current - 1];
+      document.getElementById('btnPrev').disabled = current === 1;
+      document.getElementById('btnNext').disabled = current === TOTAL;
+      document.getElementById('progressFill').style.width = ((current / TOTAL) * 100) + '%';
+      window.scrollTo(0, 0);
+    }
+
+    function navigate(dir) {
+      const next = current + dir;
+      if (next >= 1 && next <= TOTAL) goTo(next);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+    });
+
+    let touchStartX = 0;
+    document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+    }, { passive: true });
+
+    buildDots();
+    goTo(1);
+  </script>
+</body>
+
+</html>
