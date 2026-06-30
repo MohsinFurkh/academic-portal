@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOps Quiz Admin Dashboard | CSDV3017</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg:      #0D1117;
+    --surface: #161B22;
+    --card:    #1C2128;
+    --border:  #30363D;
+    --accent:  #F78166;
+    --accent2: #79C0FF;
+    --accent3: #56D364;
+    --accent4: #D2A8FF;
+    --accent5: #FFA657;
+    --text:    #E6EDF3;
+    --muted:   #8B949E;
+    --tag-bg:  #21262D;
+  }
+  *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+  .wrap{ max-width:880px; margin:0 auto; padding:0 20px; }
+
+  /* ── SHARED ── */
+  .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); letter-spacing:.12em; text-transform:uppercase; margin-bottom:10px; }
+  .heading{ font-size:clamp(26px,5vw,44px); font-weight:800; line-height:1.15; margin-bottom:12px; }
+  .btn{ display:inline-flex; align-items:center; gap:8px; background:var(--tag-bg); border:1px solid var(--border); color:var(--text); padding:11px 22px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; font-family:'Inter',sans-serif; transition:background .15s,border-color .15s,transform .15s; }
+  .btn:hover{ background:var(--border); border-color:var(--accent2); transform:translateY(-1px); }
+  .btn-primary{ background:linear-gradient(90deg,var(--accent),var(--accent5)); border:none; color:#0D1117; }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  
+  .info-card{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; text-align:center; }
+  .info-card .i-val{ font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--accent2); }
+  .info-card .i-lbl{ font-size:11px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.06em; }
+
+  /* ══════════════════ MODAL ══════════════════ */
+  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:300; align-items:center; justify-content:center; padding:20px; }
+  .modal-box{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:26px 28px; max-width:380px; width:100%; }
+  .modal-box h4{ font-size:16px; font-weight:700; margin-bottom:10px; }
+  .modal-box p{ font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:20px; }
+  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; }
+  .field-error{ font-size:12.5px; color:var(--accent); margin-top:12px; line-height:1.5; }
+
+  .toast{ position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--surface); border:1px solid var(--accent); color:var(--text); padding:12px 22px; border-radius:10px; font-size:13px; box-shadow:0 10px 34px rgba(0,0,0,.45); z-index:500; opacity:0; transition:opacity .25s,transform .25s; pointer-events:none; max-width:88vw; text-align:center; }
+  .toast.toast-show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ══════════════════ ADMIN DASHBOARD ══════════════════ */
+  #adminScreen{ display:none; padding:40px 0 70px; }
+  .admin-wrap{ max-width:1240px; margin:0 auto; padding:0 20px; }
+  .admin-top{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:26px; }
+  .admin-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .admin-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:26px; }
+  .admin-table-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; }
+  table.admin-table{ width:100%; border-collapse:collapse; min-width:820px; }
+  .admin-table th{ text-align:left; font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:13px 16px; border-bottom:1px solid var(--border); background:var(--card); white-space:nowrap; }
+  .admin-table td{ padding:13px 16px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; white-space:nowrap; }
+  .admin-table tr:last-child td{ border-bottom:none; }
+  .admin-table tr:hover td{ background:rgba(255,255,255,.025); }
+  .score-pill{ font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; padding:4px 11px; border-radius:6px; display:inline-block; }
+  .tab-flag-pill{ font-family:'JetBrains Mono',monospace; font-size:12px; padding:3px 10px; border-radius:6px; background:var(--tag-bg); border:1px solid var(--border); color:var(--muted); }
+  .tab-flag-pill.flag-warn{ color:var(--accent5); border-color:var(--accent5); background:rgba(255,166,87,.1); }
+  .tab-flag-pill.flag-danger{ color:var(--accent); border-color:var(--accent); background:rgba(247,129,102,.1); }
+  .admin-empty{ text-align:center; padding:60px 20px; color:var(--muted); }
+  .admin-empty .big{ font-size:32px; margin-bottom:10px; }
+  .admin-empty p{ max-width:440px; margin:0 auto; line-height:1.6; font-size:13px; }
+  .detail-btn{ font-family:'Inter',sans-serif; font-size:11.5px; font-weight:600; background:var(--tag-bg); border:1px solid var(--border); color:var(--accent2); padding:6px 13px; border-radius:6px; cursor:pointer; transition:border-color .15s; }
+  .detail-btn:hover{ border-color:var(--accent2); }
+
+  .modal-box.modal-wide{ max-width:680px; max-height:78vh; overflow-y:auto; }
+  .modal-box input[type="password"]{ width:100%; background:var(--card); border:1px solid var(--border); color:var(--text); padding:11px 13px; border-radius:8px; font-size:14px; margin:14px 0 8px; outline:none; font-family:'Inter',sans-serif; }
+  .modal-box input[type="password"]:focus{ border-color:var(--accent2); }
+  
+  .review-list{ display:flex; flex-direction:column; gap:12px; margin-top:16px; }
+  .review-item{ background:var(--card); border:1px solid var(--border); border-left-width:3px; border-radius:10px; padding:16px 18px; }
+  .review-item.review-correct{ border-left-color:var(--accent3); }
+  .review-item.review-incorrect{ border-left-color:var(--accent); }
+  .review-head{ display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .review-num{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+  .review-unit{ font-family:'JetBrains Mono',monospace; font-size:10px; padding:2px 8px; border-radius:4px; background:var(--tag-bg); border:1px solid var(--border); color:var(--muted); }
+  .review-status{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; margin-left:auto; }
+  .review-correct .review-status{ color:var(--accent3); }
+  .review-incorrect .review-status{ color:var(--accent); }
+  .review-q{ font-size:14px; font-weight:600; margin-bottom:10px; line-height:1.5; }
+  .review-opts{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+  .review-opt{ font-size:12.5px; padding:8px 11px; border-radius:7px; border:1px solid var(--border); color:var(--muted); line-height:1.5; }
+  .review-opt.opt-correct-selected{ border-color:var(--accent3); background:rgba(86,211,100,.1); color:var(--text); }
+  .review-opt.opt-correct-selected::before{ content:'✓ '; color:var(--accent3); font-weight:700; }
+  .review-opt.opt-correct-missed{ border-color:var(--accent5); background:rgba(255,166,87,.08); color:var(--text); }
+  .review-opt.opt-correct-missed::before{ content:'○ missed: '; color:var(--accent5); font-weight:700; }
+  .review-opt.opt-wrong-selected{ border-color:var(--accent); background:rgba(247,129,102,.08); color:var(--text); }
+  .review-opt.opt-wrong-selected::before{ content:'✗ '; color:var(--accent); font-weight:700; }
+
+  @media(max-width:600px){
+    .admin-wrap{ padding:0 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ ADMIN LOGIN MODAL ══════════════════════ -->
+<div class="modal-overlay" id="adminLoginModal" style="display: flex;">
+  <div class="modal-box">
+    <h4>🔒 Faculty / Admin Login</h4>
+    <p>Enter the admin password to view recorded quiz submissions.</p>
+    <input type="password" id="adminPasswordInput" placeholder="Password" onkeydown="if(event.key==='Enter') verifyAdminPassword();">
+    <p class="field-error" id="adminLoginError" style="display:none;">Incorrect password. Try again.</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="window.location.href='quiz.html'">← Back to Quiz</button>
+      <button class="btn btn-primary" onclick="verifyAdminPassword()">Login</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ ADMIN DASHBOARD SCREEN ══════════════════════ -->
+<div id="adminScreen">
+  <div class="admin-wrap">
+    <div class="admin-top">
+      <div>
+        <div class="eyebrow">Faculty View · CSDV3017</div>
+        <h1 class="heading" style="font-size:clamp(22px,4vw,32px);">Submissions Dashboard</h1>
+      </div>
+      <div class="admin-actions">
+        <button class="btn" onclick="loadAdminData()">⟳ Refresh</button>
+        <button class="btn btn-primary" onclick="exportToExcel()">⬇ Export to Excel</button>
+        <button class="btn" onclick="clearAllSubmissions()" style="border-color:var(--accent); color:var(--accent);">🗑 Clear All</button>
+        <button class="btn" onclick="window.location.href='quiz.html'">← Back to Quiz</button>
+      </div>
+    </div>
+
+    <div class="admin-stats" id="adminStats"></div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table" id="adminTable">
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>SAP ID</th><th>Score</th><th>%</th><th>Tab Switches</th><th>Auto-Submit</th><th>Time Taken</th><th>Submitted At</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody"></tbody>
+      </table>
+      <div class="admin-empty" id="adminEmpty" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ STUDENT DETAIL MODAL ══════════════════════ -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box modal-wide">
+    <h4 id="detailModalTitle">Student Detail</h4>
+    <div class="review-list" id="detailReviewList" style="margin-top:14px;"></div>
+    <div class="modal-actions" style="margin-top:18px;">
+      <button class="btn" onclick="closeDetailModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  const ADMIN_PASSWORD = 'devops2026';
+  let adminRecords = [];
+
+  const questions = [
+    { unit:'I', text:`Which of the following are part of the CAMS framework commonly used to describe DevOps culture?`,
+      options:[`Culture`,`Automation`,`Measurement`,`Sharing`,`Compliance`], correct:[0,1,2,3] },
+    { unit:'I', text:`Which of the following are genuine, realistic benefits commonly attributed to DevOps adoption?`,
+      options:[`Faster, more frequent releases`,`Reduced Mean Time to Recovery (MTTR)`,`Complete elimination of all production incidents`,`Improved collaboration between Dev and Ops`,`Higher team morale from reduced manual toil`], correct:[0,1,3,4] },
+    { unit:'I', text:`Which of the following correctly describe how the DevOps movement historically emerged?`,
+      options:[`Patrick Debois organized the first DevOpsDays in Ghent, Belgium, in 2009`,`The term "DevOps" was coined before the Agile Manifesto was published`,`Gene Kim's "The Phoenix Project" helped popularize DevOps concepts through storytelling`,`John Allspaw and Paul Hammond presented "10+ Deploys Per Day" at Velocity in 2009`], correct:[0,2,3] },
+    { unit:'I', text:`Which of the following are valid distinctions between Agile and DevOps?`,
+      options:[`Agile's primary scope is the development process; DevOps extends to delivery and operations`,`Agile and DevOps are mutually exclusive practices that cannot be combined`,`DevOps explicitly incorporates Infrastructure as Code, which is not a traditional Agile concern`,`Both Agile and DevOps value iterative delivery and continuous feedback`,`DevOps teams are typically cross-functional, including Ops and Security alongside Dev`], correct:[0,2,3,4] },
+    { unit:'I', text:`Which of the following are true about the Kanban method?`,
+      options:[`It originated from Toyota's lean manufacturing system`,`It requires fixed-length Sprints`,`It relies on Work-in-Progress (WIP) limits to manage flow`,`It emphasizes visualizing work on a board`], correct:[0,2,3] },
+    { unit:'I', text:`Which of the following are official roles/accountabilities defined in the Scrum Guide?`,
+      options:[`Product Owner`,`Project Manager`,`Scrum Master`,`Developers`,`Business Analyst`], correct:[0,2,3] },
+    { unit:'I', text:`Which of the following are practices associated with "shifting security left" in DevSecOps?`,
+      options:[`Running Static Application Security Testing (SAST) during the CI build`,`Performing all security checks only after the application reaches production`,`Scanning third-party dependencies for known vulnerabilities (SCA)`,`Scanning for hard-coded secrets before code is committed`], correct:[0,2,3] },
+    { unit:'I', text:`Which of the following statements correctly differentiate DevOps from Site Reliability Engineering (SRE)?`,
+      options:[`SRE originated at Google and applies software engineering rigor to operations`,`DevOps and SRE share no common goals or overlap`,`SRE uses concrete metrics such as SLOs and error budgets`,`SRE can be viewed as one concrete implementation of broader DevOps principles`], correct:[0,2,3] },
+    { unit:'I', text:`Which of the following tools are typically used at the Continuous Integration (CI) stage rather than the monitoring stage?`,
+      options:[`Jenkins`,`Prometheus`,`GitHub Actions`,`Grafana`,`GitLab CI`], correct:[0,2,4] },
+    { unit:'I', text:`Which of the following are considered part of the "three pillars of observability"?`,
+      options:[`Metrics`,`Sprints`,`Logs`,`Traces`], correct:[0,2,3] },
+    { unit:'II', text:`Which of the following are legitimate business drivers for adopting DevOps?`,
+      options:[`Faster time-to-market for new features`,`Improved ability to incorporate customer feedback quickly`,`Guaranteed elimination of all technical debt`,`Reduced risk through smaller, more frequent releases`], correct:[0,1,3] },
+    { unit:'II', text:`Which of the following describe characteristics of effective, cross-functional DevOps teams?`,
+      options:[`Shared ownership and accountability across development and operations`,`Strict separation where Dev and Ops never directly communicate`,`A "you build it, you run it" philosophy`,`Blameless post-mortems following incidents`], correct:[0,2,3] },
+    { unit:'II', text:`Which of the following correctly describe Continuous Integration (CI)?`,
+      options:[`Developers merge code into a shared repository frequently`,`Every merge automatically deploys the application to end users`,`Each merge triggers an automated build and test process`,`It helps detect integration issues early in development`], correct:[0,2,3] },
+    { unit:'II', text:`Which of the following correctly distinguish Continuous Delivery from Continuous Deployment?`,
+      options:[`Continuous Delivery requires a manual approval step before production release`,`Continuous Deployment releases automatically to production with no manual gate`,`Continuous Delivery and Continuous Deployment are identical, with no meaningful difference`,`Continuous Deployment generally demands a very high level of automated test confidence`], correct:[0,1,3] },
+    { unit:'II', text:`Which of the following correctly describe Continuous Delivery specifically?`,
+      options:[`The codebase is kept in an always-releasable state`,`It only concerns merging code, not preparing it for release`,`Release to production is a business decision, made on demand`,`It eliminates the need for any automated testing`], correct:[0,2] },
+    { unit:'II', text:`Which of the following are problems commonly caused by Development and Operations working in silos?`,
+      options:[`The "wall of confusion" between teams`,`Faster, lower-risk deployments`,`Blame culture during production incidents`,`Long, infrequent, high-risk release cycles`], correct:[0,2,3] },
+    { unit:'II', text:`Which of the following represent effective ways Agile project-management tools integrate with DevOps delivery pipelines?`,
+      options:[`Linking Jira tickets to CI/CD pipeline build status`,`Connecting GitHub Issues to pull requests and automated workflows`,`Manually re-entering sprint tasks into an unconnected spreadsheet`,`Integrating Azure Boards with Azure Pipelines`], correct:[0,1,3] },
+    { unit:'II', text:`Which of the following are valid differences in how Agile and DevOps are typically practiced?`,
+      options:[`Agile commonly operates in sprint cycles; DevOps aims for continuous, on-demand delivery`,`Only DevOps values customer collaboration and responding to change`,`Agile's primary scope is the development team; DevOps explicitly includes infrastructure and operations`,`DevOps pipelines add deployment and monitoring artifacts beyond Agile's backlog-focused artifacts`], correct:[0,2,3] },
+    { unit:'III', text:`Which of the following are core principles of Lean thinking as applied in software/DevOps contexts?`,
+      options:[`Eliminate waste`,`Decide as late as responsibly possible`,`Maximize inventory and batch size at every stage`,`Build quality (integrity) in from the start`,`Deliver as fast as possible`], correct:[0,1,3,4] },
+    { unit:'III', text:`Which of the following are characteristic of the Kaizen philosophy?`,
+      options:[`Continuous, incremental improvement over time`,`Involvement of all team members in identifying improvements`,`A single, large-scale transformation with no ongoing follow-up`,`Regular retrospectives to surface small process improvements`], correct:[0,1,3] },
+    { unit:'III', text:`Which of the following are commonly cited challenges organizations face when adopting DevOps?`,
+      options:[`Cultural resistance to changing siloed structures`,`Skill gaps requiring cross-training between Dev and Ops staff`,`Zero cost or effort required to integrate new tools`,`Legacy systems that are difficult to automate`,`Misaligned incentives or KPIs between teams`], correct:[0,1,3,4] },
+    { unit:'III', text:`Which of the following are characteristics typically associated with Monolithic architecture?`,
+      options:[`The entire application is built and deployed as a single unit`,`Components are tightly coupled within one codebase`,`Individual modules can be scaled independently without affecting the rest of the system`,`A small code change typically requires redeploying the whole application`], correct:[0,1,3] },
+    { unit:'III', text:`Which of the following are characteristics typically associated with Microservices architecture?`,
+      options:[`Services are independently deployable`,`Services communicate over the network via APIs`,`All services are required to share a single common database`,`Different services can use different technology stacks (polyglot)`,`Services are organized around business capabilities`], correct:[0,1,3,4] },
+    { unit:'III', text:`Which of the following are recognized practices for building cloud and DevOps resiliency?`,
+      options:[`Designing for redundancy across multiple availability zones`,`Auto-scaling resources based on demand`,`Assuming infrastructure and services will never fail`,`Implementing circuit breakers to contain cascading failures`], correct:[0,1,3] },
+    { unit:'III', text:`Which of the following correctly map to stages in the "Detect, Alert, Respond, Refine" resilience process?`,
+      options:[`Detect – identifying anomalies or failures through monitoring`,`Alert – notifying the relevant team or on-call engineer`,`Respond – taking action to mitigate or resolve the incident`,`Refine – conducting a post-incident review to improve future resilience`,`Ignore – avoid documenting the incident to prevent blame`], correct:[0,1,2,3] }
+  ];
+
+  function showToast(msg){
+    let toast = document.getElementById('toastEl');
+    if (!toast){
+      toast = document.createElement('div');
+      toast.id = 'toastEl';
+      toast.className = 'toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add('toast-show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove('toast-show'), 3200);
+  }
+
+  function verifyAdminPassword(){
+    const val = document.getElementById('adminPasswordInput').value;
+    if (val === ADMIN_PASSWORD){
+      document.getElementById('adminLoginModal').style.display = 'none';
+      document.getElementById('adminScreen').style.display = 'block';
+      loadAdminData();
+    } else {
+      document.getElementById('adminLoginError').style.display = 'block';
+    }
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function formatSeconds(s){
+    if (s == null) return '—';
+    const m = Math.floor(s/60), sec = s%60;
+    return `${m}:${sec.toString().padStart(2,'0')}`;
+  }
+
+  function loadAdminData(){
+    const tbody = document.getElementById('adminTableBody');
+    const emptyEl = document.getElementById('adminEmpty');
+    const statsEl = document.getElementById('adminStats');
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:30px;">Loading…</td></tr>';
+    emptyEl.style.display = 'none';
+
+    try {
+      let subs = JSON.parse(localStorage.getItem('devops_quiz_submissions') || '[]');
+      subs.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      adminRecords = subs;
+      renderAdminDashboard(adminRecords);
+    } catch (e) {
+      console.error(e);
+      tbody.innerHTML = '';
+      statsEl.innerHTML = '';
+      emptyEl.style.display = 'block';
+      emptyEl.innerHTML = '<div class="big">⚠</div><p>Failed to load data from localStorage.</p>';
+    }
+  }
+
+  function renderAdminDashboard(records){
+    const statsEl = document.getElementById('adminStats');
+    const tbody = document.getElementById('adminTableBody');
+    const emptyEl = document.getElementById('adminEmpty');
+    tbody.innerHTML = '';
+
+    if (!records.length){
+      statsEl.innerHTML = '';
+      emptyEl.style.display = 'block';
+      emptyEl.innerHTML = '<div class="big">📭</div><p>No submissions recorded yet. Once students complete the quiz, their results will appear here automatically.</p>';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    const avg = records.reduce((s, r) => s + (r.percentage || 0), 0) / records.length;
+    const high = Math.max(...records.map(r => r.percentage || 0));
+    const low = Math.min(...records.map(r => r.percentage || 0));
+    const flagged = records.filter(r => (r.tabSwitches || 0) > 0).length;
+
+    statsEl.innerHTML = `
+      <div class="info-card"><div class="i-val">${records.length}</div><div class="i-lbl">Submissions</div></div>
+      <div class="info-card"><div class="i-val">${avg.toFixed(1)}%</div><div class="i-lbl">Average Score</div></div>
+      <div class="info-card"><div class="i-val">${high}%</div><div class="i-lbl">Highest</div></div>
+      <div class="info-card"><div class="i-val">${low}%</div><div class="i-lbl">Lowest</div></div>
+      <div class="info-card"><div class="i-val">${flagged}</div><div class="i-lbl">Tab-Switch Flags</div></div>
+    `;
+
+    records.forEach((r, idx) => {
+      const tr = document.createElement('tr');
+      const dt = r.submittedAt ? new Date(r.submittedAt) : null;
+      const dtLabel = dt ? dt.toLocaleString() : '—';
+
+      let pillColor = 'var(--accent)';
+      if (r.percentage >= 80) pillColor = 'var(--accent3)';
+      else if (r.percentage >= 60) pillColor = 'var(--accent2)';
+      else if (r.percentage >= 40) pillColor = 'var(--accent5)';
+
+      let flagClass = '';
+      if ((r.tabSwitches || 0) >= 5) flagClass = 'flag-danger';
+      else if ((r.tabSwitches || 0) >= 1) flagClass = 'flag-warn';
+
+      tr.innerHTML = `
+        <td>${idx+1}</td>
+        <td>${escapeHtml(r.name)}</td>
+        <td style="font-family:'JetBrains Mono',monospace;">${escapeHtml(r.sapId)}</td>
+        <td><span class="score-pill" style="background:${pillColor}22; color:${pillColor}; border:1px solid ${pillColor};">${r.score}/${r.total}</span></td>
+        <td>${r.percentage}%</td>
+        <td><span class="tab-flag-pill ${flagClass}">${r.tabSwitches || 0}</span></td>
+        <td>${r.autoSubmitted ? 'Yes (timeout)' : 'No'}</td>
+        <td style="font-family:'JetBrains Mono',monospace; font-size:12px;">${formatSeconds(r.timeTakenSeconds)}</td>
+        <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px;">${dtLabel}</td>
+        <td><button class="detail-btn" onclick="openDetailModal(${idx})">View</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openDetailModal(idx){
+    const r = adminRecords[idx];
+    if (!r) return;
+    document.getElementById('detailModalTitle').textContent = `${r.name} — SAP ID ${r.sapId}`;
+    const list = document.getElementById('detailReviewList');
+    list.innerHTML = '';
+
+    (r.answers || []).forEach(a => {
+      const q = questions[a.qIndex];
+      if (!q) return;
+      const selectedSet = new Set(a.selected);
+      const correctSet = new Set(q.correct);
+      const isCorrect = selectedSet.size === correctSet.size && [...selectedSet].every(x => correctSet.has(x));
+
+      const div = document.createElement('div');
+      div.className = 'review-item ' + (isCorrect ? 'review-correct' : 'review-incorrect');
+
+      const head = document.createElement('div');
+      head.className = 'review-head';
+      head.innerHTML = `<span class="review-num">Q${a.qIndex+1}</span><span class="review-unit">Unit ${q.unit}</span><span class="review-status">${isCorrect ? '✓ Correct' : '✗ Incorrect'}</span>`;
+
+      const qDiv = document.createElement('div');
+      qDiv.className = 'review-q';
+      qDiv.textContent = q.text;
+
+      const optsWrap = document.createElement('div');
+      optsWrap.className = 'review-opts';
+      q.options.forEach((opt, oi) => {
+        const userHas = selectedSet.has(oi);
+        const correctHas = correctSet.has(oi);
+        let cls = '';
+        if (correctHas && userHas) cls = 'opt-correct-selected';
+        else if (correctHas && !userHas) cls = 'opt-correct-missed';
+        else if (!correctHas && userHas) cls = 'opt-wrong-selected';
+        const optDiv = document.createElement('div');
+        optDiv.className = 'review-opt' + (cls ? ' ' + cls : '');
+        optDiv.textContent = opt;
+        optsWrap.appendChild(optDiv);
+      });
+
+      div.appendChild(head);
+      div.appendChild(qDiv);
+      div.appendChild(optsWrap);
+      list.appendChild(div);
+    });
+
+    document.getElementById('detailModal').style.display = 'flex';
+  }
+  function closeDetailModal(){ document.getElementById('detailModal').style.display = 'none'; }
+
+  function buildExportRows(records){
+    return records.map((r, i) => {
+      const row = {
+        'S.No': i+1,
+        'Name': r.name,
+        'SAP ID': r.sapId,
+        'Score': `${r.score}/${r.total}`,
+        'Percentage': r.percentage + '%',
+        'Unit I': r.unitStats && r.unitStats.I ? `${r.unitStats.I.correct}/${r.unitStats.I.total}` : '',
+        'Unit II': r.unitStats && r.unitStats.II ? `${r.unitStats.II.correct}/${r.unitStats.II.total}` : '',
+        'Unit III': r.unitStats && r.unitStats.III ? `${r.unitStats.III.correct}/${r.unitStats.III.total}` : '',
+        'Tab Switches': r.tabSwitches || 0,
+        'Auto-Submitted': r.autoSubmitted ? 'Yes' : 'No',
+        'Time Taken': formatSeconds(r.timeTakenSeconds),
+        'Submitted At': r.submittedAt ? new Date(r.submittedAt).toLocaleString() : ''
+      };
+      (r.answers || []).forEach(a => {
+        const q = questions[a.qIndex];
+        if (!q) return;
+        const selectedSet = new Set(a.selected);
+        const correctSet = new Set(q.correct);
+        const isCorrect = selectedSet.size === correctSet.size && [...selectedSet].every(x => correctSet.has(x));
+        const selectedText = a.selected.length ? a.selected.map(oi => q.options[oi]).join('; ') : '(no answer)';
+        row['Q' + (a.qIndex+1)] = (isCorrect ? '[Correct] ' : '[Incorrect] ') + selectedText;
+      });
+      return row;
+    });
+  }
+
+  function exportToExcel(){
+    if (!adminRecords.length){ showToast('No submissions to export yet.'); return; }
+    const rows = buildExportRows(adminRecords);
+    const filename = 'DevOps_Quiz_Submissions_' + new Date().toISOString().slice(0,10);
+
+    if (typeof XLSX !== 'undefined'){
+      try {
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = Object.keys(rows[0]).map(k => ({ wch: Math.min(Math.max(k.length, 12), 42) }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Submissions');
+        XLSX.writeFile(wb, filename + '.xlsx');
+        return;
+      } catch (e){ console.warn('XLSX export failed, falling back to CSV', e); }
+    }
+    exportToCsv(rows, filename);
+  }
+
+  function exportToCsv(rows, filename){
+    const cols = Object.keys(rows[0]);
+    const esc = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+    const lines = [cols.map(esc).join(',')];
+    rows.forEach(r => lines.push(cols.map(c => esc(r[c])).join(',')));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function clearAllSubmissions(){
+    if (!adminRecords.length){ showToast('No submissions to clear.'); return; }
+    const ok = confirm(`Permanently delete all ${adminRecords.length} recorded submissions? This cannot be undone.`);
+    if (!ok) return;
+    localStorage.removeItem('devops_quiz_submissions');
+    showToast('All submissions cleared.');
+    loadAdminData();
+  }
+</script>
+</body>
+</html>
