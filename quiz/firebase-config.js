@@ -20,15 +20,16 @@ import {
   onAuthStateChanged, setPersistence, browserLocalPersistence,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+// Project: "Faculty" (faculty-89598). Firestore + Auth only — no Analytics,
+// no Realtime Database, so no databaseURL is needed here.
 const firebaseConfig = {
-  apiKey: "AIzaSyBwy83dXcTuu3aalPH7lveSHWKT4_Z1LBU",
-  authDomain: "academicportal-14829.firebaseapp.com",
-  databaseURL: "https://academicportal-14829-default-rtdb.firebaseio.com",
-  projectId: "academicportal-14829",
-  storageBucket: "academicportal-14829.firebasestorage.app",
-  messagingSenderId: "324059193746",
-  appId: "1:324059193746:web:078b5c38f8c3ec69f3614b",
-  measurementId: "G-95GB6YBP10",
+  apiKey: "AIzaSyDnYxdpg6-b39WszDXyjTU4_87t-4KLQ8E",
+  authDomain: "faculty-89598.firebaseapp.com",
+  projectId: "faculty-89598",
+  storageBucket: "faculty-89598.firebasestorage.app",
+  messagingSenderId: "1018027509777",
+  appId: "1:1018027509777:web:c4047c590740f35c8c49b0",
+  measurementId: "G-FBTLJH43QT",
 };
 
 // Faculty accounts allowed to open the dashboard. MUST match the list inside
