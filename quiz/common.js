@@ -110,6 +110,44 @@ export function gradeAttempt(questions, answers, marksPerQuestion, negativeMarks
   };
 }
 
+// ---------------------------------------------------------------------------
+// Splitting the answer key away from the student-visible quiz
+// ---------------------------------------------------------------------------
+// The student's browser must never receive `correct`. `splitKey()` produces the
+// two documents we store:
+//   quizzes/{id}    -> public: questions WITHOUT correct answers
+//   quizKeys/{id}   -> faculty only: { correct: {qid: [keys]}, roster: [...] }
+export function splitKey(questions) {
+  const publicQuestions = questions.map((q) => ({
+    id: q.id,
+    question: q.question,
+    topic: q.topic || "",
+    multi: !!q.multi,
+    options: q.options.map((o) => ({ key: String(o.key), text: o.text })),
+  }));
+  const correct = {};
+  questions.forEach((q) => { correct[q.id] = (q.correct || []).map(String); });
+  return { publicQuestions, correct };
+}
+
+// Rebuilds gradable questions from the public doc + the faculty key document.
+export function mergeKey(publicQuestions, correctMap) {
+  return (publicQuestions || []).map((q) => ({
+    ...q,
+    correct: (correctMap && correctMap[q.id]) || [],
+  }));
+}
+
+// Normalises a pasted/uploaded roster into a clean list of SAP IDs.
+export function parseRoster(text) {
+  return [...new Set(
+    String(text || "")
+      .split(/[\s,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  )];
+}
+
 // Fisher–Yates shuffle (returns a new array).
 export function shuffle(arr) {
   const a = arr.slice();

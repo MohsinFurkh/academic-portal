@@ -1,17 +1,22 @@
 import { db, ensureAuth } from "./firebase-config.js";
 import {
   collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc,
-  increment, arrayUnion,
+  increment, arrayUnion, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {
-  normalizeQuestions, gradeAttempt, shuffle, safeId, fmtTime,
-} from "./common.js";
+import { shuffle, safeId, fmtTime } from "./common.js";
+import { createProctor, goFullscreen, exitFullscreen } from "./proctor.js";
 
-// ---- DOM ----
+// ---------------------------------------------------------------------------
+// Student quiz runner
+//   * correct answers are NEVER sent to this page — grading happens in admin
+//   * full-screen enforced, violations counted, auto-submit at the limit
+//   * all timing is derived from the Firestore server clock, not the device
+// ---------------------------------------------------------------------------
+
 const $ = (id) => document.getElementById(id);
 const views = {
   login: $("loginView"), ready: $("readyView"),
-  quiz: $("quizView"), result: $("resultView"),
+  quiz: $("quizView"), result: $("resultView"), rescue: $("rescueView"),
 };
 function show(name) {
   Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== name));
@@ -21,27 +26,47 @@ function msg(el, text, kind = "err") {
 }
 
 // ---- State ----
-let quizzes = [];          // active quiz docs
-let quiz = null;           // selected quiz (normalized questions attached)
-let attemptRef = null;     // Firestore doc ref for this attempt
+let quizzes = [];
+let quiz = null;
+let attemptRef = null;
 let attemptId = null;
-let answers = {};          // { qid: [keys] }
-let order = [];            // question display order (ids)
-let tabSwitches = 0;
+let uid = null;
+let answers = {};
+let order = [];
+let violations = 0;
+let maxViolations = 3;
 let timerHandle = null;
-let deadline = 0;          // epoch ms
+let heartbeatHandle = null;
+let deadlineAt = 0;        // in SERVER time
+let clockOffset = 0;       // serverNow - Date.now()
 let submitting = false;
+let finished = false;
 let saveTimer = null;
+let paused = false;        // proctor overlay is up
+let pendingWrites = 0;
+
+const LS_KEY = "quizAttempt_v2";
+const now = () => Date.now() + clockOffset;   // server-aligned clock
 
 // ---- Boot ----
 init();
 async function init() {
-  await ensureAuth();
+  const user = await ensureAuth();
+  uid = user ? user.uid : null;
   await loadQuizzes();
   $("startBtn").addEventListener("click", onContinue);
   $("beginBtn").addEventListener("click", onBegin);
-  $("submitBtn").addEventListener("click", () => confirmSubmit(false));
-  $("submitBtn2").addEventListener("click", () => confirmSubmit(false));
+  $("agree").addEventListener("change", (e) => { $("beginBtn").disabled = !e.target.checked; });
+  $("submitBtn").addEventListener("click", () => confirmSubmit("manual"));
+  $("submitBtn2").addEventListener("click", () => confirmSubmit("manual"));
+  $("resumeBtn").addEventListener("click", resumeFromViolation);
+  $("retryBtn").addEventListener("click", () => doSubmit(lastSubmitReason, true));
+  $("downloadBtn").addEventListener("click", downloadReceipt);
+
+  if (!document.documentElement.requestFullscreen) {
+    $("fsWarn").innerHTML =
+      "⚠ This browser does not support full screen. Please switch to Chrome, Edge or Firefox on a laptop.";
+  }
 }
 
 async function loadQuizzes() {
@@ -60,7 +85,7 @@ async function loadQuizzes() {
   } catch (e) {
     console.error(e);
     sel.innerHTML = `<option value="">Could not load quizzes</option>`;
-    msg($("loginMsg"), "Could not reach the quiz server. Check your connection / Firebase config.", "err");
+    msg($("loginMsg"), "Could not reach the quiz server. Check your connection.", "err");
   }
 }
 
@@ -72,6 +97,7 @@ async function onContinue() {
   if (!name) return msg($("loginMsg"), "Please enter your name.");
   if (!sapId) return msg($("loginMsg"), "Please enter your SAP ID.");
   if (!quizId) return msg($("loginMsg"), "Please select a quiz.");
+  if (!uid) return msg($("loginMsg"), "Could not sign in to the quiz server. Reload the page.");
   msg($("loginMsg"), "");
 
   $("startBtn").disabled = true;
@@ -79,13 +105,27 @@ async function onContinue() {
     const zdoc = await getDoc(doc(db, "quizzes", quizId));
     if (!zdoc.exists()) throw new Error("Quiz not found");
     quiz = { id: quizId, ...zdoc.data() };
-    quiz.questions = normalizeQuestions(quiz.questions);
+    maxViolations = Math.max(1, quiz.maxViolations || 3);
+    $("ruleMax").textContent = maxViolations;
+    $("switchMax").textContent = maxViolations;
+    $("proctorMax").textContent = maxViolations;
 
     attemptId = `${quizId}__${safeId(sapId)}`;
     attemptRef = doc(db, "attempts", attemptId);
-    const existing = await getDoc(attemptRef);
 
-    if (existing.exists() && existing.data().status === "submitted") {
+    let existing = null;
+    try {
+      const snap = await getDoc(attemptRef);
+      existing = snap.exists() ? snap.data() : null;
+    } catch (e) {
+      // Rules deny reading an attempt that belongs to another browser/uid.
+      $("startBtn").disabled = false;
+      return msg($("loginMsg"),
+        "This SAP ID already has an attempt started on another device or browser. " +
+        "If that was not you, tell your instructor.", "warn");
+    }
+
+    if (existing && existing.status === "submitted") {
       $("startBtn").disabled = false;
       return msg($("loginMsg"),
         "You have already submitted this quiz. You cannot take it again.", "warn");
@@ -94,9 +134,8 @@ async function onContinue() {
     $("whoami").textContent = `${name} · ${sapId}`;
     window.__student = { name, sapId };
 
-    if (existing.exists() && existing.data().status === "in-progress") {
-      // Resume the same attempt
-      await resume(existing.data());
+    if (existing && existing.status === "in-progress") {
+      await resumeAttempt(existing);
     } else {
       showReady();
     }
@@ -111,78 +150,139 @@ async function onContinue() {
 function showReady() {
   $("readyTitle").textContent = quiz.title;
   $("readyMeta").textContent =
-    `${quiz.questions.length} questions · ${quiz.durationMinutes} minutes · ${quiz.marksPerQuestion} mark(s) each`;
+    `${(quiz.questions || []).length} questions · ${quiz.durationMinutes} minutes · ` +
+    `${quiz.marksPerQuestion} mark(s) each` +
+    (quiz.negativeMarks ? ` · −${quiz.negativeMarks} for a wrong answer` : "");
   const instr = quiz.instructions || "";
   $("readyInstructions").style.display = instr ? "block" : "none";
   $("readyInstructions").textContent = instr;
+  $("agree").checked = false;
+  $("beginBtn").disabled = true;
   show("ready");
 }
 
-// ---- Step 2 -> 3 (fresh start) ----
+// ---- Step 2 -> 3 : fresh start ----
 async function onBegin() {
   $("beginBtn").disabled = true;
-  const now = Date.now();
-  order = (quiz.shuffle ? shuffle(quiz.questions) : quiz.questions).map((q) => q.id);
+  const qs = quiz.questions || [];
+  order = (quiz.shuffle ? shuffle(qs) : qs).map((q) => q.id);
   answers = {};
-  tabSwitches = 0;
+  violations = 0;
 
-  await setDoc(attemptRef, {
-    quizId: quiz.id,
-    quizTitle: quiz.title,
-    name: window.__student.name,
-    sapId: window.__student.sapId,
-    status: "in-progress",
-    startedAt: now,
-    submittedAt: null,
-    durationMinutes: quiz.durationMinutes,
-    tabSwitches: 0,
-    tabSwitchLog: [],
-    answers: {},
-    score: null,
-    maxScore: quiz.questions.length * quiz.marksPerQuestion,
-    autoSubmitted: false,
-  });
+  // Full screen must be requested inside this click (browser requirement).
+  await goFullscreen();
 
-  deadline = now + quiz.durationMinutes * 60 * 1000;
+  try {
+    await setDoc(attemptRef, {
+      uid,
+      quizId: quiz.id,
+      quizTitle: quiz.title,
+      name: window.__student.name,
+      sapId: window.__student.sapId,
+      status: "in-progress",
+      startedAt: serverTimestamp(),
+      submittedAt: null,
+      lastSeenAt: serverTimestamp(),
+      durationMinutes: quiz.durationMinutes,
+      violations: 0,
+      violationLog: [],
+      answers: {},
+      order,
+      score: null,
+      graded: false,
+      maxScore: qs.length * (quiz.marksPerQuestion || 1),
+      totalQuestions: qs.length,
+      autoSubmitted: false,
+      submitReason: null,
+      userAgent: navigator.userAgent.slice(0, 300),
+    });
+  } catch (e) {
+    console.error(e);
+    exitFullscreen();
+    $("beginBtn").disabled = false;
+    return msg($("loginMsg"),
+      "Your SAP ID is not on the list for this quiz, or the server refused the attempt. " +
+      "Please check the ID with your instructor.", "err");
+  }
+
+  // Read the server's own timestamp back, so the countdown cannot be extended
+  // by changing the device clock.
+  const fresh = await getDoc(attemptRef);
+  const startedMs = toMillis(fresh.data().startedAt) || Date.now();
+  clockOffset = startedMs - Date.now();
+  deadlineAt = startedMs + quiz.durationMinutes * 60 * 1000;
+
   persistLocal();
   enterQuiz();
 }
 
 // ---- Resume an interrupted attempt ----
-async function resume(data) {
+async function resumeAttempt(data) {
   answers = data.answers || {};
-  tabSwitches = data.tabSwitches || 0;
-  order = quiz.questions.map((q) => q.id); // keep stable order on resume
-  deadline = data.startedAt + (data.durationMinutes || quiz.durationMinutes) * 60 * 1000;
+  violations = data.violations || 0;
+  order = (data.order && data.order.length)
+    ? data.order
+    : (quiz.questions || []).map((q) => q.id);
+
+  await syncClock();
+  const startedMs = toMillis(data.startedAt) || (now() - 1000);
+  deadlineAt = startedMs + (data.durationMinutes || quiz.durationMinutes) * 60 * 1000;
+
+  await goFullscreen();
   persistLocal();
   enterQuiz();
+
+  if (violations > 0) {
+    msg($("loginMsg"), "");
+  }
 }
 
-// ---- Enter quiz screen ----
+// Writes a server timestamp and reads it back to align the local clock.
+async function syncClock() {
+  try {
+    await updateDoc(attemptRef, { lastSeenAt: serverTimestamp() });
+    const snap = await getDoc(attemptRef);
+    const serverNow = toMillis(snap.data().lastSeenAt);
+    if (serverNow) clockOffset = serverNow - Date.now();
+  } catch (e) {
+    console.warn("clock sync failed", e);
+  }
+}
+
+function toMillis(ts) {
+  if (!ts) return 0;
+  if (typeof ts === "number") return ts;
+  if (typeof ts.toMillis === "function") return ts.toMillis();
+  if (ts.seconds) return ts.seconds * 1000;
+  return 0;
+}
+
+// ---- Enter quiz ----
 function enterQuiz() {
   $("quizViewTitle").textContent = quiz.title;
-  $("switchCount").textContent = tabSwitches;
+  $("switchCount").textContent = violations;
   renderQuestions();
   addWatermark();
-  enableAntiCheat();
+  enableProctoring();
   startTimer();
+  startHeartbeat();
   show("quiz");
-
-  if (Date.now() >= deadline) confirmSubmit(true); // time already gone (resume edge case)
+  if (now() >= deadlineAt) confirmSubmit("time", true);
 }
 
 // ---- Render ----
 function renderQuestions() {
-  const byId = Object.fromEntries(quiz.questions.map((q) => [q.id, q]));
+  const byId = Object.fromEntries((quiz.questions || []).map((q) => [q.id, q]));
   const container = $("questions");
   container.innerHTML = order.map((qid, i) => {
     const q = byId[qid];
+    if (!q) return "";
     const type = q.multi ? "checkbox" : "radio";
     const opts = q.options.map((o) => {
       const checked = (answers[qid] || []).includes(o.key);
       return `
-        <label class="opt ${checked ? "checked" : ""}" data-qid="${qid}" data-key="${o.key}">
-          <input type="${type}" name="q_${qid}" value="${o.key}" ${checked ? "checked" : ""} />
+        <label class="opt ${checked ? "checked" : ""}" data-qid="${qid}" data-key="${escapeHtml(o.key)}">
+          <input type="${type}" name="q_${qid}" value="${escapeHtml(o.key)}" ${checked ? "checked" : ""} />
           <span><span class="key">${escapeHtml(o.key)}.</span> ${escapeHtml(o.text)}</span>
         </label>`;
     }).join("");
@@ -195,10 +295,7 @@ function renderQuestions() {
   }).join("");
 
   container.querySelectorAll(".opt").forEach((el) => {
-    el.addEventListener("click", (ev) => {
-      // let the native input toggle, then read state
-      setTimeout(() => onAnswerChange(el.dataset.qid), 0);
-    });
+    el.addEventListener("click", () => setTimeout(() => onAnswerChange(el.dataset.qid), 0));
   });
   renderDots();
 }
@@ -208,10 +305,8 @@ function onAnswerChange(qid) {
   const sel = [];
   inputs.forEach((inp) => { if (inp.checked) sel.push(inp.value); });
   answers[qid] = sel;
-  // reflect checked styling
   document.querySelectorAll(`#qc_${qid} .opt`).forEach((el) => {
-    const on = sel.includes(el.dataset.key);
-    el.classList.toggle("checked", on);
+    el.classList.toggle("checked", sel.includes(el.dataset.key));
   });
   renderDots();
   persistLocal();
@@ -230,136 +325,264 @@ function renderDots() {
   });
 }
 
-// ---- Timer ----
+// ---- Timer (server-aligned, never pauses) ----
 function startTimer() {
   updateTimer();
   timerHandle = setInterval(updateTimer, 1000);
 }
 function updateTimer() {
-  const remain = Math.round((deadline - Date.now()) / 1000);
+  const remain = Math.round((deadlineAt - now()) / 1000);
   const t = $("timer");
   t.textContent = fmtTime(remain);
   t.classList.toggle("low", remain <= 60);
+  $("proctorTimer").textContent = fmtTime(remain);
   if (remain <= 0) {
     clearInterval(timerHandle);
-    confirmSubmit(true); // auto-submit
+    confirmSubmit("time", true);
   }
 }
 
-// ---- Anti-cheat ----
-const block = (e) => { e.preventDefault(); return false; };
-let visHandler, blurHandler, lastSwitchTs = 0;
-
-function enableAntiCheat() {
-  ["copy", "cut", "paste", "contextmenu"].forEach((evt) =>
-    document.addEventListener(evt, block));
-  document.addEventListener("keydown", keyGuard, true);
-
-  // Tab switch / minimize detection (debounced so vis+blur don't double count)
-  visHandler = () => { if (document.hidden) registerSwitch(); };
-  blurHandler = () => registerSwitch();
-  document.addEventListener("visibilitychange", visHandler);
-  window.addEventListener("blur", blurHandler);
-  window.addEventListener("beforeunload", beforeUnload);
+// Periodic save + presence + clock re-sync (also caps data loss at ~20 s).
+function startHeartbeat() {
+  heartbeatHandle = setInterval(async () => {
+    if (finished) return;
+    await safeUpdate({ answers, lastSeenAt: serverTimestamp() });
+    if (Math.random() < 0.34) await syncClock();
+  }, 20000);
 }
-function disableAntiCheat() {
-  ["copy", "cut", "paste", "contextmenu"].forEach((evt) =>
-    document.removeEventListener(evt, block));
-  document.removeEventListener("keydown", keyGuard, true);
-  document.removeEventListener("visibilitychange", visHandler);
-  window.removeEventListener("blur", blurHandler);
-  window.removeEventListener("beforeunload", beforeUnload);
+
+// ---------------------------------------------------------------------------
+// Proctoring
+// ---------------------------------------------------------------------------
+let proctor = null;
+let focusHandlers = [];
+
+function enableProctoring() {
+  proctor = createProctor({
+    maxViolations,
+    onViolation: (count, kind, remaining) => {
+      violations = count;
+      recordViolation(kind);
+      showOverlay(
+        "Assessment paused",
+        `You left the quiz window (${escapeHtml(kind)}). This is violation ${count} of ` +
+        `${maxViolations}. ${remaining} remaining — on the last one your quiz is ` +
+        `submitted automatically.`,
+        true
+      );
+    },
+    onLimit: (count, kind) => {
+      violations = count;
+      recordViolation(kind);
+      showOverlay(
+        "Attempt ended",
+        `That was violation ${count} of ${maxViolations}. Your quiz is being submitted automatically.`,
+        false
+      );
+      confirmSubmit("proctoring", true);
+    },
+  });
+  proctor.count = violations;   // resumed attempts keep their history
+  proctor.attach();
+
+  // Hide the paper the instant focus is lost, so a screenshot taken while
+  // switching away captures nothing useful.
+  addFocusHandler(window, "blur", () => document.body.classList.add("screen-hidden"));
+  addFocusHandler(window, "focus", () => { if (!paused) document.body.classList.remove("screen-hidden"); });
+  addFocusHandler(window, "beforeunload", beforeUnload);
+}
+
+function addFocusHandler(target, evt, fn) {
+  target.addEventListener(evt, fn);
+  focusHandlers.push([target, evt, fn]);
+}
+
+function disableProctoring() {
+  proctor?.detach();
+  focusHandlers.forEach(([t, e, f]) => t.removeEventListener(e, f));
+  focusHandlers = [];
+  document.body.classList.remove("screen-hidden");
   document.querySelector(".wm")?.remove();
 }
-function keyGuard(e) {
-  // block Ctrl/Cmd + C/V/X/A/P and Ctrl+U (view source)
-  if ((e.ctrlKey || e.metaKey) && ["c", "v", "x", "a", "p", "u", "s"].includes(e.key.toLowerCase())) {
-    e.preventDefault();
-    return false;
-  }
-}
+
 function beforeUnload(e) {
-  if (submitting) return;
+  if (submitting || finished) return;
   e.preventDefault();
   e.returnValue = "";
 }
 
-function registerSwitch() {
-  if (submitting) return;
-  const now = Date.now();
-  if (now - lastSwitchTs < 800) return; // debounce duplicate events
-  lastSwitchTs = now;
-  tabSwitches += 1;
-  $("switchCount").textContent = tabSwitches;
-  // persist to Firestore (atomic increment) + log the moment
-  updateDoc(attemptRef, {
-    tabSwitches: increment(1),
-    tabSwitchLog: arrayUnion(now),
-  }).catch((err) => console.warn("switch save failed", err));
+// Push a violation to Firestore and the local mirror.
+function recordViolation(kind) {
+  $("switchCount").textContent = violations;
   persistLocal();
+  safeUpdate({
+    violations: increment(1),
+    violationLog: arrayUnion({ at: Date.now(), kind }),
+    answers,
+    lastSeenAt: serverTimestamp(),
+  });
+}
+
+function showOverlay(title, body, canResume) {
+  paused = true;
+  document.body.classList.add("screen-hidden");
+  $("proctorTitle").textContent = title;
+  $("proctorBody").innerHTML = body;
+  $("proctorCount").textContent = violations;
+  $("resumeBtn").classList.toggle("hidden", !canResume);
+  $("proctorOverlay").classList.remove("hidden");
+}
+
+async function resumeFromViolation() {
+  await goFullscreen();
+  paused = false;
+  $("proctorOverlay").classList.add("hidden");
+  document.body.classList.remove("screen-hidden");
 }
 
 function addWatermark() {
+  if (document.querySelector(".wm")) return;
   const wm = document.createElement("div");
   wm.className = "wm";
   wm.textContent = `${window.__student.sapId} · ${window.__student.name}`;
   document.body.appendChild(wm);
 }
 
-// ---- Save (debounced answer autosave) ----
+// ---------------------------------------------------------------------------
+// Persistence — retrying writes, local mirror, offline tolerance
+// ---------------------------------------------------------------------------
 function scheduleSave() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    updateDoc(attemptRef, { answers }).catch((e) => console.warn("answer save failed", e));
-  }, 900);
-}
-function persistLocal() {
-  localStorage.setItem("quizAttempt", JSON.stringify({
-    attemptId, quizId: quiz.id, answers, tabSwitches, deadline,
-  }));
+  saveTimer = setTimeout(() => safeUpdate({ answers, lastSeenAt: serverTimestamp() }), 800);
 }
 
-// ---- Submit ----
-function confirmSubmit(auto) {
-  if (submitting) return;
+async function safeUpdate(fields, attempts = 4) {
+  pendingWrites += 1;
+  paintNet();
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await updateDoc(attemptRef, fields);
+      pendingWrites -= 1;
+      paintNet(true);
+      return true;
+    } catch (e) {
+      if (i === attempts - 1) {
+        console.warn("write failed", e);
+        pendingWrites -= 1;
+        paintNet();
+        return false;
+      }
+      await sleep(600 * Math.pow(2, i));
+    }
+  }
+  return false;
+}
+
+function paintNet(justSaved) {
+  $("netChip").classList.toggle("hidden", pendingWrites === 0);
+  if (justSaved) {
+    const chip = $("savedChip");
+    chip.classList.add("flash");
+    setTimeout(() => chip.classList.remove("flash"), 700);
+  }
+}
+
+function persistLocal() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      attemptId, quizId: quiz?.id, quizTitle: quiz?.title,
+      name: window.__student?.name, sapId: window.__student?.sapId,
+      answers, order, violations, deadlineAt, savedAt: Date.now(),
+    }));
+  } catch (e) { /* storage full / disabled — non-fatal */ }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ---------------------------------------------------------------------------
+// Submission
+// ---------------------------------------------------------------------------
+let lastSubmitReason = "manual";
+
+function confirmSubmit(reason, auto = false) {
+  if (submitting || finished) return;
   if (!auto) {
     const unanswered = order.filter((qid) => (answers[qid] || []).length === 0).length;
     const note = unanswered ? `\n\nYou have ${unanswered} unanswered question(s).` : "";
-    if (!window.confirm(`Submit your quiz now?${note}`)) return;
+    if (!window.confirm(`Submit your quiz now? This cannot be undone.${note}`)) return;
   }
-  doSubmit(auto);
+  doSubmit(reason);
 }
 
-async function doSubmit(auto) {
+async function doSubmit(reason, isRetry = false) {
+  if (submitting) return;
   submitting = true;
+  lastSubmitReason = reason;
   clearInterval(timerHandle);
-  disableAntiCheat();
+  clearInterval(heartbeatHandle);
+  clearTimeout(saveTimer);
+  if (isRetry) $("retryBtn").disabled = true;
 
-  const result = gradeAttempt(quiz.questions, answers, quiz.marksPerQuestion, quiz.negativeMarks || 0);
-  try {
-    await updateDoc(attemptRef, {
-      status: "submitted",
-      submittedAt: Date.now(),
-      answers,
-      tabSwitches,
-      score: result.score,
-      maxScore: result.maxScore,
-      correctCount: result.correctCount,
-      totalQuestions: result.total,
-      autoSubmitted: !!auto,
-    });
-  } catch (e) {
-    console.error("submit failed", e);
+  const payload = {
+    status: "submitted",
+    submittedAt: serverTimestamp(),
+    lastSeenAt: serverTimestamp(),
+    answers,
+    order,
+    violations,
+    autoSubmitted: reason !== "manual",
+    submitReason: reason,
+  };
+
+  const ok = await safeUpdate(payload, 6);
+  if (!ok) {
+    submitting = false;
+    if (isRetry) $("retryBtn").disabled = false;
+    $("proctorOverlay").classList.add("hidden");
+    document.body.classList.remove("screen-hidden");
+    show("rescue");
+    return;
   }
-  localStorage.removeItem("quizAttempt");
 
-  $("resultMeta").textContent = auto
-    ? "Time expired — your answers were submitted automatically."
-    : "Your answers have been recorded.";
-  $("rScore").textContent = `${result.score} / ${result.maxScore}`;
-  $("rCorrect").textContent = `${result.correctCount} / ${result.total}`;
-  $("rSwitches").textContent = tabSwitches;
+  finished = true;
+  disableProctoring();
+  exitFullscreen();
+  $("proctorOverlay").classList.add("hidden");
+  localStorage.removeItem(LS_KEY);
+
+  const answered = order.filter((qid) => (answers[qid] || []).length > 0).length;
+  $("resultMeta").textContent =
+    reason === "time" ? "Time expired — your answers were submitted automatically."
+      : reason === "proctoring" ? "Submitted automatically after repeated proctoring violations."
+        : "Your answers have been recorded.";
+  $("resultTitle").textContent = reason === "proctoring" ? "Attempt ended" : "Submitted ✅";
+  $("rAnswered").textContent = `${answered} / ${order.length}`;
+  $("rSwitches").textContent = violations;
+  $("rReceipt").textContent = receiptCode();
   show("result");
+}
+
+function receiptCode() {
+  const base = `${attemptId}|${Object.keys(answers).length}|${violations}`;
+  let h = 0;
+  for (let i = 0; i < base.length; i++) h = (h * 31 + base.charCodeAt(i)) >>> 0;
+  return h.toString(36).toUpperCase().slice(0, 8);
+}
+
+function downloadReceipt() {
+  const data = {
+    attemptId, quizId: quiz?.id, quizTitle: quiz?.title,
+    name: window.__student?.name, sapId: window.__student?.sapId,
+    answers, order, violations,
+    localTime: new Date().toISOString(),
+    note: "Backup receipt — submission to the server was not confirmed.",
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `quiz_receipt_${safeId(window.__student?.sapId || "student")}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // ---- utils ----
