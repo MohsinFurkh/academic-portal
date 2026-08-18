@@ -208,6 +208,16 @@ export function displayOptions(question, attemptId) {
   }));
 }
 
+// Compulsory reading time on the instructions screen, in seconds, before the
+// Start button unlocks. Defaults to 5 minutes; set readingMinutes: 0 on the
+// quiz to remove the gate entirely.
+export function readingSeconds(quiz) {
+  const raw = quiz ? quiz.readingMinutes : undefined;
+  if (raw === 0 || raw === "0") return 0;
+  const n = Number(raw);
+  return Math.round((Number.isFinite(n) && n > 0 ? n : 5) * 60);
+}
+
 // Safe Firestore doc id from a SAP id (doc ids can't contain / etc.).
 export function safeId(str) {
   return String(str).trim().replace(/[^a-zA-Z0-9_-]/g, "_");

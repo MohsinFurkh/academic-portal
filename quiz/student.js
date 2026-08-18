@@ -3,7 +3,7 @@ import {
   collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc,
   increment, arrayUnion, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { shuffle, safeId, fmtTime, displayOptions } from "./common.js";
+import { shuffle, safeId, fmtTime, displayOptions, readingSeconds } from "./common.js";
 import { createProctor, goFullscreen, exitFullscreen } from "./proctor.js";
 
 // ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ async function init() {
   await loadQuizzes();
   $("startBtn").addEventListener("click", onContinue);
   $("beginBtn").addEventListener("click", onBegin);
-  $("agree").addEventListener("change", (e) => { $("beginBtn").disabled = !e.target.checked; });
+  $("agree").addEventListener("change", syncBeginBtn);
   $("submitBtn").addEventListener("click", () => confirmSubmit("manual"));
   $("submitBtn2").addEventListener("click", () => confirmSubmit("manual"));
   $("resumeBtn").addEventListener("click", resumeFromViolation);
@@ -164,13 +164,64 @@ function showReady() {
   const instr = quiz.instructions || "";
   $("readyInstructions").style.display = instr ? "block" : "none";
   $("readyInstructions").textContent = instr;
-  $("agree").checked = false;
-  $("beginBtn").disabled = true;
   show("ready");
+  startReadingGate(readingSeconds(quiz));
+}
+
+// ---- Compulsory reading time before the quiz can be started ----
+let readHandle = null;
+let readingUnlocked = false;
+
+function startReadingGate(total) {
+  clearInterval(readHandle);
+  readingUnlocked = total <= 0;
+
+  $("agree").checked = false;
+  $("agree").disabled = !readingUnlocked;
+  $("beginBtn").disabled = true;
+
+  const gate = $("readGate");
+  if (readingUnlocked) {           // readingMinutes: 0 — no gate at all
+    gate.classList.add("hidden");
+    syncBeginBtn();
+    return;
+  }
+
+  gate.classList.remove("hidden", "unlocked");
+  let left = total;
+  $("readTimer").textContent = fmtTime(left);
+  readHandle = setInterval(() => {
+    left -= 1;
+    $("readTimer").textContent = fmtTime(Math.max(0, left));
+    if (left <= 0) {
+      clearInterval(readHandle);
+      readHandle = null;
+      unlockReading();
+    }
+  }, 1000);
+}
+
+function unlockReading() {
+  readingUnlocked = true;
+  $("agree").disabled = false;
+  $("readGate").classList.add("unlocked");
+  $("readTimer").textContent = "00:00";
+  $("readGateNote").innerHTML =
+    "Reading time is over. Tick the box below, then start the quiz when you are ready.";
+  syncBeginBtn();
+}
+
+// The Start button needs BOTH the reading time to have elapsed and the
+// declaration to be ticked.
+function syncBeginBtn() {
+  $("beginBtn").disabled = !(readingUnlocked && $("agree").checked);
 }
 
 // ---- Step 2 -> 3 : fresh start ----
 async function onBegin() {
+  if (!readingUnlocked) return;      // defence in depth: gate not yet passed
+  clearInterval(readHandle);
+  readHandle = null;
   $("beginBtn").disabled = true;
   const qs = quiz.questions || [];
   order = (quiz.shuffle ? shuffle(qs) : qs).map((q) => q.id);

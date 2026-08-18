@@ -162,6 +162,7 @@ async function saveQuiz() {
     marksPerQuestion: parseFloat($("marks").value) || 1,
     negativeMarks: parseFloat($("negative").value) || 0,
     maxViolations: Math.max(1, parseInt($("maxViolations").value, 10) || 3),
+    readingMinutes: Math.max(0, parseInt($("readingMinutes").value, 10) || 0),
     active: $("active").value === "true",
     shuffle: $("shuffle").value === "true",
     questions: publicQuestions,          // no correct answers here

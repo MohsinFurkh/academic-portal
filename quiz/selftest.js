@@ -4,7 +4,7 @@
 import {
   normalizeQuestions, splitKey, mergeKey, parseRoster,
   gradeQuestion, gradeAttempt, shuffle, safeId, fmtTime,
-  seededShuffle, displayOptions,
+  seededShuffle, displayOptions, readingSeconds,
 } from "./common.js";
 import { createProctor, VIOLATION_DEBOUNCE_MS } from "./proctor.js";
 
@@ -112,6 +112,19 @@ const src = [1, 2, 3, 4, 5];
 const sh = shuffle(src);
 check("shuffle does not mutate the source", eq(src, [1, 2, 3, 4, 5]));
 check("shuffle keeps every element", eq([...sh].sort(), [1, 2, 3, 4, 5]));
+
+// --- reading gate ---------------------------------------------------------
+group("Compulsory reading time");
+check("Defaults to 5 minutes when the quiz says nothing", readingSeconds({}) === 300);
+check("Honours a quiz-specific reading time", readingSeconds({ readingMinutes: 3 }) === 180);
+check("readingMinutes: 0 removes the gate", readingSeconds({ readingMinutes: 0 }) === 0);
+check("A string value from a form input still works",
+  readingSeconds({ readingMinutes: "7" }) === 420);
+check("Nonsense values fall back to 5 minutes, never to 0",
+  readingSeconds({ readingMinutes: "abc" }) === 300 &&
+  readingSeconds({ readingMinutes: -4 }) === 300);
+check("Fractional minutes are supported for a quick dry run",
+  readingSeconds({ readingMinutes: 0.5 }) === 30);
 
 // --- proctoring engine ----------------------------------------------------
 group("Proctoring engine");
@@ -248,8 +261,8 @@ group("Option shuffling (anti copy-from-neighbour)");
 
 // --- the real quiz files --------------------------------------------------
 const QUIZ_FILES = [
-  ["Set A · CCVT", "../Research%20Methodology/CSEG3060_Quiz1_UnitI.json"],
-  ["Set B · Full Stack AI", "../Research%20Methodology/CSEG3060_Quiz1_UnitI_FSAI.json"],
+  ["Set A · CCVT", "../Research%20Methodology/Tests/CSEG3060_Quiz1_UnitI.json"],
+  ["Set B · Full Stack AI", "../Research%20Methodology/Tests/CSEG3060_Quiz1_UnitI_FSAI.json"],
 ];
 const loaded = {};
 
