@@ -31,6 +31,7 @@ export function normalizeQuestions(raw) {
         explanation: q.explanation || "",
         topic: q.topic || "",
         multi: !!q.multi,
+        shuffleOptions: q.shuffleOptions !== false,
         options: q.options.map((o) => ({ key: String(o.key), text: o.text })),
         correct: (q.correct || []).map(String),
       };
@@ -60,6 +61,9 @@ export function normalizeQuestions(raw) {
       explanation: q.explanation || "",
       topic: q.topic || q.unit || "",
       multi,
+      // Set "shuffleOptions": false on questions whose options have an inherent
+      // order (numeric answers, "both of the above", ordinal scales).
+      shuffleOptions: q.shuffleOptions !== false,
       options,
       correct,
     };
@@ -123,11 +127,18 @@ export function splitKey(questions) {
     question: q.question,
     topic: q.topic || "",
     multi: !!q.multi,
+    shuffleOptions: q.shuffleOptions !== false,
     options: q.options.map((o) => ({ key: String(o.key), text: o.text })),
   }));
   const correct = {};
-  questions.forEach((q) => { correct[q.id] = (q.correct || []).map(String); });
-  return { publicQuestions, correct };
+  const explanations = {};
+  questions.forEach((q) => {
+    correct[q.id] = (q.correct || []).map(String);
+    // Explanations usually give the answer away, so they are kept on the
+    // faculty side only — available for the post-quiz walkthrough.
+    if (q.explanation) explanations[q.id] = q.explanation;
+  });
+  return { publicQuestions, correct, explanations };
 }
 
 // Rebuilds gradable questions from the public doc + the faculty key document.
@@ -156,6 +167,45 @@ export function shuffle(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+// Deterministic shuffle: the same seed always produces the same order, so a
+// student who refreshes or resumes sees their options in the same places.
+export function seededShuffle(arr, seed) {
+  let h = 2166136261 >>> 0;                    // FNV-1a over the seed string
+  const s = String(seed);
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  const rand = () => {                          // mulberry32
+    h = (h + 0x6D2B79F5) >>> 0;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Builds the options a particular student sees for a question: order is
+// randomised per attempt, but each option keeps its ORIGINAL key so grading is
+// unaffected. `label` is what is shown (A, B, C, D by position).
+export function displayOptions(question, attemptId) {
+  const src = question.options || [];
+  const list = (question.shuffleOptions === false)
+    ? src.slice()
+    : seededShuffle(src, `${attemptId}::${question.id}`);
+  return list.map((o, i) => ({
+    key: String(o.key),                 // stored + graded
+    label: String.fromCharCode(65 + i), // displayed
+    text: o.text,
+  }));
 }
 
 // Safe Firestore doc id from a SAP id (doc ids can't contain / etc.).

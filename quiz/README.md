@@ -80,8 +80,15 @@ service cloud.firestore {
 
     match /attempts/{attemptId} {
       // A student may read only their own attempt; faculty read everything.
-      allow read: if isAdmin()
-                  || (request.auth != null && resource.data.uid == request.auth.uid);
+      // `resource == null` must come first: a student starting a fresh attempt
+      // reads a document that does not exist yet, and without this clause that
+      // read is denied — which looks like "someone else already started".
+      allow get: if isAdmin()
+                 || resource == null
+                 || (request.auth != null && resource.data.uid == request.auth.uid);
+
+      // Only faculty may list/query the collection. Students never need to.
+      allow list: if isAdmin();
 
       // Starting an attempt: must be on the roster, must be tied to this browser,
       // must start unscored and in progress.

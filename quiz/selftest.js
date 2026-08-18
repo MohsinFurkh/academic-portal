@@ -4,6 +4,7 @@
 import {
   normalizeQuestions, splitKey, mergeKey, parseRoster,
   gradeQuestion, gradeAttempt, shuffle, safeId, fmtTime,
+  seededShuffle, displayOptions,
 } from "./common.js";
 import { createProctor, VIOLATION_DEBOUNCE_MS } from "./proctor.js";
 
@@ -55,10 +56,20 @@ check("Re-normalising an already-normal question is stable",
 
 // --- the security-critical split -----------------------------------------
 group("Answer key is stripped from the student document");
-const { publicQuestions, correct } = splitKey(qa);
+const withExpl = normalizeQuestions({
+  questions: [{
+    id: 9, question: "Leaky?", options: { A: "a", B: "b" }, correct_answer: "A",
+    explanation: "SECRET-GIVES-AWAY-THE-ANSWER",
+  }],
+});
+const { publicQuestions, correct, explanations } = splitKey(qa);
 const publicJson = JSON.stringify(publicQuestions);
 check("No 'correct' field survives in the public questions",
   !publicJson.includes("correct"));
+check("Explanations never reach the student document",
+  !JSON.stringify(splitKey(withExpl).publicQuestions).includes("SECRET-GIVES-AWAY-THE-ANSWER"));
+check("Explanations are preserved on the faculty side",
+  splitKey(withExpl).explanations["9"] === "SECRET-GIVES-AWAY-THE-ANSWER");
 check("Correct answer values are not leaked anywhere in the public JSON",
   publicQuestions.every((q) => !("correct" in q)));
 check("Public questions keep id, text and options",
@@ -184,6 +195,151 @@ group("Listener lifecycle");
   p.report("tab/minimise");
   check("No violations are recorded after detach (submitted attempts stay clean)",
     p.count === 0);
+}
+
+// --- per-student option order --------------------------------------------
+group("Option shuffling (anti copy-from-neighbour)");
+{
+  const q = normalizeQuestions({
+    questions: [{
+      id: 5, question: "Q?",
+      options: { A: "alpha", B: "bravo", C: "charlie", D: "delta" },
+      correct_answer: "C",
+    }],
+  })[0];
+
+  const a1 = displayOptions(q, "quiz__500001");
+  const a2 = displayOptions(q, "quiz__500001");
+  const b1 = displayOptions(q, "quiz__500002");
+
+  check("Same student sees the same order on every render (resume-safe)",
+    eq(a1.map((o) => o.key), a2.map((o) => o.key)));
+  check("Every option survives the shuffle",
+    eq([...a1.map((o) => o.key)].sort(), ["A", "B", "C", "D"]));
+  check("Displayed labels are always A, B, C, D in position order",
+    eq(a1.map((o) => o.label), ["A", "B", "C", "D"]));
+  check("Each option keeps its ORIGINAL key, so grading is unaffected",
+    a1.every((o) => q.options.find((x) => x.key === o.key).text === o.text));
+
+  // Across many students the order must actually vary.
+  const orders = new Set();
+  for (let i = 0; i < 40; i++) {
+    orders.add(displayOptions(q, `quiz__50${i}`).map((o) => o.key).join(""));
+  }
+  check("Different students get different option orders", orders.size > 5,
+    `only ${orders.size} distinct orders in 40 students`);
+
+  const fixedQ = normalizeQuestions({
+    questions: [{
+      id: 6, question: "Numeric?", shuffleOptions: false,
+      options: { A: "1", B: "3", C: "9", D: "18" }, correct_answer: "D",
+    }],
+  })[0];
+  check("shuffleOptions:false keeps the authored order (numeric/ordinal answers)",
+    eq(displayOptions(fixedQ, "quiz__500001").map((o) => o.key), ["A", "B", "C", "D"]));
+  check("The flag survives the public/key split",
+    splitKey([fixedQ]).publicQuestions[0].shuffleOptions === false);
+
+  check("seededShuffle is deterministic for a given seed",
+    eq(seededShuffle([1, 2, 3, 4, 5], "x"), seededShuffle([1, 2, 3, 4, 5], "x")));
+  check("seededShuffle does not mutate its input",
+    eq((() => { const src = [1, 2, 3]; seededShuffle(src, "s"); return src; })(), [1, 2, 3]));
+}
+
+// --- the real quiz files --------------------------------------------------
+const QUIZ_FILES = [
+  ["Set A · CCVT", "../Research%20Methodology/CSEG3060_Quiz1_UnitI.json"],
+  ["Set B · Full Stack AI", "../Research%20Methodology/CSEG3060_Quiz1_UnitI_FSAI.json"],
+];
+const loaded = {};
+
+for (const [label, path] of QUIZ_FILES) {
+  group(`Quiz 1 — ${label}`);
+  try {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const raw = await res.json();
+    const qs = normalizeQuestions(raw);
+    loaded[label] = qs;
+
+    check("Loads and normalises to 25 questions", qs.length === 25,
+      `got ${qs.length}`);
+    check("Every question has exactly 4 options",
+      qs.every((q) => q.options.length === 4));
+    check("Every question has exactly one correct answer recorded",
+      qs.every((q) => q.correct.length === 1));
+    check("Every correct answer refers to an option that exists",
+      qs.every((q) => q.options.some((o) => o.key === q.correct[0])));
+    check("Every question carries an explanation for the post-quiz walkthrough",
+      qs.every((q) => q.explanation && q.explanation.length > 40));
+    check("Question ids are unique", new Set(qs.map((q) => q.id)).size === qs.length);
+    check("All eight Unit I lectures are covered",
+      new Set(qs.map((q) => q.topic.split(" — ")[0])).size === 8,
+      [...new Set(qs.map((q) => q.topic.split(" — ")[0]))].join(" "));
+
+    const { publicQuestions, correct, explanations } = splitKey(qs);
+    const pub = JSON.stringify(publicQuestions);
+    check("No answer key leaks into the student document",
+      !pub.includes('"correct"') && publicQuestions.every((q) => !("correct" in q)));
+    check("No explanation leaks into the student document",
+      qs.every((q) => !pub.includes(q.explanation.slice(0, 40))));
+    check("Key document covers all 25 questions", Object.keys(correct).length === 25);
+    check("Explanations retained for faculty", Object.keys(explanations).length === 25);
+
+    // A perfect paper and a blank paper, graded end to end.
+    const perfect = {};
+    qs.forEach((q) => { perfect[q.id] = q.correct.slice(); });
+    const full = gradeAttempt(mergeKey(publicQuestions, correct), perfect, 0.4, 0);
+    check("A perfect paper scores exactly 10 at 0.4/question",
+      Math.abs(full.score - 10) < 1e-9 && full.correctCount === 25, `scored ${full.score}`);
+    const blank = gradeAttempt(mergeKey(publicQuestions, correct), {}, 0.4, 0);
+    check("A blank paper scores 0", blank.score === 0 && blank.maxScore === 10);
+
+    check("At least 20 questions have their options reordered per student",
+      qs.filter((q) => q.shuffleOptions !== false).length >= 20,
+      `only ${qs.filter((q) => q.shuffleOptions !== false).length}`);
+
+    const spread = {};
+    qs.forEach((q) => { spread[q.correct[0]] = (spread[q.correct[0]] || 0) + 1; });
+    document.getElementById("results").insertAdjacentHTML("beforeend",
+      `<div class="t-row"><span class="st">INFO</span><span>${label}: authored key spread ` +
+      `${JSON.stringify(spread)} — neutralised at run time by per-student option order.</span></div>`);
+  } catch (e) {
+    check(`${label} JSON loads`, false, e.message +
+      " (serve the site over http — this check cannot run from file://)");
+  }
+}
+
+// --- the two sets must not overlap ---------------------------------------
+group("Set A vs Set B (different sittings, 25 and 26 August)");
+{
+  const a = loaded["Set A · CCVT"], b = loaded["Set B · Full Stack AI"];
+  if (a && b) {
+    const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+    const aq = new Set(a.map((q) => norm(q.question)));
+    const shared = b.filter((q) => aq.has(norm(q.question)));
+    check("No question text is reused between the two sets", shared.length === 0,
+      `${shared.length} shared`);
+
+    // Short options are shared technical vocabulary — "Internal", "External",
+    // "Problem → Question" — which both sets must be free to use. Only longer
+    // option prose would indicate a question was actually copied across.
+    const LONG = 30;
+    const aOpts = new Set(
+      a.flatMap((q) => q.options.map((o) => norm(o.text))).filter((t) => t.length > LONG));
+    const sharedOpts = b.flatMap((q) => q.options.map((o) => norm(o.text)))
+      .filter((t) => t.length > LONG && aOpts.has(t));
+    check("No option prose is copied between the sets", sharedOpts.length === 0,
+      `${sharedOpts.length} shared: ${sharedOpts.slice(0, 2).join(" | ")}`);
+
+    const count = (qs) => qs.reduce((m, q) => {
+      const k = q.topic.split(" — ")[0]; m[k] = (m[k] || 0) + 1; return m;
+    }, {});
+    check("Both sets weight the eight lectures identically (fair across batches)",
+      eq(count(a), count(b)), `${JSON.stringify(count(a))} vs ${JSON.stringify(count(b))}`);
+  } else {
+    check("Both quiz sets loaded for comparison", false, "one or both files missing");
+  }
 }
 
 // --- summary --------------------------------------------------------------

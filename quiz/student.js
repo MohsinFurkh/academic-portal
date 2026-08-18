@@ -3,7 +3,7 @@ import {
   collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc,
   increment, arrayUnion, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { shuffle, safeId, fmtTime } from "./common.js";
+import { shuffle, safeId, fmtTime, displayOptions } from "./common.js";
 import { createProctor, goFullscreen, exitFullscreen } from "./proctor.js";
 
 // ---------------------------------------------------------------------------
@@ -118,11 +118,19 @@ async function onContinue() {
       const snap = await getDoc(attemptRef);
       existing = snap.exists() ? snap.data() : null;
     } catch (e) {
-      // Rules deny reading an attempt that belongs to another browser/uid.
+      console.warn("attempt read failed:", e.code, e.message);
       $("startBtn").disabled = false;
+      if (e.code === "permission-denied") {
+        // With the published rules, a non-existent attempt reads back cleanly,
+        // so a denial here means the document exists and belongs to another
+        // browser session.
+        return msg($("loginMsg"),
+          "This SAP ID already has an attempt started on another device or browser. " +
+          "If that was not you, tell your instructor.", "warn");
+      }
       return msg($("loginMsg"),
-        "This SAP ID already has an attempt started on another device or browser. " +
-        "If that was not you, tell your instructor.", "warn");
+        "Could not reach the quiz server (" + escapeHtml(e.code || "network error") +
+        "). Check your connection and try again.", "err");
     }
 
     if (existing && existing.status === "submitted") {
@@ -278,12 +286,15 @@ function renderQuestions() {
     const q = byId[qid];
     if (!q) return "";
     const type = q.multi ? "checkbox" : "radio";
-    const opts = q.options.map((o) => {
+    // Options are ordered differently for every student (deterministically, so a
+    // refresh keeps the same layout). The value submitted is the ORIGINAL key,
+    // so grading is unaffected — only what the student sees changes.
+    const opts = displayOptions(q, attemptId).map((o) => {
       const checked = (answers[qid] || []).includes(o.key);
       return `
         <label class="opt ${checked ? "checked" : ""}" data-qid="${qid}" data-key="${escapeHtml(o.key)}">
           <input type="${type}" name="q_${qid}" value="${escapeHtml(o.key)}" ${checked ? "checked" : ""} />
-          <span><span class="key">${escapeHtml(o.key)}.</span> ${escapeHtml(o.text)}</span>
+          <span><span class="key">${escapeHtml(o.label)}.</span> ${escapeHtml(o.text)}</span>
         </label>`;
     }).join("");
     return `

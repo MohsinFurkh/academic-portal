@@ -153,7 +153,7 @@ async function saveQuiz() {
 
   const meta = readMeta(uploadedRaw);
   const quizId = slug(title) + "_" + Date.now().toString(36);
-  const { publicQuestions, correct } = splitKey(uploadedQuestions);
+  const { publicQuestions, correct, explanations } = splitKey(uploadedQuestions);
 
   const publicDoc = {
     title,
@@ -173,7 +173,7 @@ async function saveQuiz() {
   try {
     // Key first: if this fails, no half-published quiz exists for students.
     await setDoc(doc(db, "quizKeys", quizId), {
-      correct, roster, createdAt: Date.now(), title,
+      correct, explanations, roster, createdAt: Date.now(), title,
     });
     await setDoc(doc(db, "quizzes", quizId), publicDoc);
 
