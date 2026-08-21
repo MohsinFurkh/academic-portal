@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · I.9 — Research Instrumentation, Case Studies and Unit I Review</title>
+    <meta name="description"
+        content="Interactive lecture I.9 for Research Methodology in Computer Science (CSEG3060): research instrumentation and measurement bias in computing, reproducibility as a requirement, case-study method and analytic generalisation, and the Unit I review with the CO1 exit check.">
+    <style>
+        /* ============================================================
+           CSEG3060 · Unit I · Lecture I.9
+           Self-contained interactive deck. No external assets.
+           Keys: → / Space next · ← prev · O overview · T timer · D dark · F fullscreen
+           ============================================================ */
+
+        :root {
+            --ink: #0f1e35;
+            --ink-soft: #3d5372;
+            --ink-faint: #6b7f9c;
+            --bg: #eef2f8;
+            --surface: #ffffff;
+            --surface-2: #f6f9fd;
+            --line: #d3dced;
+            --brand: #1d5fd0;
+            --brand-soft: #e5eeff;
+            --good: #147a45;
+            --good-soft: #e2f5ea;
+            --bad: #b3182b;
+            --bad-soft: #fdeaec;
+            --warn: #a9640a;
+            --warn-soft: #fdf1de;
+            --shadow: 0 2px 4px rgba(15, 30, 53, .06), 0 12px 32px rgba(15, 30, 53, .10);
+            --radius: 16px;
+            --fs: clamp(18px, 1.0vw + 12px, 33px);
+        }
+
+        html[data-theme="dark"] {
+            --ink: #eaf1fb;
+            --ink-soft: #b6c6dd;
+            --ink-faint: #8ea3c0;
+            --bg: #0b1220;
+            --surface: #131f33;
+            --surface-2: #18263d;
+            --line: #2c3d59;
+            --brand: #6ea8ff;
+            --brand-soft: #1a2c4c;
+            --good: #4ade80;
+            --good-soft: #123024;
+            --bad: #fb7185;
+            --bad-soft: #3a1620;
+            --warn: #fbbf24;
+            --warn-soft: #392a10;
+            --shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: var(--fs);
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            gap: .8em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            font-size: .68em;
+            letter-spacing: .02em;
+            color: var(--ink-faint);
+            z-index: 40;
+        }
+
+        .topbar b {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .topbar .spacer {
+            flex: 1;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .18em .8em;
+            background: var(--surface-2);
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .chip:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .progress {
+            position: fixed;
+            top: 2.4em;
+            left: 0;
+            height: 4px;
+            background: var(--brand);
+            z-index: 41;
+            transition: width .25s ease;
+        }
+
+        .deck {
+            position: absolute;
+            inset: 2.4em 0 0 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: clamp(14px, 2.2vh, 30px) clamp(18px, 3.4vw, 70px) 4.2em;
+            display: none;
+            animation: in .28s ease both;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .fit {
+            display: flow-root;
+            transform-origin: top center;
+        }
+
+        @keyframes in {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.1em;
+            display: flex;
+            align-items: center;
+            gap: .6em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            z-index: 40;
+            font-size: .7em;
+        }
+
+        .navbar .count {
+            font-weight: 800;
+            color: var(--ink-soft);
+            min-width: 5.5em;
+        }
+
+        .navbar .title-now {
+            color: var(--ink-faint);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button.nav {
+            font: inherit;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: .45em 1.1em;
+            cursor: pointer;
+        }
+
+        button.nav:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            line-height: 1.08;
+            margin: .1em 0 .3em;
+            letter-spacing: -.02em;
+        }
+
+        h2 {
+            font-size: 1.72em;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            letter-spacing: -.015em;
+        }
+
+        h3 {
+            font-size: 1.12em;
+            margin: 0 0 .4em;
+        }
+
+        p {
+            margin: 0 0 .7em;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: .62em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: .35em 1em;
+            margin-bottom: .9em;
+        }
+
+        .lead {
+            font-size: 1.12em;
+            color: var(--ink-soft);
+        }
+
+        .big {
+            font-size: 1.35em;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .huge {
+            font-size: 2.1em;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+        }
+
+        em.hl {
+            font-style: normal;
+            background: linear-gradient(transparent 62%, rgba(29, 95, 208, .26) 0);
+            font-weight: 700;
+        }
+
+        .quote {
+            font-size: 1.15em;
+            border-left: 6px solid var(--brand);
+            padding: .3em 0 .3em 1em;
+            color: var(--ink-soft);
+            font-style: italic;
+            margin: .8em 0;
+        }
+
+        code,
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: .92em;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: .06em .38em;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(10px, 1.4vw, 20px);
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: clamp(12px, 1.5vw, 22px);
+            box-shadow: var(--shadow);
+        }
+
+        .flat {
+            box-shadow: none;
+        }
+
+        .tint-good {
+            background: var(--good-soft);
+            border-color: color-mix(in srgb, var(--good) 35%, transparent);
+        }
+
+        .tint-bad {
+            background: var(--bad-soft);
+            border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+        }
+
+        .tint-warn {
+            background: var(--warn-soft);
+            border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+        }
+
+        .tint-brand {
+            background: var(--brand-soft);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+
+        ul,
+        ol {
+            margin: 0 0 .6em;
+            padding-left: 1.15em;
+        }
+
+        li {
+            margin-bottom: .42em;
+        }
+
+        li::marker {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .stack-tight li {
+            margin-bottom: .25em;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: .66em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+            padding: .2em .6em;
+            border: 1px solid currentColor;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88em;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: .5em .7em;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: .82em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--ink-faint);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .reveal-btn {
+            font: inherit;
+            font-weight: 800;
+            font-size: .88em;
+            border: 2px dashed var(--brand);
+            color: var(--brand);
+            background: transparent;
+            border-radius: 10px;
+            padding: .4em 1em;
+            cursor: pointer;
+        }
+
+        .reveal-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pick {
+            text-align: left;
+            font: inherit;
+            width: 100%;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .55em .8em;
+            color: var(--ink);
+            transition: .15s;
+        }
+
+        .pick:hover {
+            border-color: var(--brand);
+            transform: translateY(-2px);
+        }
+
+        .pick.sel {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .pick.right {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .pick.wrong {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .verdict {
+            margin-top: .6em;
+            font-size: .92em;
+            border-left: 5px solid var(--brand);
+            padding-left: .8em;
+            color: var(--ink-soft);
+        }
+
+        .ck {
+            font: inherit;
+            font-size: .82em;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .35em .6em;
+            color: var(--ink);
+        }
+
+        .ck.on {
+            border-color: var(--good);
+            background: var(--good-soft);
+            font-weight: 700;
+        }
+
+        .ck .star {
+            color: var(--bad);
+            font-weight: 900;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: .5em;
+            font-weight: 900;
+        }
+
+        .timer .t {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 1.5em;
+            min-width: 3.4em;
+            text-align: center;
+            background: var(--surface-2);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .05em .3em;
+        }
+
+        .timer .t.low {
+            color: var(--bad);
+            border-color: var(--bad);
+        }
+
+        .tbtn {
+            font: inherit;
+            font-size: .8em;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 8px;
+            padding: .3em .8em;
+            cursor: pointer;
+        }
+
+        .tbtn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .overview {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 60;
+            padding: 2em clamp(18px, 4vw, 70px);
+            overflow-y: auto;
+        }
+
+        .ov-item {
+            display: flex;
+            gap: .8em;
+            align-items: baseline;
+            width: 100%;
+            text-align: left;
+            font: inherit;
+            font-size: .82em;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: .5em .8em;
+            margin-bottom: .4em;
+            cursor: pointer;
+            color: var(--ink);
+        }
+
+        .ov-item:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .ov-item b {
+            color: var(--brand);
+            min-width: 2.2em;
+        }
+
+        .score {
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .footnote {
+            font-size: .74em;
+            color: var(--ink-faint);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--brand);
+            font-weight: 900;
+        }
+
+        @media (max-width: 900px) {
+
+            .g2,
+            .g3,
+            .g4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+
+            body,
+            html {
+                overflow: visible;
+                background: #fff;
+            }
+
+            .topbar,
+            .navbar,
+            .progress,
+            .overview {
+                display: none !important;
+            }
+
+            .deck {
+                position: static;
+            }
+
+            .slide {
+                display: block !important;
+                position: static;
+                page-break-after: always;
+                animation: none;
+                padding: 12mm;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .hidden {
+                display: block !important;
+            }
+
+            .fit {
+                transform: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <b>CSEG3060</b><span>Research Methodology in Computer Science</span>
+        <span>·</span><span>Unit I · Lecture I.9</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit I · Lecture I.9 · CO1 exit check · last hour of Unit I</span>
+            <h1>Research Instrumentation, Case Studies<br><span style="color:var(--brand)">and Unit I Review</span></h1>
+            <p class="lead big" style="max-width:34em">Your data is only as trustworthy as the apparatus that produced
+                it — and your work is only real if someone else can run it.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>Instrumentation</h3>
+                    <p style="margin:0">The whole apparatus that produces your numbers — and how it lies to you.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Reproducibility</h3>
+                    <p style="margin:0">Not an afterthought. A property you build in, or never have.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Case studies</h3>
+                    <p style="margin:0">A real method with real rigour — not “an example I liked”.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Unit review</h3>
+                    <p style="margin:0">Ten things that must survive, a rapid quiz, and your CO1 exit page.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · 5th Semester
+                B.Tech CSE · 55 minutes<br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · HOOK 1 ============ -->
+        <section class="slide" data-title="Hook: wrong data, nothing obviously wrong">
+            <span class="kicker">Hook · part 1 of 2</span>
+            <h2>Your measurement apparatus has opinions</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Mytkowicz, Diwan, Hauswirth &amp; Sweeney · ASPLOS 2009</h3>
+                    <p>The paper's title is the finding: <i>“Producing Wrong Data Without Doing Anything Obviously
+                            Wrong!”</i></p>
+                    <p>They showed that measured performance in C benchmarks shifts measurably when you change things
+                        that <b>have nothing to do with the program</b>:</p>
+                    <ul class="stack-tight">
+                        <li>The <b>size of your UNIX environment variables</b> — which changes stack alignment.</li>
+                        <li>The <b>link order of your object files</b> — which changes code and data layout, and
+                            therefore cache behaviour.</li>
+                    </ul>
+                    <p style="margin:.4em 0 0">The bias was large enough that a comparison between compiler optimisation
+                        levels could come out <b>either way</b>, depending on an environment variable nobody thought to
+                        record.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Discuss · 60 seconds</h3>
+                    <p class="big">You ran the benchmark correctly. The code was right. The statistics were right. The
+                        conclusion was still wrong.</p>
+                    <p>Where, in the chain from Lecture I.6, does this failure live — and which validity does it
+                        threaten?</p>
+                    <div class="timer" style="margin:.4em 0">
+                        <span class="t" data-sec="60">1:00</span>
+                        <button class="tbtn" data-timer="start">Start</button>
+                        <button class="tbtn" data-timer="reset">Reset</button>
+                    </div>
+                    <button class="reveal-btn" data-reveal="#mb-ans">Reveal</button>
+                    <div id="mb-ans" class="hidden verdict">Between <b>method and data</b> — the <b>instrument</b>. It is
+                        an <b>internal validity</b> threat: something other than the thing you changed caused the
+                        difference you measured. And note it is invisible in your code, your notebook and your plots.
+                        Only the <em class="hl">protocol</em> catches it — randomise the setup, repeat, report spread.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 3 · HOOK 2 ============ -->
+        <section class="slide" data-title="Hook: the file nobody could check">
+            <span class="kicker">Hook · part 2 of 2</span>
+            <h2>A famous result, and a graduate student who asked for the file</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Growth in a Time of Debt · 2010 → 2013</h3>
+                    <p>A widely cited economics paper reported that national growth falls sharply once public debt
+                        passes about 90% of GDP. The finding was quoted in policy debates across several countries.</p>
+                    <p>In 2013 a graduate student, <b>Thomas Herndon</b>, tried to reproduce it as a course assignment
+                        and could not. He requested the original spreadsheet. With it, he and his co-authors identified
+                        a <b>spreadsheet range that omitted several countries</b>, along with selective exclusions and an
+                        unusual weighting — and showed that correcting them materially changed the headline number.</p>
+                    <p style="margin:0"><b>Nobody could see any of this for three years, because nobody had the
+                            file.</b></p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Two lessons, and they are both about instruments</h3>
+                    <p><b>1 · Your tools are part of your method.</b> A spreadsheet range is as much an instrument as a
+                        profiler or a benchmark harness — and it can be wrong in ways no reader can detect from the
+                        printed table.</p>
+                    <p><b>2 · The working standard for "done" is not "it ran on my machine".</b> It is
+                        <em class="hl">someone else can reproduce it</em> — which, from Lecture I.1, is exactly the row
+                        that separates a research result from a project.</p>
+                    <p style="margin:0" class="footnote">And the reproducer here was a student on a course assignment.
+                        That is a genuinely available research contribution — the replication source from Lecture I.2.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 4 · OUTCOMES ============ -->
+        <section class="slide" data-title="Outcomes and plan">
+            <span class="kicker">By the end of this hour</span>
+            <h2>You will be able to…</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <ol class="big" style="line-height:1.35">
+                        <li><b>List</b> what counts as instrumentation in a computing study — including your software
+                            stack.</li>
+                        <li><b>Test</b> an instrument for reliability, validity and bias, and name the common
+                            measurement artefacts.</li>
+                        <li><b>Specify</b> a measurement protocol and a reproducibility package for your own project.
+                        </li>
+                        <li><b>Judge</b> whether a case study is rigorous, and what it can and cannot generalise to.
+                        </li>
+                        <li><b>Produce</b> your CO1 exit page — the complete one-page research statement.</li>
+                    </ol>
+                </div>
+                <div class="card flat">
+                    <h3>How the 55 minutes are spent</h3>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td><b>0–7</b></td>
+                                <td>Measurement bias; the spreadsheet nobody could check</td>
+                            </tr>
+                            <tr>
+                                <td><b>7–20</b></td>
+                                <td>Instrumentation: what it is, how it lies, how to build a rig</td>
+                            </tr>
+                            <tr>
+                                <td><b>20–27</b></td>
+                                <td>Reproducibility packing list</td>
+                            </tr>
+                            <tr>
+                                <td><b>27–36</b></td>
+                                <td>Case studies as a method; analytic generalisation</td>
+                            </tr>
+                            <tr>
+                                <td><b>36–48</b></td>
+                                <td><b>Unit I review</b> and rapid revision quiz</td>
+                            </tr>
+                            <tr>
+                                <td><b>48–55</b></td>
+                                <td><b>CO1 exit check</b> — your one-page statement</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · WHAT IS INSTRUMENTATION ============ -->
+        <section class="slide" data-title="What instrumentation means in computing">
+            <span class="kicker">The syllabus phrase, translated</span>
+            <h2>“Necessary instrumentation” — what that means for us</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <p class="lead">In the social sciences an instrument is a questionnaire or a scale. In computing it
+                        is <b>the entire apparatus that produces your numbers</b>:</p>
+                    <ul class="stack-tight">
+                        <li><b>Benchmark suites and harnesses</b> — the workload and the driver</li>
+                        <li><b>Profilers, timers and counters</b> — including which clock you called</li>
+                        <li><b>Logging and tracing</b> — and the overhead they add</li>
+                        <li><b>Measurement rigs</b> — latency, memory, energy (a shunt, a power meter)</li>
+                        <li><b>Annotation tools and guidelines</b> — for labelled data</li>
+                        <li><b>Survey and interview instruments</b> — where humans are involved</li>
+                        <li><b>The software stack itself</b> — libraries, versions, compiler flags, seeds, container
+                            image, OS, hardware</li>
+                    </ul>
+                </div>
+                <div class="card tint-brand">
+                    <h3>The claim students find hardest to accept</h3>
+                    <p class="huge" style="margin:.1em 0">Your <span style="color:var(--brand)">software stack</span> is
+                        part of your instrument.</p>
+                    <p>A different BLAS build, a different CUDA version, a different Python minor release, a different
+                        random seed, a laptop on battery instead of mains — each can move your numbers by more than the
+                        effect you are claiming.</p>
+                    <p style="margin:0">Which is why "we used PyTorch" is not a method section, and
+                        <code>torch==2.3.1+cu121</code>, pinned and reported, is the beginning of one.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · THREE PROPERTIES ============ -->
+        <section class="slide" data-title="Reliable · valid · unbiased">
+            <span class="kicker">Test the instrument before you trust the reading</span>
+            <h2>Three questions to ask of any instrument</h2>
+            <div class="grid g3">
+                <div class="card">
+                    <h3 style="color:var(--brand)">Reliable?</h3>
+                    <p><b>Does measuring the same thing twice give the same answer?</b></p>
+                    <p style="margin:0">Measure your <b>run-to-run variance first</b>, before comparing anything. If
+                        repeated runs of the <em>same</em> configuration differ by 3%, then a 2% "improvement" is not a
+                        result — it is your noise floor.</p>
+                </div>
+                <div class="card">
+                    <h3 style="color:var(--brand)">Valid?</h3>
+                    <p><b>Does it measure the construct you named?</b></p>
+                    <p style="margin:0">Wall-clock time on a shared server measures the server's other users too. Lines
+                        of code measures typing. Construct validity, from Lecture I.7 — now applied to the apparatus
+                        rather than the study.</p>
+                </div>
+                <div class="card">
+                    <h3 style="color:var(--brand)">Unbiased?</h3>
+                    <p><b>Does the act of measuring change the reading?</b></p>
+                    <p style="margin:0">Instrumentation overhead, warm-up and JIT effects, cache state, thermal
+                        throttling, background processes — and, with people, the fact that they know they are being
+                        watched.</p>
+                </div>
+            </div>
+            <div class="card tint-warn" style="margin-top:1em">
+                <p class="big" style="margin:0">The line to remember: <em class="hl">a benchmark that is faster on the
+                        second run is telling you about the cache, not about your algorithm.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 7 · INSTRUMENT DRILL ============ -->
+        <section class="slide" data-title="Drill · what is the instrument telling you?">
+            <span class="kicker">Drill · 5 minutes · name the artefact</span>
+            <h2>What is your instrument actually telling you?</h2>
+            <div class="card" style="min-height:8.5em">
+                <p class="footnote" style="margin:0 0 .3em">Case <span id="i-n">1</span> of <span id="i-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="i-score">0</span></p>
+                <p class="huge" id="i-stmt" style="font-size:1.35em">—</p>
+                <div class="grid" style="grid-template-columns:repeat(6,1fr); margin-top:.7em" id="i-opts">
+                    <button class="pick center" data-i="W"><b>Warm-up<br>/ JIT / cache</b></button>
+                    <button class="pick center" data-i="T"><b>Thermal<br>throttling</b></button>
+                    <button class="pick center" data-i="O"><b>Probe<br>overhead</b></button>
+                    <button class="pick center" data-i="H"><b>Observer<br>effect</b></button>
+                    <button class="pick center" data-i="L"><b>Layout /<br>setup bias</b></button>
+                    <button class="pick center" data-i="R"><b>Order /<br>carry-over</b></button>
+                </div>
+                <div id="i-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center">
+                    <button class="nav" id="i-next" style="font-size:.85em">Next case →</button>
+                    <div class="timer">
+                        <span class="t" data-sec="300">5:00</span>
+                        <button class="tbtn" data-timer="start">Start</button>
+                        <button class="tbtn" data-timer="reset">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · THE RIG ============ -->
+        <section class="slide" data-title="Building a measurement protocol">
+            <span class="kicker">The protocol that survives review</span>
+            <h2>How to measure something, properly</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>The protocol</h3>
+                    <ol class="stack-tight">
+                        <li><b>Warm up</b>, and discard the warm-up runs — saying how many you discarded and why.</li>
+                        <li><b>Repeat</b>: at least 10 measurement runs for timing, at least 3 seeds for anything
+                            stochastic.</li>
+                        <li><b>Randomise or counterbalance</b> the order of configurations, so drift and heat do not
+                            align with one arm.</li>
+                        <li><b>Quiet the machine</b>: no other load, fixed CPU governor, mains power, cooling between
+                            runs.</li>
+                        <li><b>Report median and spread</b> (IQR or SD), never a single best number.</li>
+                        <li><b>Record the environment</b>: CPU, GPU, RAM, OS, kernel, driver, library versions, compiler
+                            flags, container digest.</li>
+                    </ol>
+                </div>
+                <div class="card tint-good">
+                    <h3>The two habits that separate careful from careless</h3>
+                    <p class="big">1 · Measure your <b>noise floor first</b>.</p>
+                    <p style="margin:0 0 .6em">Run the identical configuration ten times and look at the spread. That
+                        number is the smallest difference you are entitled to talk about — write it in your notebook
+                        before you run any comparison.</p>
+                    <p class="big">2 · Report the <b>best number nobody asked for</b>.</p>
+                    <p style="margin:0">The variance, the failed runs, the outlier you cannot explain. A methods section
+                        that mentions its own noise reads as competent; one that reports only wins reads as marketing —
+                        and reviewers respond accordingly.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · REPRODUCIBILITY ============ -->
+        <section class="slide" data-title="Interactive · reproducibility packing list">
+            <span class="kicker">Interactive · click everything your project has today</span>
+            <h2>Reproducibility packing list</h2>
+            <p class="lead" style="margin:0 0 .5em">Be honest — click only what is <b>true right now</b>, not what you
+                intend to do in November. Items marked <span class="star" style="color:var(--bad); font-weight:900">★</span>
+                are essential.</p>
+            <div class="grid g3" id="repro" style="gap:.5em"></div>
+            <div class="grid g2" style="margin-top:.9em">
+                <div class="card" id="rep-card">
+                    <p style="margin:0">Score: <span class="score" id="rep-score">0</span> / 12 &nbsp;·&nbsp; essential
+                        items present: <span class="score" id="rep-ess">0</span> / 6</p>
+                    <p class="big" id="rep-verdict" style="margin:.3em 0 0">—</p>
+                </div>
+                <div class="card flat tint-brand">
+                    <p style="margin:0"><b>The working definition of reproducible:</b> a stranger with your repository,
+                        your README and no access to you can regenerate <b>every table and figure</b> in your report with
+                        one command — and get the same numbers, or a documented reason why not.</p>
+                    <p class="footnote" style="margin:.4em 0 0">This is also the cheapest insurance you will ever buy
+                        against your own laptop dying in week eleven.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · HUMAN INSTRUMENTS ============ -->
+        <section class="slide" data-title="When the instrument is a person">
+            <span class="kicker">Annotation, surveys and studies with people</span>
+            <h2>When the instrument is a person</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Annotation is an instrument — calibrate it</h3>
+                    <ul class="stack-tight">
+                        <li>A written <b>annotation guideline</b> with definitions and edge cases, produced
+                            <em>before</em> labelling begins.</li>
+                        <li><b>Two annotators</b> on an overlapping subset, with <b>Cohen's κ</b> reported. Low
+                            agreement is not a nuisance — it is evidence that your construct is not yet defined.</li>
+                        <li>A documented <b>adjudication rule</b> for disagreements.</li>
+                        <li>Labels are <b>data with provenance</b>: who labelled what, when, under which guideline
+                            version.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Survey and study design — four quick killers</h3>
+                    <ul class="stack-tight">
+                        <li><b>Leading questions.</b> “How much did the new interface improve your experience?” has
+                            decided the answer.</li>
+                        <li><b>Double-barrelled items.</b> “Was the tool fast and easy to use?” cannot be answered.</li>
+                        <li><b>Misused Likert data.</b> Ordinal responses averaged as if they were metres.</li>
+                        <li><b>Missing consent and anonymity.</b> Participation information, the right to withdraw, and
+                            no identifiers you do not need.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0">Unit II designs these properly; Unit III takes the
+                        ethics further.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · CASE STUDIES ============ -->
+        <section class="slide" data-title="Case studies as a method">
+            <span class="kicker">A method, not an anecdote</span>
+            <h2>Case study: an in-depth investigation in real context</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Use it when…</h3>
+                    <p>…the boundary between the phenomenon and its context is <b>exactly what is interesting</b>, and a
+                        controlled experiment is impossible.</p>
+                    <ul class="stack-tight">
+                        <li>One organisation's migration to microservices</li>
+                        <li>One team's adoption of a new tool, over six months</li>
+                        <li>One deployment's failure, and how it was diagnosed</li>
+                        <li>One open-source project's governance change</li>
+                    </ul>
+                    <p style="margin:.3em 0 0" class="footnote">You cannot randomise companies. You can study one
+                        deeply, and honestly.</p>
+                </div>
+                <div class="card">
+                    <h3>What makes it rigorous rather than a story</h3>
+                    <ol class="stack-tight">
+                        <li><b>An explicit case-selection rationale.</b> Why this case? Typical, extreme, critical, or
+                            simply available — say which.</li>
+                        <li><b>Multiple sources of evidence.</b> Interviews <em>and</em> repository data <em>and</em>
+                            documents <em>and</em> incident logs.</li>
+                        <li><b>Triangulation.</b> Where sources disagree, report the disagreement — do not pick the
+                            convenient one.</li>
+                        <li><b>A chain of evidence.</b> A reader can trace every conclusion back to a specific
+                            observation, and back further to the question.</li>
+                        <li><b>Honesty about generalisation.</b> Which brings us to the next slide.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · GENERALISATION ============ -->
+        <section class="slide" data-title="Analytic vs statistical generalisation">
+            <span class="kicker">The most misunderstood sentence in qualitative work</span>
+            <h2>What one case can and cannot tell you</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <h3>Statistical generalisation — what a case study cannot do</h3>
+                    <p class="big">“We studied one company, therefore Indian software companies behave this way.”</p>
+                    <p style="margin:0">A sample of one supports no inference to a population. No amount of depth
+                        repairs this; depth and breadth are different currencies.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Analytic generalisation — what it can do</h3>
+                    <p class="big">“In this case, migration failed for reasons X and Y — which the theory predicts, and
+                        which suggests the theory should be extended to cover Z.”</p>
+                    <p style="margin:0">The case generalises to <b>theory</b>, not to a population: it can support,
+                        extend, or <em class="hl">refute</em> a general explanation. A single well-documented case that
+                        contradicts a widely held claim is a substantial contribution.</p>
+                </div>
+            </div>
+            <div class="card" style="margin-top:1em">
+                <p class="big" style="margin:0">The practical rule for your report: write the sentence <b>“this study
+                        supports conclusions about ___, and does not support conclusions about ___.”</b> Reviewers who
+                    see it stop looking for the overclaim — because you have already ruled it out.</p>
+            </div>
+        </section>
+
+        <!-- ============ 13 · CASE GALLERY ============ -->
+        <section class="slide" data-title="Unit I's own case gallery">
+            <span class="kicker">Consolidation · every case we used, and what it taught</span>
+            <h2>Nine cases, nine lessons</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:4em">From</th>
+                            <th style="width:26%">Case</th>
+                            <th>The single thing it teaches</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>I.1</b></td>
+                            <td>Diabetic-retinopathy screening in Thailand</td>
+                            <td>A problem defined for the lab is not the problem in the clinic. Constraints belong
+                                <em>inside</em> the statement.</td>
+                        </tr>
+                        <tr>
+                            <td><b>I.2</b></td>
+                            <td>ImageNet · Google Flu Trends · Git and UPI</td>
+                            <td>The best gaps are <b>assumptions</b>, not absences; replication is a contribution;
+                                practice and industry pain are legitimate sources.</td>
+                        </tr>
+                        <tr>
+                            <td><b>I.4</b></td>
+                            <td>Watson for Oncology vs AlphaFold</td>
+                            <td>One had a scoreboard — a task, a benchmark, a metric, a deadline. The other never did.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><b>I.5</b></td>
+                            <td>Zillow Offers</td>
+                            <td>An accurate model answering the wrong question. The metric was won without the
+                                construct.</td>
+                        </tr>
+                        <tr>
+                            <td><b>I.6</b></td>
+                            <td>Chandler vs the Netflix Prize</td>
+                            <td>A boundary is not what limits a contribution — it is what makes one possible.</td>
+                        </tr>
+                        <tr>
+                            <td><b>I.7</b></td>
+                            <td>Pentium FDIV, 1994</td>
+                            <td>The kind of claim dictates the kind of evidence. Testing cannot settle a universal
+                                claim.</td>
+                        </tr>
+                        <tr>
+                            <td><b>I.8</b></td>
+                            <td>Anscombe's quartet · the COVID-19 model review</td>
+                            <td>Plot before you model; most catastrophic failures are failures of <b>data hygiene</b>,
+                                not of modelling.</td>
+                        </tr>
+                        <tr>
+                            <td><b>I.9</b></td>
+                            <td>Measurement bias · the unchecked spreadsheet</td>
+                            <td>The apparatus is part of the method, and “someone else can reproduce it” is the standard
+                                for done.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="lead" style="margin-top:.6em">This table is itself a small case study: multiple sources, an
+                explicit selection rationale, and a chain from each observation to a general claim about how research
+                fails.</p>
+        </section>
+
+        <!-- ============ 14 · TEN THINGS ============ -->
+        <section class="slide" data-title="Unit review · the ten that must survive">
+            <span class="kicker">Unit I review</span>
+            <h2>Ten things that must survive this unit</h2>
+            <div class="grid g2">
+                <ol class="stack-tight big" style="line-height:1.3">
+                    <li>A research problem is a gap you could be <b>wrong</b> about; if nothing could refute it, it is
+                        not one.</li>
+                    <li>Task, project and research problem differ on one axis: <b>is the outcome already known?</b></li>
+                    <li>Problem-finding is a <b>search, not a spark</b> — five sources, a repeatable procedure.</li>
+                    <li>The best gaps are <b>assumptions</b>; problems sitting in two sources are strongest.</li>
+                    <li>Narrow with the funnel and five knobs until <b>≈1 project</b> fits.</li>
+                </ol>
+                <ol class="stack-tight big" start="6" style="line-height:1.3">
+                    <li><b>FINER + M multiplies.</b> Any single 1 is fatal; feasibility is relative to you.</li>
+                    <li>Four repairs only: <b>narrow · re-anchor · re-measure · abandon</b>. Hoping is not one.</li>
+                    <li>Objectives use measurable verbs; <b>each maps to one experiment and one artefact</b>.</li>
+                    <li>The <b>approach follows the kind of claim</b>, not the method you already know.</li>
+                    <li>Interpretation is where honesty is tested: <b>negative results are results</b>, and you state
+                        your limitations first.</li>
+                </ol>
+            </div>
+            <div class="card tint-brand" style="margin-top:.9em">
+                <p class="big" style="margin:0">If you remember one sentence from Unit I: <em class="hl">a reviewer only
+                        ever gets the sentence — so everything that matters must be in it.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 15 · QUIZ ============ -->
+        <section class="slide" data-title="Rapid revision quiz (10)">
+            <span class="kicker">Rapid revision · 10 questions · Unit I complete</span>
+            <h2>Revision quiz</h2>
+            <div class="card" style="min-height:10em">
+                <p class="footnote" style="margin:0 0 .3em">Question <span id="q-n">1</span> of <span
+                        id="q-total">10</span> &nbsp;·&nbsp; Score: <span class="score" id="q-score">0</span></p>
+                <p class="big" id="q-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="q-opts" style="gap:.5em"></div>
+                <div id="q-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center">
+                    <button class="nav" id="q-next" style="font-size:.85em">Next question →</button>
+                    <button class="tbtn" id="q-restart">Restart</button>
+                    <div class="timer">
+                        <span class="t" data-sec="600">10:00</span>
+                        <button class="tbtn" data-timer="start">Start</button>
+                        <button class="tbtn" data-timer="reset">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 16 · EXIT CHECK ============ -->
+        <section class="slide" data-title="CO1 exit check">
+            <span class="kicker">CO1 exit check · you do not leave without this</span>
+            <h2>Your one-page research statement</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Eight things on one page</h3>
+                    <ol class="stack-tight">
+                        <li><b>Problem statement</b> — six moves, under 200 words <span class="footnote">(I.3, I.5)</span>
+                        </li>
+                        <li><b>FINER + M card</b> — with one line of evidence in every row <span
+                                class="footnote">(I.4)</span></li>
+                        <li><b>Scope · delimitations · limitations</b> — 3 / 3 / 2 <span class="footnote">(I.6)</span>
+                        </li>
+                        <li><b>One general + three specific objectives</b>, each naming its artefact <span
+                                class="footnote">(I.6)</span></li>
+                        <li><b>A directional hypothesis</b> and its refutation condition <span
+                                class="footnote">(I.6)</span></li>
+                        <li><b>Named approach</b> + the evidence package it requires <span class="footnote">(I.7)</span>
+                        </li>
+                        <li><b>Data plan</b> — source, access route, sampling, split rule <span
+                                class="footnote">(I.8)</span></li>
+                        <li><b>One sentence naming your biggest risk as a criterion</b> — “my weakest row is F, because
+                            access to the hospital data is unconfirmed.” <span class="footnote">(I.4, I.5)</span></li>
+                    </ol>
+                </div>
+                <div class="card tint-good">
+                    <h3>Self-check, right now — 4 minutes</h3>
+                    <p>Go through your notebook and mark each of the eight <b>✓ present</b>, <b>~ partial</b>, or
+                        <b>✗ missing</b>. Then write one line: <i>“Before Unit II, I must complete ___ by ___.”</i></p>
+                    <p class="card flat tint-warn" style="padding:.5em .8em; margin:.5em 0 0"><b>Anything marked ✗ is
+                            not a gap in your notebook — it is a gap in your project.</b> Every item above is something a
+                        reviewer will ask for, and every one of them is cheaper to write today than to reconstruct in
+                        November when Assignment 2 asks for the full proposal.</p>
+                    <div class="timer" style="margin-top:.5em">
+                        <span class="t" data-sec="240">4:00</span>
+                        <button class="tbtn" data-timer="start">Start self-check</button>
+                        <button class="tbtn" data-timer="reset">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 17 · WHAT UNIT II DOES ============ -->
+        <section class="slide" data-title="What Unit II does with all this">
+            <span class="kicker">The handover</span>
+            <h2>Unit I asked <em>what</em> to investigate. Unit II asks <em>what counts as proof</em>.</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>What you now hold</h3>
+                    <p class="big" style="margin:0 0 .4em">A defensible research problem, bounded, with objectives, a
+                        hypothesis, an approach, and a data plan.</p>
+                    <p style="margin:0">That is CO1, complete. It is also the thing most final-year students never
+                        produce at all — they start with a technology and reverse-engineer a justification in the last
+                        week.</p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Where Unit II takes it (13 hours, CO2)</h3>
+                    <ul class="stack-tight">
+                        <li>What counts as a <b>knowledge claim</b> in computing, and the types of contribution</li>
+                        <li><b>Claim–evidence–warrant</b> and the Toulmin model of argument</li>
+                        <li><b>Proof by demonstration</b> — the artefact as evidence, done rigorously</li>
+                        <li><b>Experiment design</b>: variables, controls, benchmarks, reproducibility</li>
+                        <li><b>User studies and surveys</b>; sampling and instrument design</li>
+                        <li><b>Mathematical proof</b> as research evidence; deduction, induction, abduction</li>
+                        <li><b>Performance evaluation</b>: metrics, baselines, workloads, statistical significance</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0">Every one of these deepens something you met this unit
+                        — which is why the notebook you have been building is the input to Unit II, not a parallel
+                        exercise.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 18 · NOTEBOOK ============ -->
+        <section class="slide" data-title="Notebook task and close">
+            <span class="kicker">Research Notebook · Unit I closing entry</span>
+            <h2>Your notebook task after this lecture</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Five things to add</h3>
+                    <ol class="stack-tight">
+                        <li><b>Lecture log.</b> Date, “I.9 — instrumentation, case studies, unit review”, and your
+                            reproducibility score out of 12.</li>
+                        <li><b>Section 11 · Experimental Plan.</b> Your measurement protocol: warm-up runs discarded,
+                            repetitions, run order, machine state, and what you report (median + spread).</li>
+                        <li><b>Section 11.</b> Your <b>noise floor</b> — the run-to-run spread of a single
+                            configuration, measured, with a date. Any claimed improvement smaller than this number is
+                            not claimable.</li>
+                        <li><b>Section 9 · Proposed Methodology.</b> Your instrumentation list, including library
+                            versions, hardware and seeds — the things a stranger would need to rebuild your setup.</li>
+                        <li><b>A new one-page entry: the CO1 exit statement</b> from the previous slide, with the eight
+                            items and your ✓ / ~ / ✗ marks.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Stamp them <code>\version{6}{...}{after Lecture
+                            I.9}</code> — and note that your Section 3 now has six dated versions. <b>That evolution is
+                            the point of the notebook.</b></p>
+                </div>
+                <div class="card">
+                    <div class="card flat tint-good" style="padding:.7em .9em">
+                        <h3 style="margin-bottom:.2em">Unit I · done when…</h3>
+                        <ul class="stack-tight" style="margin:0">
+                            <li>Your problem statement has at least three dated versions.</li>
+                            <li>Someone else's name appears in your notebook at least twice.</li>
+                            <li>You have killed at least one idea, with a written reason.</li>
+                            <li>You can name your approach, your metric, your baseline and your refutation condition
+                                without looking.</li>
+                            <li>You can say, in one sentence, what would make you abandon this project.</li>
+                        </ul>
+                    </div>
+                    <p class="big" style="margin:.8em 0 0">You began Unit I able to <b>build</b> things. You end it able
+                        to decide <em class="hl">what deserves to be built</em>, and to defend that decision to someone
+                        who is not obliged to agree with you.</p>
+                    <p class="footnote" style="margin:.6em 0 0"><b>Sources:</b> Mytkowicz et al. (2009), ASPLOS ·
+                        Herndon, Ash &amp; Pollin (2013) · Runeson &amp; Höst (2009), case-study guidelines · Yin,
+                        <i>Case Study Research</i> · ACM artefact badging.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 18</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script>
+        /* ---------------- deck engine ---------------- */
+        const slides = [...document.querySelectorAll('.slide')];
+        let cur = 0;
+
+        slides.forEach(s => {
+            const fit = document.createElement('div');
+            fit.className = 'fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+        });
+
+        function fitSlide(s) {
+            const f = s.querySelector('.fit');
+            if (!f) return;
+            f.style.transform = 'none';
+            const cs = getComputedStyle(s);
+            const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const h = f.offsetHeight;
+            if (avail <= 0 || h <= 0) return;
+            const k = Math.min(1, avail / h);
+            f.style.transform = k > 0.995 ? 'none' : 'scale(' + k.toFixed(4) + ')';
+        }
+        const fitNow = () => fitSlide(slides[cur]);
+        const fitSoon = () => requestAnimationFrame(() => requestAnimationFrame(fitNow));
+        window.addEventListener('resize', fitNow);
+        document.addEventListener('click', fitSoon, true);
+        document.addEventListener('change', fitSoon, true);
+        document.addEventListener('input', fitSoon, true);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('title-now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            slides[cur].scrollTop = 0;
+            location.hash = 's' + (cur + 1);
+            fitSlide(slides[cur]);
+        }
+        function go(d) { show(cur + d); }
+
+        document.addEventListener('keydown', e => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.key === 'Escape') { document.getElementById('overview').classList.add('hidden'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'd') toggleTheme();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 't') { const t = document.getElementById('lect-t'); t.__toggle && t.__toggle(); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        function toggleTheme() {
+            const h = document.documentElement;
+            h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('hidden'); }
+
+        const ovList = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + (i + 1) + '</b><span>' + (s.dataset.title || '') + '</span>';
+            b.onclick = () => { show(i); toggleOverview(); };
+            ovList.appendChild(b);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(b => {
+            const label = b.textContent;
+            b.addEventListener('click', () => {
+                const t = document.querySelector(b.dataset.reveal);
+                t.classList.toggle('hidden');
+                b.textContent = t.classList.contains('hidden') ? label : 'Hide again';
+            });
+        });
+
+        document.querySelectorAll('.timer').forEach(box => {
+            const disp = box.querySelector('.t');
+            const total = parseInt(disp.dataset.sec, 10);
+            let left = total, id = null;
+            const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            const paint = () => {
+                disp.textContent = fmt(left);
+                disp.classList.toggle('low', left <= Math.max(10, total * 0.15));
+            };
+            const tick = () => { if (left > 0) { left--; paint(); } else { clearInterval(id); id = null; } };
+            const toggle = () => { if (id) { clearInterval(id); id = null; } else { id = setInterval(tick, 1000); } };
+            disp.__toggle = toggle;
+            box.querySelector('[data-timer=start]').addEventListener('click', toggle);
+            box.querySelector('[data-timer=reset]').addEventListener('click', () => {
+                clearInterval(id); id = null; left = total; paint();
+            });
+            paint();
+        });
+
+        /* ---------------- instrument drill ---------------- */
+        const instr = [
+            {
+                s: '“The first run of our benchmark takes four times longer than runs 2 to 10.”',
+                a: 'W', w: '<b>Warm-up.</b> Cold caches, page faults, lazy loading, JIT compilation. Discard warm-up runs — and state in the paper how many you discarded, because that choice is part of your protocol.'
+            },
+            {
+                s: '“Over a twenty-minute measurement session on a laptop, every configuration gets slowly worse.”',
+                a: 'T', w: '<b>Thermal throttling.</b> The CPU is reducing its clock as it heats. If your configurations ran in a fixed order, the last one is unfairly penalised. Fix: cool-down gaps, a fixed governor, randomised order, and report the machine state.'
+            },
+            {
+                s: '“After we added logging to record per-request latency, measured latency rose by 15%.”',
+                a: 'O', w: '<b>Probe overhead.</b> The instrument is now part of the system under test. Fix: sample rather than log everything, measure the overhead explicitly, and subtract or bound it — then report that you did.'
+            },
+            {
+                s: '“Participants completed the task noticeably faster during the observed session than in the logs from the previous week.”',
+                a: 'H', w: '<b>Observer effect.</b> People behave differently when watched. Fix: unobtrusive measures where ethically permitted, a practice session, and honest acknowledgement in your limitations.'
+            },
+            {
+                s: '“Changing the order of object files at link time changed which compiler flag looked faster.”',
+                a: 'L', w: '<b>Layout / setup bias</b> — the Mytkowicz et al. finding. Code and data placement changes cache and alignment behaviour. Fix: randomise the experimental setup across many configurations and report the distribution, not one build.'
+            },
+            {
+                s: '“Method A wins whenever it runs first, and method B wins whenever it runs first.”',
+                a: 'R', w: '<b>Order / carry-over effect.</b> Something persists between runs — cache, memory fragmentation, file-system state, or in a user study, learning. Fix: counterbalance or randomise order, and reset state between runs.'
+            }
+        ];
+        let ii = 0, isc = 0, iLock = false;
+        function paintI() {
+            document.getElementById('i-n').textContent = ii + 1;
+            document.getElementById('i-total').textContent = instr.length;
+            document.getElementById('i-stmt').textContent = instr[ii].s;
+            document.getElementById('i-score').textContent = isc;
+            document.getElementById('i-fb').classList.add('hidden');
+            document.querySelectorAll('#i-opts .pick').forEach(b => b.className = 'pick center');
+            iLock = false;
+        }
+        document.querySelectorAll('#i-opts .pick').forEach(b => {
+            b.addEventListener('click', () => {
+                if (iLock) return;
+                iLock = true;
+                const right = instr[ii].a;
+                if (b.dataset.i === right) { b.classList.add('right'); isc++; }
+                else {
+                    b.classList.add('wrong');
+                    document.querySelector('#i-opts [data-i="' + right + '"]').classList.add('right');
+                }
+                document.getElementById('i-score').textContent = isc;
+                const fb = document.getElementById('i-fb');
+                fb.innerHTML = instr[ii].w;
+                fb.classList.remove('hidden');
+            });
+        });
+        document.getElementById('i-next').addEventListener('click', () => {
+            if (ii < instr.length - 1) { ii++; paintI(); }
+            else {
+                const fb = document.getElementById('i-fb');
+                fb.classList.remove('hidden');
+                fb.innerHTML = '<b>' + isc + ' / ' + instr.length + '.</b> Every one of these produces clean-looking numbers with no error message. That is why the protocol — not the code — is what protects you.';
+            }
+        });
+        paintI();
+
+        /* ---------------- reproducibility packing list ---------------- */
+        const REPRO = [
+            { t: 'Code in version control, including config files', ess: 1 },
+            { t: 'Dependency versions pinned (lockfile / environment file)', ess: 1 },
+            { t: 'Random seeds fixed <b>and reported</b>', ess: 1 },
+            { t: 'One command regenerates every table and figure', ess: 1 },
+            { t: 'Data available, or exact access instructions', ess: 1 },
+            { t: 'A README a stranger can follow', ess: 1 },
+            { t: 'Hardware and OS recorded (CPU, GPU, RAM, kernel)', ess: 0 },
+            { t: 'The exact train / validation / test split saved as files', ess: 0 },
+            { t: 'Raw per-run results archived, not only averages', ess: 0 },
+            { t: 'Licence stated for both code and data', ess: 0 },
+            { t: 'Runtime and cost recorded (hours, GPU-hours)', ess: 0 },
+            { t: 'A tagged release for the exact version reported', ess: 0 }
+        ];
+        const repBox = document.getElementById('repro');
+        REPRO.forEach((r, i) => {
+            const b = document.createElement('button');
+            b.className = 'ck';
+            b.dataset.i = i;
+            b.innerHTML = (r.ess ? '<span class="star">★</span> ' : '') + r.t;
+            b.addEventListener('click', () => { b.classList.toggle('on'); repScore(); });
+            repBox.appendChild(b);
+        });
+        function repScore() {
+            const on = [...repBox.querySelectorAll('.ck.on')].map(b => +b.dataset.i);
+            const ess = on.filter(i => REPRO[i].ess).length;
+            document.getElementById('rep-score').textContent = on.length;
+            document.getElementById('rep-ess').textContent = ess;
+            const card = document.getElementById('rep-card'), v = document.getElementById('rep-verdict');
+            if (ess < 3) {
+                card.className = 'card tint-bad';
+                v.innerHTML = 'As it stands, <b>nobody else can rerun your work</b> — including you, in December, on a new laptop. Start with the six starred items; they cost an afternoon.';
+            } else if (ess < 6) {
+                card.className = 'card tint-warn';
+                v.innerHTML = 'Partially reproducible. A determined stranger might get close, and would get different numbers without knowing why. Close the remaining starred gaps first.';
+            } else if (on.length < 10) {
+                card.className = 'card tint-good';
+                v.innerHTML = 'Reproducible in practice. Add the remaining items and your project would meet most conference artefact-evaluation criteria.';
+            } else {
+                card.className = 'card tint-good';
+                v.innerHTML = 'This is artefact-badge standard. Very few final-year projects reach it — and the ones that do are the ones that turn into papers.';
+            }
+        }
+
+        /* ---------------- revision quiz ---------------- */
+        const quiz = [
+            {
+                q: 'What single axis distinguishes a research problem from a project?',
+                o: ['How difficult it is', 'How long it takes', 'Whether the outcome is already known', 'Whether it uses AI'],
+                a: 2, w: 'Difficulty, duration and technology are all irrelevant. A project’s unknown is <em>how to build it</em>; a research problem’s unknown is <em>whether it holds at all</em>.'
+            },
+            {
+                q: 'Which kind of literature gap is hardest to see and highest in payoff?',
+                o: ['Explicit gaps in Future Work', 'Population gaps', 'Contradiction between two papers', 'An assumption nobody has tested'],
+                a: 3, w: 'Everyone reads Future Work, so those gaps are crowded. The assumption gap is what ImageNet was: everyone tuned models, and Fei-Fei Li asked whether the data was the bottleneck.'
+            },
+            {
+                q: 'How do the FINER + M criteria combine?',
+                o: ['They average — a strong row compensates a weak one', 'They multiply — any single 1 is fatal', 'Only Feasible and Novel matter', 'They are ranked, and Ethical outranks the rest'],
+                a: 1, w: 'They multiply. A 5-5-5-5-5-1 problem is a dead problem — and feasibility is relative to <em>you</em>, not to a well-funded lab.'
+            },
+            {
+                q: '“We will improve the user experience of our app using modern web technologies.” Which error, and which repair?',
+                o: ['Over-scoping → narrow', 'Unfalsifiable → re-measure', 'Already solved → re-anchor', 'Method-first → abandon'],
+                a: 1, w: 'No construct, no metric, no threshold, so no result could count as failure. The repair is re-measure: construct → operational definition → metric → threshold.'
+            },
+            {
+                q: 'Your problem needs hospital data behind an eight-month approval you have not started. Which repair works?',
+                o: ['Narrow the scope to fewer patients', 'Re-anchor to obtainable data', 'Re-measure with a different metric', 'Proceed and mention it as a limitation'],
+                a: 1, w: 'Narrowing fixes scope, never access — a smaller slice of inaccessible data is still inaccessible. Only re-anchoring to a source you can actually obtain repairs it.'
+            },
+            {
+                q: 'Which of these is a <b>delimitation</b>?',
+                o: ['“We evaluate on three crops.”', '“The ethics approval permits only 30 participants.”', '“We exclude yield prediction, because it needs data we do not collect.”', '“We have one GPU, so larger models were untrainable.”'],
+                a: 2, w: 'Scope = what is in (chosen). Delimitation = what is out, chosen, <em>with a reason</em>. Limitation = imposed on you. Only the third is a chosen exclusion carrying its justification.'
+            },
+            {
+                q: 'Which objective would be marked down immediately?',
+                o: ['Quantify the top-1 accuracy drop on field images', 'Understand the behaviour of transformers on noisy data', 'Compare three published models on the same test set', 'Measure p95 latency on a low-end handset'],
+                a: 1, w: '“Understand” names a state of mind: no observable, no artefact, nothing an examiner can check. Use measurable verbs — measure, compare, quantify, characterise, evaluate, attribute.'
+            },
+            {
+                q: '“No deterministic protocol can solve this under asynchrony with one faulty process.” Which approach settles it?',
+                o: ['Experimental', 'Simulation', 'Analytical', 'Design science'],
+                a: 2, w: 'The claim quantifies over every protocol that could ever be written. No experiment ranges over all protocols; only a proof does.'
+            },
+            {
+                q: 'Each patient contributed 40 images, and the images were split randomly into train and test. What is wrong?',
+                o: ['Nothing — random splitting is correct', 'Group leakage', 'Temporal leakage', 'Class imbalance'],
+                a: 1, w: 'The same patient appears on both sides, so the model can recognise the patient rather than the condition. Split by the group — patient, user, repository, document.'
+            },
+            {
+                q: '“78.1% versus 77.9%, one run each — we significantly outperform prior work.” Which validity is threatened?',
+                o: ['Internal', 'External', 'Construct', 'Conclusion'],
+                a: 3, w: 'Conclusion validity: no variance, no test, no effect size, and a gap almost certainly smaller than run-to-run noise. Report ≥3 seeds, mean ± SD, and match the adverb to the arithmetic.'
+            }
+        ];
+        let qi = 0, qsc = 0, qLock = false;
+        const qOpts = document.getElementById('q-opts');
+        function paintQ() {
+            document.getElementById('q-n').textContent = qi + 1;
+            document.getElementById('q-total').textContent = quiz.length;
+            document.getElementById('q-stmt').innerHTML = quiz[qi].q;
+            document.getElementById('q-score').textContent = qsc;
+            document.getElementById('q-fb').classList.add('hidden');
+            qOpts.innerHTML = '';
+            quiz[qi].o.forEach((t, k) => {
+                const b = document.createElement('button');
+                b.className = 'pick';
+                b.innerHTML = '<b>' + 'ABCD'[k] + '.</b> ' + t;
+                b.addEventListener('click', () => {
+                    if (qLock) return;
+                    qLock = true;
+                    const right = quiz[qi].a;
+                    if (k === right) { b.classList.add('right'); qsc++; }
+                    else {
+                        b.classList.add('wrong');
+                        qOpts.children[right].classList.add('right');
+                    }
+                    document.getElementById('q-score').textContent = qsc;
+                    const fb = document.getElementById('q-fb');
+                    fb.innerHTML = quiz[qi].w;
+                    fb.classList.remove('hidden');
+                });
+                qOpts.appendChild(b);
+            });
+            qLock = false;
+        }
+        document.getElementById('q-next').addEventListener('click', () => {
+            if (qi < quiz.length - 1) { qi++; paintQ(); }
+            else {
+                const fb = document.getElementById('q-fb');
+                fb.classList.remove('hidden');
+                fb.innerHTML = '<b>Unit I revision: ' + qsc + ' / ' + quiz.length + '.</b> ' +
+                    (qsc >= 9 ? 'You are ready for Class Test 1 on this unit. Spend your revision time on Unit II instead.'
+                        : qsc >= 7 ? 'Solid. Re-read the two lectures behind the questions you missed — they are the ones Class Test 1 will reward.'
+                            : 'Work back through the error map (I.5), the four repair moves, and the claim → approach table (I.7). Those three carry most of the marks.');
+            }
+        });
+        document.getElementById('q-restart').addEventListener('click', () => { qi = 0; qsc = 0; paintQ(); });
+        paintQ();
+
+        /* ---------------- boot ---------------- */
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+        repScore();
+    </script>
+</body>
+
+</html>
