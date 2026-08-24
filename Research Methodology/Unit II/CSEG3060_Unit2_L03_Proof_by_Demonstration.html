@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · II.3 — Proof Methods I: Proof by Demonstration</title>
+    <meta name="description"
+        content="Activity-led lecture II.3 for Research Methodology in Computer Science (CSEG3060): proof by demonstration - the artefact or system as evidence. Design-science research in computing, Hevner's guidelines, the four levels of demonstration, existence proof versus evaluation, what a working build does and does not prove, and the advantages and limitations of demonstration as a proof method.">
+    <style>
+        /* ============================================================
+           CSEG3060 - Unit II - Lecture II.3
+           Self-contained interactive deck. No external assets.
+           Activity-led: slides marked data-mode="do" are student work.
+           Keys: → / Space next · ← prev · O overview · T timer · D dark · F fullscreen
+           ============================================================ */
+
+        :root {
+            --ink: #0f1e35;
+            --ink-soft: #3d5372;
+            --ink-faint: #6b7f9c;
+            --bg: #eef2f8;
+            --surface: #ffffff;
+            --surface-2: #f6f9fd;
+            --line: #d3dced;
+            --brand: #1d5fd0;
+            --brand-soft: #e5eeff;
+            --good: #147a45;
+            --good-soft: #e2f5ea;
+            --bad: #b3182b;
+            --bad-soft: #fdeaec;
+            --warn: #a9640a;
+            --warn-soft: #fdf1de;
+            --do: #7b2fd0;
+            --do-soft: #f1e8fd;
+            --shadow: 0 2px 4px rgba(15, 30, 53, .06), 0 12px 32px rgba(15, 30, 53, .10);
+            --radius: 16px;
+            --fs: clamp(18px, 1.0vw + 12px, 33px);
+        }
+
+        html[data-theme="dark"] {
+            --ink: #eaf1fb;
+            --ink-soft: #b6c6dd;
+            --ink-faint: #8ea3c0;
+            --bg: #0b1220;
+            --surface: #131f33;
+            --surface-2: #18263d;
+            --line: #2c3d59;
+            --brand: #6ea8ff;
+            --brand-soft: #1a2c4c;
+            --good: #4ade80;
+            --good-soft: #123024;
+            --bad: #fb7185;
+            --bad-soft: #3a1620;
+            --warn: #fbbf24;
+            --warn-soft: #392a10;
+            --do: #c99bff;
+            --do-soft: #2a1a44;
+            --shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: var(--fs);
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            gap: .8em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            font-size: .68em;
+            letter-spacing: .02em;
+            color: var(--ink-faint);
+            z-index: 40;
+        }
+
+        .topbar b {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .topbar .spacer {
+            flex: 1;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .18em .8em;
+            background: var(--surface-2);
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .chip:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .progress {
+            position: fixed;
+            top: 2.4em;
+            left: 0;
+            height: 4px;
+            background: var(--brand);
+            z-index: 41;
+            transition: width .25s ease;
+        }
+
+        .deck {
+            position: absolute;
+            inset: 2.4em 0 0 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: clamp(14px, 2.2vh, 30px) clamp(18px, 3.4vw, 70px) 4.2em;
+            display: none;
+            animation: in .28s ease both;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide[data-mode="do"] {
+            background:
+                linear-gradient(90deg, var(--do) 0 6px, transparent 6px);
+        }
+
+        .fit {
+            display: flow-root;
+            transform-origin: top center;
+        }
+
+        @keyframes in {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.1em;
+            display: flex;
+            align-items: center;
+            gap: .6em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            z-index: 40;
+            font-size: .7em;
+        }
+
+        .navbar .count {
+            font-weight: 800;
+            color: var(--ink-soft);
+            min-width: 5.5em;
+        }
+
+        .navbar .title-now {
+            color: var(--ink-faint);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button.nav {
+            font: inherit;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: .45em 1.1em;
+            cursor: pointer;
+        }
+
+        button.nav:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            line-height: 1.08;
+            margin: .1em 0 .3em;
+            letter-spacing: -.02em;
+        }
+
+        h2 {
+            font-size: 1.72em;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            letter-spacing: -.015em;
+        }
+
+        h3 {
+            font-size: 1.12em;
+            margin: 0 0 .4em;
+        }
+
+        p {
+            margin: 0 0 .7em;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: .62em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: .35em 1em;
+            margin-bottom: .9em;
+        }
+
+        .kicker.do {
+            color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .lead {
+            font-size: 1.12em;
+            color: var(--ink-soft);
+        }
+
+        .big {
+            font-size: 1.35em;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .huge {
+            font-size: 2.1em;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+        }
+
+        em.hl {
+            font-style: normal;
+            background: linear-gradient(transparent 62%, rgba(29, 95, 208, .26) 0);
+            font-weight: 700;
+        }
+
+        .quote {
+            font-size: 1.15em;
+            border-left: 6px solid var(--brand);
+            padding: .3em 0 .3em 1em;
+            color: var(--ink-soft);
+            font-style: italic;
+            margin: .8em 0;
+        }
+
+        code,
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: .92em;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: .06em .38em;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(10px, 1.4vw, 20px);
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .g5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .g23 {
+            grid-template-columns: 2fr 3fr;
+        }
+
+        .g32 {
+            grid-template-columns: 3fr 2fr;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: clamp(12px, 1.5vw, 22px);
+            box-shadow: var(--shadow);
+        }
+
+        .flat {
+            box-shadow: none;
+        }
+
+        .tint-good {
+            background: var(--good-soft);
+            border-color: color-mix(in srgb, var(--good) 35%, transparent);
+        }
+
+        .tint-bad {
+            background: var(--bad-soft);
+            border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+        }
+
+        .tint-warn {
+            background: var(--warn-soft);
+            border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+        }
+
+        .tint-brand {
+            background: var(--brand-soft);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+
+        .tint-do {
+            background: var(--do-soft);
+            border-color: color-mix(in srgb, var(--do) 40%, transparent);
+        }
+
+        ul,
+        ol {
+            margin: 0 0 .6em;
+            padding-left: 1.15em;
+        }
+
+        li {
+            margin-bottom: .42em;
+        }
+
+        li::marker {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .stack-tight li {
+            margin-bottom: .25em;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: .66em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+            padding: .2em .6em;
+            border: 1px solid currentColor;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88em;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: .5em .7em;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: .82em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--ink-faint);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .reveal-btn {
+            font: inherit;
+            font-weight: 800;
+            font-size: .88em;
+            border: 2px dashed var(--brand);
+            color: var(--brand);
+            background: transparent;
+            border-radius: 10px;
+            padding: .4em 1em;
+            cursor: pointer;
+        }
+
+        .reveal-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pick {
+            text-align: left;
+            font: inherit;
+            width: 100%;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .55em .8em;
+            color: var(--ink);
+            transition: .15s;
+        }
+
+        .pick:hover {
+            border-color: var(--brand);
+            transform: translateY(-2px);
+        }
+
+        .pick.sel {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .pick.right {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .pick.wrong {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .verdict {
+            margin-top: .6em;
+            font-size: .92em;
+            border-left: 5px solid var(--brand);
+            padding-left: .8em;
+            color: var(--ink-soft);
+        }
+
+        .ck {
+            font: inherit;
+            font-size: .82em;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .35em .6em;
+            color: var(--ink);
+        }
+
+        .ck.on {
+            border-color: var(--good);
+            background: var(--good-soft);
+            font-weight: 700;
+        }
+
+        .ck .star {
+            color: var(--bad);
+            font-weight: 900;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: .5em;
+            font-weight: 900;
+        }
+
+        .timer .t {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 1.5em;
+            min-width: 3.4em;
+            text-align: center;
+            background: var(--surface-2);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .05em .3em;
+        }
+
+        .timer .t.low {
+            color: var(--bad);
+            border-color: var(--bad);
+        }
+
+        .tbtn {
+            font: inherit;
+            font-size: .8em;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 8px;
+            padding: .3em .8em;
+            cursor: pointer;
+        }
+
+        .tbtn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .overview {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 60;
+            padding: 2em clamp(18px, 4vw, 70px);
+            overflow-y: auto;
+        }
+
+        .ov-item {
+            display: flex;
+            gap: .8em;
+            align-items: baseline;
+            width: 100%;
+            text-align: left;
+            font: inherit;
+            font-size: .82em;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: .5em .8em;
+            margin-bottom: .4em;
+            cursor: pointer;
+            color: var(--ink);
+        }
+
+        .ov-item:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .ov-item b {
+            color: var(--brand);
+            min-width: 2.2em;
+        }
+
+        .ov-item .do-dot {
+            margin-left: auto;
+            font-size: .7em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: var(--do);
+            background: var(--do-soft);
+            border-radius: 999px;
+            padding: .1em .7em;
+        }
+
+        .score {
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .footnote {
+            font-size: .74em;
+            color: var(--ink-faint);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--brand);
+            font-weight: 900;
+        }
+
+        /* ---- activity banner ---- */
+        .runbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .7em;
+            background: var(--do-soft);
+            border: 1px solid color-mix(in srgb, var(--do) 40%, transparent);
+            border-left: 6px solid var(--do);
+            border-radius: 12px;
+            padding: .5em .9em;
+            font-size: .8em;
+            margin-bottom: .8em;
+        }
+
+        .runbar b {
+            color: var(--do);
+        }
+
+        .runbar .step {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .15em .8em;
+            font-weight: 700;
+        }
+
+        /* ---- Toulmin diagram ---- */
+        .toul {
+            display: grid;
+            gap: .5em;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: stretch;
+        }
+
+        .tbox {
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .5em .8em;
+            background: var(--surface);
+        }
+
+        .tbox h4 {
+            margin: 0 0 .15em;
+            font-size: .78em;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        .tbox p {
+            margin: 0;
+            font-size: .92em;
+        }
+
+        .tbox.k-claim {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .tbox.k-warrant {
+            border-color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .tbox.k-ground {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .tbox.k-reb {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .tbox.k-qual {
+            border-color: var(--warn);
+            background: var(--warn-soft);
+        }
+
+        .tarrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--ink-faint);
+        }
+
+        @media (max-width: 900px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .g5,
+            .g23,
+            .g32,
+            .toul {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+
+            body,
+            html {
+                overflow: visible;
+                background: #fff;
+            }
+
+            .topbar,
+            .navbar,
+            .progress,
+            .overview {
+                display: none !important;
+            }
+
+            .deck {
+                position: static;
+            }
+
+            .slide {
+                display: block !important;
+                position: static;
+                page-break-after: always;
+                animation: none;
+                padding: 12mm;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .hidden {
+                display: block !important;
+            }
+
+            .fit {
+                transform: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <b>CSEG3060</b><span>Research Methodology in Computer Science</span>
+        <span>·</span><span>Unit II · Lecture II.3</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit II · Lecture II.3 · CO2 · activity-led · focus topic</span>
+            <h1>Proof Methods I<br><span style="color:var(--brand)">Proof by Demonstration</span></h1>
+            <p class="lead big" style="max-width:36em">You have built things for five semesters. This hour asks the
+                question nobody has asked you before: <em>what does a working system actually prove?</em></p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · The artefact as evidence</h3>
+                    <p style="margin:0">Design-science research: when building <em>is</em> the method, and what makes it
+                        research rather than development.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Existence vs evaluation</h3>
+                    <p style="margin:0">One demo settles “is it possible?”. It settles <b>nothing</b> about “is it
+                        better?”.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · Strengths and limits</h3>
+                    <p style="margin:0">What demonstration buys you, what it cannot buy at any price, and the four
+                        levels of it.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>You leave with</h3>
+                    <p style="margin:0">Your own artefact placed on the demonstration ladder, and the exact claim it
+                        entitles you to make.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · 5th Semester
+                B.Tech CSE · 55 minutes · <b style="color:var(--do)">≈ 27 minutes of this hour is your work</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Demo autopsy">
+            <span class="kicker do">Do first · 5 minutes · no theory yet</span>
+            <h2>Here is a final-year project. What has it proved?</h2>
+            <div class="runbar">
+                <span class="step">1 · Alone, 2 min — list every claim this project is entitled to</span>
+                <span class="step">2 · Pairs, 2 min — cross out the ones it is <b>not</b></span>
+                <span class="step">3 · Class, 1 min</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="300">5:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="card tint-do">
+                <p class="big" style="margin:0 0 .4em">“<b>SmartAttend</b> — an automated attendance system using face
+                    recognition.”</p>
+                <p style="margin:0 0 .3em">The team built a working Android app plus a Flask backend. It runs. On a live
+                    demo in the lab it recognised 28 of 30 students in 40 seconds. The report concludes:</p>
+                <ul class="stack-tight" style="margin:0">
+                    <li>“The system is <b>accurate</b>, achieving 93.3% recognition.”</li>
+                    <li>“The system is <b>faster</b> than manual roll-call.”</li>
+                    <li>“The system is <b>suitable for deployment</b> across the university.”</li>
+                    <li>“Face recognition <b>is an effective solution</b> for attendance management.”</li>
+                </ul>
+            </div>
+            <div class="card" style="margin-top:.8em">
+                <p class="big" style="margin:0">For each of the four conclusions, answer:</p>
+                <ol class="stack-tight" style="margin:.4em 0 0">
+                    <li>What would you have to <b>compare against</b> for this sentence to mean anything?</li>
+                    <li>Which of these could the demo <b>possibly</b> establish, and which could it never?</li>
+                    <li>Is there <b>any</b> claim here that the working system genuinely settles?</li>
+                </ol>
+            </div>
+            <p class="footnote" style="margin-top:.6em">Be honest — most of you have written a report shaped exactly like
+                this one, and it probably scored well.</p>
+        </section>
+
+        <!-- ============ 3 · REVEAL ============ -->
+        <section class="slide" data-title="Reveal · one of the four survives">
+            <span class="kicker">Reveal · the autopsy</span>
+            <h2>Three of those are not claims the demo can support. One is.</h2>
+            <div class="grid" style="gap:.5em">
+                <div class="card flat tint-bad">
+                    <p style="margin:0"><b>“Accurate — 93.3%”</b> &nbsp;<span class="footnote">Compared with what?
+                        Measured on whom? Thirty students, once, in lab lighting, with no strangers present and no
+                        attempt at impersonation. 93.3% of one session is not an accuracy; it is an
+                        anecdote.</span></p>
+                </div>
+                <div class="card flat tint-bad">
+                    <p style="margin:0"><b>“Faster than manual roll-call”</b> &nbsp;<span class="footnote">Manual
+                        roll-call was never timed. There is no baseline in the study at all. And 40 seconds for 30
+                        students is roughly what calling names takes.</span></p>
+                </div>
+                <div class="card flat tint-bad">
+                    <p style="margin:0"><b>“Suitable for deployment university-wide”</b> &nbsp;<span
+                            class="footnote">Untested at scale, in corridors, in poor light, with 8,000 identities, with
+                        twins, with masks, and with no consideration of consent or data protection. This is a
+                        <em>generalisation</em> from n = 1 setting.</span></p>
+                </div>
+                <div class="card flat tint-bad">
+                    <p style="margin:0"><b>“Face recognition is an effective solution”</b> &nbsp;<span
+                            class="footnote">A claim about a whole technology, from one prototype. The most confident
+                        sentence in the report and the least supported.</span></p>
+                </div>
+                <div class="card flat tint-good">
+                    <p style="margin:0"><b style="color:var(--good)">What it genuinely proved:</b> that a face-recognition
+                        attendance pipeline <b>can be built and run end-to-end on commodity Android hardware by a
+                        student team in one semester</b>, at roughly this latency, in these conditions.
+                        &nbsp;<span class="footnote">That is a <b>feasibility claim</b> — and it is real, defensible, and
+                        exactly what a demonstration is for.</span></p>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:.8em">The system was fine. <em class="hl">The claims were three
+                    sizes too big for the evidence.</em></p>
+        </section>
+
+        <!-- ============ 4 · WHAT DEMONSTRATION IS ============ -->
+        <section class="slide" data-title="A1 · Proof by demonstration">
+            <span class="kicker">Part A · the method</span>
+            <h2>When building <em>is</em> the argument</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>The form of the argument</h3>
+                    <div class="tbox k-ground" style="margin-bottom:.5em">
+                        <p style="margin:0"><b>Claim:</b> X is possible / X can be achieved by means M.<br>
+                            <b>Grounds:</b> Here is a working X, built by means M.<br>
+                            <b>Warrant:</b> A functioning instance establishes possibility.</p>
+                    </div>
+                    <p style="margin:0 0 .4em">That warrant is <em>unusually solid</em> — it is the one place in
+                        computing where a single example is logically sufficient, because <b>existence claims are
+                        discharged by one witness</b>. You do not need a sample to prove something can exist; you need
+                        the thing.</p>
+                    <p style="margin:0"><b>Which is why the method is legitimate.</b> Proof by demonstration is not
+                        second-class evidence — it is the correct and complete method for a specific kind of question,
+                        and computing has more of those questions than most fields.</p>
+                    <p class="footnote" style="margin:.4em 0 0">Recall II.1: the fifth kind of research question was
+                        <b>feasibility or existence</b>. This is its proof method.</p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Famous demonstrations that settled real questions</h3>
+                    <ul class="stack-tight">
+                        <li><b>The first compiler</b> (Hopper, A-0, 1952) — the question was whether a machine could
+                            translate symbolic notation into machine code at all. One working compiler settled it.</li>
+                        <li><b>The Mother of All Demos</b> (Engelbart, 1968) — mouse, hypertext, windows, video
+                            conferencing. No experiment; the demo <em>was</em> the contribution.</li>
+                        <li><b>The first web server and browser</b> (Berners-Lee, 1990) — feasibility of a global
+                            hypertext system.</li>
+                        <li><b>MapReduce</b> (2004) — that a simple functional abstraction could express most of a
+                            company's large-scale data processing, running on cheap unreliable machines.</li>
+                        <li><b>AlexNet as an artefact</b> (2012) — that GPUs made deep CNNs trainable at ImageNet
+                            scale. <span class="footnote">Note it also carried an <em>empirical</em> claim, via a
+                            benchmark. Most strong work does both.</span></li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0">Not one of these ran a controlled experiment. Every one
+                        changed the field.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · DESIGN SCIENCE ============ -->
+        <section class="slide" data-title="A2 · Design-science research">
+            <span class="kicker">Part A · the research method behind building</span>
+            <h2>Design science: the discipline that makes a build into research</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <h3>The two activities, and the cycle between them</h3>
+                    <div class="toul" style="grid-template-columns:1fr auto 1fr">
+                        <div class="tbox k-claim">
+                            <h4>Build</h4>
+                            <p>Construct an artefact that did not exist: a construct, a model, a method, or an
+                                instantiation.</p>
+                        </div>
+                        <div class="tarrow">⇄</div>
+                        <div class="tbox k-ground">
+                            <h4>Evaluate</h4>
+                            <p>Assess it against a stated need, by a stated criterion, and feed what you learn back into
+                                the next build.</p>
+                        </div>
+                    </div>
+                    <p style="margin:.5em 0 .4em"><b>The distinction that matters to you:</b> development stops at
+                        <em>build</em>. Design-science <em>research</em> is the loop — and what makes it research is
+                        that the artefact is constructed <b>to answer a question</b>, and that what you learned is
+                        stated in a form someone else can use without your code.</p>
+                    <p class="footnote" style="margin:0">Hevner, March, Park &amp; Ram, <i>“Design Science in
+                            Information Systems Research”</i>, MIS Quarterly 28(1), 2004 — the standard reference, and
+                        the one to cite in your proposal if your project is a build.</p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Hevner's guidelines, as a checklist for your project</h3>
+                    <ol class="stack-tight">
+                        <li><b>Design as an artefact</b> — produce a viable construct, model, method or
+                            instantiation.</li>
+                        <li><b>Problem relevance</b> — it addresses an important, real problem. <span
+                                class="footnote">Unit I did this.</span></li>
+                        <li><b>Design evaluation</b> — utility, quality and efficacy must be <em>rigorously
+                                demonstrated</em>. <span class="footnote">This is the one students skip.</span></li>
+                        <li><b>Research contributions</b> — clear contributions in the artefact, the foundations or the
+                            methodology.</li>
+                        <li><b>Research rigour</b> — rigorous methods in both construction and evaluation.</li>
+                        <li><b>Design as a search process</b> — you explored alternatives; you did not build the first
+                            idea. <span class="footnote">Say what you rejected and why.</span></li>
+                        <li><b>Communication</b> — presentable to both technical and managerial audiences.</li>
+                    </ol>
+                    <p class="big" style="margin:.3em 0 0">Guideline 3 is where student projects die: <em class="hl">the
+                            artefact exists and was never evaluated against anything.</em></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · THE LADDER ============ -->
+        <section class="slide" data-title="A3 · Four levels of demonstration">
+            <span class="kicker">Part A · the demonstration ladder</span>
+            <h2>Not all demonstrations carry the same weight</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>What it is</th>
+                            <th>Claim it supports</th>
+                            <th>What it still cannot say</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>1 · Proof of concept</b></td>
+                            <td>A toy implementation on a chosen example. Happy path only.</td>
+                            <td>“This approach is <b>not impossible</b>.”</td>
+                            <td>Anything about performance, robustness, or other inputs</td>
+                        </tr>
+                        <tr>
+                            <td><b>2 · Prototype</b></td>
+                            <td>End-to-end, handles realistic inputs, someone other than the author can run it.</td>
+                            <td>“This can be built, at roughly this cost and this latency.”</td>
+                            <td>That it is <em>better</em> than the alternative</td>
+                        </tr>
+                        <tr>
+                            <td><b>3 · Pilot deployment</b></td>
+                            <td>Used by real users, on real data, for a real period, in the real setting.</td>
+                            <td>“It survives contact with reality; here is what broke.”</td>
+                            <td>That the effects generalise beyond that site</td>
+                        </tr>
+                        <tr>
+                            <td><b>4 · Deployed system + study</b></td>
+                            <td>Instrumented in production, with baseline and measurement.</td>
+                            <td>Genuine <b>empirical</b> claims — but this is no longer demonstration alone</td>
+                            <td>Universal claims; those need a proof</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="grid g2" style="margin-top:.8em">
+                <div class="card flat tint-warn">
+                    <p style="margin:0"><b>Where most final-year projects actually sit:</b> level 1, described as though
+                        it were level 4. The honest move is to name your level, claim exactly what that level supports,
+                        and put the rest in Future Work.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <p style="margin:0"><b>The examiner's question that separates them:</b> “<em>Has anyone other than
+                            you ever run this, on input you did not choose?</em>” If the answer is no, you are at
+                        level 1 or 2, whatever the report says.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · EXISTENCE VS EVALUATION ============ -->
+        <section class="slide" data-title="B1 · Existence proof vs evaluation">
+            <span class="kicker">Part B · the distinction the whole hour turns on</span>
+            <h2>“It works” and “it is better” are different claims with different bills</h2>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>Existence / feasibility claim</h3>
+                    <p class="big" style="margin:0 0 .4em">“X <b>is possible</b>.” &nbsp;“X <b>can be done</b> under
+                        constraint C.”</p>
+                    <p style="margin:0 0 .4em"><b>Evidence required:</b> one working instance. That is all. One.</p>
+                    <p style="margin:0"><b>Why one is enough:</b> the claim is existentially quantified — <em>there
+                            exists</em> an X. A single witness discharges it completely, and a thousand more add
+                        nothing.</p>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Ex:</b> “A transformer can run inference within 256
+                        KB of RAM on a Cortex-M4.” Build one; done. The claim is now permanent.</p>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Comparative / evaluation claim</h3>
+                    <p class="big" style="margin:0 0 .4em">“X <b>is better than</b> Y.” &nbsp;“X <b>improves</b>
+                        Z.”</p>
+                    <p style="margin:0 0 .4em"><b>Evidence required:</b> a fair comparison — same inputs, honest
+                        baseline, repeated runs, reported variance. An <em>experiment</em>, which is II.4.</p>
+                    <p style="margin:0"><b>Why one is never enough:</b> the claim is universally quantified over a
+                        population of cases. One case is a sample of size one, and no amount of polish on that one case
+                        turns it into evidence about the rest.</p>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Ex:</b> “Our compression beats gzip.” On what corpus?
+                        Against which settings? At what CPU cost? Building it settles none of this.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.9em">
+                <p class="big" style="margin:0">The rule to write on the inside of your skull:
+                    <em class="hl">a demonstration proves possibility, never superiority.</em></p>
+                <p class="footnote" style="margin:.4em 0 0">Every time you catch the word “better”, “improved”,
+                    “efficient”, “accurate” or “optimal” in a sentence whose only evidence is your own working system,
+                    you have crossed from a claim you proved to a claim you asserted. The fix is not more code.</p>
+            </div>
+        </section>
+
+        <!-- ============ 8 · DRILL 1 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill · what does this demo prove?">
+            <span class="kicker do">Do · 6 items · 6 minutes</span>
+            <h2>What is this demonstration entitled to claim?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="dq-n">1</span> of <span id="dq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="dq-score">0</span></p>
+                <p class="big" id="dq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="dq-opts" style="gap:.5em"></div>
+                <div id="dq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="dq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="dq-restart">Restart</button>
+                    <span class="footnote">Pick the <b>strongest claim the evidence actually supports</b> — not the
+                        strongest claim you would like to make.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · STRENGTHS AND LIMITS ============ -->
+        <section class="slide" data-title="C1 · Advantages and limitations">
+            <span class="kicker">Part C · the balance sheet</span>
+            <h2>What demonstration buys, and what it cannot buy at any price</h2>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>Advantages</h3>
+                    <ul class="stack-tight">
+                        <li><b>Settles feasibility outright.</b> No sampling argument, no statistics, no
+                            replication needed — the artefact is the proof.</li>
+                        <li><b>Surfaces the unknown unknowns.</b> Building forces you to confront every problem the
+                            design glossed over. You cannot hand-wave a compiler into existence.</li>
+                        <li><b>Produces a reusable asset.</b> The artefact outlives the paper; other people build on
+                            it.</li>
+                        <li><b>Highly credible to practitioners.</b> A running system persuades an industry audience
+                            that a table of numbers will not.</li>
+                        <li><b>The only method available</b> when the question is about something that does not yet
+                            exist — you cannot experiment on, or prove things about, a system nobody has built.</li>
+                    </ul>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Limitations</h3>
+                    <ul class="stack-tight">
+                        <li><b>No comparative force.</b> It cannot establish “better”, “faster” or “more accurate”
+                            against anything.</li>
+                        <li><b>n = 1.</b> One artefact, usually one setting, usually run by its own author, on inputs
+                            its author chose.</li>
+                        <li><b>Confounded by implementation skill.</b> Did the approach win, or did you simply engineer
+                            your version harder than the baseline? This is the deepest problem in the method.</li>
+                        <li><b>Not replicable in the usual sense.</b> A second team rebuilding it makes different
+                            choices and gets different results.</li>
+                        <li><b>Existence is often the easy part.</b> That something is possible is frequently not in
+                            doubt; the interesting question was whether it is <em>worth</em> doing.</li>
+                        <li><b>Survivorship in the write-up.</b> You report the version that worked, not the six
+                            architectures you abandoned — so the reader cannot judge the search.</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:.7em">This is why II.4 and II.5 exist: <em class="hl">demonstration
+                    answers “can it be done?”, experiment answers “is it better?”, proof answers “must it always
+                    hold?”</em></p>
+        </section>
+
+        <!-- ============ 10 · MAKING IT RIGOROUS ============ -->
+        <section class="slide" data-title="C2 · Making a demonstration defensible">
+            <span class="kicker">Part C · the operational part</span>
+            <h2>Seven things that turn a demo into evidence</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <ol class="stack-tight">
+                        <li><b>State the claim as an existence claim.</b> “We show that X is achievable under
+                            constraints C” — and stop there.</li>
+                        <li><b>Name the constraints C explicitly.</b> Hardware, data, scale, time, assumptions. The
+                            claim is only as good as the box you draw around it.</li>
+                        <li><b>Report what it does <em>not</em> handle.</b> Unsupported inputs, failure modes, the
+                            cases you excluded. This is your rebuttal from II.1.</li>
+                        <li><b>Let someone else run it.</b> A second person, on an input you did not pick, is the
+                            cheapest credibility you will ever buy.</li>
+                        <li><b>Report the search, not just the result.</b> What alternatives did you try and reject?
+                            Hevner's guideline 6.</li>
+                        <li><b>Release the artefact.</b> Code, data, configuration, seeds, versions. An unreleased
+                            artefact is an assertion about an artefact.</li>
+                        <li><b>Separate the sections.</b> What was built · what was measured · what is claimed. Most
+                            student reports fuse all three into one paragraph, which is how the overclaim hides.</li>
+                    </ol>
+                </div>
+                <div class="card tint-do">
+                    <h3>The two sentences that fix most build projects</h3>
+                    <div class="card flat tint-bad" style="padding:.5em .8em; margin-bottom:.5em">
+                        <p style="margin:0"><b>Before:</b> “Our system is accurate and efficient, demonstrating that
+                            deep learning is an effective solution for crop-disease diagnosis.”</p>
+                    </div>
+                    <div class="card flat tint-good" style="padding:.5em .8em">
+                        <p style="margin:0"><b>After:</b> “We demonstrate that a MobileNetV3-based diagnosis pipeline
+                            <b>can run end-to-end on a sub-$80 Android handset</b> at 1.4 s per image and under 180 MB
+                            of RAM, for three crops and eight disease classes, <b>on field-captured images</b>. We do
+                            <b>not</b> claim improved accuracy over existing methods; that comparison is deferred to a
+                            controlled evaluation.”</p>
+                    </div>
+                    <p class="big" style="margin:.5em 0 0">The second version is <em class="hl">shorter on ambition and
+                            infinitely stronger on evidence</em> — and it is the one a reviewer cannot touch.</p>
+                    <p class="footnote" style="margin:.4em 0 0">It also does something students find surprising: by
+                        naming what it does not claim, it <em>pre-empts</em> the objection instead of inviting it.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · DRILL 2 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill · repair the overclaim">
+            <span class="kicker do">Do · 6 items · 5 minutes</span>
+            <h2>Which repair does this sentence need?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="rq-n">1</span> of <span id="rq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="rq-score">0</span></p>
+                <p class="big" id="rq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="rq-opts" style="gap:.5em"></div>
+                <div id="rq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="rq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="rq-restart">Restart</button>
+                    <span class="footnote">Every repair here costs a sentence. The alternative costs a viva.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · MAIN ACTIVITY ============ -->
+        <section class="slide" data-mode="do" data-title="DO 4 · Place your own artefact + cross-examine">
+            <span class="kicker do">Do · 9 minutes · the piece of work you keep</span>
+            <h2>Your artefact on the ladder, and the claim it earns</h2>
+            <div class="runbar">
+                <span class="step">1 · <b>4 min</b> alone — place your build, write the existence claim</span>
+                <span class="step">2 · <b>3 min</b> swap — neighbour cross-examines</span>
+                <span class="step">3 · <b>2 min</b> — rewrite</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="540">9:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Step 1 · Write these four lines</h3>
+                    <div class="grid" style="gap:.35em">
+                        <div class="tbox k-claim" style="padding:.4em .7em">
+                            <h4>Level</h4>
+                            <p class="footnote" style="margin:0">1 proof-of-concept · 2 prototype · 3 pilot · 4
+                                deployed+study. Be honest; nobody is marking this.</p>
+                        </div>
+                        <div class="tbox k-ground" style="padding:.4em .7em">
+                            <h4>Existence claim</h4>
+                            <p class="footnote" style="margin:0">“We demonstrate that <b>___</b> is achievable under
+                                <b>___</b>.” Both blanks compulsory.</p>
+                        </div>
+                        <div class="tbox k-qual" style="padding:.4em .7em">
+                            <h4>Constraints C</h4>
+                            <p class="footnote" style="margin:0">Hardware, data, scale, time, assumptions. At least
+                                four.</p>
+                        </div>
+                        <div class="tbox k-reb" style="padding:.4em .7em">
+                            <h4>Explicitly not claimed</h4>
+                            <p class="footnote" style="margin:0">“We do <b>not</b> claim ___.” Write two.</p>
+                        </div>
+                    </div>
+                    <p class="footnote" style="margin:.4em 0 0">If your project is <em>not</em> a build, do this for the
+                        artefact you will still produce — a dataset, a harness, a tool. Almost every project has
+                        one.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Step 2 · Rules for the cross-examiner</h3>
+                    <p style="margin:0 0 .4em">You get exactly four questions, in this order. No others.</p>
+                    <ol class="stack-tight">
+                        <li>“Has anyone other than you run it, on an input <b>you did not choose</b>?”</li>
+                        <li>“Name the <b>alternative</b> you rejected, and why.”</li>
+                        <li>“Point at the word in your claim that means <b>better</b> — and tell me what it is better
+                            <b>than</b>.”</li>
+                        <li>“What <b>breaks</b> it? Give me one input class it cannot handle.”</li>
+                    </ol>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0"><b>What will happen.</b> Question 3 will find a comparative word in most
+                            people's claims — <em>efficient, accurate, robust, optimised, improved</em> — with no
+                            comparison anywhere in the project. That word is the whole lesson.</p>
+                    </div>
+                    <p class="big" style="margin:.5em 0 0">These are <em class="hl">the four questions your review panel
+                            will ask in October.</em> Hearing them today is free.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 13 · EXIT TICKET ============ -->
+        <section class="slide" data-mode="do" data-title="DO 5 · Exit ticket">
+            <span class="kicker do">Exit ticket · tick what is true right now</span>
+            <h2>Is your demonstration defensible?</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <div class="grid" id="exit" style="gap:.4em; grid-template-columns:1fr 1fr"></div>
+                    <p class="footnote" style="margin:.5em 0 0"><span class="star"
+                            style="color:var(--bad); font-weight:900">★</span> = non-negotiable. Four starred items.</p>
+                </div>
+                <div class="card" id="ex-card">
+                    <h3>Ticked: <span class="score" id="ex-score">0</span> / 10 &nbsp;·&nbsp; essentials: <span
+                            class="score" id="ex-ess">0</span> / 4</h3>
+                    <p id="ex-verdict" style="margin:0">Tick what is already true — not what you plan to do.</p>
+                    <div class="card flat tint-brand" style="padding:.5em .8em; margin-top:.6em">
+                        <p style="margin:0"><b>Where this goes next.</b> Every comparative word you were forced to
+                            delete today is a claim you still want to make. <b>II.4 shows you how to earn it</b> — the
+                            controlled experiment, the honest baseline, and the study designs computing borrows from
+                            the empirical sciences.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 14 · TAKEAWAYS ============ -->
+        <section class="slide" data-title="Eight things that must survive">
+            <span class="kicker">Consolidation</span>
+            <h2>Eight things that must survive this hour</h2>
+            <div class="grid g2">
+                <ol class="stack-tight big" style="line-height:1.3">
+                    <li>Proof by demonstration argues: <b>here is a working instance, therefore it is possible</b>.</li>
+                    <li>It is a <b>legitimate and complete</b> method — for existence and feasibility questions
+                        only.</li>
+                    <li><b>Existence claims need exactly one witness.</b> Comparative claims are never settled by
+                        one.</li>
+                    <li><b>A demonstration proves possibility, never superiority.</b> This is the sentence of the
+                        hour.</li>
+                </ol>
+                <ol class="stack-tight big" start="5" style="line-height:1.3">
+                    <li>Design science = <b>build and evaluate, in a loop</b>. Development stops at build; research does
+                        not.</li>
+                    <li>Hevner's guideline 3 — <b>rigorous evaluation</b> — is the one student projects omit.</li>
+                    <li>Four levels: <b>proof-of-concept · prototype · pilot · deployed with study</b>. Name yours
+                        honestly.</li>
+                    <li>The deepest limitation: you may have <b>engineered your version harder than the
+                            baseline</b>.</li>
+                </ol>
+            </div>
+            <div class="card tint-brand" style="margin-top:.8em">
+                <p class="big" style="margin:0">If you remember one sentence: <em class="hl">say “we demonstrate that X
+                        is achievable under constraints C, and we do not claim Y” — and every objection to your build
+                        disappears, because you made it first.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 15 · NOTEBOOK & CLOSE ============ -->
+        <section class="slide" data-title="Notebook task and what's next">
+            <span class="kicker">Research Notebook · entry after Lecture II.3</span>
+            <h2>Your notebook task</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Three things to add before the next session</h3>
+                    <ol class="stack-tight">
+                        <li><b>Lecture log.</b> Date, “II.3 — proof by demonstration”, and your exit-ticket score out of
+                            10.</li>
+                        <li><b>Section 6 · Artefact.</b> Your level on the ladder, your existence claim in the
+                            “<em>we demonstrate that ___ is achievable under ___</em>” form, at least four named
+                            constraints, and two explicit “we do not claim” lines.</li>
+                        <li><b>Section 6b · The search.</b> Two design alternatives you considered and rejected, with
+                            one sentence each on why. If you cannot name any, you have not searched — you have built
+                            the first thing you thought of, and Hevner's guideline 6 says so.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Stamp the entry <code>\version{8}{...}{after Lecture
+                            II.3}</code>.</p>
+                </div>
+                <div class="card">
+                    <div class="card flat tint-good" style="padding:.7em .9em">
+                        <h3 style="margin-bottom:.2em">Next session · II.4 · Empirical Proof</h3>
+                        <p style="margin:0"><b>Earning the word “better”.</b> Independent and dependent variables,
+                            controls, honest baselines, benchmarks and reproducibility — plus user studies, surveys, and
+                            the case-study, action-research and replication designs software engineering uses.</p>
+                        <p style="margin:.4em 0 0"><b>Bring:</b> the comparative word your cross-examiner made you
+                            delete. We are going to earn it back.</p>
+                    </div>
+                    <div class="card flat tint-warn" style="padding:.7em .9em; margin-top:.6em">
+                        <p style="margin:0"><b>Class Test 1, 12 September.</b> The three proof methods — demonstration
+                            (this hour), empirical (II.4) and mathematical (II.5) — and the comparison between them are
+                            the core of the Unit II paper.</p>
+                    </div>
+                    <p class="footnote" style="margin:.6em 0 0"><b>Reading:</b> Hevner, March, Park &amp; Ram,
+                        <i>“Design Science in Information Systems Research”</i>, MIS Quarterly 28(1), 2004 ·
+                        M. Shaw, ICSE 2003 · P. Johnson et al., <i>“Empirical Software Engineering”</i> ·
+                        Melville &amp; Goddard, ch. 5.</p>
+                </div>
+            </div>
+        </section>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 15</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script>
+        /* ---------------- deck engine ---------------- */
+        const slides = [...document.querySelectorAll('.slide')];
+        let cur = 0;
+
+        slides.forEach(s => {
+            const fit = document.createElement('div');
+            fit.className = 'fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+        });
+
+        function fitSlide(s) {
+            const f = s.querySelector('.fit');
+            if (!f) return;
+            f.style.transform = 'none';
+            const cs = getComputedStyle(s);
+            const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const h = f.offsetHeight;
+            if (avail <= 0 || h <= 0) return;
+            const k = Math.min(1, avail / h);
+            f.style.transform = k > 0.995 ? 'none' : 'scale(' + k.toFixed(4) + ')';
+        }
+        const fitNow = () => fitSlide(slides[cur]);
+        const fitSoon = () => requestAnimationFrame(() => requestAnimationFrame(fitNow));
+        window.addEventListener('resize', fitNow);
+        document.addEventListener('click', fitSoon, true);
+        document.addEventListener('change', fitSoon, true);
+        document.addEventListener('input', fitSoon, true);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('title-now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            slides[cur].scrollTop = 0;
+            location.hash = 's' + (cur + 1);
+            fitSlide(slides[cur]);
+        }
+        function go(d) { show(cur + d); }
+
+        document.addEventListener('keydown', e => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.key === 'Escape') { document.getElementById('overview').classList.add('hidden'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'd') toggleTheme();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 't') { const t = document.getElementById('lect-t'); t.__toggle && t.__toggle(); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        function toggleTheme() {
+            const h = document.documentElement;
+            h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('hidden'); }
+
+        const ovList = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + (i + 1) + '</b><span>' + (s.dataset.title || '') + '</span>' +
+                (s.dataset.mode === 'do' ? '<span class="do-dot">STUDENT WORK</span>' : '');
+            b.onclick = () => { show(i); toggleOverview(); };
+            ovList.appendChild(b);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(b => {
+            const label = b.textContent;
+            b.addEventListener('click', () => {
+                const t = document.querySelector(b.dataset.reveal);
+                t.classList.toggle('hidden');
+                b.textContent = t.classList.contains('hidden') ? label : 'Hide again';
+            });
+        });
+
+        document.querySelectorAll('.timer').forEach(box => {
+            const disp = box.querySelector('.t');
+            const total = parseInt(disp.dataset.sec, 10);
+            let left = total, id = null;
+            const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            const paint = () => {
+                disp.textContent = fmt(left);
+                disp.classList.toggle('low', left <= Math.max(10, total * 0.15));
+            };
+            const tick = () => { if (left > 0) { left--; paint(); } else { clearInterval(id); id = null; } };
+            const toggle = () => { if (id) { clearInterval(id); id = null; } else { id = setInterval(tick, 1000); } };
+            disp.__toggle = toggle;
+            box.querySelector('[data-timer=start]').addEventListener('click', toggle);
+            box.querySelector('[data-timer=reset]').addEventListener('click', () => {
+                clearInterval(id); id = null; left = total; paint();
+            });
+            paint();
+        });
+
+        /* ---------------- generic drill engine ---------------- */
+        function makeDrill(p, items, done) {
+            const el = k => document.getElementById(p + '-' + k);
+            const opts = el('opts');
+            let i = 0, sc = 0, lock = false;
+
+            function paint() {
+                el('n').textContent = i + 1;
+                el('total').textContent = items.length;
+                el('stmt').innerHTML = items[i].q;
+                el('score').textContent = sc;
+                el('fb').classList.add('hidden');
+                opts.innerHTML = '';
+                items[i].o.forEach((t, k) => {
+                    const b = document.createElement('button');
+                    b.className = 'pick';
+                    b.innerHTML = '<b>' + 'ABCDEF'[k] + '.</b> ' + t;
+                    b.addEventListener('click', () => {
+                        if (lock) return;
+                        lock = true;
+                        const right = items[i].a;
+                        if (k === right) { b.classList.add('right'); sc++; }
+                        else { b.classList.add('wrong'); opts.children[right].classList.add('right'); }
+                        el('score').textContent = sc;
+                        const fb = el('fb');
+                        fb.innerHTML = items[i].w;
+                        fb.classList.remove('hidden');
+                    });
+                    opts.appendChild(b);
+                });
+                lock = false;
+            }
+
+            el('next').addEventListener('click', () => {
+                if (i < items.length - 1) { i++; paint(); }
+                else {
+                    const fb = el('fb');
+                    fb.classList.remove('hidden');
+                    fb.innerHTML = done(sc, items.length);
+                }
+            });
+            const r = document.getElementById(p + '-restart');
+            if (r) r.addEventListener('click', () => { i = 0; sc = 0; paint(); });
+            paint();
+        }
+
+
+        /* ---------------- Drill 1 · what does the demo prove? ---------------- */
+        makeDrill('dq', [
+            {
+                q: 'A team builds a working chat application that end-to-end encrypts messages, and demonstrates it exchanging messages between two phones.',
+                o: ['That E2E-encrypted messaging is achievable on commodity phones with this stack',
+                    'That the application is secure',
+                    'That it is more secure than Signal or WhatsApp',
+                    'That users prefer encrypted messaging'],
+                a: 0,
+                w: '<b>A — a feasibility claim, and that is the whole of it.</b> “Secure” is not demonstrated by working: security is a claim about what an <em>adversary</em> cannot do, and no adversary was present. Comparative security needs an analysis or a proof; user preference needs a study. Building settles constructibility only.'
+            },
+            {
+                q: 'A student implements a transformer that performs inference within 256 KB of RAM on a Cortex-M4 microcontroller, and shows it classifying sensor data live.',
+                o: ['That the approach is production-ready',
+                    'That transformers can run inference in 256 KB on a Cortex-M4',
+                    'That transformers are the best model for microcontrollers',
+                    'That this is more energy-efficient than a CNN'],
+                a: 1,
+                w: '<b>B — and this is demonstration at its strongest.</b> The claim is existentially quantified and narrowly bounded, so one working witness discharges it <em>completely and permanently</em>. Nothing further is owed. Note how much more valuable this is than a vague claim: it is small, exact, and cannot be taken away.'
+            },
+            {
+                q: 'A group deploys their queue-management system in one campus canteen for three weeks, logging usage, and reports that staff continued using it after the trial.',
+                o: ['That the system reduces queue time',
+                    'That the system would work in any canteen',
+                    'That the system survives real use in one setting, with the observed adoption behaviour',
+                    'That queue management is solved'],
+                a: 2,
+                w: '<b>C — a level-3 pilot claim.</b> Genuine and valuable: real users, real data, real duration. But note what is still missing — no baseline queue time was measured before deployment, so “reduces queue time” is unsupported, and one canteen is one setting. Adoption is real evidence of utility; it is not evidence of effect size.'
+            },
+            {
+                q: 'A paper presents a new static-analysis tool and shows it detecting a previously unknown bug in a widely used open-source library.',
+                o: ['That the tool finds bugs other tools miss',
+                    'That the tool has a low false-positive rate',
+                    'That the tool can find real bugs in real code — an existence claim about its capability',
+                    'That static analysis is superior to testing'],
+                a: 2,
+                w: '<b>C.</b> Finding one real bug is a powerful existence demonstration — it proves the tool is not merely a toy. But “bugs other tools miss” requires you to <em>run</em> the other tools, and false-positive rate requires the denominator: how many things did it flag that were not bugs? A single celebrated find tells you nothing about the noise.'
+            },
+            {
+                q: 'A team builds two versions of a recommendation system, their own and a re-implementation of a published baseline, and reports that theirs achieves higher click-through in an offline replay.',
+                o: ['A pure demonstration claim, since both systems were built',
+                    'A comparative claim - which demonstration alone cannot support, and whose weak point is the re-implemented baseline',
+                    'Nothing at all',
+                    'That their method is better in production'],
+                a: 1,
+                w: '<b>B.</b> The moment a baseline appears you have left demonstration and entered <em>empirical</em> territory — which is II.4. And you have inherited its signature threat: a baseline re-implemented by the people it competes against is systematically likely to be under-tuned. Use the authors\' released code, report the hyperparameter search for both, or your comparison is confounded by effort.'
+            },
+            {
+                q: 'A student writes that their prototype "demonstrates the efficiency and scalability of the proposed architecture", having run it once on a 4-node cluster.',
+                o: ['A valid demonstration claim',
+                    'A valid empirical claim',
+                    'An overclaim - "efficiency" and "scalability" are comparative and were never measured against anything',
+                    'A valid theoretical claim'],
+                a: 2,
+                w: '<b>C.</b> Two comparative words, zero comparisons. <em>Efficient</em> compared with what? <em>Scalable</em> means the curve as nodes increase — which needs at least 1, 2, 4, 8 nodes and a plot, not a single 4-node run. Both are earned in II.7, which is entirely about these two parameters. Delete the words or run the study; there is no third option.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'You can now separate what a build proves from what its author wishes it proved. Apply it to your own report in the activity two slides from now.'
+            : 'One test recovers all six: <b>find every comparative or evaluative word in the claim</b> — better, efficient, accurate, secure, scalable, robust, optimal — and ask what it was compared <em>against</em> inside this study. If the answer is nothing, the word is unearned.'));
+
+        /* ---------------- Drill 2 · repair the overclaim ---------------- */
+        const REPAIR = ['Delete the comparative word - nothing was compared',
+            'Add the constraints C that bound the claim',
+            'State explicitly what is not claimed',
+            'The claim is already sound as written'];
+        makeDrill('rq', [
+            {
+                q: '“Our system demonstrates that real-time sign-language recognition is feasible.”',
+                o: REPAIR, a: 1,
+                w: '<b>Add the constraints.</b> The form is right — it is an honest feasibility claim — but “real-time” and “sign-language recognition” are unbounded. Which sign language? How many signs? What frame rate, on what hardware, with what lighting, signer-dependent or signer-independent? A feasibility claim is worth exactly as much as the box drawn around it.'
+            },
+            {
+                q: '“The proposed method is more efficient than existing approaches, as demonstrated by our implementation.”',
+                o: REPAIR, a: 0,
+                w: '<b>Delete it.</b> “More efficient than existing approaches” is a comparative claim, and the evidence offered is a single implementation with no existing approach in sight. An implementation cannot demonstrate superiority over things it was never run against. Either run them (II.4) or remove the sentence.'
+            },
+            {
+                q: '“We demonstrate that a federated-learning pipeline can be trained across 10 simulated hospital nodes on the MIMIC-III subset, within 6 GB of GPU memory per node, for a 3-class task.”',
+                o: REPAIR, a: 3,
+                w: '<b>Sound as written.</b> Existence claim, four constraints named, no comparative words, no reach beyond the evidence. This is what a demonstration claim should look like — and notice it is <em>more</em> impressive to a reviewer than a vague boast, because every element of it is checkable.'
+            },
+            {
+                q: '“Our prototype shows that blockchain-based land-record management is viable for state governments.”',
+                o: REPAIR, a: 1,
+                w: '<b>Add the constraints</b> — and they will be brutal. A prototype run by three students on synthetic records demonstrates viability at <em>that</em> scale, with <em>that</em> data, and no adversaries, no legal integration, no key management for lakhs of citizens, no migration of existing records. “Viable for state governments” is a level-4 claim built on level-1 evidence.'
+            },
+            {
+                q: '“We demonstrate that our compiler pass can eliminate redundant bounds checks in loops with affine index expressions, on the SPEC CPU2017 integer suite, without changing program output.”',
+                o: REPAIR, a: 2,
+                w: '<b>State what is not claimed.</b> The claim is well bounded and free of comparative words — but a reader will immediately wonder about the obvious next question: does it make programs <em>faster</em>? Adding “we do not claim a speed-up; the performance evaluation is deferred” closes the gap before a reviewer opens it, and costs one clause.'
+            },
+            {
+                q: '“Experimental results prove that our model achieves superior performance on the benchmark dataset.”',
+                o: REPAIR, a: 0,
+                w: '<b>Delete the comparative word</b> — and note two further problems in eight words. “Prove” is a deductive verb attached to inductive evidence (II.2). “Superior” names no comparator. “The benchmark dataset” names no dataset. This sentence appears, nearly verbatim, in an enormous number of student reports, and it asserts everything while establishing nothing.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'Now run the same pass over your own abstract. Circle every comparative word and every unbounded noun; each one is either a constraint you must add or a word you must cut.'
+            : 'Three passes over any claim: (1) is there a <b>comparative word</b> with nothing to compare to? cut it. (2) is the claim <b>unbounded</b> — no hardware, data, scale or setting? bound it. (3) is there an <b>obvious next question</b> a reader will ask? answer it with “we do not claim…”.'));
+
+        /* ---------------- exit ticket ---------------- */
+        const EXIT = [
+            { t: 'My claim is written as an <b>existence claim</b>, not a comparison', ess: 1 },
+            { t: 'I have named my <b>level</b> on the ladder honestly (1-4)', ess: 1 },
+            { t: 'I have named at least <b>four constraints C</b> bounding the claim', ess: 1 },
+            { t: 'No <b>comparative word</b> survives that has nothing to compare against', ess: 1 },
+            { t: 'I have written two explicit “<b>we do not claim…</b>” lines', ess: 0 },
+            { t: 'Someone other than me has run it, on an input <b>I did not choose</b>', ess: 0 },
+            { t: 'I can name <b>two alternatives I rejected</b>, and why', ess: 0 },
+            { t: 'I have listed the <b>input classes it cannot handle</b>', ess: 0 },
+            { t: 'Code, data, seeds and versions are <b>released or archived</b>', ess: 0 },
+            { t: 'What I <b>built</b>, what I <b>measured</b> and what I <b>claim</b> are separate sections', ess: 0 }
+        ];
+        const exitBox = document.getElementById('exit');
+        EXIT.forEach((r, i) => {
+            const b = document.createElement('button');
+            b.className = 'ck';
+            b.dataset.i = i;
+            b.innerHTML = (r.ess ? '<span class="star">★</span> ' : '') + r.t;
+            b.addEventListener('click', () => { b.classList.toggle('on'); exitScore(); });
+            exitBox.appendChild(b);
+        });
+        function exitScore() {
+            const on = [...exitBox.querySelectorAll('.ck.on')].map(b => +b.dataset.i);
+            const ess = on.filter(i => EXIT[i].ess).length;
+            document.getElementById('ex-score').textContent = on.length;
+            document.getElementById('ex-ess').textContent = ess;
+            const card = document.getElementById('ex-card'), v = document.getElementById('ex-verdict');
+            if (ess < 2) {
+                card.className = 'card tint-bad';
+                v.innerHTML = 'Your report currently claims more than your artefact can support — which is the single commonest reason a good build gets a poor viva. Start with the comparative words: find them, and either cut them or admit you have not yet earned them.';
+            } else if (ess < 4) {
+                card.className = 'card tint-warn';
+                v.innerHTML = 'The claim is taking shape but is not yet bounded. The missing starred items are almost certainly the <b>constraints</b> — a feasibility claim with no named hardware, data, scale or setting reaches everywhere, and therefore fails everywhere.';
+            } else if (on.length < 8) {
+                card.className = 'card tint-good';
+                v.innerHTML = 'Defensible. Your artefact now proves something precise, permanently, and a reviewer has nothing to attack because you claimed exactly what you showed. Add the released artefact and the rejected alternatives and it is publication-shaped.';
+            } else {
+                card.className = 'card tint-good';
+                v.innerHTML = 'This meets the standard of a design-science research paper. Independent execution, a documented search over alternatives, released artefacts, and a claim bounded to its evidence — very few final-year builds get here.';
+            }
+        }
+
+
+        /* ---------------- boot ---------------- */
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+        exitScore();
+    </script>
+</body>
+
+</html>

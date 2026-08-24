@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · III.2 — Reading Research Efficiently and Analysing It</title>
+    <meta name="description"
+        content="Activity-led lecture III.2 for Research Methodology in Computer Science (CSEG3060): the three-pass reading method, critical appraisal of a paper, structured note-taking, and turning a pile of papers into a taxonomy, a comparison matrix and a research-gap table - plus reference managers (Zotero, Mendeley) and BibTeX.">
+    <style>
+        /* ============================================================
+           CSEG3060 - Unit II - Lecture III.2
+           Self-contained interactive deck. No external assets.
+           Activity-led: slides marked data-mode="do" are student work.
+           Keys: → / Space next · ← prev · O overview · T timer · D dark · F fullscreen
+           ============================================================ */
+
+        :root {
+            --ink: #0f1e35;
+            --ink-soft: #3d5372;
+            --ink-faint: #6b7f9c;
+            --bg: #eef2f8;
+            --surface: #ffffff;
+            --surface-2: #f6f9fd;
+            --line: #d3dced;
+            --brand: #1d5fd0;
+            --brand-soft: #e5eeff;
+            --good: #147a45;
+            --good-soft: #e2f5ea;
+            --bad: #b3182b;
+            --bad-soft: #fdeaec;
+            --warn: #a9640a;
+            --warn-soft: #fdf1de;
+            --do: #7b2fd0;
+            --do-soft: #f1e8fd;
+            --shadow: 0 2px 4px rgba(15, 30, 53, .06), 0 12px 32px rgba(15, 30, 53, .10);
+            --radius: 16px;
+            --fs: clamp(18px, 1.0vw + 12px, 33px);
+        }
+
+        html[data-theme="dark"] {
+            --ink: #eaf1fb;
+            --ink-soft: #b6c6dd;
+            --ink-faint: #8ea3c0;
+            --bg: #0b1220;
+            --surface: #131f33;
+            --surface-2: #18263d;
+            --line: #2c3d59;
+            --brand: #6ea8ff;
+            --brand-soft: #1a2c4c;
+            --good: #4ade80;
+            --good-soft: #123024;
+            --bad: #fb7185;
+            --bad-soft: #3a1620;
+            --warn: #fbbf24;
+            --warn-soft: #392a10;
+            --do: #c99bff;
+            --do-soft: #2a1a44;
+            --shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: var(--fs);
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            gap: .8em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            font-size: .68em;
+            letter-spacing: .02em;
+            color: var(--ink-faint);
+            z-index: 40;
+        }
+
+        .topbar b {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .topbar .spacer {
+            flex: 1;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .18em .8em;
+            background: var(--surface-2);
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .chip:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .progress {
+            position: fixed;
+            top: 2.4em;
+            left: 0;
+            height: 4px;
+            background: var(--brand);
+            z-index: 41;
+            transition: width .25s ease;
+        }
+
+        .deck {
+            position: absolute;
+            inset: 2.4em 0 0 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: clamp(14px, 2.2vh, 30px) clamp(18px, 3.4vw, 70px) 4.2em;
+            display: none;
+            animation: in .28s ease both;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide[data-mode="do"] {
+            background:
+                linear-gradient(90deg, var(--do) 0 6px, transparent 6px);
+        }
+
+        .fit {
+            display: flow-root;
+            transform-origin: top center;
+        }
+
+        @keyframes in {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.1em;
+            display: flex;
+            align-items: center;
+            gap: .6em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            z-index: 40;
+            font-size: .7em;
+        }
+
+        .navbar .count {
+            font-weight: 800;
+            color: var(--ink-soft);
+            min-width: 5.5em;
+        }
+
+        .navbar .title-now {
+            color: var(--ink-faint);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button.nav {
+            font: inherit;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: .45em 1.1em;
+            cursor: pointer;
+        }
+
+        button.nav:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            line-height: 1.08;
+            margin: .1em 0 .3em;
+            letter-spacing: -.02em;
+        }
+
+        h2 {
+            font-size: 1.72em;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            letter-spacing: -.015em;
+        }
+
+        h3 {
+            font-size: 1.12em;
+            margin: 0 0 .4em;
+        }
+
+        p {
+            margin: 0 0 .7em;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: .62em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: .35em 1em;
+            margin-bottom: .9em;
+        }
+
+        .kicker.do {
+            color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .lead {
+            font-size: 1.12em;
+            color: var(--ink-soft);
+        }
+
+        .big {
+            font-size: 1.35em;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .huge {
+            font-size: 2.1em;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+        }
+
+        em.hl {
+            font-style: normal;
+            background: linear-gradient(transparent 62%, rgba(29, 95, 208, .26) 0);
+            font-weight: 700;
+        }
+
+        .quote {
+            font-size: 1.15em;
+            border-left: 6px solid var(--brand);
+            padding: .3em 0 .3em 1em;
+            color: var(--ink-soft);
+            font-style: italic;
+            margin: .8em 0;
+        }
+
+        code,
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: .92em;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: .06em .38em;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(10px, 1.4vw, 20px);
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .g5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .g23 {
+            grid-template-columns: 2fr 3fr;
+        }
+
+        .g32 {
+            grid-template-columns: 3fr 2fr;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: clamp(12px, 1.5vw, 22px);
+            box-shadow: var(--shadow);
+        }
+
+        .flat {
+            box-shadow: none;
+        }
+
+        .tint-good {
+            background: var(--good-soft);
+            border-color: color-mix(in srgb, var(--good) 35%, transparent);
+        }
+
+        .tint-bad {
+            background: var(--bad-soft);
+            border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+        }
+
+        .tint-warn {
+            background: var(--warn-soft);
+            border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+        }
+
+        .tint-brand {
+            background: var(--brand-soft);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+
+        .tint-do {
+            background: var(--do-soft);
+            border-color: color-mix(in srgb, var(--do) 40%, transparent);
+        }
+
+        ul,
+        ol {
+            margin: 0 0 .6em;
+            padding-left: 1.15em;
+        }
+
+        li {
+            margin-bottom: .42em;
+        }
+
+        li::marker {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .stack-tight li {
+            margin-bottom: .25em;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: .66em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+            padding: .2em .6em;
+            border: 1px solid currentColor;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88em;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: .5em .7em;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: .82em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--ink-faint);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .reveal-btn {
+            font: inherit;
+            font-weight: 800;
+            font-size: .88em;
+            border: 2px dashed var(--brand);
+            color: var(--brand);
+            background: transparent;
+            border-radius: 10px;
+            padding: .4em 1em;
+            cursor: pointer;
+        }
+
+        .reveal-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pick {
+            text-align: left;
+            font: inherit;
+            width: 100%;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .55em .8em;
+            color: var(--ink);
+            transition: .15s;
+        }
+
+        .pick:hover {
+            border-color: var(--brand);
+            transform: translateY(-2px);
+        }
+
+        .pick.sel {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .pick.right {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .pick.wrong {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .verdict {
+            margin-top: .6em;
+            font-size: .92em;
+            border-left: 5px solid var(--brand);
+            padding-left: .8em;
+            color: var(--ink-soft);
+        }
+
+        .ck {
+            font: inherit;
+            font-size: .82em;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .35em .6em;
+            color: var(--ink);
+        }
+
+        .ck.on {
+            border-color: var(--good);
+            background: var(--good-soft);
+            font-weight: 700;
+        }
+
+        .ck .star {
+            color: var(--bad);
+            font-weight: 900;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: .5em;
+            font-weight: 900;
+        }
+
+        .timer .t {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 1.5em;
+            min-width: 3.4em;
+            text-align: center;
+            background: var(--surface-2);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .05em .3em;
+        }
+
+        .timer .t.low {
+            color: var(--bad);
+            border-color: var(--bad);
+        }
+
+        .tbtn {
+            font: inherit;
+            font-size: .8em;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 8px;
+            padding: .3em .8em;
+            cursor: pointer;
+        }
+
+        .tbtn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .overview {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 60;
+            padding: 2em clamp(18px, 4vw, 70px);
+            overflow-y: auto;
+        }
+
+        .ov-item {
+            display: flex;
+            gap: .8em;
+            align-items: baseline;
+            width: 100%;
+            text-align: left;
+            font: inherit;
+            font-size: .82em;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: .5em .8em;
+            margin-bottom: .4em;
+            cursor: pointer;
+            color: var(--ink);
+        }
+
+        .ov-item:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .ov-item b {
+            color: var(--brand);
+            min-width: 2.2em;
+        }
+
+        .ov-item .do-dot {
+            margin-left: auto;
+            font-size: .7em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: var(--do);
+            background: var(--do-soft);
+            border-radius: 999px;
+            padding: .1em .7em;
+        }
+
+        .score {
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .footnote {
+            font-size: .74em;
+            color: var(--ink-faint);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--brand);
+            font-weight: 900;
+        }
+
+        /* ---- activity banner ---- */
+        .runbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .7em;
+            background: var(--do-soft);
+            border: 1px solid color-mix(in srgb, var(--do) 40%, transparent);
+            border-left: 6px solid var(--do);
+            border-radius: 12px;
+            padding: .5em .9em;
+            font-size: .8em;
+            margin-bottom: .8em;
+        }
+
+        .runbar b {
+            color: var(--do);
+        }
+
+        .runbar .step {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .15em .8em;
+            font-weight: 700;
+        }
+
+        /* ---- Toulmin diagram ---- */
+        .toul {
+            display: grid;
+            gap: .5em;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: stretch;
+        }
+
+        .tbox {
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .5em .8em;
+            background: var(--surface);
+        }
+
+        .tbox h4 {
+            margin: 0 0 .15em;
+            font-size: .78em;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        .tbox p {
+            margin: 0;
+            font-size: .92em;
+        }
+
+        .tbox.k-claim {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .tbox.k-warrant {
+            border-color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .tbox.k-ground {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .tbox.k-reb {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .tbox.k-qual {
+            border-color: var(--warn);
+            background: var(--warn-soft);
+        }
+
+        .tarrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--ink-faint);
+        }
+
+        @media (max-width: 900px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .g5,
+            .g23,
+            .g32,
+            .toul {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+
+            body,
+            html {
+                overflow: visible;
+                background: #fff;
+            }
+
+            .topbar,
+            .navbar,
+            .progress,
+            .overview {
+                display: none !important;
+            }
+
+            .deck {
+                position: static;
+            }
+
+            .slide {
+                display: block !important;
+                position: static;
+                page-break-after: always;
+                animation: none;
+                padding: 12mm;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .hidden {
+                display: block !important;
+            }
+
+            .fit {
+                transform: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <b>CSEG3060</b><span>Research Methodology in Computer Science</span>
+        <span>·</span><span>Unit III · Lecture III.2</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit III · Lecture III.2 · CO3 · activity-led · working session</span>
+            <h1>Reading Research Efficiently<br><span style="color:var(--brand)">and Analysing It</span></h1>
+            <p class="lead big" style="max-width:36em">You now have a pile of papers. Reading all of them properly would
+                take a semester you do not have — so <em class="hl">you are going to read most of them badly, on
+                    purpose.</em></p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · The three-pass method</h3>
+                    <p style="margin:0">Five minutes, one hour, or half a day — chosen deliberately, per paper.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Critical appraisal</h3>
+                    <p style="margin:0">Reading a paper as a Toulmin argument — and all of Unit II comes back
+                        here.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · The gap table</h3>
+                    <p style="margin:0">Taxonomy → comparison matrix → <b>research-gap table</b>, whose empty cells are
+                        your contribution.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>You leave with</h3>
+                    <p style="margin:0">A real gap table built from your own five papers, with at least one empty cell
+                        identified.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · 5th Semester
+                B.Tech CSE · 55 minutes · <b style="color:var(--do)">≈ 30 minutes of this hour is your work</b> ·
+                <b>bring your five papers</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Five minutes, one paper">
+            <span class="kicker do">Do first · 5 minutes · timed, strictly</span>
+            <h2>Take one of your papers. You have five minutes. Go.</h2>
+            <div class="runbar">
+                <span class="step">1 · <b>5 min</b> — read one paper and answer the five questions below</span>
+                <span class="step">Do <b>not</b> read linearly. Do <b>not</b> read the middle.</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="300">5:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="card tint-do">
+                <p class="big" style="margin:0 0 .4em">Answer these five, in writing, in five minutes:</p>
+                <ol class="stack-tight" style="margin:0">
+                    <li><b>Category.</b> What kind of paper is it? Measurement study, new technique, analysis of an
+                        existing system?</li>
+                    <li><b>Context.</b> Which other papers is it standing next to? Which theory or baseline does it
+                        assume?</li>
+                    <li><b>Correctness.</b> Do the assumptions appear valid, on a first look?</li>
+                    <li><b>Contributions.</b> What are its main contributions — in the authors' own claim?</li>
+                    <li><b>Clarity.</b> Is it well written?</li>
+                </ol>
+            </div>
+            <div class="card" style="margin-top:.7em">
+                <p style="margin:0"><b>When the timer stops, answer one more question honestly:</b> did you finish?
+                    And if you did not — <em>what were you doing with your five minutes?</em></p>
+            </div>
+            <p class="footnote" style="margin-top:.6em">Almost everyone spends the five minutes reading the
+                introduction slowly. That is the habit this hour exists to break.</p>
+        </section>
+
+        <!-- ============ 3 · REVEAL / PASS 1 ============ -->
+        <section class="slide" data-title="A1 · Pass 1 — the five-minute pass">
+            <span class="kicker">Part A · the three-pass method</span>
+            <h2>Pass 1: five minutes, and you never read a sentence in the middle</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <h3>What you actually read</h3>
+                    <ol class="stack-tight">
+                        <li><b>Title, abstract, introduction</b></li>
+                        <li><b>Section and subsection headings only</b> — nothing under them</li>
+                        <li><b>The conclusions</b></li>
+                        <li><b>Glance at the references</b> — tick the ones you have already read</li>
+                    </ol>
+                    <p style="margin:.4em 0 .3em">That is the whole pass. You answer the <b>five Cs</b> from the
+                        exercise, and then you make a <em>decision</em>:</p>
+                    <div class="grid" style="gap:.3em">
+                        <div class="card flat tint-bad" style="padding:.35em .7em"><p style="margin:0; font-size:.86em">
+                                <b>Drop it.</b> Not relevant, or not sound enough to matter. Record <em>why</em> — that
+                                line is your exclusion reason.</p></div>
+                        <div class="card flat tint-warn" style="padding:.35em .7em"><p style="margin:0; font-size:.86em">
+                                <b>Cite it and move on.</b> Relevant context, but you do not need its details.</p></div>
+                        <div class="card flat tint-good" style="padding:.35em .7em"><p style="margin:0; font-size:.86em">
+                                <b>Promote to pass 2.</b> It is close enough to your gap to matter.</p></div>
+                    </div>
+                    <p class="footnote" style="margin:.4em 0 0">Of 50 papers, expect roughly <b>35 dropped or cited,
+                            12 promoted to pass 2, 3 read in full</b>. That distribution is the method working, not you
+                        cutting corners.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Why this is legitimate, not lazy</h3>
+                    <p style="margin:0 0 .4em">Papers are <b>written</b> to be read this way. The abstract, the
+                        introduction's last paragraph ("in this paper we…") and the conclusion are a deliberately
+                        redundant summary — authors know most readers will never reach section 4.</p>
+                    <p style="margin:0 0 .4em"><b>The economics.</b> Reading 50 papers properly at 3 hours each is
+                        150 hours. Three-pass gets the same coverage in about 20 — and spends the difference on the
+                        three papers that actually deserve it.</p>
+                    <div class="card flat tint-warn" style="padding:.5em .8em">
+                        <p style="margin:0"><b>The failure mode it prevents.</b> Reading papers linearly, in the order
+                            you downloaded them, until you run out of time — so you know paper 1 intimately, papers
+                            2–7 vaguely, and papers 8–50 not at all. Your review then reflects <em>download
+                                order</em>, which is not a defensible basis for anything.</p>
+                    </div>
+                    <p class="footnote" style="margin:.4em 0 0">S. Keshav, <i>“How to Read a Paper”</i>, ACM SIGCOMM
+                        CCR 37(3), 2007 — two pages, and the most useful two pages you will read this semester.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 4 · PASSES 2 AND 3 ============ -->
+        <section class="slide" data-title="A2 · Passes 2 and 3">
+            <span class="kicker">Part A · when a paper earns more of your time</span>
+            <h2>Pass 2: one hour · Pass 3: half a day</h2>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>Pass 2 — about one hour</h3>
+                    <p style="margin:0 0 .3em"><b>Goal:</b> grasp the content well enough to <em>summarise it to
+                            someone else with evidence</em>. You are not verifying it.</p>
+                    <ul class="stack-tight">
+                        <li><b>Read the figures, tables and graphs carefully</b> — this is where the paper's real claim
+                            lives. Are axes labelled? Is variance shown? Are the units sensible?</li>
+                        <li>Read the body, but <b>skip proofs and derivations</b>.</li>
+                        <li><b>Mark unread references</b> for later — this is how you snowball backwards.</li>
+                        <li>Note terms you did not understand and questions for the authors.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0"><b>Outcome:</b> you can state the claim, the evidence
+                        and the setting. If after an hour you still cannot, the paper is either badly written or
+                        outside your background — decide which, and note it.</p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Pass 3 — four to five hours</h3>
+                    <p style="margin:0 0 .3em"><b>Goal:</b> to <em>re-create</em> the work — the same assumptions, the
+                        same steps, and see whether you arrive where they did.</p>
+                    <ul class="stack-tight">
+                        <li><b>Virtually re-implement it</b>: make the same assumptions and reconstruct the result.</li>
+                        <li>Compare your reconstruction with what they wrote — differences reveal unstated
+                            assumptions.</li>
+                        <li><b>Challenge every assumption</b>, not just the ones they flagged.</li>
+                        <li>Think about how <em>you</em> would have presented it; note ideas for future work.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0"><b>Reserve this for two or three papers</b> — the ones
+                        your own contribution stands directly on, or directly against. This is the pass that finds the
+                        gap nobody else noticed, and it is also how you end up spotting the error in a published
+                        paper.</p>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:.7em">The skill is not reading faster. It is
+                <em class="hl">deciding, in five minutes, how much a paper is worth</em> — and being willing to
+                stop.</p>
+        </section>
+
+        <!-- ============ 5 · CRITICAL APPRAISAL ============ -->
+        <section class="slide" data-title="B1 · Critical appraisal — Unit II comes back">
+            <span class="kicker">Part B · reading as a reviewer</span>
+            <h2>Appraise a paper with the machinery you already have</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Nine questions, in order</h3>
+                    <ol class="stack-tight">
+                        <li><b>What is the claim?</b> Find the sentence. If you cannot, that is the finding.
+                            <span class="footnote">(II.1)</span></li>
+                        <li><b>What is the quantifier?</b> All, some, on-average-here?
+                            <span class="footnote">(II.5)</span></li>
+                        <li><b>What are the grounds?</b> What did they actually measure or prove?</li>
+                        <li><b>What is the warrant</b>, and did they defend it? <span class="footnote">(II.1)</span>
+                        </li>
+                        <li><b>Which proof method?</b> Demonstration, empirical, mathematical — and does it match the
+                            quantifier? <span class="footnote">(II.5)</span></li>
+                        <li><b>What is the baseline</b>, and was it given a fair run?
+                            <span class="footnote">(II.4)</span></li>
+                        <li><b>Is variance reported?</b> How many runs, seeds, participants?
+                            <span class="footnote">(II.4)</span></li>
+                        <li><b>Which validity threats apply</b>, and did they name them?
+                            <span class="footnote">(II.1)</span></li>
+                        <li><b>What does this <em>not</em> establish?</b> One sentence.</li>
+                    </ol>
+                </div>
+                <div class="card tint-do">
+                    <h3>Two rules that keep appraisal honest</h3>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-bottom:.5em">
+                        <p style="margin:0"><b>1 · Criticism must be specific and repairable.</b> “The evaluation is
+                            weak” is not appraisal. “<em>The baseline used default hyperparameters while the proposed
+                                method was tuned over 200 trials</em>” is — it names the flaw, the mechanism and the
+                            fix. Anything vaguer than that tells your reader nothing and cannot go in your literature
+                            review.</p>
+                    </div>
+                    <div class="card flat tint-good" style="padding:.5em .8em">
+                        <p style="margin:0"><b>2 · Read for what is <em>usable</em>, not only what is wrong.</b> A paper
+                            with a weak evaluation may still contribute a good problem framing, a dataset, a metric, or
+                            a baseline you can reuse. Your job is not to award marks — it is to extract what advances
+                            <em>your</em> work.</p>
+                    </div>
+                    <p class="big" style="margin:.5em 0 0">The two sentences you write about every paper:
+                        <em class="hl">“What it establishes is ___. What it does not establish is ___.”</em></p>
+                    <p class="footnote" style="margin:.4em 0 0">The second sentence, gathered across 30 papers,
+                        <b>is</b> your research gap. You are not looking for it separately — you are accumulating it
+                        one paper at a time.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill · what should you do with this paper?">
+            <span class="kicker do">Do · 6 items · 5 minutes</span>
+            <h2>Pass 1 is done. What now?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="rq-n">1</span> of <span id="rq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="rq-score">0</span></p>
+                <p class="big" id="rq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="rq-opts" style="gap:.5em"></div>
+                <div id="rq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="rq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="rq-restart">Restart</button>
+                    <span class="footnote">Decide on <b>value to your project</b>, not on whether the paper is
+                        good.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · FROM PAPERS TO STRUCTURE ============ -->
+        <section class="slide" data-title="C1 · Taxonomy → matrix → gap table">
+            <span class="kicker">Part C · turning a pile into an argument</span>
+            <h2>Three artefacts, built in this order</h2>
+            <div class="grid g3">
+                <div class="card tint-brand">
+                    <h3>1 · Taxonomy</h3>
+                    <p style="margin:0 0 .3em"><b>How does this field divide itself up?</b></p>
+                    <p class="footnote" style="margin:0">Group the papers into 3–6 approaches. Name each group in the
+                        field's own vocabulary, not yours.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Test:</b> every paper fits exactly one group, and a
+                        classmate would place them the same way. If papers straddle groups, your axis is wrong — try a
+                        different one.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Where it goes:</b> the section structure of your
+                        literature chapter.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>2 · Comparison matrix</h3>
+                    <p style="margin:0 0 .3em"><b>Papers as rows. Dimensions as columns.</b></p>
+                    <p class="footnote" style="margin:0">Columns that earn their place: <em>approach · dataset ·
+                            population/language · baseline · metric · evaluation type · scale · limitation
+                            stated</em>.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Rule:</b> every column must be one you could fill in
+                        for <em>every</em> paper. A column you can only fill for two papers is a note, not a
+                        dimension.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Where it goes:</b> the table in your literature
+                        chapter that examiners look at first.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>3 · Research-gap table</h3>
+                    <p style="margin:0 0 .3em"><b>The matrix, read for what is missing.</b></p>
+                    <p class="footnote" style="margin:0">Cross-tabulate two dimensions — say <em>approach</em> ×
+                        <em>population</em>, or <em>method</em> × <em>evaluation type</em> — and count the papers in
+                        each cell.</p>
+                    <p class="big" style="margin:.35em 0 0"><em class="hl">The empty cells are your candidate
+                            contributions.</em></p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Where it goes:</b> the paragraph that justifies your
+                        research question — and it justifies it with evidence rather than assertion.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.8em">
+                <p style="margin:0"><b>The caution that matters.</b> An empty cell is a <em>candidate</em>, not a
+                    contribution. Before claiming it, ask the Unit I question: is it empty because nobody has done it,
+                    or because <b>it is not worth doing</b>? Some cells are empty because the combination is
+                    meaningless, impossible, or was settled decades ago under different terminology. <b>A gap you cannot
+                        explain the absence of is a gap you should be suspicious of.</b></p>
+            </div>
+        </section>
+
+        <!-- ============ 8 · WORKED GAP TABLE ============ -->
+        <section class="slide" data-title="C2 · A worked gap table">
+            <span class="kicker">Part C · what it looks like when it works</span>
+            <h2>Approach × population, on 34 papers</h2>
+            <div class="card">
+                <p class="footnote" style="margin:0 0 .4em">Topic: <b>automated crop-disease diagnosis from images</b>.
+                    Cell values are paper counts.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Lab / studio images</th>
+                            <th>Field images, high-end camera</th>
+                            <th>Field images, low-end phone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>Classical CV features</b></td>
+                            <td>7</td>
+                            <td>2</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td><b>CNN, server-side</b></td>
+                            <td><b>15</b></td>
+                            <td>6</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><b>CNN, on-device</b></td>
+                            <td>3</td>
+                            <td>0</td>
+                            <td style="background:var(--warn-soft)"><b>0</b> ← the gap</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="grid g2" style="margin-top:.8em">
+                <div class="card flat tint-good">
+                    <p style="margin:0"><b>What the table says out loud:</b> the field is heavily concentrated on
+                        studio-quality images with server-side inference. Fifteen papers occupy one cell. The
+                        deployment-realistic combination — on-device inference over phone-quality field images — has
+                        <b>nobody in it</b>.</p>
+                    <p class="footnote" style="margin:.4em 0 0">Note that this is the <b>population gap</b> from Lecture
+                        I.3, and the <b>new context</b> novelty from I.4 — arrived at by counting rather than by
+                        hoping.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <p style="margin:0"><b>Now interrogate it before you commit.</b> Is that cell empty because it is
+                        hard and valuable, or because it is uninteresting? Here: the constraint is real (farmers own
+                        cheap phones), the difficulty is real (domain shift plus compute limits), and the earlier cells
+                        show the accuracy claims that <em>would</em> be tested by filling it.</p>
+                    <p class="footnote" style="margin:.4em 0 0">That reasoning — three sentences — is what turns
+                        “I found an empty cell” into a defensible research question.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · REFERENCE MANAGERS ============ -->
+        <section class="slide" data-title="C3 · Reference managers and BibTeX">
+            <span class="kicker">Part C · the tooling · ten minutes now saves ten hours later</span>
+            <h2>Set this up today, not in November</h2>
+            <div class="grid g3">
+                <div class="card flat tint-brand">
+                    <h3>Zotero <span class="footnote">(recommended)</span></h3>
+                    <p class="footnote" style="margin:0">Free, open source, no storage limit locally. Browser connector
+                        grabs metadata and PDF in one click. Better BibTeX plugin gives stable citation keys.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Mendeley</h3>
+                    <p class="footnote" style="margin:0">Free tier with cloud sync, good PDF annotation, Elsevier-owned
+                        so it integrates with Scopus.</p>
+                </div>
+                <div class="card flat">
+                    <h3>JabRef</h3>
+                    <p class="footnote" style="margin:0">Works directly on a <code>.bib</code> file. Ideal if you live
+                        in LaTeX and want no database in between.</p>
+                </div>
+            </div>
+            <div class="grid g2" style="margin-top:.8em">
+                <div class="card">
+                    <h3>The workflow, once</h3>
+                    <ol class="stack-tight">
+                        <li>Install Zotero and the browser connector.</li>
+                        <li>Create a collection for your project; sub-collections for your taxonomy groups.</li>
+                        <li>Save every paper <b>at the moment you find it</b> — not later. Later never comes.</li>
+                        <li><b>Check the metadata immediately.</b> Auto-import routinely mangles conference names,
+                            authors and years.</li>
+                        <li>Tag by taxonomy group; put your two appraisal sentences in the Notes field.</li>
+                        <li>Export <code>.bib</code>, and cite with <code>\cite{key}</code>.</li>
+                    </ol>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Four things that go wrong</h3>
+                    <ul class="stack-tight">
+                        <li><b>Trusting auto-imported metadata.</b> Google Scholar BibTeX in particular is often wrong
+                            about venue and year. <b>Check every entry once</b>; a wrong citation is a
+                            <em>correctness</em> error in your report, not a formatting one.</li>
+                        <li><b>Citing the arXiv preprint</b> when a peer-reviewed version exists. Always cite the
+                            published version.</li>
+                        <li><b>Unstable citation keys</b> that change on re-export and silently break your document.</li>
+                        <li><b>Leaving it until the end.</b> Reconstructing 40 references in the last week is a
+                            genuinely miserable and error-prone job — and it is where accidental plagiarism creeps in,
+                            which is exactly where III.3 begins.</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="footnote center" style="margin-top:.6em">IEEE, ACM and APA styles are all one dropdown in the
+                same tool — which is why getting the <em>data</em> right matters far more than getting the style
+                right.</p>
+        </section>
+
+        <!-- ============ 10 · MAIN ACTIVITY ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Build your gap table">
+            <span class="kicker do">Do · 14 minutes · your five papers · the hour's main event</span>
+            <h2>Five papers in, one gap out</h2>
+            <div class="runbar">
+                <span class="step">1 · <b>5 min</b> — pass 1 on all five, two sentences each</span>
+                <span class="step">2 · <b>4 min</b> — build the comparison matrix</span>
+                <span class="step">3 · <b>3 min</b> — cross-tabulate, find an empty cell</span>
+                <span class="step">4 · <b>2 min</b> — swap and interrogate</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="840">14:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Steps 1–3</h3>
+                    <p style="margin:0 0 .3em"><b>1 · Pass 1 on each paper, one minute each.</b> Title, abstract,
+                        headings, conclusion. Write the two sentences:</p>
+                    <div class="card flat tint-brand" style="padding:.4em .7em; margin-bottom:.4em">
+                        <p style="margin:0; font-size:.86em"><i>“What it establishes is ___. What it does not establish
+                                is ___.”</i></p>
+                    </div>
+                    <p style="margin:0 0 .3em"><b>2 · Comparison matrix.</b> Five rows. Columns:</p>
+                    <p class="mono" style="margin:0 0 .4em; font-size:.76em; display:block; padding:.4em">
+                        paper | approach | dataset | population | baseline | metric | eval type | limitation</p>
+                    <p style="margin:0"><b>3 · Cross-tabulate two columns</b> — approach × population is usually the
+                        productive pair — and count. With five papers most cells will be empty, so pick the
+                        <em>most interesting</em> empty cell and write one sentence on why it is empty.</p>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Five papers is too few for a real gap table</b> —
+                        you need 25–40. This is the mechanism at small scale so you can run it properly at home.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Step 4 · The interrogation</h3>
+                    <p style="margin:0 0 .4em">Swap tables with a neighbour. Their job is to ask, about your chosen
+                        empty cell, exactly three questions:</p>
+                    <ol class="stack-tight">
+                        <li>“Is it empty because it is <b>hard</b>, because it is <b>uninteresting</b>, or because you
+                            <b>searched with the wrong words</b>?”</li>
+                        <li>“Who would <b>act differently</b> if this cell were filled?”
+                            <span class="footnote">— the so-what chain from I.4</span></li>
+                        <li>“What would you have to <b>measure</b> to fill it?”</li>
+                    </ol>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0"><b>Question 1 is the important one.</b> The commonest honest answer in this
+                            room will be the third — the cell is empty because your search terms missed the work that
+                            fills it. That is a finding worth having <em>now</em>, because it sends you back to III.1's
+                            synonym list rather than into a project someone already did.</p>
+                    </div>
+                    <p class="big" style="margin:.5em 0 0">A gap that survives all three questions is
+                        <em class="hl">a research question with evidence behind it.</em></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · EXIT TICKET ============ -->
+        <section class="slide" data-mode="do" data-title="DO 4 · Exit ticket">
+            <span class="kicker do">Exit ticket · tick what is true right now</span>
+            <h2>Can you defend your gap?</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <div class="grid" id="exit" style="gap:.4em; grid-template-columns:1fr 1fr"></div>
+                    <p class="footnote" style="margin:.5em 0 0"><span class="star"
+                            style="color:var(--bad); font-weight:900">★</span> = non-negotiable. Four starred
+                        items.</p>
+                </div>
+                <div class="card" id="ex-card">
+                    <h3>Ticked: <span class="score" id="ex-score">0</span> / 10 &nbsp;·&nbsp; essentials: <span
+                            class="score" id="ex-ess">0</span> / 4</h3>
+                    <p id="ex-verdict" style="margin:0">Tick what is written down — not what you intend.</p>
+                    <div class="card flat tint-brand" style="padding:.5em .8em; margin-top:.6em">
+                        <p style="margin:0"><b>Where this goes next.</b> You are now reading, summarising and
+                            reusing other people's words and ideas at volume — which is exactly the point at which
+                            plagiarism stops being a moral abstraction and becomes a practical risk. <b>III.3</b>
+                            covers plagiarism and research ethics, and carries <b>Case Studies 1</b>, worth 10
+                            marks.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · TAKEAWAYS ============ -->
+        <section class="slide" data-title="Eight things that must survive">
+            <span class="kicker">Consolidation</span>
+            <h2>Eight things that must survive this hour</h2>
+            <div class="grid g2">
+                <ol class="stack-tight big" style="line-height:1.3">
+                    <li><b>Three passes:</b> five minutes · one hour · half a day — chosen deliberately, per
+                        paper.</li>
+                    <li>Pass 1 reads <b>title, abstract, headings, conclusion, references</b>. Nothing else.</li>
+                    <li>Of 50 papers: <b>~35 dropped or cited, ~12 to pass 2, ~3 read in full.</b></li>
+                    <li>Appraise with Unit II: <b>claim · quantifier · grounds · warrant · method · baseline ·
+                            variance · threats</b>.</li>
+                </ol>
+                <ol class="stack-tight big" start="5" style="line-height:1.3">
+                    <li>Criticism must be <b>specific and repairable</b> — “the evaluation is weak” is not
+                        appraisal.</li>
+                    <li>Two sentences per paper: <b>what it establishes · what it does not</b>. The second column
+                        accumulates into your gap.</li>
+                    <li><b>Taxonomy → comparison matrix → gap table.</b> The empty cells are candidate
+                        contributions.</li>
+                    <li><b>An empty cell you cannot explain the absence of is a cell to be suspicious of.</b></li>
+                </ol>
+            </div>
+            <div class="card tint-brand" style="margin-top:.8em">
+                <p class="big" style="margin:0">If you remember one sentence: <em class="hl">write “what it does not
+                        establish” for every paper you read — thirty of those sentences, tabulated, is a literature
+                        review that argues instead of summarising.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 13 · NOTEBOOK & CLOSE ============ -->
+        <section class="slide" data-title="Notebook task and what's next">
+            <span class="kicker">Research Notebook · entry after Lecture III.2</span>
+            <h2>Your notebook task</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Three things to add before the next session</h3>
+                    <ol class="stack-tight">
+                        <li><b>Lecture log.</b> Date, “III.2 — reading and analysing research”, and your exit-ticket
+                            score out of 10.</li>
+                        <li><b>Section 12 · Comparison matrix.</b> Extend from five papers to <b>at least fifteen</b>,
+                            using pass 1 only. One minute per paper, two sentences each. This is a two-hour job, not a
+                            two-day one.</li>
+                        <li><b>Section 12b · Gap table.</b> The cross-tabulation, the empty cell you are claiming, and
+                            <b>three sentences</b> answering your interrogator's questions: why it is empty, who would
+                            act differently, and what you would measure.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Also: <b>install Zotero this week</b> and import
+                        everything you already have. Stamp the entry <code>\version{14}{...}{after Lecture
+                            III.2}</code>.</p>
+                </div>
+                <div class="card">
+                    <div class="card flat tint-bad" style="padding:.7em .9em">
+                        <h3 style="margin-bottom:.2em">Next session · III.3 · Plagiarism and Research Ethics</h3>
+                        <p style="margin:0"><b>CASE STUDIES 1 — 10 marks, CO3, assessed in the slot.</b> In-class
+                            analysis of real plagiarism and research-misconduct cases, with a written case response
+                            submitted at the end.</p>
+                        <p style="margin:.4em 0 0">Forms of plagiarism and self-plagiarism, similarity tools,
+                            paraphrasing and attribution; research integrity, fabrication and falsification,
+                            authorship, conflicts of interest, consent and data privacy.</p>
+                    </div>
+                    <div class="card flat tint-warn" style="margin-top:.6em; padding:.7em .9em">
+                        <p style="margin:0"><b>Come prepared.</b> The case responses are marked on whether you can
+                            apply a rule to a messy situation, not on whether you can recite definitions. Bring
+                            your notes.</p>
+                    </div>
+                    <p class="footnote" style="margin:.6em 0 0"><b>Reading:</b> S. Keshav, <i>“How to Read a Paper”</i>,
+                        ACM SIGCOMM CCR 37(3), 2007 — <b>read this one, it is two pages</b> · P. Fong,
+                        <i>“How to Read a CS Research Paper”</i> · Webster &amp; Watson, <i>“Analyzing the Past to
+                            Prepare for the Future: Writing a Literature Review”</i> (2002) — the concept matrix.</p>
+                </div>
+            </div>
+        </section>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 13</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script>
+        /* ---------------- deck engine ---------------- */
+        const slides = [...document.querySelectorAll('.slide')];
+        let cur = 0;
+
+        slides.forEach(s => {
+            const fit = document.createElement('div');
+            fit.className = 'fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+        });
+
+        function fitSlide(s) {
+            const f = s.querySelector('.fit');
+            if (!f) return;
+            f.style.transform = 'none';
+            const cs = getComputedStyle(s);
+            const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const h = f.offsetHeight;
+            if (avail <= 0 || h <= 0) return;
+            const k = Math.min(1, avail / h);
+            f.style.transform = k > 0.995 ? 'none' : 'scale(' + k.toFixed(4) + ')';
+        }
+        const fitNow = () => fitSlide(slides[cur]);
+        const fitSoon = () => requestAnimationFrame(() => requestAnimationFrame(fitNow));
+        window.addEventListener('resize', fitNow);
+        document.addEventListener('click', fitSoon, true);
+        document.addEventListener('change', fitSoon, true);
+        document.addEventListener('input', fitSoon, true);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('title-now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            slides[cur].scrollTop = 0;
+            location.hash = 's' + (cur + 1);
+            fitSlide(slides[cur]);
+        }
+        function go(d) { show(cur + d); }
+
+        document.addEventListener('keydown', e => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.key === 'Escape') { document.getElementById('overview').classList.add('hidden'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'd') toggleTheme();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 't') { const t = document.getElementById('lect-t'); t.__toggle && t.__toggle(); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        function toggleTheme() {
+            const h = document.documentElement;
+            h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('hidden'); }
+
+        const ovList = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + (i + 1) + '</b><span>' + (s.dataset.title || '') + '</span>' +
+                (s.dataset.mode === 'do' ? '<span class="do-dot">STUDENT WORK</span>' : '');
+            b.onclick = () => { show(i); toggleOverview(); };
+            ovList.appendChild(b);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(b => {
+            const label = b.textContent;
+            b.addEventListener('click', () => {
+                const t = document.querySelector(b.dataset.reveal);
+                t.classList.toggle('hidden');
+                b.textContent = t.classList.contains('hidden') ? label : 'Hide again';
+            });
+        });
+
+        document.querySelectorAll('.timer').forEach(box => {
+            const disp = box.querySelector('.t');
+            const total = parseInt(disp.dataset.sec, 10);
+            let left = total, id = null;
+            const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            const paint = () => {
+                disp.textContent = fmt(left);
+                disp.classList.toggle('low', left <= Math.max(10, total * 0.15));
+            };
+            const tick = () => { if (left > 0) { left--; paint(); } else { clearInterval(id); id = null; } };
+            const toggle = () => { if (id) { clearInterval(id); id = null; } else { id = setInterval(tick, 1000); } };
+            disp.__toggle = toggle;
+            box.querySelector('[data-timer=start]').addEventListener('click', toggle);
+            box.querySelector('[data-timer=reset]').addEventListener('click', () => {
+                clearInterval(id); id = null; left = total; paint();
+            });
+            paint();
+        });
+
+        /* ---------------- generic drill engine ---------------- */
+        function makeDrill(p, items, done) {
+            const el = k => document.getElementById(p + '-' + k);
+            const opts = el('opts');
+            let i = 0, sc = 0, lock = false;
+
+            function paint() {
+                el('n').textContent = i + 1;
+                el('total').textContent = items.length;
+                el('stmt').innerHTML = items[i].q;
+                el('score').textContent = sc;
+                el('fb').classList.add('hidden');
+                opts.innerHTML = '';
+                items[i].o.forEach((t, k) => {
+                    const b = document.createElement('button');
+                    b.className = 'pick';
+                    b.innerHTML = '<b>' + 'ABCDEF'[k] + '.</b> ' + t;
+                    b.addEventListener('click', () => {
+                        if (lock) return;
+                        lock = true;
+                        const right = items[i].a;
+                        if (k === right) { b.classList.add('right'); sc++; }
+                        else { b.classList.add('wrong'); opts.children[right].classList.add('right'); }
+                        el('score').textContent = sc;
+                        const fb = el('fb');
+                        fb.innerHTML = items[i].w;
+                        fb.classList.remove('hidden');
+                    });
+                    opts.appendChild(b);
+                });
+                lock = false;
+            }
+
+            el('next').addEventListener('click', () => {
+                if (i < items.length - 1) { i++; paint(); }
+                else {
+                    const fb = el('fb');
+                    fb.classList.remove('hidden');
+                    fb.innerHTML = done(sc, items.length);
+                }
+            });
+            const r = document.getElementById(p + '-restart');
+            if (r) r.addEventListener('click', () => { i = 0; sc = 0; paint(); });
+            paint();
+        }
+
+
+        /* ---------------- Drill · what to do with this paper ---------------- */
+        const ACT = ['Drop it - record the reason', 'Cite for context, do not read further',
+            'Promote to pass 2', 'Pass 3 - read in full and reconstruct'];
+        makeDrill('rq', [
+            {
+                q: 'A 2019 paper proposing a CNN for crop-disease classification on the PlantVillage dataset. Your project is about field-captured images on low-end phones. It is cited by almost everything in your area.',
+                o: ACT, a: 1,
+                w: '<b>Cite for context.</b> It defines the baseline the whole field reports against, so your reader needs it — but its details will not change what you do, because it works on exactly the studio images your project is reacting against. Record its headline number; that figure is the thing your work will contrast with.'
+            },
+            {
+                q: 'A 2024 paper doing on-device inference over field-captured images on budget Android hardware, reporting the accuracy drop you suspected existed. This is the closest paper to your intended contribution.',
+                o: ACT, a: 3,
+                w: '<b>Pass 3.</b> This paper sits exactly where you intended to stand, so you must know it better than its authors do. Reconstruct their method and assumptions: what phones, which crops, what "field" meant, whether the drop was attributed or merely reported. Either you find the gap they left, or you discover your project needs re-anchoring — and you need to know which <em>now</em>.'
+            },
+            {
+                q: 'A two-page workshop abstract proposing an idea similar to yours, with no evaluation, no dataset and no results.',
+                o: ACT, a: 1,
+                w: '<b>Cite for context.</b> It does not establish anything — position papers are excluded by most inclusion criteria — but it is evidence that <em>others consider the direction worth pursuing</em>, which is useful in your motivation. One line: "a similar direction has been proposed [x] but not evaluated." That sentence is a gap statement.'
+            },
+            {
+                q: 'A 2016 paper on transfer learning for medical imaging. Different domain entirely, but its method for quantifying domain shift is exactly the technique you need.',
+                o: ACT, a: 2,
+                w: '<b>Promote to pass 2.</b> Relevance is not the same as topical overlap — this is <em>methodological</em> relevance, and it is where the best ideas usually come from. Read it for the technique and skip its medical findings. Cross-domain borrowing is the interdisciplinary source from Lecture I.3, in action.'
+            },
+            {
+                q: 'A paper whose abstract claims 99.8% accuracy on a task you know to be hard, published in a venue you have never heard of, with no code and no dataset description.',
+                o: ACT, a: 0,
+                w: '<b>Drop it — and record why.</b> Implausible result, unverifiable venue, no artefact, no data description: this fails a quality screen. Note the reason in your exclusion list ("no dataset description; result not verifiable"). Do not simply delete it — an unexplained absence looks like you missed it. And do not cite it to dismiss it unless you have actually read it.'
+            },
+            {
+                q: 'A 2023 survey of your exact area, with a taxonomy and an open-challenges section.',
+                o: ACT, a: 2,
+                w: '<b>Promote to pass 2</b> — and prioritise it. A recent survey gives you the field\'s own taxonomy (do not invent your own if a good one exists), a ready-made reference list for backward snowballing, and an open-challenges section that is a list of gaps the community itself endorses. Read the taxonomy and open challenges carefully; skim the rest. Note the risk from Lecture I.3: gaps named in a well-read survey are <em>crowded</em>.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'You are triaging on value-to-your-project rather than on paper quality, which is the decision the three-pass method exists to make. Now do it live on your own five.'
+            : 'Ask two questions after pass 1: <b>does this change what I will do?</b> and <b>does my reader need it?</b> Changes what you do → pass 2 or 3. Reader needs it but you do not → cite for context. Neither → drop it, with a reason recorded.'));
+
+        /* ---------------- exit ticket ---------------- */
+        const EXIT = [
+            { t: 'I did <b>pass 1</b> on all five papers within the time', ess: 1 },
+            { t: 'I wrote “<b>what it does not establish</b>” for each paper', ess: 1 },
+            { t: 'I have a <b>comparison matrix</b> with columns I can fill for every paper', ess: 1 },
+            { t: 'I have identified an <b>empty cell</b> and said why it is empty', ess: 1 },
+            { t: 'I have a <b>taxonomy</b> of 3-6 groups my papers fall into', ess: 0 },
+            { t: 'My criticism is <b>specific and repairable</b>, not “the evaluation is weak”', ess: 0 },
+            { t: 'I can name <b>who would act differently</b> if my gap were filled', ess: 0 },
+            { t: 'I checked my gap is not empty due to <b>wrong search terms</b>', ess: 0 },
+            { t: 'I have a <b>reference manager</b> installed with my papers in it', ess: 0 },
+            { t: 'I have <b>verified the metadata</b> on every entry I imported', ess: 0 }
+        ];
+        const exitBox = document.getElementById('exit');
+        EXIT.forEach((r, i) => {
+            const b = document.createElement('button');
+            b.className = 'ck';
+            b.dataset.i = i;
+            b.innerHTML = (r.ess ? '<span class="star">★</span> ' : '') + r.t;
+            b.addEventListener('click', () => { b.classList.toggle('on'); exitScore(); });
+            exitBox.appendChild(b);
+        });
+        function exitScore() {
+            const on = [...exitBox.querySelectorAll('.ck.on')].map(b => +b.dataset.i);
+            const ess = on.filter(i => EXIT[i].ess).length;
+            document.getElementById('ex-score').textContent = on.length;
+            document.getElementById('ex-ess').textContent = ess;
+            const card = document.getElementById('ex-card'), v = document.getElementById('ex-verdict');
+            if (ess < 2) {
+                card.className = 'card tint-bad';
+                v.innerHTML = 'You are still reading papers one at a time rather than analysing a set — which is how a literature chapter ends up summarising five papers in sequence and arguing nothing. Start with the two sentences per paper; the structure emerges from them.';
+            } else if (ess < 4) {
+                card.className = 'card tint-warn';
+                v.innerHTML = 'You are extracting per-paper, but not yet comparing across them. The matrix is what turns notes into an argument — and until you cross-tabulate it, your “gap” is a hunch rather than something you can show an examiner.';
+            } else if (on.length < 8) {
+                card.className = 'card tint-good';
+                v.innerHTML = 'You have a gap supported by evidence rather than by assertion. That single table will do more work in your viva than any amount of prose about how important your topic is.';
+            } else {
+                card.className = 'card tint-good';
+                v.innerHTML = 'This is how a literature review is actually built: triaged reading, structured extraction, a taxonomy in the field\'s own vocabulary, and a gap you have already stress-tested against the obvious objections. Scale it to thirty papers and your Chapter 2 is written.';
+            }
+        }
+
+
+        /* ---------------- boot ---------------- */
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+        exitScore();
+    </script>
+</body>
+
+</html>

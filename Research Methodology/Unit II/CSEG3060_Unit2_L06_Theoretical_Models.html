@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · II.6 — Theoretical Models in Computing Research</title>
+    <meta name="description"
+        content="Activity-led lecture II.6 for Research Methodology in Computer Science (CSEG3060): the role and types of theoretical model in computing research - automata-based, logic-based, graph-based and algebraic models - what each abstracts away, what each buys you, how a model is validated, and the probabilistic, queueing and simulation models used for performance and reliability reasoning.">
+    <style>
+        /* ============================================================
+           CSEG3060 - Unit II - Lecture II.6
+           Self-contained interactive deck. No external assets.
+           Activity-led: slides marked data-mode="do" are student work.
+           Keys: → / Space next · ← prev · O overview · T timer · D dark · F fullscreen
+           ============================================================ */
+
+        :root {
+            --ink: #0f1e35;
+            --ink-soft: #3d5372;
+            --ink-faint: #6b7f9c;
+            --bg: #eef2f8;
+            --surface: #ffffff;
+            --surface-2: #f6f9fd;
+            --line: #d3dced;
+            --brand: #1d5fd0;
+            --brand-soft: #e5eeff;
+            --good: #147a45;
+            --good-soft: #e2f5ea;
+            --bad: #b3182b;
+            --bad-soft: #fdeaec;
+            --warn: #a9640a;
+            --warn-soft: #fdf1de;
+            --do: #7b2fd0;
+            --do-soft: #f1e8fd;
+            --shadow: 0 2px 4px rgba(15, 30, 53, .06), 0 12px 32px rgba(15, 30, 53, .10);
+            --radius: 16px;
+            --fs: clamp(18px, 1.0vw + 12px, 33px);
+        }
+
+        html[data-theme="dark"] {
+            --ink: #eaf1fb;
+            --ink-soft: #b6c6dd;
+            --ink-faint: #8ea3c0;
+            --bg: #0b1220;
+            --surface: #131f33;
+            --surface-2: #18263d;
+            --line: #2c3d59;
+            --brand: #6ea8ff;
+            --brand-soft: #1a2c4c;
+            --good: #4ade80;
+            --good-soft: #123024;
+            --bad: #fb7185;
+            --bad-soft: #3a1620;
+            --warn: #fbbf24;
+            --warn-soft: #392a10;
+            --do: #c99bff;
+            --do-soft: #2a1a44;
+            --shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: var(--fs);
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            gap: .8em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            font-size: .68em;
+            letter-spacing: .02em;
+            color: var(--ink-faint);
+            z-index: 40;
+        }
+
+        .topbar b {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .topbar .spacer {
+            flex: 1;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .18em .8em;
+            background: var(--surface-2);
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .chip:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .progress {
+            position: fixed;
+            top: 2.4em;
+            left: 0;
+            height: 4px;
+            background: var(--brand);
+            z-index: 41;
+            transition: width .25s ease;
+        }
+
+        .deck {
+            position: absolute;
+            inset: 2.4em 0 0 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: clamp(14px, 2.2vh, 30px) clamp(18px, 3.4vw, 70px) 4.2em;
+            display: none;
+            animation: in .28s ease both;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide[data-mode="do"] {
+            background:
+                linear-gradient(90deg, var(--do) 0 6px, transparent 6px);
+        }
+
+        .fit {
+            display: flow-root;
+            transform-origin: top center;
+        }
+
+        @keyframes in {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.1em;
+            display: flex;
+            align-items: center;
+            gap: .6em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            z-index: 40;
+            font-size: .7em;
+        }
+
+        .navbar .count {
+            font-weight: 800;
+            color: var(--ink-soft);
+            min-width: 5.5em;
+        }
+
+        .navbar .title-now {
+            color: var(--ink-faint);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button.nav {
+            font: inherit;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: .45em 1.1em;
+            cursor: pointer;
+        }
+
+        button.nav:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            line-height: 1.08;
+            margin: .1em 0 .3em;
+            letter-spacing: -.02em;
+        }
+
+        h2 {
+            font-size: 1.72em;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            letter-spacing: -.015em;
+        }
+
+        h3 {
+            font-size: 1.12em;
+            margin: 0 0 .4em;
+        }
+
+        p {
+            margin: 0 0 .7em;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: .62em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: .35em 1em;
+            margin-bottom: .9em;
+        }
+
+        .kicker.do {
+            color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .lead {
+            font-size: 1.12em;
+            color: var(--ink-soft);
+        }
+
+        .big {
+            font-size: 1.35em;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .huge {
+            font-size: 2.1em;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+        }
+
+        em.hl {
+            font-style: normal;
+            background: linear-gradient(transparent 62%, rgba(29, 95, 208, .26) 0);
+            font-weight: 700;
+        }
+
+        .quote {
+            font-size: 1.15em;
+            border-left: 6px solid var(--brand);
+            padding: .3em 0 .3em 1em;
+            color: var(--ink-soft);
+            font-style: italic;
+            margin: .8em 0;
+        }
+
+        code,
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: .92em;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: .06em .38em;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(10px, 1.4vw, 20px);
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .g5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .g23 {
+            grid-template-columns: 2fr 3fr;
+        }
+
+        .g32 {
+            grid-template-columns: 3fr 2fr;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: clamp(12px, 1.5vw, 22px);
+            box-shadow: var(--shadow);
+        }
+
+        .flat {
+            box-shadow: none;
+        }
+
+        .tint-good {
+            background: var(--good-soft);
+            border-color: color-mix(in srgb, var(--good) 35%, transparent);
+        }
+
+        .tint-bad {
+            background: var(--bad-soft);
+            border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+        }
+
+        .tint-warn {
+            background: var(--warn-soft);
+            border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+        }
+
+        .tint-brand {
+            background: var(--brand-soft);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+
+        .tint-do {
+            background: var(--do-soft);
+            border-color: color-mix(in srgb, var(--do) 40%, transparent);
+        }
+
+        ul,
+        ol {
+            margin: 0 0 .6em;
+            padding-left: 1.15em;
+        }
+
+        li {
+            margin-bottom: .42em;
+        }
+
+        li::marker {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .stack-tight li {
+            margin-bottom: .25em;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: .66em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+            padding: .2em .6em;
+            border: 1px solid currentColor;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88em;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: .5em .7em;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: .82em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--ink-faint);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .reveal-btn {
+            font: inherit;
+            font-weight: 800;
+            font-size: .88em;
+            border: 2px dashed var(--brand);
+            color: var(--brand);
+            background: transparent;
+            border-radius: 10px;
+            padding: .4em 1em;
+            cursor: pointer;
+        }
+
+        .reveal-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pick {
+            text-align: left;
+            font: inherit;
+            width: 100%;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .55em .8em;
+            color: var(--ink);
+            transition: .15s;
+        }
+
+        .pick:hover {
+            border-color: var(--brand);
+            transform: translateY(-2px);
+        }
+
+        .pick.sel {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .pick.right {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .pick.wrong {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .verdict {
+            margin-top: .6em;
+            font-size: .92em;
+            border-left: 5px solid var(--brand);
+            padding-left: .8em;
+            color: var(--ink-soft);
+        }
+
+        .ck {
+            font: inherit;
+            font-size: .82em;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .35em .6em;
+            color: var(--ink);
+        }
+
+        .ck.on {
+            border-color: var(--good);
+            background: var(--good-soft);
+            font-weight: 700;
+        }
+
+        .ck .star {
+            color: var(--bad);
+            font-weight: 900;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: .5em;
+            font-weight: 900;
+        }
+
+        .timer .t {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 1.5em;
+            min-width: 3.4em;
+            text-align: center;
+            background: var(--surface-2);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .05em .3em;
+        }
+
+        .timer .t.low {
+            color: var(--bad);
+            border-color: var(--bad);
+        }
+
+        .tbtn {
+            font: inherit;
+            font-size: .8em;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 8px;
+            padding: .3em .8em;
+            cursor: pointer;
+        }
+
+        .tbtn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .overview {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 60;
+            padding: 2em clamp(18px, 4vw, 70px);
+            overflow-y: auto;
+        }
+
+        .ov-item {
+            display: flex;
+            gap: .8em;
+            align-items: baseline;
+            width: 100%;
+            text-align: left;
+            font: inherit;
+            font-size: .82em;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: .5em .8em;
+            margin-bottom: .4em;
+            cursor: pointer;
+            color: var(--ink);
+        }
+
+        .ov-item:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .ov-item b {
+            color: var(--brand);
+            min-width: 2.2em;
+        }
+
+        .ov-item .do-dot {
+            margin-left: auto;
+            font-size: .7em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: var(--do);
+            background: var(--do-soft);
+            border-radius: 999px;
+            padding: .1em .7em;
+        }
+
+        .score {
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .footnote {
+            font-size: .74em;
+            color: var(--ink-faint);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--brand);
+            font-weight: 900;
+        }
+
+        /* ---- activity banner ---- */
+        .runbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .7em;
+            background: var(--do-soft);
+            border: 1px solid color-mix(in srgb, var(--do) 40%, transparent);
+            border-left: 6px solid var(--do);
+            border-radius: 12px;
+            padding: .5em .9em;
+            font-size: .8em;
+            margin-bottom: .8em;
+        }
+
+        .runbar b {
+            color: var(--do);
+        }
+
+        .runbar .step {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .15em .8em;
+            font-weight: 700;
+        }
+
+        /* ---- Toulmin diagram ---- */
+        .toul {
+            display: grid;
+            gap: .5em;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: stretch;
+        }
+
+        .tbox {
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .5em .8em;
+            background: var(--surface);
+        }
+
+        .tbox h4 {
+            margin: 0 0 .15em;
+            font-size: .78em;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        .tbox p {
+            margin: 0;
+            font-size: .92em;
+        }
+
+        .tbox.k-claim {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .tbox.k-warrant {
+            border-color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .tbox.k-ground {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .tbox.k-reb {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .tbox.k-qual {
+            border-color: var(--warn);
+            background: var(--warn-soft);
+        }
+
+        .tarrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--ink-faint);
+        }
+
+        @media (max-width: 900px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .g5,
+            .g23,
+            .g32,
+            .toul {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+
+            body,
+            html {
+                overflow: visible;
+                background: #fff;
+            }
+
+            .topbar,
+            .navbar,
+            .progress,
+            .overview {
+                display: none !important;
+            }
+
+            .deck {
+                position: static;
+            }
+
+            .slide {
+                display: block !important;
+                position: static;
+                page-break-after: always;
+                animation: none;
+                padding: 12mm;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .hidden {
+                display: block !important;
+            }
+
+            .fit {
+                transform: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <b>CSEG3060</b><span>Research Methodology in Computer Science</span>
+        <span>·</span><span>Unit II · Lecture II.6</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit II · Lecture II.6 · CO2 · activity-led · focus topic</span>
+            <h1>Theoretical Models<br><span style="color:var(--brand)">in Computing Research</span></h1>
+            <p class="lead big" style="max-width:36em">You cannot prove anything about a <em>system</em>. You can only
+                prove things about a <em>model</em> of it — so choosing the model <em class="hl">is</em> the research
+                decision.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · Why model at all</h3>
+                    <p style="margin:0">What a model is for, and the four things every model does to reality.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · The four families</h3>
+                    <p style="margin:0"><b>Automata · logic-based · graph-based · algebraic</b> — with the questions
+                        each one is built to answer.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · Choosing and validating</h3>
+                    <p style="margin:0">Probabilistic, queueing and simulation models — and how you show a model
+                        deserves to be believed.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>You leave with</h3>
+                    <p style="margin:0">A named model for your own system, its abstraction list, and the one thing it
+                        throws away that might matter.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · 5th Semester
+                B.Tech CSE · 55 minutes · <b style="color:var(--do)">≈ 27 minutes of this hour is your work</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Model the traffic light">
+            <span class="kicker do">Do first · 5 minutes · no theory yet</span>
+            <h2>One system. Four questions. Can one model answer all four?</h2>
+            <div class="runbar">
+                <span class="step">1 · Alone, 2 min — sketch how you would represent it</span>
+                <span class="step">2 · Pairs, 2 min — does your representation answer all four?</span>
+                <span class="step">3 · Class, 1 min</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="300">5:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="card tint-do">
+                <p class="big" style="margin:0 0 .4em">A <b>four-way traffic junction</b> with signals, sensors and a
+                    controller.</p>
+                <div class="grid g2" style="gap:.5em">
+                    <div class="card flat" style="padding:.5em .8em"><p style="margin:0"><span class="tag">Q1</span>
+                            Can two perpendicular directions ever be green <b>at the same time</b>?</p></div>
+                    <div class="card flat" style="padding:.5em .8em"><p style="margin:0"><span class="tag">Q2</span>
+                            Is every waiting direction <b>eventually</b> served — no lane starves?</p></div>
+                    <div class="card flat" style="padding:.5em .8em"><p style="margin:0"><span class="tag">Q3</span>
+                            What is the <b>average waiting time</b> at 6 p.m. on a weekday?</p></div>
+                    <div class="card flat" style="padding:.5em .8em"><p style="margin:0"><span class="tag">Q4</span>
+                            If we add a fifth road, which <b>other junctions</b> get congested?</p></div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:.7em">
+                <p style="margin:0"><b>Sketch anything you like</b> — boxes and arrows, a table, equations, code. Then
+                    ask, for each question in turn: <em>does my sketch contain enough to answer it, and does it contain
+                        things the question does not need?</em></p>
+            </div>
+            <p class="footnote" style="margin-top:.6em">Nobody will answer all four with one sketch. That is the point of
+                the hour, not a failure of the exercise.</p>
+        </section>
+
+        <!-- ============ 3 · REVEAL ============ -->
+        <section class="slide" data-title="Reveal · four questions, four models">
+            <span class="kicker">Reveal · the question picks the model</span>
+            <h2>Each question needs a different abstraction of the same junction</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Model family</th>
+                            <th>What you represent</th>
+                            <th>What you throw away</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>Q1</b> Never both green?</td>
+                            <td style="color:var(--brand)"><b>Automaton</b> — states and transitions</td>
+                            <td>Signal states, controller transitions, sensor inputs</td>
+                            <td>Time, traffic volume, geography, everything continuous</td>
+                        </tr>
+                        <tr>
+                            <td><b>Q2</b> No lane starves?</td>
+                            <td style="color:var(--do)"><b>Logic</b> — temporal properties over runs</td>
+                            <td>“Always”, “eventually”, “until” over infinite executions</td>
+                            <td>How long “eventually” takes — logic gives order, not duration</td>
+                        </tr>
+                        <tr>
+                            <td><b>Q3</b> Average wait?</td>
+                            <td style="color:var(--good)"><b>Queueing</b> — arrivals and service</td>
+                            <td>Arrival rate, service rate, queue discipline, distributions</td>
+                            <td>The controller's exact logic; correctness entirely</td>
+                        </tr>
+                        <tr>
+                            <td><b>Q4</b> Knock-on congestion?</td>
+                            <td style="color:var(--warn)"><b>Graph</b> — network structure</td>
+                            <td>Junctions as vertices, roads as edges, flow as weights</td>
+                            <td>What happens <em>inside</em> any single junction</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card tint-do" style="margin-top:.8em">
+                <p class="big" style="margin:0">The sentence the hour turns on: <em class="hl">a model is not a
+                        simplified copy of the system — it is a deliberate deletion of everything the question does not
+                        need.</em></p>
+                <p class="footnote" style="margin:.4em 0 0">Which means there is no such thing as “the model of the
+                    junction”, and asking which model is <em>most accurate</em> is the wrong question. Ask which
+                    <em>deletions</em> are safe for the question you are asking.</p>
+            </div>
+        </section>
+
+        <!-- ============ 4 · WHAT A MODEL IS FOR ============ -->
+        <section class="slide" data-title="A1 · What a theoretical model buys you">
+            <span class="kicker">Part A · the role of models</span>
+            <h2>Why build a model rather than just run the system?</h2>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>What a model gives you that a system cannot</h3>
+                    <ul class="stack-tight">
+                        <li><b>Reasoning over all cases.</b> A model has finitely describable structure, so you can
+                            prove things about infinitely many executions. This is the II.5 link — proof needs a model
+                            to be about.</li>
+                        <li><b>Analysis before construction.</b> You can evaluate a design that does not exist yet, for
+                            the cost of thinking.</li>
+                        <li><b>Explanation, not just measurement.</b> A benchmark tells you the system slowed down; a
+                            queueing model tells you <em>why</em>, and what would fix it.</li>
+                        <li><b>Prediction outside the measured range.</b> Extrapolating a benchmark is guessing;
+                            extrapolating a validated model is reasoning.</li>
+                        <li><b>A shared vocabulary.</b> “It is a DAG”, “it is an M/M/1 queue”, “it is a lattice” imports
+                            decades of results for free.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>The four things every model does to reality</h3>
+                    <ol class="stack-tight">
+                        <li><b>Abstraction</b> — deletes detail deemed irrelevant. <span class="footnote">The traffic
+                                automaton has no notion of a car.</span></li>
+                        <li><b>Idealisation</b> — assumes convenient properties reality lacks. <span
+                                class="footnote">Instantaneous messages, infinite memory, Poisson arrivals.</span></li>
+                        <li><b>Formalisation</b> — fixes a precise notation so claims become checkable. <span
+                                class="footnote">This is what turns an opinion into a theorem.</span></li>
+                        <li><b>Parameterisation</b> — exposes the few quantities you will vary. <span
+                                class="footnote">λ, μ, n, k — the knobs the analysis turns.</span></li>
+                    </ol>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0"><b>Every one of those four is where a model can betray you</b>, and step 2
+                            most of all. Idealisations are chosen for tractability, not for truth — and a result that
+                            depends on an idealisation reality violates is the classic failure named in Unit I.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · AUTOMATA & LOGIC ============ -->
+        <section class="slide" data-title="B1 · Automata-based and logic-based models">
+            <span class="kicker">Part B · families 1 and 2</span>
+            <h2>Automata: behaviour over time · Logic: properties of that behaviour</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <h3>Automata-based models</h3>
+                    <p style="margin:0 0 .3em"><b>Core idea:</b> a system is a set of <b>states</b> and
+                        <b>transitions</b> between them, driven by inputs or events.</p>
+                    <p class="footnote" style="margin:0"><b>Variants:</b> finite automata (DFA/NFA) · pushdown automata
+                        · Turing machines · labelled transition systems · Petri nets (concurrency, resources) ·
+                        timed automata (real-time) · statecharts (hierarchical, used in UML).</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Answers:</b> Is this state reachable? Can the system
+                        deadlock? Does the protocol accept exactly this language? What is the minimal machine
+                        recognising this behaviour?</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> lexers and parsers, protocol
+                        specification, controller design, model checking, regex engines, workflow verification.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Deletes:</b> data values (usually), continuous time,
+                        performance, and anything about <em>how long</em>.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Signature limit:</b> <b>state explosion</b> — n
+                        components with k states each give kⁿ states. This is the single reason model checking does not
+                        scale for free.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Logic-based models</h3>
+                    <p style="margin:0 0 .3em"><b>Core idea:</b> express what must be <b>true</b>, in a formal language
+                        with rules of inference — then derive or check consequences.</p>
+                    <p class="footnote" style="margin:0"><b>Variants:</b> propositional and first-order logic ·
+                        <b>temporal logic</b> (LTL, CTL — “always”, “eventually”, “until”) · Hoare logic
+                        (pre/postconditions) · separation logic (heaps and pointers) · description logics (ontologies) ·
+                        type theory.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Answers:</b> Does this property hold on every
+                        execution? Is the specification consistent? Does the program meet its contract? Is this
+                        entailed by what we assumed?</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> program verification, specification
+                        languages, SAT/SMT solving, knowledge representation, static analysis, type systems.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Deletes:</b> quantity, cost, probability, and
+                        duration — logic tells you <em>whether</em> and <em>in what order</em>, never <em>how much</em>
+                        or <em>how fast</em>.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Signature limit:</b> the specification problem —
+                        writing the property correctly is often harder than checking it, and a verified system meeting
+                        the wrong spec is still wrong.</p>
+                </div>
+            </div>
+            <p class="footnote center" style="margin-top:.6em">These two are natural partners: the <b>automaton</b>
+                supplies the behaviour, the <b>logic</b> states the property, and a model checker searches the first for
+                violations of the second.</p>
+        </section>
+
+        <!-- ============ 6 · GRAPH & ALGEBRAIC ============ -->
+        <section class="slide" data-title="B2 · Graph-based and algebraic models">
+            <span class="kicker">Part B · families 3 and 4</span>
+            <h2>Graphs: structure and relation · Algebra: composition and laws</h2>
+            <div class="grid g2">
+                <div class="card tint-warn">
+                    <h3>Graph-based models</h3>
+                    <p style="margin:0 0 .3em"><b>Core idea:</b> represent <b>entities as vertices</b> and
+                        <b>relationships as edges</b>, then use structural properties to answer questions.</p>
+                    <p class="footnote" style="margin:0"><b>Variants:</b> directed and undirected · weighted · DAGs ·
+                        trees · bipartite · hypergraphs · multilayer and temporal (evolving) graphs · probabilistic
+                        graphical models (Bayesian networks, Markov random fields).</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Answers:</b> What is connected to what? What is the
+                        shortest or cheapest path? Which nodes are critical? Is there a cycle? What is the community
+                        structure? How does something spread?</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> networks and routing, dependency
+                        resolution, call graphs and control-flow graphs, scheduling, social-network analysis, knowledge
+                        graphs, GNNs, task DAGs.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Deletes:</b> everything inside a vertex, and any
+                        relationship that is not pairwise. <span class="footnote">If your real relation involves three
+                            parties at once, a plain graph has already lied to you.</span></p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Signature limit:</b> the modelling choice is doing
+                        the work — the same system gives completely different answers depending on what you decided a
+                        vertex is.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Algebraic models</h3>
+                    <p style="margin:0 0 .3em"><b>Core idea:</b> a set of <b>objects</b> with <b>operations</b> that
+                        combine them, obeying stated <b>laws</b> — reason by equation and substitution.</p>
+                    <p class="footnote" style="margin:0"><b>Variants:</b> monoids and groups · lattices (used in static
+                        analysis) · Boolean and relational algebra · process algebras (CCS, CSP, π-calculus) ·
+                        λ-calculus · category-theoretic models · algebraic data types and specifications.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Answers:</b> Are these two systems
+                        <em>equivalent</em>? Can this be safely decomposed and recombined? Does this optimisation
+                        preserve meaning? Does the computation converge to a fixed point?</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> relational databases and query
+                        optimisation, compiler transformations, concurrency semantics, MapReduce (associativity!),
+                        CRDTs, functional programming, abstract interpretation.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Deletes:</b> the concrete representation entirely,
+                        and usually all cost — algebra says two expressions are equal, never which is cheaper.</p>
+                    <p class="big" style="margin:.4em 0 0">The distinctive payoff: <em class="hl">algebraic laws license
+                            you to rewrite a system and know you have not changed its meaning.</em> Every query
+                        optimiser and every compiler pass rests on this.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · DRILL 1 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill · pick the model family">
+            <span class="kicker do">Do · 7 questions · 6 minutes</span>
+            <h2>Which family of model answers this question?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="gq-n">1</span> of <span id="gq-total">7</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="gq-score">0</span></p>
+                <p class="big" id="gq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g5" id="gq-opts" style="gap:.5em"></div>
+                <div id="gq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="gq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="gq-restart">Restart</button>
+                    <span class="footnote">Ask what the question is <b>really about</b>: behaviour over time ·
+                        truth · structure · composition · quantity.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · QUANTITATIVE MODELS ============ -->
+        <section class="slide" data-title="C1 · Probabilistic, queueing and simulation models">
+            <span class="kicker">Part C · when the question is “how much?”</span>
+            <h2>The four families answer <em>whether</em>. These answer <em>how much</em>.</h2>
+            <div class="grid g3">
+                <div class="card tint-brand">
+                    <h3>Probabilistic models</h3>
+                    <p class="footnote" style="margin:0"><b>Markov chains</b> (states with transition
+                        probabilities) · Markov decision processes · Bayesian networks · stochastic processes.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Answers:</b> long-run probability of being in a
+                        state; expected time to failure; how belief updates on evidence.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> reliability and availability, randomised
+                        algorithms, PageRank, cache-hit modelling, fault tolerance.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Watch:</b> the <em>Markov assumption</em> — the
+                        future depends only on the present state. Real systems have memory.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Queueing models</h3>
+                    <p class="footnote" style="margin:0">Arrivals meet a server. Kendall notation <b>A/S/c</b> —
+                        M/M/1, M/M/c, M/G/1 — with arrival rate λ and service rate μ.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Answers:</b> expected queue length, waiting time,
+                        utilisation, and where the bottleneck is.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Two results worth knowing:</b>
+                        <b>Little's Law</b> (L = λW — average number in system = arrival rate × average time in system,
+                        and it holds almost regardless of the distributions) and the fact that <b>waiting time explodes
+                            as utilisation approaches 1</b>, which is why running a server at 95% load feels
+                        catastrophic rather than efficient.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Watch:</b> Poisson arrivals are assumed for
+                        tractability; real traffic is bursty and correlated.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Simulation models</h3>
+                    <p class="footnote" style="margin:0">Discrete-event, Monte Carlo, agent-based. Execute the model
+                        rather than solving it.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Answers:</b> anything the analytic models are too
+                        complex to solve in closed form.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> network simulators (ns-3), datacentre
+                        and scheduler simulation, cache and architecture simulators.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Watch — and this is important:</b> simulation output
+                        is <b>data</b>, so it inherits every obligation from II.4. Multiple seeds, confidence intervals,
+                        warm-up discarded. <em class="hl">A simulation is an experiment on a model, not a proof.</em></p>
+                </div>
+            </div>
+            <p class="footnote center" style="margin-top:.7em">These are the models Lecture II.7 runs on: performance
+                evaluation is largely the business of choosing one of these and defending its assumptions.</p>
+        </section>
+
+        <!-- ============ 9 · VALIDATION ============ -->
+        <section class="slide" data-title="C2 · How a model earns belief">
+            <span class="kicker">Part C · model validation</span>
+            <h2>A model is a claim. It has to be defended like one.</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Five ways to validate a model</h3>
+                    <ol class="stack-tight">
+                        <li><b>Face validity.</b> Do domain experts agree the structure reflects the system? Cheap,
+                            weak, and still worth doing.</li>
+                        <li><b>Assumption audit.</b> List every assumption and mark it <em>plausible</em>,
+                            <em>questionable</em> or <em>known false but convenient</em>. Publish the list.</li>
+                        <li><b>Extreme-case checking.</b> Set parameters to limits where you know the answer.
+                            <span class="footnote">λ → 0 should give zero wait; utilisation → 1 should blow up. If it
+                                does not, the model is wrong.</span></li>
+                        <li><b>Empirical calibration.</b> Fit parameters on one dataset, then check predictions against
+                            a <em>held-out</em> one. The II.4 discipline applies.</li>
+                        <li><b>Sensitivity analysis.</b> Vary each assumption and see whether the conclusion survives.
+                            <span class="footnote">The single most valuable and most skipped step.</span></li>
+                    </ol>
+                    <p class="big" style="margin:.4em 0 0">Item 5 is the one to do: <em class="hl">if your conclusion
+                            flips when an assumption moves 10%, the conclusion is about the assumption, not about the
+                            system.</em></p>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Four ways models fail in student work</h3>
+                    <ul class="stack-tight">
+                        <li><b>Over-abstraction.</b> Deleted the thing that mattered. A queueing model of a service
+                            whose real problem is a lock, not a queue.</li>
+                        <li><b>Over-fitting the model to the system.</b> So many parameters it reproduces the
+                            measurements and predicts nothing. A model with a knob per observation has explained
+                            nothing.</li>
+                        <li><b>Unvalidated adoption.</b> Using M/M/1 because it was in the textbook, never checking
+                            whether arrivals are anything like Poisson.</li>
+                        <li><b>Model–system substitution.</b> Proving a property of the model and reporting it as a
+                            property of the system, with no bridge stated between them.</li>
+                    </ul>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0">The honest sentence that repairs the last one, and belongs in your report:
+                            <i>“This result holds for the model described in §3. It transfers to the implementation to
+                                the extent that assumptions A1–A4 hold, of which A3 is the weakest.”</i></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · DRILL 2 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill · what did the model delete?">
+            <span class="kicker do">Do · 6 items · 5 minutes</span>
+            <h2>The model gave a confident answer. What did it throw away?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="vq-n">1</span> of <span id="vq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="vq-score">0</span></p>
+                <p class="big" id="vq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="vq-opts" style="gap:.5em"></div>
+                <div id="vq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="vq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="vq-restart">Restart</button>
+                    <span class="footnote">Every model deletes something. The question is whether the deletion
+                        <b>matters for this claim</b>.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · MAIN ACTIVITY ============ -->
+        <section class="slide" data-mode="do" data-title="DO 4 · Model your own system">
+            <span class="kicker do">Do · 9 minutes · the piece of work you keep</span>
+            <h2>Choose a model for your own system — and audit what it deletes</h2>
+            <div class="runbar">
+                <span class="step">1 · <b>4 min</b> alone — pick the family, list the deletions</span>
+                <span class="step">2 · <b>3 min</b> swap — neighbour attacks one deletion</span>
+                <span class="step">3 · <b>2 min</b> — decide: defend it, or change model</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="540">9:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Step 1 · Six lines</h3>
+                    <ol class="stack-tight">
+                        <li><b>The question</b> your model must answer — one sentence, from your Section 5 claim.</li>
+                        <li><b>Family</b> — automata · logic · graph · algebraic · probabilistic/queueing ·
+                            simulation.</li>
+                        <li><b>Entities</b> — what is a state, a vertex, an object, a customer?
+                            <span class="footnote">This choice does most of the work. State it precisely.</span></li>
+                        <li><b>Parameters</b> — the quantities you will vary.</li>
+                        <li><b>Deletions</b> — <b>five</b> things about the real system your model does not
+                            represent.</li>
+                        <li><b>The dangerous one</b> — which single deletion could change your answer, and why you are
+                            accepting it anyway.</li>
+                    </ol>
+                    <div class="card flat tint-brand" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0"><b>If your project has no formal model</b> — many will not — do this for the
+                            <em>implicit</em> one you are already using. A benchmark assumes a workload model. A test
+                            set assumes a distribution. An accuracy figure assumes a cost model in which every error
+                            costs the same. Name it; that is your model.</p>
+                    </div>
+                </div>
+                <div class="card tint-do">
+                    <h3>Step 2 · Rules for the attacker</h3>
+                    <p style="margin:0 0 .4em">Pick <b>one</b> deletion from their list and make the case that it
+                        matters. Use this form:</p>
+                    <div class="card flat" style="padding:.5em .8em">
+                        <p style="margin:0"><i>“Your model deletes <b>______</b>. But in the real system,
+                                <b>______</b> — so your answer would change if <b>______</b>.”</i></p>
+                    </div>
+                    <p style="margin:.5em 0 .3em">Then the owner must choose, out loud, one of exactly three
+                        responses:</p>
+                    <ul class="stack-tight">
+                        <li><b>“It does not matter, because…”</b> — a defence, and it goes in the paper.</li>
+                        <li><b>“It matters — I need a different model.”</b> — better found today than in November.</li>
+                        <li><b>“It matters and I accept it as a limitation.”</b> — legitimate, <em>if written
+                                down</em>.</li>
+                    </ul>
+                    <p class="big" style="margin:.5em 0 0">All three are good answers. <em class="hl">Only silence is
+                            a bad answer</em> — and silence is what an unexamined model produces.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · EXIT TICKET ============ -->
+        <section class="slide" data-mode="do" data-title="DO 5 · Exit ticket">
+            <span class="kicker do">Exit ticket · tick what is true right now</span>
+            <h2>Is your model defensible?</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <div class="grid" id="exit" style="gap:.4em; grid-template-columns:1fr 1fr"></div>
+                    <p class="footnote" style="margin:.5em 0 0"><span class="star"
+                            style="color:var(--bad); font-weight:900">★</span> = non-negotiable. Four starred
+                        items.</p>
+                </div>
+                <div class="card" id="ex-card">
+                    <h3>Ticked: <span class="score" id="ex-score">0</span> / 10 &nbsp;·&nbsp; essentials: <span
+                            class="score" id="ex-ess">0</span> / 4</h3>
+                    <p id="ex-verdict" style="margin:0">Tick what is written down — not what you intend.</p>
+                    <div class="card flat tint-brand" style="padding:.5em .8em; margin-top:.6em">
+                        <p style="margin:0"><b>Where this goes next.</b> <b>II.7</b> takes the quantitative models from
+                            slide 8 and turns them into the evaluation your project will actually be judged on: time
+                            efficiency, space efficiency, scalability and reliability — and how to benchmark them
+                            without producing a number that means nothing.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 13 · TAKEAWAYS ============ -->
+        <section class="slide" data-title="Eight things that must survive">
+            <span class="kicker">Consolidation</span>
+            <h2>Eight things that must survive this hour</h2>
+            <div class="grid g2">
+                <ol class="stack-tight big" style="line-height:1.3">
+                    <li>A model is a <b>deliberate deletion</b> of everything the question does not need — not a
+                        simplified copy.</li>
+                    <li>There is no “the model” of a system. <b>The question picks the model.</b></li>
+                    <li><b>Automata</b> = behaviour over states and transitions. Limit: <b>state explosion</b>.</li>
+                    <li><b>Logic</b> = what must be true, and in what order. Limit: writing the spec correctly.</li>
+                </ol>
+                <ol class="stack-tight big" start="5" style="line-height:1.3">
+                    <li><b>Graphs</b> = entities and pairwise relations. Limit: the choice of what a vertex
+                        <em>is</em>.</li>
+                    <li><b>Algebra</b> = objects, operations and laws — and laws let you rewrite safely.</li>
+                    <li>Every model does four things: <b>abstract · idealise · formalise · parameterise</b>, and
+                        idealisation is where it betrays you.</li>
+                    <li><b>Sensitivity analysis</b> is the validation step that matters. A simulation is an
+                        <em>experiment on a model</em>, not a proof.</li>
+                </ol>
+            </div>
+            <div class="card tint-brand" style="margin-top:.8em">
+                <p class="big" style="margin:0">If you remember one sentence: <em class="hl">state what your model
+                        deletes, and state which deletion would change your answer — a model whose assumptions are
+                        listed can be argued with, and one whose assumptions are hidden can only be believed or
+                        dismissed.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 14 · NOTEBOOK & CLOSE ============ -->
+        <section class="slide" data-title="Notebook task and what's next">
+            <span class="kicker">Research Notebook · entry after Lecture II.6</span>
+            <h2>Your notebook task</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Three things to add before the next session</h3>
+                    <ol class="stack-tight">
+                        <li><b>Lecture log.</b> Date, “II.6 — theoretical models”, and your exit-ticket score out of
+                            10.</li>
+                        <li><b>Section 9 · Model.</b> All six lines from the activity — question, family, entities,
+                            parameters, five deletions, and the dangerous one — even if your model is the implicit one
+                            behind a benchmark or a test set.</li>
+                        <li><b>Section 9b · Assumption audit.</b> Every assumption your model makes, each marked
+                            <em>plausible</em> / <em>questionable</em> / <em>known false but convenient</em>, plus one
+                            line on how you would run a sensitivity check on the weakest one.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Stamp the entry <code>\version{11}{...}{after Lecture
+                            II.6}</code>.</p>
+                </div>
+                <div class="card">
+                    <div class="card flat tint-good" style="padding:.7em .9em">
+                        <h3 style="margin-bottom:.2em">Next session · II.7 · Performance Evaluation</h3>
+                        <p style="margin:0"><b>The last hour of Unit II.</b> Time efficiency, space efficiency,
+                            scalability and reliability as evaluation parameters; complexity analysis as evidence; and
+                            benchmarking algorithms and systems without producing a meaningless number.</p>
+                        <p style="margin:.4em 0 0"><b>The GROUP PROJECT is released in that session</b> (10 marks,
+                            CO2 + CO4) — teams of 4–5, a mini empirical study with a defined method, baseline and
+                            evaluation plan.</p>
+                    </div>
+                    <div class="card flat tint-warn" style="padding:.7em .9em; margin-top:.6em">
+                        <p style="margin:0"><b>Class Test 1 is on 12 September</b>, immediately after II.7. Expect the
+                            four model families with one CS use and one limitation each — that is a standard
+                            question.</p>
+                    </div>
+                    <p class="footnote" style="margin:.6em 0 0"><b>Reading:</b> Hopcroft, Motwani &amp; Ullman,
+                        <i>Introduction to Automata Theory</i>, ch. 1–2 · Baier &amp; Katoen, <i>Principles of Model
+                            Checking</i>, ch. 2–5 · R. Jain, <i>The Art of Computer Systems Performance Analysis</i>,
+                        ch. 24–31 (queueing) · Skiena, <i>The Algorithm Design Manual</i>, ch. 5 (graphs).</p>
+                </div>
+            </div>
+        </section>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 14</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script>
+        /* ---------------- deck engine ---------------- */
+        const slides = [...document.querySelectorAll('.slide')];
+        let cur = 0;
+
+        slides.forEach(s => {
+            const fit = document.createElement('div');
+            fit.className = 'fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+        });
+
+        function fitSlide(s) {
+            const f = s.querySelector('.fit');
+            if (!f) return;
+            f.style.transform = 'none';
+            const cs = getComputedStyle(s);
+            const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const h = f.offsetHeight;
+            if (avail <= 0 || h <= 0) return;
+            const k = Math.min(1, avail / h);
+            f.style.transform = k > 0.995 ? 'none' : 'scale(' + k.toFixed(4) + ')';
+        }
+        const fitNow = () => fitSlide(slides[cur]);
+        const fitSoon = () => requestAnimationFrame(() => requestAnimationFrame(fitNow));
+        window.addEventListener('resize', fitNow);
+        document.addEventListener('click', fitSoon, true);
+        document.addEventListener('change', fitSoon, true);
+        document.addEventListener('input', fitSoon, true);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('title-now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            slides[cur].scrollTop = 0;
+            location.hash = 's' + (cur + 1);
+            fitSlide(slides[cur]);
+        }
+        function go(d) { show(cur + d); }
+
+        document.addEventListener('keydown', e => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.key === 'Escape') { document.getElementById('overview').classList.add('hidden'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'd') toggleTheme();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 't') { const t = document.getElementById('lect-t'); t.__toggle && t.__toggle(); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        function toggleTheme() {
+            const h = document.documentElement;
+            h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('hidden'); }
+
+        const ovList = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + (i + 1) + '</b><span>' + (s.dataset.title || '') + '</span>' +
+                (s.dataset.mode === 'do' ? '<span class="do-dot">STUDENT WORK</span>' : '');
+            b.onclick = () => { show(i); toggleOverview(); };
+            ovList.appendChild(b);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(b => {
+            const label = b.textContent;
+            b.addEventListener('click', () => {
+                const t = document.querySelector(b.dataset.reveal);
+                t.classList.toggle('hidden');
+                b.textContent = t.classList.contains('hidden') ? label : 'Hide again';
+            });
+        });
+
+        document.querySelectorAll('.timer').forEach(box => {
+            const disp = box.querySelector('.t');
+            const total = parseInt(disp.dataset.sec, 10);
+            let left = total, id = null;
+            const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            const paint = () => {
+                disp.textContent = fmt(left);
+                disp.classList.toggle('low', left <= Math.max(10, total * 0.15));
+            };
+            const tick = () => { if (left > 0) { left--; paint(); } else { clearInterval(id); id = null; } };
+            const toggle = () => { if (id) { clearInterval(id); id = null; } else { id = setInterval(tick, 1000); } };
+            disp.__toggle = toggle;
+            box.querySelector('[data-timer=start]').addEventListener('click', toggle);
+            box.querySelector('[data-timer=reset]').addEventListener('click', () => {
+                clearInterval(id); id = null; left = total; paint();
+            });
+            paint();
+        });
+
+        /* ---------------- generic drill engine ---------------- */
+        function makeDrill(p, items, done) {
+            const el = k => document.getElementById(p + '-' + k);
+            const opts = el('opts');
+            let i = 0, sc = 0, lock = false;
+
+            function paint() {
+                el('n').textContent = i + 1;
+                el('total').textContent = items.length;
+                el('stmt').innerHTML = items[i].q;
+                el('score').textContent = sc;
+                el('fb').classList.add('hidden');
+                opts.innerHTML = '';
+                items[i].o.forEach((t, k) => {
+                    const b = document.createElement('button');
+                    b.className = 'pick';
+                    b.innerHTML = '<b>' + 'ABCDEF'[k] + '.</b> ' + t;
+                    b.addEventListener('click', () => {
+                        if (lock) return;
+                        lock = true;
+                        const right = items[i].a;
+                        if (k === right) { b.classList.add('right'); sc++; }
+                        else { b.classList.add('wrong'); opts.children[right].classList.add('right'); }
+                        el('score').textContent = sc;
+                        const fb = el('fb');
+                        fb.innerHTML = items[i].w;
+                        fb.classList.remove('hidden');
+                    });
+                    opts.appendChild(b);
+                });
+                lock = false;
+            }
+
+            el('next').addEventListener('click', () => {
+                if (i < items.length - 1) { i++; paint(); }
+                else {
+                    const fb = el('fb');
+                    fb.classList.remove('hidden');
+                    fb.innerHTML = done(sc, items.length);
+                }
+            });
+            const r = document.getElementById(p + '-restart');
+            if (r) r.addEventListener('click', () => { i = 0; sc = 0; paint(); });
+            paint();
+        }
+
+
+        /* ---------------- Drill 1 · pick the model family ---------------- */
+        const FAM = ['Automata-based', 'Logic-based', 'Graph-based', 'Algebraic', 'Queueing / probabilistic'];
+        makeDrill('gq', [
+            {
+                q: 'Can our distributed lock protocol ever reach a state in which two clients both believe they hold the lock?',
+                o: FAM, a: 0,
+                w: '<b>Automata-based.</b> The question is about <em>reachability of a bad state</em> across all interleavings — states and transitions is exactly the right abstraction, and a model checker will explore it exhaustively. Expect state explosion: with n clients the space grows exponentially, which is why abstraction and symmetry reduction matter.'
+            },
+            {
+                q: 'Which packages must be rebuilt when this library changes, and is there a circular dependency?',
+                o: FAM, a: 2,
+                w: '<b>Graph-based.</b> Packages are vertices, "depends on" is a directed edge, and the questions are reachability and cycle detection — both standard graph algorithms. Note the deletion: the model says nothing about what is <em>inside</em> a package, and it assumes dependency is strictly pairwise.'
+            },
+            {
+                q: 'Does this query rewrite produce the same result set as the original query, for every possible database instance?',
+                o: FAM, a: 3,
+                w: '<b>Algebraic.</b> This is relational algebra doing its job: prove the two expressions are <em>equivalent</em> under the algebra\'s laws, and the equality holds for every instance. Every query optimiser rests on exactly this. Note it tells you the results match — never which rewrite is <em>cheaper</em>, which needs a cost model.'
+            },
+            {
+                q: 'Is every request that enters the retry queue eventually processed, rather than being starved forever?',
+                o: FAM, a: 1,
+                w: '<b>Logic-based</b> — specifically temporal logic. "Eventually, always, never" over infinite executions is precisely what LTL and CTL express, and the property here is liveness. Note the limit: logic tells you it <em>will</em> happen but not <em>when</em>. If you need the waiting time, you have switched to a queueing question.'
+            },
+            {
+                q: 'What is the expected response time of our API gateway if request arrivals double?',
+                o: FAM, a: 4,
+                w: '<b>Queueing.</b> Arrival rate, service rate, utilisation. And the useful non-obvious answer: response time does not double when λ doubles — it grows non-linearly and explodes as utilisation approaches 1. Sanity-check with Little\'s Law, and be honest that Poisson arrivals are an idealisation of bursty real traffic.'
+            },
+            {
+                q: 'What is the probability that our three-replica storage system loses data within a year, given a per-disk annual failure rate?',
+                o: FAM, a: 4,
+                w: '<b>Probabilistic.</b> A Markov model over replica-count states, or a direct reliability calculation. The assumption doing all the quiet work is <em>independence</em> of disk failures — and it is false: disks from the same batch, in the same rack, at the same temperature fail together. Correlated failure is why real systems lose data far more often than the arithmetic predicts.'
+            },
+            {
+                q: 'Can this MapReduce-style aggregation be safely split across machines and combined in any order?',
+                o: FAM, a: 3,
+                w: '<b>Algebraic.</b> The question is whether the combining operation is <em>associative and commutative</em> — that is, whether it forms a suitable monoid. If it does, arbitrary partitioning and reordering is safe; if it does not (subtraction, average, or anything order-dependent), parallelising it silently corrupts the result. A pure algebraic law with enormous practical consequences.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'You are routing questions to abstractions, which is the actual skill. Now do it for your own system in two slides.'
+            : 'Match the question to the family: <b>reachability / can it get into this state</b> → automata. <b>must always / eventually hold</b> → logic. <b>what connects to what, paths, cycles</b> → graph. <b>are these two the same, can I rewrite it</b> → algebraic. <b>how long, how likely, how many</b> → queueing or probabilistic.'));
+
+        /* ---------------- Drill 2 · what did the model delete ---------------- */
+        const DEL = ['Time and duration', 'Correlation / independence assumption',
+            'What happens inside an entity', 'Cost or resource consumption'];
+        makeDrill('vq', [
+            {
+                q: 'A finite-state model proves the protocol never deadlocks. The team concludes the system will not hang in production.',
+                o: DEL, a: 0,
+                w: '<b>Time and duration.</b> The automaton has no clock: "no deadlock" means the system can always <em>eventually</em> take a step, not that it takes one soon enough. A request that completes after four minutes satisfies the model and hangs as far as any user is concerned. Timeouts, timed automata or a queueing model are needed for the real question.'
+            },
+            {
+                q: 'A reliability calculation multiplies per-disk failure probabilities to conclude that a three-replica system loses data once every 10,000 years.',
+                o: DEL, a: 1,
+                w: '<b>The independence assumption.</b> Multiplying probabilities is only valid for independent events, and disk failures are strongly correlated — same batch, same rack, same power supply, same temperature, same firmware bug. This is why the observed data-loss rate of real storage systems is orders of magnitude worse than the arithmetic. The deletion is invisible and catastrophic.'
+            },
+            {
+                q: 'A dependency graph shows no cycles, so the team concludes the build can always be parallelised safely.',
+                o: DEL, a: 2,
+                w: '<b>What happens inside an entity.</b> The graph knows about declared dependencies between packages; it knows nothing about a shared temp file, a global lock, or a build step that writes into a sibling\'s output directory. Acyclicity of the <em>declared</em> graph is not safety of the <em>actual</em> builds.'
+            },
+            {
+                q: 'A relational-algebra proof shows the rewritten query is equivalent to the original, so the team ships the rewrite as an optimisation.',
+                o: DEL, a: 3,
+                w: '<b>Cost.</b> Algebra establishes that the two expressions produce the same result set — it says nothing whatever about which runs faster. Some algebraically valid rewrites are dramatically slower. Equivalence licenses the rewrite as <em>correct</em>; only a cost model plus measurement licenses it as an <em>optimisation</em>.'
+            },
+            {
+                q: 'An M/M/1 queueing model predicts a mean wait of 40 ms at the observed arrival rate, and the report presents this as the expected user experience.',
+                o: DEL, a: 1,
+                w: '<b>The independence/Poisson assumption.</b> M/M/1 assumes memoryless, independent arrivals; real traffic is bursty and correlated, and bursts are exactly when queues build. The model will systematically understate the tail. Also note the mean is the wrong statistic again — users feel p95. Validate by comparing the predicted distribution against measurements, not just the mean.'
+            },
+            {
+                q: 'A Markov model of user navigation predicts the long-run distribution of page visits, and is used to plan cache warming.',
+                o: DEL, a: 1,
+                w: '<b>The Markov (memorylessness) assumption.</b> The model says the next page depends only on the current one — but real users have sessions, goals and history: someone three steps into a checkout behaves nothing like someone who just landed on the same page. Higher-order or session-aware models fix it. Test it: check whether the next-page distribution actually differs by history.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'Now list five deletions for your own model. The one you feel most reluctant to write down is usually the dangerous one.'
+            : 'Ask three questions of any model result: <b>Does the model know about time?</b> <b>What did it assume was independent that is not?</b> <b>Does it know about cost, or only about correctness?</b> Most model failures in computing are one of these three.'));
+
+        /* ---------------- exit ticket ---------------- */
+        const EXIT = [
+            { t: 'I have named the <b>question</b> my model must answer', ess: 1 },
+            { t: 'I have named the <b>family</b> and what my entities are', ess: 1 },
+            { t: 'I have listed <b>five deletions</b> my model makes', ess: 1 },
+            { t: 'I have named the <b>one deletion that could change my answer</b>', ess: 1 },
+            { t: 'Every <b>assumption</b> is listed and marked plausible/questionable/false', ess: 0 },
+            { t: 'I have checked the model at <b>extreme parameter values</b>', ess: 0 },
+            { t: 'I have a plan for a <b>sensitivity check</b> on the weakest assumption', ess: 0 },
+            { t: 'I state results as holding <b>for the model</b>, with a bridge to the system', ess: 0 },
+            { t: 'My model has <b>fewer parameters than observations</b> to explain', ess: 0 },
+            { t: 'If I simulate, I treat the output as <b>data</b>: seeds, warm-up, variance', ess: 0 }
+        ];
+        const exitBox = document.getElementById('exit');
+        EXIT.forEach((r, i) => {
+            const b = document.createElement('button');
+            b.className = 'ck';
+            b.dataset.i = i;
+            b.innerHTML = (r.ess ? '<span class="star">★</span> ' : '') + r.t;
+            b.addEventListener('click', () => { b.classList.toggle('on'); exitScore(); });
+            exitBox.appendChild(b);
+        });
+        function exitScore() {
+            const on = [...exitBox.querySelectorAll('.ck.on')].map(b => +b.dataset.i);
+            const ess = on.filter(i => EXIT[i].ess).length;
+            document.getElementById('ex-score').textContent = on.length;
+            document.getElementById('ex-ess').textContent = ess;
+            const card = document.getElementById('ex-card'), v = document.getElementById('ex-verdict');
+            if (ess < 2) {
+                card.className = 'card tint-bad';
+                v.innerHTML = 'You are using a model without having chosen one — which everyone does, because a benchmark, a test set or an accuracy figure is already a model with its assumptions hidden. Name it, and the hidden assumptions become arguable instead of invisible.';
+            } else if (ess < 4) {
+                card.className = 'card tint-warn';
+                v.innerHTML = 'You have chosen a model but not audited it. The missing starred item is almost certainly the deletion list — and a model whose deletions are unlisted cannot be defended, only asserted.';
+            } else if (on.length < 8) {
+                card.className = 'card tint-good';
+                v.innerHTML = 'Defensible. You know what your model represents, what it discards, and which discard is dangerous — so a reviewer must argue with a stated assumption rather than with a hidden one. That is a much better argument to be in.';
+            } else {
+                card.className = 'card tint-good';
+                v.innerHTML = 'This is how modelling is done properly: assumptions audited, extremes checked, sensitivity planned, and a stated bridge between what holds of the model and what holds of the system. Very few final-year projects distinguish those two things at all.';
+            }
+        }
+
+
+        /* ---------------- boot ---------------- */
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+        exitScore();
+    </script>
+</body>
+
+</html>

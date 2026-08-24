@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · II.2 — Models of Argumentation: Deduction, Induction, Abduction</title>
+    <meta name="description"
+        content="Activity-led lecture II.2 for Research Methodology in Computer Science (CSEG3060): deductive (general to specific), inductive (specific to general) and abductive (inference to the best explanation) reasoning in computer science - what each licenses you to claim, why mathematical induction is deductive, why debugging is abduction, the fallacy each form invites, and how the three combine into the research cycle.">
+    <style>
+        /* ============================================================
+           CSEG3060 - Unit II - Lecture II.2
+           Self-contained interactive deck. No external assets.
+           Activity-led: slides marked data-mode="do" are student work.
+           Keys: → / Space next · ← prev · O overview · T timer · D dark · F fullscreen
+           ============================================================ */
+
+        :root {
+            --ink: #0f1e35;
+            --ink-soft: #3d5372;
+            --ink-faint: #6b7f9c;
+            --bg: #eef2f8;
+            --surface: #ffffff;
+            --surface-2: #f6f9fd;
+            --line: #d3dced;
+            --brand: #1d5fd0;
+            --brand-soft: #e5eeff;
+            --good: #147a45;
+            --good-soft: #e2f5ea;
+            --bad: #b3182b;
+            --bad-soft: #fdeaec;
+            --warn: #a9640a;
+            --warn-soft: #fdf1de;
+            --do: #7b2fd0;
+            --do-soft: #f1e8fd;
+            --shadow: 0 2px 4px rgba(15, 30, 53, .06), 0 12px 32px rgba(15, 30, 53, .10);
+            --radius: 16px;
+            --fs: clamp(18px, 1.0vw + 12px, 33px);
+        }
+
+        html[data-theme="dark"] {
+            --ink: #eaf1fb;
+            --ink-soft: #b6c6dd;
+            --ink-faint: #8ea3c0;
+            --bg: #0b1220;
+            --surface: #131f33;
+            --surface-2: #18263d;
+            --line: #2c3d59;
+            --brand: #6ea8ff;
+            --brand-soft: #1a2c4c;
+            --good: #4ade80;
+            --good-soft: #123024;
+            --bad: #fb7185;
+            --bad-soft: #3a1620;
+            --warn: #fbbf24;
+            --warn-soft: #392a10;
+            --do: #c99bff;
+            --do-soft: #2a1a44;
+            --shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: var(--fs);
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            gap: .8em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            font-size: .68em;
+            letter-spacing: .02em;
+            color: var(--ink-faint);
+            z-index: 40;
+        }
+
+        .topbar b {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .topbar .spacer {
+            flex: 1;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .18em .8em;
+            background: var(--surface-2);
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .chip:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .progress {
+            position: fixed;
+            top: 2.4em;
+            left: 0;
+            height: 4px;
+            background: var(--brand);
+            z-index: 41;
+            transition: width .25s ease;
+        }
+
+        .deck {
+            position: absolute;
+            inset: 2.4em 0 0 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: clamp(14px, 2.2vh, 30px) clamp(18px, 3.4vw, 70px) 4.2em;
+            display: none;
+            animation: in .28s ease both;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide[data-mode="do"] {
+            background:
+                linear-gradient(90deg, var(--do) 0 6px, transparent 6px);
+        }
+
+        .fit {
+            display: flow-root;
+            transform-origin: top center;
+        }
+
+        @keyframes in {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.1em;
+            display: flex;
+            align-items: center;
+            gap: .6em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            z-index: 40;
+            font-size: .7em;
+        }
+
+        .navbar .count {
+            font-weight: 800;
+            color: var(--ink-soft);
+            min-width: 5.5em;
+        }
+
+        .navbar .title-now {
+            color: var(--ink-faint);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button.nav {
+            font: inherit;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: .45em 1.1em;
+            cursor: pointer;
+        }
+
+        button.nav:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            line-height: 1.08;
+            margin: .1em 0 .3em;
+            letter-spacing: -.02em;
+        }
+
+        h2 {
+            font-size: 1.72em;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            letter-spacing: -.015em;
+        }
+
+        h3 {
+            font-size: 1.12em;
+            margin: 0 0 .4em;
+        }
+
+        p {
+            margin: 0 0 .7em;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: .62em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: .35em 1em;
+            margin-bottom: .9em;
+        }
+
+        .kicker.do {
+            color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .lead {
+            font-size: 1.12em;
+            color: var(--ink-soft);
+        }
+
+        .big {
+            font-size: 1.35em;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .huge {
+            font-size: 2.1em;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+        }
+
+        em.hl {
+            font-style: normal;
+            background: linear-gradient(transparent 62%, rgba(29, 95, 208, .26) 0);
+            font-weight: 700;
+        }
+
+        .quote {
+            font-size: 1.15em;
+            border-left: 6px solid var(--brand);
+            padding: .3em 0 .3em 1em;
+            color: var(--ink-soft);
+            font-style: italic;
+            margin: .8em 0;
+        }
+
+        code,
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: .92em;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: .06em .38em;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(10px, 1.4vw, 20px);
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .g5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .g23 {
+            grid-template-columns: 2fr 3fr;
+        }
+
+        .g32 {
+            grid-template-columns: 3fr 2fr;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: clamp(12px, 1.5vw, 22px);
+            box-shadow: var(--shadow);
+        }
+
+        .flat {
+            box-shadow: none;
+        }
+
+        .tint-good {
+            background: var(--good-soft);
+            border-color: color-mix(in srgb, var(--good) 35%, transparent);
+        }
+
+        .tint-bad {
+            background: var(--bad-soft);
+            border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+        }
+
+        .tint-warn {
+            background: var(--warn-soft);
+            border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+        }
+
+        .tint-brand {
+            background: var(--brand-soft);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+
+        .tint-do {
+            background: var(--do-soft);
+            border-color: color-mix(in srgb, var(--do) 40%, transparent);
+        }
+
+        ul,
+        ol {
+            margin: 0 0 .6em;
+            padding-left: 1.15em;
+        }
+
+        li {
+            margin-bottom: .42em;
+        }
+
+        li::marker {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .stack-tight li {
+            margin-bottom: .25em;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: .66em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+            padding: .2em .6em;
+            border: 1px solid currentColor;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88em;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: .5em .7em;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: .82em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--ink-faint);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .reveal-btn {
+            font: inherit;
+            font-weight: 800;
+            font-size: .88em;
+            border: 2px dashed var(--brand);
+            color: var(--brand);
+            background: transparent;
+            border-radius: 10px;
+            padding: .4em 1em;
+            cursor: pointer;
+        }
+
+        .reveal-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pick {
+            text-align: left;
+            font: inherit;
+            width: 100%;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .55em .8em;
+            color: var(--ink);
+            transition: .15s;
+        }
+
+        .pick:hover {
+            border-color: var(--brand);
+            transform: translateY(-2px);
+        }
+
+        .pick.sel {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .pick.right {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .pick.wrong {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .verdict {
+            margin-top: .6em;
+            font-size: .92em;
+            border-left: 5px solid var(--brand);
+            padding-left: .8em;
+            color: var(--ink-soft);
+        }
+
+        .ck {
+            font: inherit;
+            font-size: .82em;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .35em .6em;
+            color: var(--ink);
+        }
+
+        .ck.on {
+            border-color: var(--good);
+            background: var(--good-soft);
+            font-weight: 700;
+        }
+
+        .ck .star {
+            color: var(--bad);
+            font-weight: 900;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: .5em;
+            font-weight: 900;
+        }
+
+        .timer .t {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 1.5em;
+            min-width: 3.4em;
+            text-align: center;
+            background: var(--surface-2);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .05em .3em;
+        }
+
+        .timer .t.low {
+            color: var(--bad);
+            border-color: var(--bad);
+        }
+
+        .tbtn {
+            font: inherit;
+            font-size: .8em;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 8px;
+            padding: .3em .8em;
+            cursor: pointer;
+        }
+
+        .tbtn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .overview {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 60;
+            padding: 2em clamp(18px, 4vw, 70px);
+            overflow-y: auto;
+        }
+
+        .ov-item {
+            display: flex;
+            gap: .8em;
+            align-items: baseline;
+            width: 100%;
+            text-align: left;
+            font: inherit;
+            font-size: .82em;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: .5em .8em;
+            margin-bottom: .4em;
+            cursor: pointer;
+            color: var(--ink);
+        }
+
+        .ov-item:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .ov-item b {
+            color: var(--brand);
+            min-width: 2.2em;
+        }
+
+        .ov-item .do-dot {
+            margin-left: auto;
+            font-size: .7em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: var(--do);
+            background: var(--do-soft);
+            border-radius: 999px;
+            padding: .1em .7em;
+        }
+
+        .score {
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .footnote {
+            font-size: .74em;
+            color: var(--ink-faint);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--brand);
+            font-weight: 900;
+        }
+
+        /* ---- activity banner ---- */
+        .runbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .7em;
+            background: var(--do-soft);
+            border: 1px solid color-mix(in srgb, var(--do) 40%, transparent);
+            border-left: 6px solid var(--do);
+            border-radius: 12px;
+            padding: .5em .9em;
+            font-size: .8em;
+            margin-bottom: .8em;
+        }
+
+        .runbar b {
+            color: var(--do);
+        }
+
+        .runbar .step {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .15em .8em;
+            font-weight: 700;
+        }
+
+        /* ---- Toulmin diagram ---- */
+        .toul {
+            display: grid;
+            gap: .5em;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: stretch;
+        }
+
+        .tbox {
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .5em .8em;
+            background: var(--surface);
+        }
+
+        .tbox h4 {
+            margin: 0 0 .15em;
+            font-size: .78em;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        .tbox p {
+            margin: 0;
+            font-size: .92em;
+        }
+
+        .tbox.k-claim {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .tbox.k-warrant {
+            border-color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .tbox.k-ground {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .tbox.k-reb {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .tbox.k-qual {
+            border-color: var(--warn);
+            background: var(--warn-soft);
+        }
+
+        .tarrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--ink-faint);
+        }
+
+        @media (max-width: 900px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .g5,
+            .g23,
+            .g32,
+            .toul {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+
+            body,
+            html {
+                overflow: visible;
+                background: #fff;
+            }
+
+            .topbar,
+            .navbar,
+            .progress,
+            .overview {
+                display: none !important;
+            }
+
+            .deck {
+                position: static;
+            }
+
+            .slide {
+                display: block !important;
+                position: static;
+                page-break-after: always;
+                animation: none;
+                padding: 12mm;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .hidden {
+                display: block !important;
+            }
+
+            .fit {
+                transform: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <b>CSEG3060</b><span>Research Methodology in Computer Science</span>
+        <span>·</span><span>Unit II · Lecture II.2</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit II · Lecture II.2 · CO2 · activity-led · focus topic</span>
+            <h1>Models of Argumentation<br><span style="color:var(--brand)">Deduction · Induction · Abduction</span>
+            </h1>
+            <p class="lead big" style="max-width:36em">Last hour you drew an arrow from grounds to claim. That arrow is
+                one of exactly <em>three</em> kinds — and each one entitles you to a different strength of
+                conclusion.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>Deduction</h3>
+                    <p style="margin:0"><b>General → specific.</b> If the premises hold, the conclusion
+                        <em>must</em> hold. Certainty, but nothing new about the world.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>Induction</h3>
+                    <p style="margin:0"><b>Specific → general.</b> Evidence supports but never guarantees. New knowledge,
+                        permanently provisional.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Abduction</h3>
+                    <p style="margin:0"><b>Observation → best explanation.</b> The weakest warrant, and the only one
+                        that generates a hypothesis worth testing.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>You leave with</h3>
+                    <p style="margin:0">Your own arrow classified, the claim strength it permits, and the specific
+                        fallacy your project is most exposed to.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · 5th Semester
+                B.Tech CSE · 55 minutes · <b style="color:var(--do)">≈ 27 minutes of this hour is your work</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Three arguments, cold">
+            <span class="kicker do">Do first · 4 minutes · no theory yet</span>
+            <h2>All three conclusions are reasonable. Are they equally <em>safe</em>?</h2>
+            <div class="runbar">
+                <span class="step">1 · Alone, 2 min — for each, write what would make the conclusion wrong</span>
+                <span class="step">2 · Pairs, 2 min — which conclusion would you stake a grade on?</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="240">4:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid" style="gap:.55em">
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">A</span> &nbsp;<b>Premise:</b> Every comparison-based sort
+                        needs at least n&nbsp;log&nbsp;n comparisons in the worst case. <b>Premise:</b> Mergesort is
+                        comparison-based. &nbsp;<span class="arrow" style="font-size:1em">→</span>&nbsp;
+                        <b>Conclusion:</b> Mergesort needs at least n&nbsp;log&nbsp;n comparisons in the worst case.</p>
+                </div>
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">B</span> &nbsp;<b>Premise:</b> We ran our parser on 10,000
+                        real-world files and it never crashed.
+                        &nbsp;<span class="arrow" style="font-size:1em">→</span>&nbsp;
+                        <b>Conclusion:</b> Our parser does not crash on real-world files.</p>
+                </div>
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">C</span> &nbsp;<b>Premise:</b> The service returns stale data,
+                        but only for users in Europe, and only after 6 p.m. IST.
+                        &nbsp;<span class="arrow" style="font-size:1em">→</span>&nbsp;
+                        <b>Conclusion:</b> The cache key is missing the locale field.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.8em">
+                <p class="big" style="margin:0">Three questions, for each of A, B and C:</p>
+                <ol class="stack-tight" style="margin:.4em 0 0">
+                    <li>If the premises are <b>all true</b>, could the conclusion still be <b>false</b>?</li>
+                    <li>Does the conclusion tell you something <b>the premises did not already contain</b>?</li>
+                    <li>What <b>single new observation</b> would destroy it?</li>
+                </ol>
+            </div>
+            <p class="footnote" style="margin-top:.6em">You already reason in all three ways every day. The point of the
+                hour is to notice which one you are doing, because each carries a different bill.</p>
+        </section>
+
+        <!-- ============ 3 · REVEAL ============ -->
+        <section class="slide" data-title="Reveal · you just used all three">
+            <span class="kicker">Reveal · the three arrows</span>
+            <h2>Same shape on the page. Completely different guarantees.</h2>
+            <div class="grid g3">
+                <div class="card tint-brand">
+                    <h3>A · Deduction</h3>
+                    <p style="margin:0 0 .3em"><b>Could the conclusion be false with true premises?</b>
+                        <span style="color:var(--good)"><b>No. Never.</b></span></p>
+                    <p class="footnote" style="margin:0"><b>Anything new?</b> No — the conclusion was already inside the
+                        premises. Deduction rearranges what you had; it does not add.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>What kills it?</b> Nothing you could observe. Only
+                        a false premise or an invalid step.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>B · Induction</h3>
+                    <p style="margin:0 0 .3em"><b>Could the conclusion be false with true premises?</b>
+                        <span style="color:var(--warn)"><b>Yes.</b></span></p>
+                    <p class="footnote" style="margin:0"><b>Anything new?</b> Yes — it reaches from 10,000 files to
+                        <em>files in general</em>, which is far more than you looked at.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>What kills it?</b> File number 10,001. One
+                        counter-example, and the general claim is gone.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>C · Abduction</h3>
+                    <p style="margin:0 0 .3em"><b>Could the conclusion be false with true premises?</b>
+                        <span style="color:var(--bad)"><b>Easily.</b></span></p>
+                    <p class="footnote" style="margin:0"><b>Anything new?</b> Yes — a whole <em>cause</em> that appears
+                        nowhere in the evidence. You invented it.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>What kills it?</b> A better explanation. Perhaps a
+                        replica in Frankfurt is lagging, and the cache is fine.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.9em">
+                <p class="big" style="margin:0">The trade you cannot escape: <em class="hl">certainty and informativeness
+                        move in opposite directions.</em></p>
+                <p style="margin:.4em 0 0">Deduction is certain and tells you nothing new. Abduction is highly
+                    informative and could easily be wrong. Induction sits in between — which is why nearly all of
+                    experimental computer science lives there.</p>
+            </div>
+        </section>
+
+        <!-- ============ 4 · DEDUCTION ============ -->
+        <section class="slide" data-title="A1 · Deduction — general to specific">
+            <span class="kicker">Model 1 · deduction</span>
+            <h2>Deduction: from the general rule to the specific case</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <h3>The form</h3>
+                    <div class="tbox k-claim" style="margin-bottom:.4em">
+                        <p style="margin:0"><b>All</b> A are B &nbsp;·&nbsp; x <b>is</b> A &nbsp;
+                            <span class="arrow" style="font-size:.9em">∴</span>&nbsp; x <b>is</b> B</p>
+                    </div>
+                    <p style="margin:0 0 .4em"><b>Truth-preserving.</b> If the premises are true and the form is valid,
+                        the conclusion <em>cannot</em> be false. That is the whole point, and no other form of
+                        reasoning offers it.</p>
+                    <p style="margin:0 0 .4em"><b>Non-ampliative.</b> Nothing is added. The conclusion was already
+                        contained in the premises; deduction only makes it visible. This is why a proof can feel
+                        simultaneously airtight and unsurprising.</p>
+                    <p class="footnote" style="margin:0"><b>Validity vs soundness</b> — a distinction you will be asked
+                        for. An argument is <b>valid</b> if the form guarantees the conclusion; it is <b>sound</b> if it
+                        is valid <em>and</em> the premises are actually true. “All birds can fly; a penguin is a bird;
+                        so a penguin can fly” is perfectly valid and completely unsound.</p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Where deduction actually lives in computing</h3>
+                    <ul class="stack-tight">
+                        <li><b>Algorithm correctness</b> — loop invariants, pre/post-conditions, termination
+                            arguments.</li>
+                        <li><b>Complexity results</b> — worst-case bounds, lower bounds, reductions, NP-completeness.
+                        </li>
+                        <li><b>Type systems</b> — if it type-checks, an entire class of error <em>cannot</em> occur. A
+                            deductive guarantee, purchased at compile time.</li>
+                        <li><b>Formal verification and model checking</b> — the property holds on <em>all</em>
+                            reachable states, not on the ones you happened to test.</li>
+                        <li><b>Cryptographic reduction</b> — “if you can break this scheme, you can factor large
+                            integers.”</li>
+                        <li><b>Impossibility results</b> — no protocol, ever, can do this.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0">Every item on this list is a claim <em>no experiment
+                            could establish</em>, because each quantifies over infinitely many cases.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · DEDUCTION LIMITS ============ -->
+        <section class="slide" data-title="A2 · What deduction costs you">
+            <span class="kicker">Model 1 · the bill</span>
+            <h2>Certainty is bought with assumptions — and assumptions are where it breaks</h2>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>Advantages</h3>
+                    <ul class="stack-tight">
+                        <li><b>Conclusive.</b> No sample size argument, no seeds, no p-values, no “more experiments
+                            needed”.</li>
+                        <li><b>Universal reach.</b> Covers inputs nobody has run and machines nobody has built.</li>
+                        <li><b>Permanent.</b> A theorem from 1936 is as true today as when it was written. Benchmarks
+                            from 2019 are already stale.</li>
+                        <li><b>Cheap to check.</b> A reviewer needs a pen, not a cluster.</li>
+                    </ul>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Limitations</h3>
+                    <ul class="stack-tight">
+                        <li><b>Tells you nothing new about the world.</b> It cannot discover that users abandon your app
+                            after 3 seconds.</li>
+                        <li><b>Only as good as its premises.</b> A flawless proof about an assumption no real system
+                            satisfies is worth nothing — the failure named in Unit I.</li>
+                        <li><b>The model is not the system.</b> You proved the <em>protocol</em> correct; you deployed an
+                            <em>implementation</em>. Heartbleed sat in a protocol with proofs.</li>
+                        <li><b>Not always available.</b> Most interesting questions in computing are not provable at
+                            all — “is this interface usable?” has no theorem.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card tint-warn" style="margin-top:.8em">
+                <p class="big" style="margin:0">The trap with your name on it: <em class="hl">mathematical induction is
+                        <u>deductive</u>.</em></p>
+                <p style="margin:.4em 0 0">Despite the name, proof by induction is a <b>deductive</b> technique — it
+                    establishes its conclusion with certainty for <em>all</em> n, via the axiom of induction. It has
+                    nothing to do with inductive reasoning, which is uncertain and generalises from samples. Confusing
+                    the two is a guaranteed mark lost in Class Test 1, and we return to the proof technique itself in
+                    II.5.</p>
+            </div>
+        </section>
+
+        <!-- ============ 6 · INDUCTION ============ -->
+        <section class="slide" data-title="B1 · Induction — specific to general">
+            <span class="kicker">Model 2 · induction</span>
+            <h2>Induction: from the observed cases to the general rule</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <h3>The form</h3>
+                    <div class="tbox k-ground" style="margin-bottom:.4em">
+                        <p style="margin:0">a₁, a₂, … a<sub>n</sub> are all A, and all were observed to be B &nbsp;
+                            <span class="arrow" style="font-size:.9em">∴</span>&nbsp; A's <b>in general</b> are B
+                            <span class="footnote">(or: the next A will be B)</span></p>
+                    </div>
+                    <p style="margin:0 0 .4em"><b>Ampliative.</b> The conclusion goes <em>beyond</em> the evidence —
+                        that is precisely what makes it useful and what makes it risky. You looked at 10,000 files and
+                        made a claim about all of them.</p>
+                    <p style="margin:0 0 .4em"><b>Never certain, only stronger or weaker.</b> Inductive arguments are
+                        not valid or invalid; they are <em>strong</em> or <em>weak</em>, and strength comes from sample
+                        size, sample diversity, and the absence of a mechanism that would bias what you saw.</p>
+                    <p class="footnote" style="margin:0"><b>The problem of induction</b> (Hume): no finite number of
+                        observations logically guarantees the next one. There is no fix. Science proceeds anyway,
+                        because a well-designed inductive argument is the best evidence available for claims about the
+                        world.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Where induction lives in computing — almost everywhere</h3>
+                    <ul class="stack-tight">
+                        <li><b>Benchmarking</b> — “faster on these 12 workloads, therefore faster”.</li>
+                        <li><b>Testing</b> — passing tests supports, never proves, correctness. Testing shows the
+                            presence of bugs, not their absence.</li>
+                        <li><b>Every empirical evaluation</b> — held-out test sets, A/B tests, user studies.</li>
+                        <li><b>Machine learning itself</b> — a model generalising from training data to unseen data
+                            <em>is</em> induction, mechanised. This is why distribution shift breaks models: the
+                            inductive step was never guaranteed.</li>
+                        <li><b>Repository mining</b> — “in 50,000 projects, therefore in projects”.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0">Recognise the pattern: <b>every one of your empirical
+                            claims is an inductive argument</b>, and every threat to external validity is an attack on
+                        the inductive step.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · INDUCTION STRENGTH ============ -->
+        <section class="slide" data-title="B2 · Making an inductive argument strong">
+            <span class="kicker">Model 2 · the operational part</span>
+            <h2>You cannot make induction certain. You can make it hard to attack.</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>What actually strengthens the inference</h3>
+                    <table style="font-size:.84em">
+                        <thead>
+                            <tr>
+                                <th>Lever</th>
+                                <th>Weak version</th>
+                                <th>Strong version</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>Sample size</b></td>
+                                <td>1 benchmark, 1 seed</td>
+                                <td>12 workloads, 5 seeds, variance reported</td>
+                            </tr>
+                            <tr>
+                                <td><b>Diversity</b></td>
+                                <td>12 workloads, all web servers</td>
+                                <td>web, batch, ML, embedded — chosen to disagree</td>
+                            </tr>
+                            <tr>
+                                <td><b>Representativeness</b></td>
+                                <td>the repos that were easy to clone</td>
+                                <td>a stated sampling frame and a random draw</td>
+                            </tr>
+                            <tr>
+                                <td><b>Adversarial selection</b></td>
+                                <td>cases you expected to win</td>
+                                <td>cases you expected to <em>lose</em>, reported anyway</td>
+                            </tr>
+                            <tr>
+                                <td><b>Scope of the claim</b></td>
+                                <td>“our method is faster”</td>
+                                <td>“faster on read-heavy OLTP under 8 GB”</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card tint-do">
+                    <h3>The move that costs nothing</h3>
+                    <p class="big" style="margin:0 0 .4em">The last row again. <em class="hl">You cannot buy certainty,
+                            but you can shrink the claim until your evidence covers it.</em></p>
+                    <p style="margin:0 0 .4em">This is the qualifier from II.1, and it is the single most effective
+                        repair in empirical computing research. It converts an argument a reviewer can destroy into one
+                        they must accept.</p>
+                    <div class="card flat tint-warn" style="padding:.5em .8em">
+                        <p style="margin:0"><b>Survivorship bias — the one that catches students.</b> You evaluate your
+                            crash-recovery tool on bug reports from the issue tracker. But bugs severe enough to be
+                            filed are not the population of bugs; they are the population of bugs someone
+                            <em>noticed and cared about</em>. Your induction generalises to the wrong set, and no
+                            increase in sample size will fix it.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · ABDUCTION ============ -->
+        <section class="slide" data-title="C1 · Abduction — best explanation">
+            <span class="kicker">Model 3 · abduction</span>
+            <h2>Abduction: from a surprising observation to the cause that would explain it</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <h3>The form <span class="footnote">(C. S. Peirce)</span></h3>
+                    <div class="tbox k-warrant" style="margin-bottom:.4em">
+                        <p style="margin:0">The surprising fact <b>C</b> is observed. &nbsp;·&nbsp; If <b>A</b> were
+                            true, <b>C</b> would be a matter of course. &nbsp;
+                            <span class="arrow" style="font-size:.9em">∴</span>&nbsp; there is reason to suspect
+                            <b>A</b> is true.</p>
+                    </div>
+                    <p style="margin:0 0 .4em">Note how weak that conclusion is: <em>reason to suspect</em>. Abduction
+                        never concludes that A is true. It nominates A as worth investigating.</p>
+                    <p style="margin:0 0 .4em"><b>It runs backwards.</b> Deduction and induction move from evidence
+                        forward to a conclusion. Abduction reasons <em>from an effect back to a cause</em> — which is
+                        why it can never be certain: many causes produce the same effect.</p>
+                    <p class="footnote" style="margin:0">Also called <b>inference to the best explanation</b>. The load
+                        is carried entirely by the word <em>best</em> — best among <b>which</b> explanations? Only the
+                        ones you thought of.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>You have been doing this since first year</h3>
+                    <p style="margin:0 0 .4em"><b>Debugging is abduction.</b> The test fails (surprising). <em>If</em>
+                        the cache key omitted the locale, that failure would be expected. So you suspect the cache key —
+                        and then you go and check, which is the deductive-then-inductive part.</p>
+                    <ul class="stack-tight">
+                        <li><b>Fault localisation and root-cause analysis</b> — the entire discipline.</li>
+                        <li><b>Incident post-mortems</b> — reconstructing a cause from logs after the fact.</li>
+                        <li><b>Performance diagnosis</b> — “p99 spiked at 3 a.m.; what would produce exactly that
+                            shape?”</li>
+                        <li><b>Reading an anomaly in your own results</b> — why did accuracy <em>drop</em> when we added
+                            data?</li>
+                        <li><b>Hypothesis generation</b> — where your research question came from in the first
+                            place.</li>
+                    </ul>
+                    <p class="big" style="margin:.4em 0 0">Abduction is the <em class="hl">only one of the three that
+                            invents anything</em>. Deduction rearranges; induction extends; abduction proposes.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · ABDUCTION LIMITS ============ -->
+        <section class="slide" data-title="C2 · Judging a 'best' explanation">
+            <span class="kicker">Model 3 · the bill</span>
+            <h2>Five tests for “best”, and the trap underneath all of them</h2>
+            <div class="grid g5" style="gap:.55em">
+                <div class="card flat">
+                    <h3>Explanatory scope</h3>
+                    <p class="footnote" style="margin:0">Does it account for <em>all</em> the observations, or only the
+                        convenient ones? A cause that explains the Europe-only part but not the after-6-p.m. part is
+                        incomplete.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Simplicity</h3>
+                    <p class="footnote" style="margin:0">Fewer independent assumptions wins. Two unrelated bugs
+                        coinciding is possible; one bug is likelier.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Plausibility</h3>
+                    <p class="footnote" style="margin:0">Consistent with what is already known about the system. A
+                        cosmic-ray bit-flip explains it, and should not be your first guess.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Testability</h3>
+                    <p class="footnote" style="margin:0">Can you <em>check</em> it? An explanation with no
+                        distinguishing prediction is a story, not a hypothesis.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Rivals eliminated</h3>
+                    <p class="footnote" style="margin:0">Have you ruled the alternatives <em>out</em>, or merely not
+                        thought of them? This is the one that gets skipped.</p>
+                </div>
+            </div>
+            <div class="grid g2" style="margin-top:.9em">
+                <div class="card tint-bad">
+                    <h3>The trap</h3>
+                    <p class="big" style="margin:0">“Best explanation” silently means <em class="hl">best among the
+                            explanations I happened to generate.</em></p>
+                    <p class="footnote" style="margin:.4em 0 0">If your hypothesis space is impoverished, abduction
+                        confidently hands you the least-bad member of a bad set — and it feels exactly like insight.
+                        This is the mechanism behind confirmation bias, and behind every debugging session that spent
+                        six hours on the wrong subsystem.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>The discipline that fixes it</h3>
+                    <p style="margin:0 0 .3em"><b>Write down three explanations before testing any of them.</b> Not
+                        one. Three.</p>
+                    <p style="margin:0">Then ask, for each pair: <em>what observation would distinguish these two?</em>
+                        That question converts abduction into an experiment — and an experiment is something you can
+                        actually report.</p>
+                    <p class="footnote" style="margin:.4em 0 0">This is also the honest answer to “how did you come up
+                        with your research question?” — you abduced it, and then you were obliged to test it.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · COMPARISON ============ -->
+        <section class="slide" data-title="Comparison · the table you will be examined on">
+            <span class="kicker">All three · side by side</span>
+            <h2>Deduction, induction, abduction</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th style="color:var(--brand)">Deduction</th>
+                            <th style="color:var(--good)">Induction</th>
+                            <th style="color:var(--warn)">Abduction</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>Direction</b></td>
+                            <td>General → specific</td>
+                            <td>Specific → general</td>
+                            <td>Effect → cause</td>
+                        </tr>
+                        <tr>
+                            <td><b>If premises true, conclusion is</b></td>
+                            <td><b>Certain</b></td>
+                            <td>Probable</td>
+                            <td>Merely plausible</td>
+                        </tr>
+                        <tr>
+                            <td><b>Adds new information?</b></td>
+                            <td>No</td>
+                            <td>Yes — beyond the sample</td>
+                            <td>Yes — a whole new entity</td>
+                        </tr>
+                        <tr>
+                            <td><b>Judged as</b></td>
+                            <td>Valid / invalid, sound / unsound</td>
+                            <td>Strong / weak</td>
+                            <td>Better / worse than rivals</td>
+                        </tr>
+                        <tr>
+                            <td><b>Defeated by</b></td>
+                            <td>A false premise or an invalid step</td>
+                            <td>A counter-example; a biased sample</td>
+                            <td>A better explanation you had not considered</td>
+                        </tr>
+                        <tr>
+                            <td><b>In CS</b></td>
+                            <td>Proofs, complexity bounds, type systems, verification</td>
+                            <td>Benchmarks, testing, user studies, ML generalisation</td>
+                            <td>Debugging, root-cause analysis, hypothesis generation</td>
+                        </tr>
+                        <tr>
+                            <td><b>Role in a project</b></td>
+                            <td>Derive what <em>must</em> follow if your hypothesis is right</td>
+                            <td>Test whether it actually does</td>
+                            <td>Produce the hypothesis in the first place</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="big center" style="margin-top:.7em">Read the last row across. <em class="hl">That is the research
+                    cycle, and it is the next slide.</em></p>
+        </section>
+
+        <!-- ============ 11 · THE CYCLE ============ -->
+        <section class="slide" data-title="Synthesis · the research cycle">
+            <span class="kicker">Synthesis · how the three fit together</span>
+            <h2>A research project uses all three, in a fixed order</h2>
+            <div class="toul" style="grid-template-columns:1fr auto 1fr auto 1fr">
+                <div class="tbox k-warrant">
+                    <h4>1 · Abduction — generate</h4>
+                    <p>“Field accuracy is far below the published figure. <em>If</em> the training images were all
+                        studio-lit and field images are not, that gap would be expected.”</p>
+                    <p class="footnote" style="margin:.3em 0 0">Produces a hypothesis. Proves nothing.</p>
+                </div>
+                <div class="tarrow">→</div>
+                <div class="tbox k-claim">
+                    <h4>2 · Deduction — derive</h4>
+                    <p>“<em>If</em> that is the cause, then accuracy must degrade with measured illumination variance,
+                        and must recover under controlled lighting.”</p>
+                    <p class="footnote" style="margin:.3em 0 0">Turns the hypothesis into a prediction that could
+                        fail.</p>
+                </div>
+                <div class="tarrow">→</div>
+                <div class="tbox k-ground">
+                    <h4>3 · Induction — test</h4>
+                    <p>“Across 900 field images at 5 illumination levels, 3 seeds: accuracy falls 21 points and recovers
+                        16 under controlled lighting.”</p>
+                    <p class="footnote" style="margin:.3em 0 0">Supports the hypothesis. Still does not prove it.</p>
+                </div>
+            </div>
+            <div class="grid g2" style="margin-top:.9em">
+                <div class="card tint-do">
+                    <p class="big" style="margin:0"><em class="hl">Abduction gives you something worth testing.
+                            Deduction tells you what would count as a test. Induction runs it.</em></p>
+                    <p class="footnote" style="margin:.4em 0 0">Peirce's own account of scientific method, and it maps
+                        exactly onto a final-year project. Your proposal's <em>motivation</em> is abductive, its
+                        <em>hypotheses</em> are deductive consequences, and its <em>evaluation</em> is inductive.</p>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Running it backwards is misconduct</h3>
+                    <p style="margin:0">Get a result first, then invent the hypothesis it supports, then present that
+                        hypothesis as though you had it all along. This is <b>HARKing</b> — Hypothesising After the
+                        Results are Known.</p>
+                    <p class="footnote" style="margin:.4em 0 0">It is abduction disguised as induction, and it is
+                        undetectable in a write-up unless you declare it. Pre-committing to your hypothesis <em>before</em>
+                        you look — the discipline from Lecture I.6 — is what stops it. We return to this in Unit III as
+                        a research-integrity issue.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · DRILL 1 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill · classify the inference">
+            <span class="kicker do">Do · 7 items · 6 minutes · commit before the reveal</span>
+            <h2>Which model of argumentation is this?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="iq-n">1</span> of <span id="iq-total">7</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="iq-score">0</span></p>
+                <p class="big" id="iq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g3" id="iq-opts" style="gap:.5em"></div>
+                <div id="iq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="iq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="iq-restart">Restart</button>
+                    <span class="footnote">Ask the one diagnostic question: <b>could the conclusion be false even if
+                            every premise is true?</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 13 · FALLACIES ============ -->
+        <section class="slide" data-title="D1 · The fallacy each model invites">
+            <span class="kicker">Failure modes · one per model</span>
+            <h2>Each form of reasoning has a signature way of going wrong</h2>
+            <div class="grid g3">
+                <div class="card tint-brand">
+                    <h3>Deduction → affirming the consequent</h3>
+                    <p style="margin:0 0 .3em"><b>Valid:</b> If P then Q. P. <span class="arrow"
+                            style="font-size:.9em">∴</span> Q.<br>
+                        <b style="color:var(--bad)">Invalid:</b> If P then Q. Q. <span class="arrow"
+                            style="font-size:.9em">∴</span> P.</p>
+                    <p class="footnote" style="margin:0"><b>In your report:</b> “If our method is better, accuracy goes
+                        up. Accuracy went up. Therefore our method is better.” Accuracy also goes up with a bigger
+                        model, more epochs, a luckier seed, or a leakier split.</p>
+                    <p class="footnote" style="margin:.35em 0 0">Also: <b>denying the antecedent</b> — “no significant
+                        difference, therefore no effect.” Absence of evidence, with n = 12, is not evidence of
+                        absence.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Induction → hasty generalisation</h3>
+                    <p style="margin:0 0 .3em">Too few cases, or the wrong cases, carrying a claim far larger than
+                        they can hold.</p>
+                    <p class="footnote" style="margin:0"><b>In your report:</b> “Our approach is faster” after one
+                        benchmark on one machine with one seed. Or the biased-sample version: 20 CS students standing in
+                        for “users”.</p>
+                    <p class="footnote" style="margin:.35em 0 0">Also: <b>survivorship bias</b> (you only measured what
+                        was still there to measure) and <b>base-rate neglect</b> — a 99%-accurate detector on a 0.1%
+                        attack rate flags far more false alarms than attacks.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Abduction → the only explanation I thought of</h3>
+                    <p style="margin:0 0 .3em">Treating the first plausible cause as established because no rival was
+                        ever generated.</p>
+                    <p class="footnote" style="margin:0"><b>In your report:</b> “Accuracy improved because our attention
+                        module captures long-range dependencies.” Did you test that, or did it merely sound right? An
+                        ablation is the difference.</p>
+                    <p class="footnote" style="margin:.35em 0 0">Also: <b>post hoc ergo propter hoc</b> — B followed A,
+                        therefore A caused B. This is the engine of every correlation-read-as-causation error you will
+                        meet.</p>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:.8em">Notice all three appear in <em>results and discussion</em>
+                sections — <em class="hl">not in the experiments. The work was fine; the reasoning about it was
+                    not.</em></p>
+        </section>
+
+        <!-- ============ 14 · DRILL 2 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill · name the fallacy">
+            <span class="kicker do">Do · 6 items · 5 minutes</span>
+            <h2>What has gone wrong in this reasoning?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="fq-n">1</span> of <span id="fq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="fq-score">0</span></p>
+                <p class="big" id="fq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="fq-opts" style="gap:.5em"></div>
+                <div id="fq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="fq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="fq-restart">Restart</button>
+                    <span class="footnote">Every one of these is taken from the shape of a real student results
+                        section.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 15 · MAIN ACTIVITY ============ -->
+        <section class="slide" data-mode="do" data-title="DO 4 · Classify and repair your own arrow">
+            <span class="kicker do">Do · 8 minutes · the piece of work you keep</span>
+            <h2>Your arrow, classified — and the claim it actually permits</h2>
+            <div class="runbar">
+                <span class="step">1 · <b>3 min</b> alone — classify your own grounds→claim arrow</span>
+                <span class="step">2 · <b>3 min</b> swap — neighbour names your signature fallacy</span>
+                <span class="step">3 · <b>2 min</b> — rewrite the claim to the strength your arrow supports</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="480">8:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Work through it in this order</h3>
+                    <ol class="stack-tight">
+                        <li>Write your <b>claim</b> and your <b>grounds</b> from last hour's Toulmin boxes.</li>
+                        <li>Ask the diagnostic: <b>could the claim be false even if every ground is true?</b>
+                            <span class="footnote">No → deduction. Yes, and I am generalising → induction. Yes, and I am
+                                naming a cause → abduction.</span></li>
+                        <li>Look up the claim strength your arrow permits:
+                            <div class="grid" style="gap:.3em; margin-top:.3em">
+                                <div class="card flat tint-brand" style="padding:.35em .7em"><p
+                                        style="margin:0; font-size:.85em"><b>Deductive</b> → you may write “is”,
+                                        “always”, “cannot”.</p></div>
+                                <div class="card flat tint-good" style="padding:.35em .7em"><p
+                                        style="margin:0; font-size:.85em"><b>Inductive</b> → you may write “on X, Y
+                                        outperforms Z by n%” — <em>and you must name X</em>.</p></div>
+                                <div class="card flat tint-warn" style="padding:.35em .7em"><p
+                                        style="margin:0; font-size:.85em"><b>Abductive</b> → you may write “suggests”,
+                                        “is consistent with”, “a plausible explanation is”. <b>Not</b> “because”.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li><b>Rewrite your claim</b> so its verb matches its arrow.</li>
+                    </ol>
+                </div>
+                <div class="card tint-do">
+                    <h3>What almost everyone will find</h3>
+                    <p class="big" style="margin:0 0 .4em">Your arrow is <b>inductive</b>, and your claim is written in
+                        <b>deductive</b> language.</p>
+                    <p style="margin:0 0 .4em">You measured something on one dataset and wrote “our method
+                        <em>is</em> better”. That single verb is the overclaim, and it is what a reviewer attacks
+                        first — because it is the easiest thing in the paper to prove wrong.</p>
+                    <div class="card flat tint-warn" style="padding:.5em .8em">
+                        <p style="margin:0"><b>The second-commonest finding:</b> a <em>results</em> section that is
+                            inductive and a <em>discussion</em> section that quietly turns abductive — “our method is
+                            better <b>because</b> it captures X”. The “because” was never measured. Either test it with
+                            an ablation, or downgrade the verb to “suggests”.</p>
+                    </div>
+                    <p class="footnote" style="margin:.5em 0 0">Both repairs cost you one word. Both save you the
+                        question you cannot answer in the viva.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 16 · EXIT TICKET ============ -->
+        <section class="slide" data-mode="do" data-title="DO 5 · Exit ticket">
+            <span class="kicker do">Exit ticket · tick what is true right now</span>
+            <h2>Does your reasoning match your claim?</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <div class="grid" id="exit" style="gap:.4em; grid-template-columns:1fr 1fr"></div>
+                    <p class="footnote" style="margin:.5em 0 0"><span class="star"
+                            style="color:var(--bad); font-weight:900">★</span> = non-negotiable. Four starred items.</p>
+                </div>
+                <div class="card" id="ex-card">
+                    <h3>Ticked: <span class="score" id="ex-score">0</span> / 10 &nbsp;·&nbsp; essentials: <span
+                            class="score" id="ex-ess">0</span> / 4</h3>
+                    <p id="ex-verdict" style="margin:0">Tick what is already written down — not what you intend to
+                        write.</p>
+                    <div class="card flat tint-brand" style="padding:.5em .8em; margin-top:.6em">
+                        <p style="margin:0"><b>Where this goes next.</b> You now know what <em>kind</em> of arrow you are
+                            drawing. II.3, II.4 and II.5 supply the three ways of making the grounds strong enough to
+                            carry it: <b>proof by demonstration</b> (the artefact), <b>empirical proof</b> (the
+                            experiment), and <b>mathematical proof</b> (the derivation).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 17 · TAKEAWAYS ============ -->
+        <section class="slide" data-title="Eight things that must survive">
+            <span class="kicker">Consolidation</span>
+            <h2>Eight things that must survive this hour</h2>
+            <div class="grid g2">
+                <ol class="stack-tight big" style="line-height:1.3">
+                    <li><b>Deduction</b> — general to specific, truth-preserving, adds nothing new.</li>
+                    <li><b>Induction</b> — specific to general, ampliative, never certain.</li>
+                    <li><b>Abduction</b> — effect to cause, weakest warrant, the only one that invents a hypothesis.</li>
+                    <li>Certainty and informativeness <b>move in opposite directions</b>. You cannot have both.</li>
+                </ol>
+                <ol class="stack-tight big" start="5" style="line-height:1.3">
+                    <li><b>Mathematical induction is deductive.</b> The name is a historical accident.</li>
+                    <li>Testing, benchmarking and ML generalisation are all <b>inductive</b> — which is exactly why
+                        distribution shift and weak baselines hurt.</li>
+                    <li><b>Debugging is abduction</b>, and so is your research question. Write three explanations, not
+                        one.</li>
+                    <li>The cycle: <b>abduce a hypothesis → deduce a prediction → induce a test</b>. Running it
+                        backwards is HARKing.</li>
+                </ol>
+            </div>
+            <div class="card tint-brand" style="margin-top:.8em">
+                <p class="big" style="margin:0">If you remember one sentence: <em class="hl">match the verb in your
+                        claim to the arrow in your argument — “is” needs a proof, “outperforms on X” needs an
+                        experiment, and “because” needs an ablation you have not run yet.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 18 · NOTEBOOK & CLOSE ============ -->
+        <section class="slide" data-title="Notebook task and what's next">
+            <span class="kicker">Research Notebook · entry after Lecture II.2</span>
+            <h2>Your notebook task</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Three things to add before the next session</h3>
+                    <ol class="stack-tight">
+                        <li><b>Lecture log.</b> Date, “II.2 — deduction, induction, abduction”, and your exit-ticket
+                            score out of 10.</li>
+                        <li><b>Section 5 · Argument.</b> Name the arrow in your own study — deductive, inductive or
+                            abductive — in one sentence, with the diagnostic question answered explicitly. If your
+                            project has stages, name the arrow of each.</li>
+                        <li><b>Section 5c · Reasoning risks.</b> Your <b>rewritten claim</b>, with the verb matched to
+                            the arrow, plus the one signature fallacy your project is most exposed to and the concrete
+                            step that guards against it (more seeds · a named sampling frame · an ablation · three rival
+                            explanations written down).</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Stamp the entry <code>\version{7}{...}{after Lecture
+                            II.2}</code>.</p>
+                </div>
+                <div class="card">
+                    <div class="card flat tint-good" style="padding:.7em .9em">
+                        <h3 style="margin-bottom:.2em">Next session · II.3 · Proof by Demonstration</h3>
+                        <p style="margin:0"><b>The artefact as evidence.</b> You built a system. What exactly does a
+                            working build <em>prove</em>? We take design-science research seriously, separate an
+                            existence proof from an evaluation, and find out why “but it works, sir” is a feasibility
+                            claim and nothing more.</p>
+                        <p style="margin:.4em 0 0"><b>Bring:</b> your rewritten claim and its arrow.</p>
+                    </div>
+                    <div class="card flat tint-warn" style="padding:.7em .9em; margin-top:.6em">
+                        <p style="margin:0"><b>Class Test 1 is on 12 September</b>, covering Unit I complete and Unit II
+                            complete. The comparison table on slide 10 and the three fallacies on slide 13 are the two
+                            most examinable things in this deck.</p>
+                    </div>
+                    <p class="footnote" style="margin:.6em 0 0"><b>Reading:</b> C. S. Peirce, <i>Collected Papers</i>
+                        5.189 (the abduction schema) · P. Lipton, <i>Inference to the Best Explanation</i>, ch. 1 ·
+                        E. W. Dijkstra, <i>Notes on Structured Programming</i> (on the limits of testing) ·
+                        N. R. Hanson, <i>Patterns of Discovery</i>, ch. 4 · Melville &amp; Goddard, ch. 4.</p>
+                </div>
+            </div>
+        </section>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 18</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script>
+        /* ---------------- deck engine ---------------- */
+        const slides = [...document.querySelectorAll('.slide')];
+        let cur = 0;
+
+        slides.forEach(s => {
+            const fit = document.createElement('div');
+            fit.className = 'fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+        });
+
+        function fitSlide(s) {
+            const f = s.querySelector('.fit');
+            if (!f) return;
+            f.style.transform = 'none';
+            const cs = getComputedStyle(s);
+            const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const h = f.offsetHeight;
+            if (avail <= 0 || h <= 0) return;
+            const k = Math.min(1, avail / h);
+            f.style.transform = k > 0.995 ? 'none' : 'scale(' + k.toFixed(4) + ')';
+        }
+        const fitNow = () => fitSlide(slides[cur]);
+        const fitSoon = () => requestAnimationFrame(() => requestAnimationFrame(fitNow));
+        window.addEventListener('resize', fitNow);
+        document.addEventListener('click', fitSoon, true);
+        document.addEventListener('change', fitSoon, true);
+        document.addEventListener('input', fitSoon, true);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('title-now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            slides[cur].scrollTop = 0;
+            location.hash = 's' + (cur + 1);
+            fitSlide(slides[cur]);
+        }
+        function go(d) { show(cur + d); }
+
+        document.addEventListener('keydown', e => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.key === 'Escape') { document.getElementById('overview').classList.add('hidden'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'd') toggleTheme();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 't') { const t = document.getElementById('lect-t'); t.__toggle && t.__toggle(); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        function toggleTheme() {
+            const h = document.documentElement;
+            h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('hidden'); }
+
+        const ovList = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + (i + 1) + '</b><span>' + (s.dataset.title || '') + '</span>' +
+                (s.dataset.mode === 'do' ? '<span class="do-dot">STUDENT WORK</span>' : '');
+            b.onclick = () => { show(i); toggleOverview(); };
+            ovList.appendChild(b);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(b => {
+            const label = b.textContent;
+            b.addEventListener('click', () => {
+                const t = document.querySelector(b.dataset.reveal);
+                t.classList.toggle('hidden');
+                b.textContent = t.classList.contains('hidden') ? label : 'Hide again';
+            });
+        });
+
+        document.querySelectorAll('.timer').forEach(box => {
+            const disp = box.querySelector('.t');
+            const total = parseInt(disp.dataset.sec, 10);
+            let left = total, id = null;
+            const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            const paint = () => {
+                disp.textContent = fmt(left);
+                disp.classList.toggle('low', left <= Math.max(10, total * 0.15));
+            };
+            const tick = () => { if (left > 0) { left--; paint(); } else { clearInterval(id); id = null; } };
+            const toggle = () => { if (id) { clearInterval(id); id = null; } else { id = setInterval(tick, 1000); } };
+            disp.__toggle = toggle;
+            box.querySelector('[data-timer=start]').addEventListener('click', toggle);
+            box.querySelector('[data-timer=reset]').addEventListener('click', () => {
+                clearInterval(id); id = null; left = total; paint();
+            });
+            paint();
+        });
+
+        /* ---------------- generic drill engine ---------------- */
+        function makeDrill(p, items, done) {
+            const el = k => document.getElementById(p + '-' + k);
+            const opts = el('opts');
+            let i = 0, sc = 0, lock = false;
+
+            function paint() {
+                el('n').textContent = i + 1;
+                el('total').textContent = items.length;
+                el('stmt').innerHTML = items[i].q;
+                el('score').textContent = sc;
+                el('fb').classList.add('hidden');
+                opts.innerHTML = '';
+                items[i].o.forEach((t, k) => {
+                    const b = document.createElement('button');
+                    b.className = 'pick';
+                    b.innerHTML = '<b>' + 'ABCDEF'[k] + '.</b> ' + t;
+                    b.addEventListener('click', () => {
+                        if (lock) return;
+                        lock = true;
+                        const right = items[i].a;
+                        if (k === right) { b.classList.add('right'); sc++; }
+                        else { b.classList.add('wrong'); opts.children[right].classList.add('right'); }
+                        el('score').textContent = sc;
+                        const fb = el('fb');
+                        fb.innerHTML = items[i].w;
+                        fb.classList.remove('hidden');
+                    });
+                    opts.appendChild(b);
+                });
+                lock = false;
+            }
+
+            el('next').addEventListener('click', () => {
+                if (i < items.length - 1) { i++; paint(); }
+                else {
+                    const fb = el('fb');
+                    fb.classList.remove('hidden');
+                    fb.innerHTML = done(sc, items.length);
+                }
+            });
+            const r = document.getElementById(p + '-restart');
+            if (r) r.addEventListener('click', () => { i = 0; sc = 0; paint(); });
+            paint();
+        }
+
+
+        /* ---------------- Drill 1 · classify the inference ---------------- */
+        const INF = ['Deduction', 'Induction', 'Abduction'];
+        makeDrill('iq', [
+            {
+                q: 'Every comparison-based sorting algorithm requires at least n log n comparisons in the worst case. Mergesort is comparison-based. Therefore mergesort requires at least n log n comparisons in the worst case.',
+                o: INF, a: 0,
+                w: '<b>Deduction.</b> If both premises hold, the conclusion cannot fail — it was already contained in them. Notice it tells you nothing you did not implicitly have, and notice that no amount of benchmarking could ever establish it, because it quantifies over all inputs.'
+            },
+            {
+                q: 'We ran our parser on 10,000 real-world source files and it never crashed. Therefore our parser does not crash on real-world source files.',
+                o: INF, a: 1,
+                w: '<b>Induction.</b> Ampliative and defeasible: file 10,001 can destroy it. Testing shows the presence of bugs, never their absence. Strengthen it the only way available — more files, <em>more diverse</em> files, and files chosen because you expect them to break it — then qualify the claim to the population you actually sampled.'
+            },
+            {
+                q: 'The service returns stale data, but only for users in Europe, and only after 6 p.m. IST. The cache key is probably missing the locale field.',
+                o: INF, a: 2,
+                w: '<b>Abduction.</b> You reasoned backwards from an effect to a cause that would explain it. Note the honest hedge, “probably” — a replica lagging in Frankfurt would explain the same two facts. Write down the rival, then ask what single observation distinguishes them. That is how abduction becomes an experiment.'
+            },
+            {
+                q: 'We prove the property holds for n = 1, and that whenever it holds for n = k it holds for n = k + 1. Therefore it holds for every natural number n.',
+                o: INF, a: 0,
+                w: '<b>Deduction</b> — and this is the item that catches people. Despite being called <em>mathematical induction</em>, it is a deductive proof technique: it establishes the conclusion with certainty for all n, via the induction axiom. Inductive <em>reasoning</em> generalises uncertainly from samples. Same word, unrelated ideas.'
+            },
+            {
+                q: 'Accuracy on our validation set dropped by 8 points the week after we added the new data source. Something in that source must be mislabelled.',
+                o: INF, a: 2,
+                w: '<b>Abduction</b> — and a good one, because it is testable. But run the five tests: does mislabelling explain the <em>size</em> of the drop? Are there rivals? A distribution shift, a preprocessing bug, or a changed random seed would produce the same observation. First plausible cause is not the same as best explanation.'
+            },
+            {
+                q: 'On twelve benchmark workloads spanning web, batch and ML, across five seeds, our scheduler reduced median wait time by 18-24%. We conclude it reduces wait time for mixed datacentre workloads.',
+                o: INF, a: 1,
+                w: '<b>Induction</b> — and a strong one. Sample size, diversity chosen to disagree, repeated seeds, and a conclusion carefully qualified to “mixed datacentre workloads” rather than “all workloads”. This is what a well-built inductive argument in systems research looks like: still not certain, but genuinely hard to attack.'
+            },
+            {
+                q: 'If a program is well-typed in this language, it cannot dereference a null pointer. This program is well-typed. Therefore it cannot dereference a null pointer.',
+                o: INF, a: 0,
+                w: '<b>Deduction.</b> A type system is a deductive machine, and this is where its value lies: the guarantee covers executions nobody has run. Watch the premise, though — it holds for the formal language, and your compiler, FFI and unsafe blocks may not be that language. A sound proof about a model the system does not satisfy is the standard failure of formal methods.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'Now classify your own arrow — and check that the verb in your claim matches it.'
+            : 'One question recovers almost all of these: <b>could the conclusion be false even if every premise is true?</b> No → deduction. Yes, and you are generalising from cases → induction. Yes, and you are naming a cause behind an observation → abduction.'));
+
+        /* ---------------- Drill 2 · name the fallacy ---------------- */
+        const FALL = ['Affirming the consequent', 'Hasty generalisation / biased sample',
+            'Only-explanation-I-considered', 'Post hoc ergo propter hoc'];
+        makeDrill('fq', [
+            {
+                q: '“If our architectural change helps, validation accuracy will rise. Validation accuracy rose. Therefore our architectural change helps.”',
+                o: FALL, a: 0,
+                w: '<b>Affirming the consequent.</b> The consequent has many possible antecedents: more epochs, a larger model, a luckier seed, a leakier split. Valid form requires you to affirm the <em>antecedent</em>. The practical repair is an <b>ablation</b> — hold everything else fixed and toggle only your change.'
+            },
+            {
+                q: '“We evaluated on the CIFAR-10 benchmark and improved by 1.2 points. Our method improves image classification.”',
+                o: FALL, a: 1,
+                w: '<b>Hasty generalisation.</b> One dataset, one task, one resolution, one domain, carrying a claim about image classification as such. Two repairs, and you should do both: evaluate on datasets that differ in kind, and qualify the claim to what you measured. The second one is free.'
+            },
+            {
+                q: '“Accuracy improved after we added the attention module. The attention module improves accuracy by capturing long-range dependencies.”',
+                o: FALL, a: 2,
+                w: '<b>Only-explanation-I-considered.</b> The first clause is a measurement; the second invents a mechanism and asserts it as established. Rivals never generated: the module added 4M parameters, changed the gradient flow, and required a different learning rate. Attention-map analysis or a parameter-matched control distinguishes them.'
+            },
+            {
+                q: '“Teams that adopted our code-review tool had 30% fewer production defects the following quarter. The tool reduces defects.”',
+                o: FALL, a: 3,
+                w: '<b>Post hoc ergo propter hoc.</b> Teams that voluntarily adopt a review tool are already the teams that care about quality — selection, not causation. The pattern is identical to Unit I\'s correlation-as-causation trap. Only a controlled or quasi-experimental design with matched teams separates the tool from the kind of team that adopts it.'
+            },
+            {
+                q: '“We surveyed developers through our lab\'s mailing list and conference contacts. 82% report using static analysis regularly, so most developers use static analysis.”',
+                o: FALL, a: 1,
+                w: '<b>Biased sample.</b> The sampling frame is the population most likely to hold the view being measured — people already in research-adjacent circles. More responses will not fix it; a thousand replies from the same list reproduces the bias at higher confidence. Only the frame can be repaired, or the claim narrowed to it.'
+            },
+            {
+                q: '“Our statistical test found no significant difference between the two algorithms (p = 0.31, n = 12). We conclude the algorithms perform identically.”',
+                o: FALL, a: 0,
+                w: '<b>Affirming the consequent\'s twin — denying the antecedent.</b> “If there were a difference, the test would be significant; it was not; therefore no difference.” With n = 12 the study may simply lack the power to detect a real effect. Absence of evidence is not evidence of absence. Report the confidence interval and the effect size the design could have detected.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'Now find which one your own project is most exposed to. Almost every empirical student project is exposed to the second, and almost every discussion section is exposed to the third.'
+            : 'Map the fallacy to the model: deduction fails by <b>reversing the implication</b>; induction fails by <b>over-reaching the sample</b>; abduction fails by <b>never generating a rival</b>. Then ask which of the three arrows the argument was drawing.'));
+
+        /* ---------------- exit ticket ---------------- */
+        const EXIT = [
+            { t: 'I can name my arrow: <b>deductive, inductive or abductive</b>', ess: 1 },
+            { t: 'I answered the diagnostic: <b>could my claim be false with true grounds?</b>', ess: 1 },
+            { t: 'The <b>verb</b> in my claim matches the strength my arrow permits', ess: 1 },
+            { t: 'I have named the <b>one fallacy</b> my project is most exposed to', ess: 1 },
+            { t: 'I know which stages of my project use which arrow', ess: 0 },
+            { t: 'Every “<b>because</b>” in my write-up is backed by an ablation or a control', ess: 0 },
+            { t: 'My inductive claims name the <b>population</b> I actually sampled', ess: 0 },
+            { t: 'I have written down <b>three rival explanations</b>, not one', ess: 0 },
+            { t: 'My hypothesis was fixed <b>before</b> I saw the results (no HARKing)', ess: 0 },
+            { t: 'I would not confuse <b>mathematical induction</b> with inductive reasoning', ess: 0 }
+        ];
+        const exitBox = document.getElementById('exit');
+        EXIT.forEach((r, i) => {
+            const b = document.createElement('button');
+            b.className = 'ck';
+            b.dataset.i = i;
+            b.innerHTML = (r.ess ? '<span class="star">★</span> ' : '') + r.t;
+            b.addEventListener('click', () => { b.classList.toggle('on'); exitScore(); });
+            exitBox.appendChild(b);
+        });
+        function exitScore() {
+            const on = [...exitBox.querySelectorAll('.ck.on')].map(b => +b.dataset.i);
+            const ess = on.filter(i => EXIT[i].ess).length;
+            document.getElementById('ex-score').textContent = on.length;
+            document.getElementById('ex-ess').textContent = ess;
+            const card = document.getElementById('ex-card'), v = document.getElementById('ex-verdict');
+            if (ess < 2) {
+                card.className = 'card tint-bad';
+                v.innerHTML = 'You cannot yet say what kind of reasoning your project rests on — which means you cannot say what would refute it. Start with the diagnostic question on slide 12; it takes thirty seconds and it settles the arrow.';
+            } else if (ess < 4) {
+                card.className = 'card tint-warn';
+                v.innerHTML = 'You know the arrow but the claim has not been rewritten to match it. This is the overclaim: inductive evidence carrying a deductive verb. Fix the verb before the claim reaches Assignment 2 — it is a one-word edit now and a rewritten chapter later.';
+            } else if (on.length < 8) {
+                card.className = 'card tint-good';
+                v.innerHTML = 'Your reasoning and your claim are aligned, and you know your exposure. A reviewer can still disagree with your evidence — but they can no longer catch you claiming more than it supports.';
+            } else {
+                card.className = 'card tint-good';
+                v.innerHTML = 'This is how a careful researcher reasons. You have rival explanations on paper, a pre-committed hypothesis, and verbs that match your warrant — the three habits that separate a defensible study from a story told after the fact.';
+            }
+        }
+
+
+        /* ---------------- boot ---------------- */
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+        exitScore();
+    </script>
+</body>
+
+</html>

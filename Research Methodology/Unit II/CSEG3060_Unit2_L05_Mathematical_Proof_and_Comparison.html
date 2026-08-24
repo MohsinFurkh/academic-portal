@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · II.5 — Proof Methods III: Mathematical Proof, and the Three Methods Compared</title>
+    <meta name="description"
+        content="Activity-led lecture II.5 for Research Methodology in Computer Science (CSEG3060): mathematical proof as research evidence - proof by induction, by contradiction, by construction and by counter-example, loop invariants and algorithm correctness, and complexity analysis as deductive evidence (worst-case, average-case, amortised and lower bounds) - followed by the head-to-head comparison of proof by demonstration, empirical proof and mathematical proof: their differences, advantages and limitations.">
+    <style>
+        /* ============================================================
+           CSEG3060 - Unit II - Lecture II.5
+           Self-contained interactive deck. No external assets.
+           Activity-led: slides marked data-mode="do" are student work.
+           Keys: → / Space next · ← prev · O overview · T timer · D dark · F fullscreen
+           ============================================================ */
+
+        :root {
+            --ink: #0f1e35;
+            --ink-soft: #3d5372;
+            --ink-faint: #6b7f9c;
+            --bg: #eef2f8;
+            --surface: #ffffff;
+            --surface-2: #f6f9fd;
+            --line: #d3dced;
+            --brand: #1d5fd0;
+            --brand-soft: #e5eeff;
+            --good: #147a45;
+            --good-soft: #e2f5ea;
+            --bad: #b3182b;
+            --bad-soft: #fdeaec;
+            --warn: #a9640a;
+            --warn-soft: #fdf1de;
+            --do: #7b2fd0;
+            --do-soft: #f1e8fd;
+            --shadow: 0 2px 4px rgba(15, 30, 53, .06), 0 12px 32px rgba(15, 30, 53, .10);
+            --radius: 16px;
+            --fs: clamp(18px, 1.0vw + 12px, 33px);
+        }
+
+        html[data-theme="dark"] {
+            --ink: #eaf1fb;
+            --ink-soft: #b6c6dd;
+            --ink-faint: #8ea3c0;
+            --bg: #0b1220;
+            --surface: #131f33;
+            --surface-2: #18263d;
+            --line: #2c3d59;
+            --brand: #6ea8ff;
+            --brand-soft: #1a2c4c;
+            --good: #4ade80;
+            --good-soft: #123024;
+            --bad: #fb7185;
+            --bad-soft: #3a1620;
+            --warn: #fbbf24;
+            --warn-soft: #392a10;
+            --do: #c99bff;
+            --do-soft: #2a1a44;
+            --shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: var(--fs);
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            gap: .8em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            font-size: .68em;
+            letter-spacing: .02em;
+            color: var(--ink-faint);
+            z-index: 40;
+        }
+
+        .topbar b {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .topbar .spacer {
+            flex: 1;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .18em .8em;
+            background: var(--surface-2);
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .chip:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .progress {
+            position: fixed;
+            top: 2.4em;
+            left: 0;
+            height: 4px;
+            background: var(--brand);
+            z-index: 41;
+            transition: width .25s ease;
+        }
+
+        .deck {
+            position: absolute;
+            inset: 2.4em 0 0 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: clamp(14px, 2.2vh, 30px) clamp(18px, 3.4vw, 70px) 4.2em;
+            display: none;
+            animation: in .28s ease both;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide[data-mode="do"] {
+            background:
+                linear-gradient(90deg, var(--do) 0 6px, transparent 6px);
+        }
+
+        .fit {
+            display: flow-root;
+            transform-origin: top center;
+        }
+
+        @keyframes in {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.1em;
+            display: flex;
+            align-items: center;
+            gap: .6em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            z-index: 40;
+            font-size: .7em;
+        }
+
+        .navbar .count {
+            font-weight: 800;
+            color: var(--ink-soft);
+            min-width: 5.5em;
+        }
+
+        .navbar .title-now {
+            color: var(--ink-faint);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button.nav {
+            font: inherit;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: .45em 1.1em;
+            cursor: pointer;
+        }
+
+        button.nav:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            line-height: 1.08;
+            margin: .1em 0 .3em;
+            letter-spacing: -.02em;
+        }
+
+        h2 {
+            font-size: 1.72em;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            letter-spacing: -.015em;
+        }
+
+        h3 {
+            font-size: 1.12em;
+            margin: 0 0 .4em;
+        }
+
+        p {
+            margin: 0 0 .7em;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: .62em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: .35em 1em;
+            margin-bottom: .9em;
+        }
+
+        .kicker.do {
+            color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .lead {
+            font-size: 1.12em;
+            color: var(--ink-soft);
+        }
+
+        .big {
+            font-size: 1.35em;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .huge {
+            font-size: 2.1em;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+        }
+
+        em.hl {
+            font-style: normal;
+            background: linear-gradient(transparent 62%, rgba(29, 95, 208, .26) 0);
+            font-weight: 700;
+        }
+
+        .quote {
+            font-size: 1.15em;
+            border-left: 6px solid var(--brand);
+            padding: .3em 0 .3em 1em;
+            color: var(--ink-soft);
+            font-style: italic;
+            margin: .8em 0;
+        }
+
+        code,
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: .92em;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: .06em .38em;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(10px, 1.4vw, 20px);
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .g5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .g23 {
+            grid-template-columns: 2fr 3fr;
+        }
+
+        .g32 {
+            grid-template-columns: 3fr 2fr;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: clamp(12px, 1.5vw, 22px);
+            box-shadow: var(--shadow);
+        }
+
+        .flat {
+            box-shadow: none;
+        }
+
+        .tint-good {
+            background: var(--good-soft);
+            border-color: color-mix(in srgb, var(--good) 35%, transparent);
+        }
+
+        .tint-bad {
+            background: var(--bad-soft);
+            border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+        }
+
+        .tint-warn {
+            background: var(--warn-soft);
+            border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+        }
+
+        .tint-brand {
+            background: var(--brand-soft);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+
+        .tint-do {
+            background: var(--do-soft);
+            border-color: color-mix(in srgb, var(--do) 40%, transparent);
+        }
+
+        ul,
+        ol {
+            margin: 0 0 .6em;
+            padding-left: 1.15em;
+        }
+
+        li {
+            margin-bottom: .42em;
+        }
+
+        li::marker {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .stack-tight li {
+            margin-bottom: .25em;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: .66em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+            padding: .2em .6em;
+            border: 1px solid currentColor;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88em;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: .5em .7em;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: .82em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--ink-faint);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .reveal-btn {
+            font: inherit;
+            font-weight: 800;
+            font-size: .88em;
+            border: 2px dashed var(--brand);
+            color: var(--brand);
+            background: transparent;
+            border-radius: 10px;
+            padding: .4em 1em;
+            cursor: pointer;
+        }
+
+        .reveal-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pick {
+            text-align: left;
+            font: inherit;
+            width: 100%;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .55em .8em;
+            color: var(--ink);
+            transition: .15s;
+        }
+
+        .pick:hover {
+            border-color: var(--brand);
+            transform: translateY(-2px);
+        }
+
+        .pick.sel {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .pick.right {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .pick.wrong {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .verdict {
+            margin-top: .6em;
+            font-size: .92em;
+            border-left: 5px solid var(--brand);
+            padding-left: .8em;
+            color: var(--ink-soft);
+        }
+
+        .ck {
+            font: inherit;
+            font-size: .82em;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .35em .6em;
+            color: var(--ink);
+        }
+
+        .ck.on {
+            border-color: var(--good);
+            background: var(--good-soft);
+            font-weight: 700;
+        }
+
+        .ck .star {
+            color: var(--bad);
+            font-weight: 900;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: .5em;
+            font-weight: 900;
+        }
+
+        .timer .t {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 1.5em;
+            min-width: 3.4em;
+            text-align: center;
+            background: var(--surface-2);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .05em .3em;
+        }
+
+        .timer .t.low {
+            color: var(--bad);
+            border-color: var(--bad);
+        }
+
+        .tbtn {
+            font: inherit;
+            font-size: .8em;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 8px;
+            padding: .3em .8em;
+            cursor: pointer;
+        }
+
+        .tbtn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .overview {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 60;
+            padding: 2em clamp(18px, 4vw, 70px);
+            overflow-y: auto;
+        }
+
+        .ov-item {
+            display: flex;
+            gap: .8em;
+            align-items: baseline;
+            width: 100%;
+            text-align: left;
+            font: inherit;
+            font-size: .82em;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: .5em .8em;
+            margin-bottom: .4em;
+            cursor: pointer;
+            color: var(--ink);
+        }
+
+        .ov-item:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .ov-item b {
+            color: var(--brand);
+            min-width: 2.2em;
+        }
+
+        .ov-item .do-dot {
+            margin-left: auto;
+            font-size: .7em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: var(--do);
+            background: var(--do-soft);
+            border-radius: 999px;
+            padding: .1em .7em;
+        }
+
+        .score {
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .footnote {
+            font-size: .74em;
+            color: var(--ink-faint);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--brand);
+            font-weight: 900;
+        }
+
+        /* ---- activity banner ---- */
+        .runbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .7em;
+            background: var(--do-soft);
+            border: 1px solid color-mix(in srgb, var(--do) 40%, transparent);
+            border-left: 6px solid var(--do);
+            border-radius: 12px;
+            padding: .5em .9em;
+            font-size: .8em;
+            margin-bottom: .8em;
+        }
+
+        .runbar b {
+            color: var(--do);
+        }
+
+        .runbar .step {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .15em .8em;
+            font-weight: 700;
+        }
+
+        /* ---- Toulmin diagram ---- */
+        .toul {
+            display: grid;
+            gap: .5em;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: stretch;
+        }
+
+        .tbox {
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .5em .8em;
+            background: var(--surface);
+        }
+
+        .tbox h4 {
+            margin: 0 0 .15em;
+            font-size: .78em;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        .tbox p {
+            margin: 0;
+            font-size: .92em;
+        }
+
+        .tbox.k-claim {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .tbox.k-warrant {
+            border-color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .tbox.k-ground {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .tbox.k-reb {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .tbox.k-qual {
+            border-color: var(--warn);
+            background: var(--warn-soft);
+        }
+
+        .tarrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--ink-faint);
+        }
+
+        @media (max-width: 900px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .g5,
+            .g23,
+            .g32,
+            .toul {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+
+            body,
+            html {
+                overflow: visible;
+                background: #fff;
+            }
+
+            .topbar,
+            .navbar,
+            .progress,
+            .overview {
+                display: none !important;
+            }
+
+            .deck {
+                position: static;
+            }
+
+            .slide {
+                display: block !important;
+                position: static;
+                page-break-after: always;
+                animation: none;
+                padding: 12mm;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .hidden {
+                display: block !important;
+            }
+
+            .fit {
+                transform: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <b>CSEG3060</b><span>Research Methodology in Computer Science</span>
+        <span>·</span><span>Unit II · Lecture II.5</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit II · Lecture II.5 · CO2 · activity-led · focus topic</span>
+            <h1>Proof Methods III<br><span style="color:var(--brand)">Mathematical Proof — and all three
+                    compared</span></h1>
+            <p class="lead big" style="max-width:36em">Demonstration says <em>possible</em>. Experiment says <em>better
+                    on this</em>. Only one method says <em class="hl">always</em>.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · The proof techniques</h3>
+                    <p style="margin:0">Induction, contradiction, construction, counter-example — and what each is
+                        <em>for</em>.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Proof as evidence</h3>
+                    <p style="margin:0">Loop invariants, and <b>complexity bounds</b> as deductive claims — algorithmic
+                        analysis used as research evidence, not as a tutorial sheet.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · The comparison</h3>
+                    <p style="margin:0">All three proof methods side by side. <b>The most examinable slide in Unit
+                            II.</b></p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>You leave with</h3>
+                    <p style="margin:0">The method your own claim actually needs — and the honest admission if it needs
+                        one you cannot supply.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · 5th Semester
+                B.Tech CSE · 55 minutes · <b style="color:var(--do)">≈ 32 minutes of this hour is your work</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Which of these can testing settle?">
+            <span class="kicker do">Do first · 4 minutes · no theory yet</span>
+            <h2>You have unlimited compute and one year. Which can you settle by running code?</h2>
+            <div class="runbar">
+                <span class="step">1 · Alone, 2 min — mark each YES or NO</span>
+                <span class="step">2 · Pairs, 2 min — argue about the ones you disagree on</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="240">4:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2" style="gap:.5em">
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">1</span> “Our sorting routine returns a correctly sorted array
+                        for <b>every</b> input.”</p>
+                </div>
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">2</span> “Our sorting routine is faster than
+                        <code>std::sort</code> on our production workload.”</p>
+                </div>
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">3</span> “Our lock-free queue <b>never</b> deadlocks.”</p>
+                </div>
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">4</span> “Our compression scheme reduces file size by at least
+                        20% on <b>every</b> possible input file.”</p>
+                </div>
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">5</span> “Users complete the checkout flow faster with the new
+                        design.”</p>
+                </div>
+                <div class="card flat">
+                    <p style="margin:0"><span class="tag">6</span> “There exists a graph on which our heuristic performs
+                        worse than greedy.”</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:.7em">Two of these are settled by running code. Two can
+                <em>never</em> be. One is false and you can show it in thirty seconds. One is a trap.</p>
+        </section>
+
+        <!-- ============ 3 · REVEAL ============ -->
+        <section class="slide" data-title="Reveal · the shape of the claim decides the method">
+            <span class="kicker">Reveal · read the quantifier</span>
+            <h2>Look at the quantifier. It tells you the method.</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Quantifier</th>
+                            <th>Settled by</th>
+                            <th>Why</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>1</b></td>
+                            <td><b>For all</b> inputs</td>
+                            <td style="color:var(--brand)"><b>Proof only</b></td>
+                            <td>Infinitely many inputs; testing samples finitely many, forever</td>
+                        </tr>
+                        <tr>
+                            <td><b>2</b></td>
+                            <td>On <em>this workload</em></td>
+                            <td style="color:var(--good)"><b>Experiment</b></td>
+                            <td>A bounded empirical comparison — exactly II.4</td>
+                        </tr>
+                        <tr>
+                            <td><b>3</b></td>
+                            <td><b>Never</b> (= for all executions)</td>
+                            <td style="color:var(--brand)"><b>Proof</b> or model checking</td>
+                            <td>Concurrency bugs hide in interleavings you will not happen to hit</td>
+                        </tr>
+                        <tr>
+                            <td><b>4</b></td>
+                            <td><b>Every</b> possible file</td>
+                            <td style="color:var(--bad)"><b>It is false</b></td>
+                            <td>Counting argument: no lossless scheme shrinks <em>all</em> inputs. One counter-example
+                                ends it</td>
+                        </tr>
+                        <tr>
+                            <td><b>5</b></td>
+                            <td>Users, on average</td>
+                            <td style="color:var(--good)"><b>Experiment</b></td>
+                            <td>A claim about people — no theorem available</td>
+                        </tr>
+                        <tr>
+                            <td><b>6</b></td>
+                            <td><b>There exists</b> a graph</td>
+                            <td style="color:var(--warn)"><b>One example</b></td>
+                            <td>Existence claim — construct the graph and you are done. This is the trap: it
+                                <em>looks</em> theoretical but needs no general proof</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card tint-do" style="margin-top:.8em">
+                <p class="big" style="margin:0">The rule that runs the whole hour:
+                    <em class="hl">“for all” needs a proof · “there exists” needs one witness · “on average, here” needs
+                        an experiment.</em></p>
+                <p class="footnote" style="margin:.4em 0 0">Read the quantifier in your own claim before choosing a
+                    method. Most wasted student effort comes from running experiments at a “for all” claim, which can
+                    never succeed no matter how many runs you do.</p>
+            </div>
+        </section>
+
+        <!-- ============ 4 · TECHNIQUES ============ -->
+        <section class="slide" data-title="A1 · The four techniques">
+            <span class="kicker">Part A · the toolkit</span>
+            <h2>Four techniques, four jobs</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <h3>Proof by induction</h3>
+                    <p style="margin:0 0 .3em"><b>For claims about all n, or all structures built in stages.</b></p>
+                    <p class="footnote" style="margin:0"><b>Base case:</b> true for the smallest case.
+                        <b>Inductive step:</b> if true for k, then true for k+1. <b>Conclude:</b> true for all n.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> correctness of recursive algorithms,
+                        properties of trees and lists, complexity recurrences, structural induction over grammars and
+                        ASTs.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Remember from II.2:</b> this is
+                        <b>deductive</b>, despite the name.</p>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Proof by contradiction</h3>
+                    <p style="margin:0 0 .3em"><b>For impossibility, uniqueness and lower bounds.</b></p>
+                    <p class="footnote" style="margin:0">Assume the opposite of what you want. Derive something
+                        absurd. Conclude the assumption was false.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> the halting problem, the
+                        n log n sorting lower bound, “no lossless compressor shrinks every input”, the impossibility of
+                        asynchronous consensus with one crash fault.</p>
+                    <p class="footnote" style="margin:.35em 0 0">This is the technique behind almost every
+                        <b>impossibility result</b> in computing — and impossibility results are how a field learns to
+                        stop wasting effort.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Proof by construction</h3>
+                    <p style="margin:0 0 .3em"><b>For existence claims — “there is an X with property P”.</b></p>
+                    <p class="footnote" style="margin:0">Build the X explicitly. Show it has P. Done.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> reductions (construct an instance of
+                        problem B from one of A), showing an algorithm achieves a bound, exhibiting a schedule or a
+                        coding scheme.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Note the family resemblance</b> to proof by
+                        demonstration in II.3 — both discharge an existence claim with one witness. The difference is
+                        that construction proves the witness has the property; a demo shows it running.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Proof by counter-example</h3>
+                    <p style="margin:0 0 .3em"><b>For refuting a universal claim.</b></p>
+                    <p class="footnote" style="margin:0">To destroy “all A are B”, produce one A that is not B. That is
+                        the entire proof.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>CS use:</b> showing a heuristic is not optimal,
+                        that an optimisation is unsound, that a claimed invariant fails on an input the authors did not
+                        consider.</p>
+                    <p class="big" style="margin:.4em 0 0">The <em class="hl">cheapest publishable result in
+                            computing</em> — and a genuinely realistic student contribution.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · INVARIANTS ============ -->
+        <section class="slide" data-title="B1 · Loop invariants as evidence">
+            <span class="kicker">Part B · proof as a research argument</span>
+            <h2>The loop invariant: induction, applied to code</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <h3>Three obligations, and they mirror induction exactly</h3>
+                    <ol class="stack-tight">
+                        <li><b>Initialisation.</b> The invariant holds before the first iteration.
+                            <span class="footnote">= base case</span></li>
+                        <li><b>Maintenance.</b> If it holds at the start of an iteration, it holds at the start of the
+                            next. <span class="footnote">= inductive step</span></li>
+                        <li><b>Termination.</b> The loop ends, and when it does, the invariant plus the exit condition
+                            give you what you wanted to prove.</li>
+                    </ol>
+                    <div class="card flat tint-brand" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0"><b>Worked, in one line.</b> Insertion sort: <i>“at the start of each
+                                iteration of the outer loop, the subarray A[1..i−1] contains the original elements of
+                                A[1..i−1] in sorted order.”</i> Initialisation: i = 1, one element, trivially sorted.
+                            Maintenance: the inner loop shifts larger elements right and inserts A[i] in place.
+                            Termination: i = n+1, so A[1..n] is sorted — which is the postcondition.</p>
+                    </div>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Termination is the obligation students forget.</b> An
+                        invariant that holds forever in a loop that never exits has proved nothing useful. You typically
+                        show a non-negative integer quantity that strictly decreases each iteration.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Why this counts as <em>research</em> evidence</h3>
+                    <p style="margin:0 0 .4em">In a paper, a correctness argument does something no experiment can: it
+                        covers the inputs nobody ran.</p>
+                    <ul class="stack-tight">
+                        <li>It licenses <b>“for all inputs”</b> in the abstract.</li>
+                        <li>It makes the <b>assumptions explicit</b> — and reviewers attack assumptions, which is a much
+                            more productive argument than attacking numbers.</li>
+                        <li>It <b>does not age</b>. Your 2026 benchmark is obsolete by 2028; your theorem is not.</li>
+                        <li>It is <b>cheap to check</b> — a reviewer needs a pen, not your cluster.</li>
+                    </ul>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0"><b>The standard failure, worth stating plainly:</b> you proved the
+                            <em>algorithm</em> correct and shipped an <em>implementation</em>. Integer overflow,
+                            floating-point rounding, a memory model, a compiler optimisation and a hardware erratum all
+                            sit between the two. A proof about a model that your system does not satisfy is valid and
+                            useless — the Unit I failure, in its most expensive form.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · DRILL 1 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill · which technique?">
+            <span class="kicker do">Do · 6 items · 5 minutes</span>
+            <h2>Which proof technique does this claim call for?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="pq-n">1</span> of <span id="pq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="pq-score">0</span></p>
+                <p class="big" id="pq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="pq-opts" style="gap:.5em"></div>
+                <div id="pq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="pq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="pq-restart">Restart</button>
+                    <span class="footnote">Read the <b>quantifier</b> first — “all”, “none”, “there exists”, or “not
+                        all”.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ B2 · COMPLEXITY AS A DEDUCTIVE CLAIM ============ -->
+        <section class="slide" data-title="B2 · Complexity bounds are theorems">
+            <span class="kicker">Part B · algorithmic approaches · complexity as evidence</span>
+            <h2>A complexity bound is a theorem, not a measurement</h2>
+            <p class="lead" style="margin-bottom:.6em">You met this analysis in Design and Analysis of Algorithms as a
+                <em>technique</em>. Here it is a <b>form of research evidence</b> — and the four kinds below are four
+                <em>different claims</em>, with four different quantifiers.</p>
+            <div class="grid g4" style="gap:.55em">
+                <div class="card flat tint-brand">
+                    <h3>Worst case</h3>
+                    <p class="footnote" style="margin:0">“For <b>every</b> input of size n, cost ≤ f(n).”</p>
+                    <p class="footnote" style="margin:.35em 0 0">Universally quantified, so nothing can violate it. The
+                        only bound you may use for a <b>guarantee</b> — real-time deadlines, or any adversarial
+                        setting.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Proved by:</b> induction, or a direct argument over
+                        the algorithm's structure.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Average case</h3>
+                    <p class="footnote" style="margin:0">“Over <b>a stated input distribution</b>, expected cost is
+                        f(n).”</p>
+                    <p class="footnote" style="margin:.35em 0 0">Weaker, and it carries a hidden model — <b>the
+                            distribution is an assumption</b>, exactly the kind II.6 will teach you to audit.
+                        Quicksort is O(n log n) average and O(n²) worst.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Breaks when:</b> inputs are chosen by someone who
+                        read your paper.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>Amortised</h3>
+                    <p class="footnote" style="margin:0">“Over <b>any sequence</b> of m operations, total cost ≤
+                        m·f(n).”</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Not</b> probabilistic — this is a worst-case
+                        guarantee about <em>sequences</em>, which is why it survives an adversary. Dynamic-array
+                        append is O(1) amortised; union-find with path compression is O(m·α(n)).</p>
+                    <p class="footnote" style="margin:.35em 0 0">The one students omit, and the one that explains most
+                        real data structures.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>Lower bound</h3>
+                    <p class="footnote" style="margin:0">“<b>No algorithm</b> can do better than Ω(g(n)).”</p>
+                    <p class="footnote" style="margin:.35em 0 0">Quantifies over <em>every algorithm that could ever be
+                            written</em> — the strongest claim in this deck, and the one that tells you
+                        <b>when to stop optimising</b>.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Proved by:</b> contradiction — the
+                        decision-tree argument for the Ω(n log n) comparison-sort bound.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.8em">
+                <p class="big" style="margin:0">Every technique from slide 4 reappears here:
+                    <em class="hl">recurrences are solved by induction · lower bounds are proved by contradiction ·
+                        reductions are proof by construction · and “this heuristic is not optimal” is a
+                        counter-example.</em></p>
+                <p class="footnote" style="margin:.4em 0 0">A <b>reduction</b> is worth naming separately: “if you could
+                    solve B efficiently, you could solve A efficiently” constructs a solver for A out of a solver for
+                    B. That is how NP-completeness is established, and it is a construction proof about
+                    <em>algorithms</em> rather than about objects.</p>
+            </div>
+        </section>
+
+        <!-- ============ B3 · WHAT A BOUND PROVES AND HIDES ============ -->
+        <section class="slide" data-title="B3 · What a bound proves — and hides">
+            <span class="kicker">Part B · the balance sheet for algorithmic evidence</span>
+            <h2>Asymptotic analysis and measurement answer different questions</h2>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>What a bound gives you</h3>
+                    <ul class="stack-tight">
+                        <li><b>All inputs, including ones nobody will run.</b> No benchmark can do this.</li>
+                        <li><b>Machine independence</b> — still true on hardware not yet built.</li>
+                        <li><b>It does not age.</b> Your 2026 benchmark is stale by 2028; the bound is not.</li>
+                        <li><b>Cheap to check</b> — a reviewer needs a pen, not your cluster.</li>
+                        <li><b>Lower bounds tell you when to stop.</b> No other kind of evidence does.</li>
+                    </ul>
+                </div>
+                <div class="card tint-bad">
+                    <h3>What it hides</h3>
+                    <ul class="stack-tight">
+                        <li><b>Constant factors</b> — which decide everything at the n you actually have.</li>
+                        <li><b>Cache behaviour, memory hierarchy, branch prediction</b> — invisible to the model.</li>
+                        <li><b>The value of n in your application.</b> O(n log n) mergesort loses to O(n²) insertion
+                            sort for small n, which is why every production sort switches below a threshold. The
+                            asymptotics were never wrong — they answered a question about large n.</li>
+                    </ul>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.4em">
+                        <p style="margin:0"><b>Where the average-case assumption bites.</b> Hash-table lookup is O(1)
+                            <em>on average</em> — until an attacker sends keys that all collide, and your service
+                            degrades to O(n) per lookup. Algorithmic-complexity denial of service, including regex
+                            catastrophic backtracking, is precisely an <b>adversary refusing your distribution
+                                assumption</b>.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.8em">
+                <p class="big" style="margin:0">The move that uses both, and it is a genuinely strong research pattern:
+                    <em class="hl">derive the bound, then measure across a range of n and check the curve has the shape
+                        the theory predicts.</em></p>
+                <p style="margin:.4em 0 0">If theory says O(n log n) and your measurements bend quadratically, you have
+                    found a bug, an unmet assumption, or a hidden cost — and every one of those is a finding worth
+                    reporting. <b>II.7 supplies the measurement half;</b> this hour supplies the proof half.</p>
+            </div>
+        </section>
+
+        <!-- ============ DRILL · WHICH COMPLEXITY CLAIM ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill · which complexity claim?">
+            <span class="kicker do">Do · 6 items · 5 minutes</span>
+            <h2>Which kind of complexity claim is this?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="cq-n">1</span> of <span id="cq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="cq-score">0</span></p>
+                <p class="big" id="cq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g4" id="cq-opts" style="gap:.5em"></div>
+                <div id="cq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="cq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="cq-restart">Restart</button>
+                    <span class="footnote">Ask what the claim <b>quantifies over</b>: every input · a distribution ·
+                        a sequence · every algorithm.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · THE BIG COMPARISON ============ -->
+        <section class="slide" data-title="C1 · The three proof methods compared">
+            <span class="kicker">Part C · the comparison · the core of Unit II</span>
+            <h2>Demonstration · Empirical · Mathematical</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th style="color:var(--warn)">Demonstration</th>
+                            <th style="color:var(--good)">Empirical</th>
+                            <th style="color:var(--brand)">Mathematical</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>Answers</b></td>
+                            <td>Can it be done?</td>
+                            <td>Is it better, here?</td>
+                            <td>Must it always hold?</td>
+                        </tr>
+                        <tr>
+                            <td><b>Evidence</b></td>
+                            <td>A working artefact</td>
+                            <td>Measurements over repeated trials</td>
+                            <td>A derivation from stated assumptions</td>
+                        </tr>
+                        <tr>
+                            <td><b>Quantifier it settles</b></td>
+                            <td><b>There exists</b></td>
+                            <td><b>On average, over this population</b></td>
+                            <td><b>For all</b></td>
+                        </tr>
+                        <tr>
+                            <td><b>Reasoning (II.2)</b></td>
+                            <td>Existence — one witness</td>
+                            <td>Inductive</td>
+                            <td>Deductive</td>
+                        </tr>
+                        <tr>
+                            <td><b>Certainty</b></td>
+                            <td>Certain, but only about possibility</td>
+                            <td>Probabilistic; always revisable</td>
+                            <td>Certain, <em>given the assumptions</em></td>
+                        </tr>
+                        <tr>
+                            <td><b>Advantages</b></td>
+                            <td>Settles feasibility outright; surfaces unknown unknowns; credible to practitioners;
+                                leaves a reusable artefact</td>
+                            <td>Applies to messy real systems and to people; measures what actually happens; the only
+                                option when no theory exists</td>
+                            <td>Universal reach; does not age; cheap to check; covers inputs nobody ran</td>
+                        </tr>
+                        <tr>
+                            <td><b>Limitations</b></td>
+                            <td>No comparative force; n = 1; confounded by your engineering effort</td>
+                            <td>Never universal; costly; confounders; results age as hardware and data change</td>
+                            <td>Only as good as its assumptions; the model is not the system; unavailable for most
+                                human and messy questions</td>
+                        </tr>
+                        <tr>
+                            <td><b>Fails when</b></td>
+                            <td>You say “better” having compared with nothing</td>
+                            <td>Weak baseline, one seed, over-general conclusion</td>
+                            <td>The assumptions do not describe any real system</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="big center" style="margin-top:.6em">They are <em class="hl">not ranked</em>. Each is the
+                <em>correct and complete</em> method for its own kind of question — and the wrong one for the other
+                two.</p>
+        </section>
+
+        <!-- ============ 8 · COMBINING ============ -->
+        <section class="slide" data-title="C2 · Strong work uses two or three">
+            <span class="kicker">Part C · how real papers do it</span>
+            <h2>The strongest papers stack the methods</h2>
+            <div class="grid g3">
+                <div class="card tint-brand">
+                    <h3>Prove the bound</h3>
+                    <p style="margin:0">“Our scheduling algorithm is within a factor 2 of optimal, for all
+                        instances.”</p>
+                    <p class="footnote" style="margin:.3em 0 0">Mathematical. Covers every input — including the
+                        adversarial ones a benchmark would never contain.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Build the thing</h3>
+                    <p style="margin:0">“We implement it in 2,400 lines against the Kubernetes scheduler
+                        interface.”</p>
+                    <p class="footnote" style="margin:.3em 0 0">Demonstration. Shows the bound is not merely
+                        theoretical — the algorithm can actually be realised in a real system.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Measure it</h3>
+                    <p style="margin:0">“On 12 production traces, 5 seeds, it cuts p95 wait time 18–24% versus the
+                        default.”</p>
+                    <p class="footnote" style="margin:.3em 0 0">Empirical. Shows the worst-case bound also behaves well
+                        on the cases people actually have.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.9em">
+                <p class="big" style="margin:0">Each method covers the others' blind spot.
+                    <em class="hl">The proof covers inputs the benchmark lacks; the benchmark covers the realism the
+                        proof assumed away; the implementation proves neither was fantasy.</em></p>
+                <p style="margin:.5em 0 0"><b>What this means for your project.</b> You are not required to do all
+                    three — a one-semester project rarely can. You <em>are</em> required to say which one you did,
+                    which you did not, and what therefore remains unestablished. A report that names its own gap is
+                    stronger than one that pretends there is none.</p>
+            </div>
+        </section>
+
+        <!-- ============ 9 · DRILL 2 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 4 · Drill · which proof method?">
+            <span class="kicker do">Do · 6 claims · 5 minutes</span>
+            <h2>Which method does this claim require?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="mq-n">1</span> of <span id="mq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="mq-score">0</span></p>
+                <p class="big" id="mq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g4" id="mq-opts" style="gap:.5em"></div>
+                <div id="mq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="mq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="mq-restart">Restart</button>
+                    <span class="footnote">If more than one applies, choose the method that carries the
+                        <b>main</b> claim.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · MAIN ACTIVITY ============ -->
+        <section class="slide" data-mode="do" data-title="DO 5 · Match your claim to its method">
+            <span class="kicker do">Do · 9 minutes · the piece of work you keep</span>
+            <h2>Which method does <em>your</em> claim actually need?</h2>
+            <div class="runbar">
+                <span class="step">1 · <b>4 min</b> alone — audit your own claim</span>
+                <span class="step">2 · <b>3 min</b> swap — neighbour checks the quantifier against the method</span>
+                <span class="step">3 · <b>2 min</b> — decide: supply it, or narrow the claim</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="540">9:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Step 1 · Five lines</h3>
+                    <ol class="stack-tight">
+                        <li>Write your claim, exactly as it currently stands.</li>
+                        <li><b>Circle the quantifier.</b> “all” · “never” · “there exists” · “on average” · none
+                            stated.<br><span class="footnote">If none is stated, that is itself the finding — an
+                                unquantified claim is why reviewers and authors argue past each other.</span></li>
+                        <li>From the quantifier, name the method the claim <b>requires</b>.</li>
+                        <li>Name the method you are actually <b>able to supply</b> this semester.</li>
+                        <li><b>If lines 3 and 4 differ — and for most of you they will — choose one:</b>
+                            <div class="grid" style="gap:.3em; margin-top:.3em">
+                                <div class="card flat tint-good" style="padding:.35em .7em"><p
+                                        style="margin:0; font-size:.85em"><b>Narrow the claim</b> to match the method
+                                        you have. <span class="footnote">Cheap, honest, almost always correct.</span>
+                                    </p></div>
+                                <div class="card flat tint-warn" style="padding:.35em .7em"><p
+                                        style="margin:0; font-size:.85em"><b>Supply the method</b> the claim needs.
+                                        <span class="footnote">Sometimes a short proof is easier than you fear.</span>
+                                    </p></div>
+                                <div class="card flat tint-bad" style="padding:.35em .7em"><p
+                                        style="margin:0; font-size:.85em"><b>Keep both and hope.</b>
+                                        <span class="footnote">This is what happens by default, and it is what the
+                                            examiner finds.</span></p></div>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+                <div class="card tint-do">
+                    <h3>Step 2 · The checker's three questions</h3>
+                    <ol class="stack-tight">
+                        <li>“Read me your quantifier.” <span class="footnote">If they cannot find one, make them add
+                                one.</span></li>
+                        <li>“Does your method settle that quantifier?” <span class="footnote">Experiments never settle
+                                “all”. Demos never settle “better”.</span></li>
+                        <li>“If you cannot supply the method — what does your claim shrink to?”
+                            <span class="footnote">Make them say the smaller sentence out loud.</span></li>
+                    </ol>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0"><b>What will happen.</b> A good number of you will find you have written a
+                            <b>“for all”</b> claim — “our method <em>is</em> robust”, “the system <em>always</em>
+                            recovers”, “this approach <em>ensures</em> security” — with only empirical or demonstration
+                            evidence behind it. Those three verbs each promise a proof.</p>
+                    </div>
+                    <p class="big" style="margin:.5em 0 0">The good news: <em class="hl">narrowing costs one sentence
+                            and makes the claim true.</em></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · EXIT TICKET ============ -->
+        <section class="slide" data-mode="do" data-title="DO 6 · Exit ticket">
+            <span class="kicker do">Exit ticket · tick what is true right now</span>
+            <h2>Does your evidence match your quantifier?</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <div class="grid" id="exit" style="gap:.4em; grid-template-columns:1fr 1fr"></div>
+                    <p class="footnote" style="margin:.5em 0 0"><span class="star"
+                            style="color:var(--bad); font-weight:900">★</span> = non-negotiable. Four starred
+                        items.</p>
+                </div>
+                <div class="card" id="ex-card">
+                    <h3>Ticked: <span class="score" id="ex-score">0</span> / 11 &nbsp;·&nbsp; essentials: <span
+                            class="score" id="ex-ess">0</span> / 4</h3>
+                    <p id="ex-verdict" style="margin:0">Tick what is written down — not what you intend.</p>
+                    <div class="card flat tint-brand" style="padding:.5em .8em; margin-top:.6em">
+                        <p style="margin:0"><b>Where this goes next.</b> Mathematical proof needs a
+                            <em>formal model</em> to reason about — you cannot prove things about a system, only about
+                            an abstraction of it. <b>II.6</b> is about choosing that abstraction: automata, logic-based,
+                            graph-based and algebraic models, and what each one throws away.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · TAKEAWAYS ============ -->
+        <section class="slide" data-title="Ten things that must survive">
+            <span class="kicker">Consolidation</span>
+            <h2>Ten things that must survive this hour</h2>
+            <div class="grid g2">
+                <ol class="stack-tight big" style="line-height:1.28">
+                    <li><b>Read the quantifier.</b> “For all” → proof. “There exists” → one witness. “On average,
+                        here” → experiment.</li>
+                    <li><b>Induction</b> for all-n claims · <b>contradiction</b> for impossibility and lower bounds ·
+                        <b>construction</b> for existence · <b>counter-example</b> to refute.</li>
+                    <li>A loop invariant is induction applied to code: <b>initialisation · maintenance ·
+                            termination</b>.</li>
+                    <li><b>Termination is the obligation students forget.</b></li>
+                    <li>A <b>complexity bound is a theorem, not a measurement</b> — it is deductive evidence.</li>
+                </ol>
+                <ol class="stack-tight big" start="6" style="line-height:1.28">
+                    <li><b>Worst-case · average · amortised · lower bound are four different claims.</b> Worst case for
+                        guarantees; amortised is about <em>sequences</em>; average case hides a distribution assumption
+                        an adversary can refuse.</li>
+                    <li>Proof buys <b>universal reach</b> and <b>does not age</b> — and costs you the truth of its
+                        assumptions.</li>
+                    <li><b>The model is not the system.</b> A valid proof about an abstraction nothing satisfies is
+                        worthless.</li>
+                    <li>The three methods are <b>not ranked</b> — each is correct for its own question and wrong for
+                        the others.</li>
+                    <li><b>A counter-example is the cheapest publishable result in computing.</b></li>
+                </ol>
+            </div>
+            <div class="card tint-brand" style="margin-top:.8em">
+                <p class="big" style="margin:0">If you remember one sentence: <em class="hl">the words “always”,
+                        “never”, “ensures” and “guarantees” are promises of a proof — if you have not written one,
+                        change the word.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 13 · NOTEBOOK & CLOSE ============ -->
+        <section class="slide" data-title="Notebook task and what's next">
+            <span class="kicker">Research Notebook · entry after Lecture II.5</span>
+            <h2>Your notebook task</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Three things to add before the next session</h3>
+                    <ol class="stack-tight">
+                        <li><b>Lecture log.</b> Date, “II.5 — mathematical proof and the three methods compared”, and
+                            your exit-ticket score out of 10.</li>
+                        <li><b>Section 8 · Method match.</b> Your claim, its quantifier circled, the method it
+                            <em>requires</em>, the method you can <em>supply</em>, and — where they differ — your
+                            decision and the narrowed claim written out in full.</li>
+                        <li><b>Section 8b · The gap.</b> One sentence naming what your chosen method
+                            <em>cannot</em> establish. This sentence goes almost verbatim into your Threats to Validity
+                            and Future Work sections, so write it properly now.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Stamp the entry <code>\version{10}{...}{after Lecture
+                            II.5}</code>.</p>
+                </div>
+                <div class="card">
+                    <div class="card flat tint-good" style="padding:.7em .9em">
+                        <h3 style="margin-bottom:.2em">Next session · II.6 · Theoretical Models</h3>
+                        <p style="margin:0"><b>What do you actually prove things about?</b> Automata-based,
+                            logic-based, graph-based and algebraic models — the role and types of theoretical model in
+                            computing research, what each abstracts away, and how a model is validated.</p>
+                        <p style="margin:.4em 0 0"><b>Bring:</b> your narrowed claim.</p>
+                    </div>
+                    <div class="card flat tint-warn" style="padding:.7em .9em; margin-top:.6em">
+                        <p style="margin:0"><b>Class Test 1 is on 12 September</b> — two teaching sessions away.
+                            <b>Slide 10, the three-method comparison, is the single most examinable slide in Unit
+                                II.</b> Learn it as a table, not as prose.</p>
+                    </div>
+                    <p class="footnote" style="margin:.6em 0 0"><b>Reading:</b> Cormen, Leiserson, Rivest &amp; Stein,
+                        <i>Introduction to Algorithms</i>, ch. 2 (loop invariants) · Velleman, <i>How to Prove It</i>,
+                        ch. 3–6 · Fischer, Lynch &amp; Paterson (1985) on the impossibility of distributed consensus ·
+                        Melville &amp; Goddard, ch. 5.</p>
+                </div>
+            </div>
+        </section>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 16</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script>
+        /* ---------------- deck engine ---------------- */
+        const slides = [...document.querySelectorAll('.slide')];
+        let cur = 0;
+
+        slides.forEach(s => {
+            const fit = document.createElement('div');
+            fit.className = 'fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+        });
+
+        function fitSlide(s) {
+            const f = s.querySelector('.fit');
+            if (!f) return;
+            f.style.transform = 'none';
+            const cs = getComputedStyle(s);
+            const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const h = f.offsetHeight;
+            if (avail <= 0 || h <= 0) return;
+            const k = Math.min(1, avail / h);
+            f.style.transform = k > 0.995 ? 'none' : 'scale(' + k.toFixed(4) + ')';
+        }
+        const fitNow = () => fitSlide(slides[cur]);
+        const fitSoon = () => requestAnimationFrame(() => requestAnimationFrame(fitNow));
+        window.addEventListener('resize', fitNow);
+        document.addEventListener('click', fitSoon, true);
+        document.addEventListener('change', fitSoon, true);
+        document.addEventListener('input', fitSoon, true);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('title-now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            slides[cur].scrollTop = 0;
+            location.hash = 's' + (cur + 1);
+            fitSlide(slides[cur]);
+        }
+        function go(d) { show(cur + d); }
+
+        document.addEventListener('keydown', e => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.key === 'Escape') { document.getElementById('overview').classList.add('hidden'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'd') toggleTheme();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 't') { const t = document.getElementById('lect-t'); t.__toggle && t.__toggle(); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        function toggleTheme() {
+            const h = document.documentElement;
+            h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('hidden'); }
+
+        const ovList = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + (i + 1) + '</b><span>' + (s.dataset.title || '') + '</span>' +
+                (s.dataset.mode === 'do' ? '<span class="do-dot">STUDENT WORK</span>' : '');
+            b.onclick = () => { show(i); toggleOverview(); };
+            ovList.appendChild(b);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(b => {
+            const label = b.textContent;
+            b.addEventListener('click', () => {
+                const t = document.querySelector(b.dataset.reveal);
+                t.classList.toggle('hidden');
+                b.textContent = t.classList.contains('hidden') ? label : 'Hide again';
+            });
+        });
+
+        document.querySelectorAll('.timer').forEach(box => {
+            const disp = box.querySelector('.t');
+            const total = parseInt(disp.dataset.sec, 10);
+            let left = total, id = null;
+            const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            const paint = () => {
+                disp.textContent = fmt(left);
+                disp.classList.toggle('low', left <= Math.max(10, total * 0.15));
+            };
+            const tick = () => { if (left > 0) { left--; paint(); } else { clearInterval(id); id = null; } };
+            const toggle = () => { if (id) { clearInterval(id); id = null; } else { id = setInterval(tick, 1000); } };
+            disp.__toggle = toggle;
+            box.querySelector('[data-timer=start]').addEventListener('click', toggle);
+            box.querySelector('[data-timer=reset]').addEventListener('click', () => {
+                clearInterval(id); id = null; left = total; paint();
+            });
+            paint();
+        });
+
+        /* ---------------- generic drill engine ---------------- */
+        function makeDrill(p, items, done) {
+            const el = k => document.getElementById(p + '-' + k);
+            const opts = el('opts');
+            let i = 0, sc = 0, lock = false;
+
+            function paint() {
+                el('n').textContent = i + 1;
+                el('total').textContent = items.length;
+                el('stmt').innerHTML = items[i].q;
+                el('score').textContent = sc;
+                el('fb').classList.add('hidden');
+                opts.innerHTML = '';
+                items[i].o.forEach((t, k) => {
+                    const b = document.createElement('button');
+                    b.className = 'pick';
+                    b.innerHTML = '<b>' + 'ABCDEF'[k] + '.</b> ' + t;
+                    b.addEventListener('click', () => {
+                        if (lock) return;
+                        lock = true;
+                        const right = items[i].a;
+                        if (k === right) { b.classList.add('right'); sc++; }
+                        else { b.classList.add('wrong'); opts.children[right].classList.add('right'); }
+                        el('score').textContent = sc;
+                        const fb = el('fb');
+                        fb.innerHTML = items[i].w;
+                        fb.classList.remove('hidden');
+                    });
+                    opts.appendChild(b);
+                });
+                lock = false;
+            }
+
+            el('next').addEventListener('click', () => {
+                if (i < items.length - 1) { i++; paint(); }
+                else {
+                    const fb = el('fb');
+                    fb.classList.remove('hidden');
+                    fb.innerHTML = done(sc, items.length);
+                }
+            });
+            const r = document.getElementById(p + '-restart');
+            if (r) r.addEventListener('click', () => { i = 0; sc = 0; paint(); });
+            paint();
+        }
+
+
+        /* ---------------- Drill 1 · which technique ---------------- */
+        const TECH = ['Induction', 'Contradiction', 'Construction', 'Counter-example'];
+        makeDrill('pq', [
+            {
+                q: 'Show that a binary tree of height h has at most 2^(h+1) − 1 nodes.',
+                o: TECH, a: 0,
+                w: '<b>Induction</b> — on the height. Base: h = 0 gives one node, and 2¹ − 1 = 1. Step: a tree of height k+1 has a root plus two subtrees of height at most k, so at most 1 + 2(2^(k+1) − 1) = 2^(k+2) − 1. The giveaway is a claim indexed by a natural number that is built up in stages.'
+            },
+            {
+                q: 'Show that no lossless compression scheme can reduce the size of every possible input file.',
+                o: TECH, a: 1,
+                w: '<b>Contradiction</b> (via counting / pigeonhole). Assume one exists. Then it injectively maps all 2ⁿ files of n bits into strictly shorter strings — but there are only 2ⁿ − 1 such strings in total. Two inputs must collide, so it is not lossless. Contradiction. This is the standard shape of an <b>impossibility</b> result.'
+            },
+            {
+                q: 'Show that the claim "greedy always produces an optimal solution to the 0/1 knapsack problem" is false.',
+                o: TECH, a: 3,
+                w: '<b>Counter-example.</b> Capacity 10; items (value 60, weight 10) and (value 30, weight 6) plus (value 30, weight 6). Greedy by value-density takes the two lighter items for 60 — but so does the single heavy one, and small changes to the numbers make greedy strictly worse. One instance destroys a universal claim, and that is the whole proof.'
+            },
+            {
+                q: 'Show that there exists a schedule of these tasks that meets every deadline.',
+                o: TECH, a: 2,
+                w: '<b>Construction.</b> Exhibit the schedule and verify each deadline. The claim is existentially quantified, so a single explicit witness discharges it. Note this is exactly the logic of proof by demonstration from II.3 — the difference is that here you <em>prove</em> the witness has the property rather than showing it run.'
+            },
+            {
+                q: 'Show that your recursive merge procedure returns a sorted array for every input array.',
+                o: TECH, a: 0,
+                w: '<b>Induction</b> — on the length of the array, or structurally on the recursion. Base: arrays of length 0 or 1 are sorted. Step: assume both recursive calls return sorted halves; show the merge step preserves order. Note what this buys that testing cannot: coverage of every array, including ones nobody will ever run.'
+            },
+            {
+                q: 'Show that there is no algorithm that decides, for an arbitrary program and input, whether the program halts.',
+                o: TECH, a: 1,
+                w: '<b>Contradiction</b> — Turing\'s diagonal argument. Assume a decider H exists; construct a program D that consults H about itself and does the opposite; ask what H says about D. Either answer is wrong, so H cannot exist. The construction of D is a step <em>inside</em> the contradiction — which is why the overall technique is contradiction, not construction.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'You are reading the logical shape before reaching for a technique — which is the actual skill. Now do it to your own claim in the activity.'
+            : 'Match the shape to the tool: <b>“for all n”</b> → induction. <b>“no X can…”, “at least…”, “impossible”</b> → contradiction. <b>“there exists…”</b> → construction. <b>“not all A are B”</b> → counter-example.'));
+
+        /* ---------------- Drill 2 · which complexity claim ---------------- */
+        const CPLX = ['Worst-case bound', 'Average-case bound', 'Amortised bound', 'Lower bound'];
+        makeDrill('cq', [
+            {
+                q: '“Quicksort runs in O(n log n) time on uniformly random permutations of the input.”',
+                o: CPLX, a: 1,
+                w: '<b>Average-case.</b> Note the assumption doing all the work: <em>uniformly random permutations</em>. That is a model of the input distribution, and it is exactly the kind of idealisation II.6 will teach you to audit. Quicksort\'s worst case remains O(n²), and an adversary who knows your pivot rule can trigger it deliberately.'
+            },
+            {
+                q: '“Any comparison-based sorting algorithm requires Ω(n log n) comparisons in the worst case.”',
+                o: CPLX, a: 3,
+                w: '<b>Lower bound</b> — the strongest claim in this deck, because it quantifies over <em>every algorithm that could ever be written</em>, not just the ones we have. Proved by contradiction via the decision-tree argument: n! leaves need depth at least log(n!) = Ω(n log n). Its research value is that it tells you <b>when to stop optimising</b>.'
+            },
+            {
+                q: '“Appending n elements to a dynamic array costs O(n) in total, so each append is O(1).”',
+                o: CPLX, a: 2,
+                w: '<b>Amortised.</b> A single append can cost O(n) when the array resizes — so this is <em>not</em> a worst-case per-operation bound. But it is also not probabilistic: it is a worst-case guarantee about any <b>sequence</b> of m operations, which is why it survives an adversary. Getting this distinction right is the commonest place students lose marks on this topic.'
+            },
+            {
+                q: '“Our real-time scheduler completes every dispatch decision within 50 microseconds, on every input.”',
+                o: CPLX, a: 0,
+                w: '<b>Worst-case.</b> Real-time guarantees admit no other kind: an average-case or amortised bound is worthless when a single missed deadline is a failure. Note the II.5 lesson underneath — “every” is a universal quantifier, so a benchmark showing 50 µs across a million dispatches does not establish it. Only an analysis does.'
+            },
+            {
+                q: '“Hash-table lookup is O(1).”',
+                o: CPLX, a: 1,
+                w: '<b>Average-case</b> — and it is almost always stated without the qualifier, which is the problem. It holds under an assumption about how keys distribute across buckets. An attacker who crafts colliding keys collapses it to O(n) per lookup: this is <b>algorithmic-complexity denial of service</b>, and it is an adversary simply refusing your distribution assumption. Randomised hashing is the repair.'
+            },
+            {
+                q: '“Union-find with path compression and union by rank performs m operations on n elements in O(m·α(n)) time.”',
+                o: CPLX, a: 2,
+                w: '<b>Amortised.</b> The giveaway is the shape of the claim: it is about <em>m operations</em> collectively, not about one operation. Individual finds can be expensive; the sequence cannot be. (α is the inverse Ackermann function, which is at most 4 for any n you will ever encounter — so this is effectively linear.)'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'You are reading the quantifier rather than the letter O — which is the difference between quoting a bound and using one as evidence.'
+            : 'Ask what the claim ranges over. <b>Every input</b> → worst case. <b>A distribution of inputs</b> → average case. <b>A sequence of operations</b> → amortised. <b>Every possible algorithm</b> → lower bound.'));
+
+        /* ---------------- Drill 3 · which proof method ---------------- */
+        const METH = ['Demonstration', 'Empirical', 'Mathematical', 'Demonstration + empirical'];
+        makeDrill('mq', [
+            {
+                q: '“Our consensus protocol never allows two nodes to commit conflicting values, under any interleaving of messages.”',
+                o: METH, a: 2,
+                w: '<b>Mathematical.</b> “Never, under any interleaving” quantifies over infinitely many executions. Testing a concurrent system samples a vanishing fraction of interleavings, and the dangerous ones are precisely the rare ones. Proof or model checking is the only route — and note that a model checker is an <em>exhaustive</em> deductive search, not an experiment.'
+            },
+            {
+                q: '“Our new IDE plugin reduces the time developers take to locate a bug, compared with the built-in debugger.”',
+                o: METH, a: 1,
+                w: '<b>Empirical.</b> A comparative claim about human performance: no theorem exists about how fast people find bugs. It needs a controlled experiment — counterbalanced tasks, a named baseline, enough participants, and time-on-task as the dependent variable. Exactly the II.4 machinery.'
+            },
+            {
+                q: '“A neural network can be trained to convergence entirely inside a web browser using WebGPU.”',
+                o: METH, a: 0,
+                w: '<b>Demonstration.</b> A pure existence claim — “can be done”. One working instance settles it permanently. Note what it does <em>not</em> claim: not that it is fast, not that it is practical, not that it beats training on a server. Keep it that small and it is unassailable.'
+            },
+            {
+                q: '“Our approximation algorithm is within a factor 1.5 of optimal for all instances, and on 12 real datasets it lands within 4% of optimal in practice.”',
+                o: METH, a: 2,
+                w: '<b>Mathematical</b> carries the <em>main</em> claim — the factor-1.5 guarantee holds for all instances and only a proof can establish it. The 12 datasets are a genuine empirical companion showing the worst case is pessimistic in practice. This stacking is what strong algorithms papers look like; the drill asked for the method carrying the main claim.'
+            },
+            {
+                q: '“We implement the protocol in 3,000 lines of Rust and show it sustaining 40,000 transactions per second on a 5-node cluster.”',
+                o: METH, a: 3,
+                w: '<b>Demonstration + empirical.</b> Building it is the demonstration — the protocol is realisable, not just paper. The throughput number is a measurement, so it inherits all the empirical obligations: how many runs, what variance, which workload, and compared against what? A throughput figure with no baseline and no repetition is a demo wearing an experiment\'s clothes.'
+            },
+            {
+                q: '“Our caching strategy guarantees that no request ever waits longer than 200 ms.”',
+                o: METH, a: 2,
+                w: '<b>Mathematical.</b> The word <b>guarantees</b> is a promise about every request that will ever arrive — a hard real-time bound needs a worst-case analysis with explicit assumptions about arrival rates, cache size and eviction behaviour. If all you have is a benchmark where nothing exceeded 200 ms, the honest claim is “no request exceeded 200 ms in our 12-hour trace”. That is a different, and true, sentence.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'You can now route a claim to its method from the wording alone. The last item is the one to remember: “guarantees” is a proof obligation, not a figure of speech.'
+            : 'Read the verb and the quantifier. <b>never / always / guarantees / for all</b> → mathematical. <b>reduces / improves / faster than, on X</b> → empirical. <b>can be done</b> → demonstration. A measured number attached to a built system → both.'));
+
+        /* ---------------- exit ticket ---------------- */
+        const EXIT = [
+            { t: 'My claim has an explicit <b>quantifier</b> I can point to', ess: 1 },
+            { t: 'I have named the method my quantifier <b>requires</b>', ess: 1 },
+            { t: 'I have named the method I can actually <b>supply</b>', ess: 1 },
+            { t: 'Where those differ, I have <b>narrowed the claim</b> in writing', ess: 1 },
+            { t: 'No “<b>always / never / ensures / guarantees</b>” survives without a proof', ess: 0 },
+            { t: 'I can name the <b>technique</b> any proof of mine would use', ess: 0 },
+            { t: 'If I prove something, my <b>assumptions</b> are listed explicitly', ess: 0 },
+            { t: 'I have said what my method <b>cannot</b> establish', ess: 0 },
+            { t: 'I know whether my proof is about the <b>model</b> or the <b>implementation</b>', ess: 0 },
+            { t: 'Any complexity bound I quote, I can label <b>worst / average / amortised</b>', ess: 0 },
+            { t: 'I could reproduce the <b>three-method comparison table</b> from memory', ess: 0 }
+        ];
+        const exitBox = document.getElementById('exit');
+        EXIT.forEach((r, i) => {
+            const b = document.createElement('button');
+            b.className = 'ck';
+            b.dataset.i = i;
+            b.innerHTML = (r.ess ? '<span class="star">★</span> ' : '') + r.t;
+            b.addEventListener('click', () => { b.classList.toggle('on'); exitScore(); });
+            exitBox.appendChild(b);
+        });
+        function exitScore() {
+            const on = [...exitBox.querySelectorAll('.ck.on')].map(b => +b.dataset.i);
+            const ess = on.filter(i => EXIT[i].ess).length;
+            document.getElementById('ex-score').textContent = on.length;
+            document.getElementById('ex-ess').textContent = ess;
+            const card = document.getElementById('ex-card'), v = document.getElementById('ex-verdict');
+            if (ess < 2) {
+                card.className = 'card tint-bad';
+                v.innerHTML = 'Your claim has no stated scope, which means no method can be right or wrong for it — and that is precisely how a project reaches November still unsure what it was supposed to show. Circle the quantifier first; everything else follows from it.';
+            } else if (ess < 4) {
+                card.className = 'card tint-warn';
+                v.innerHTML = 'You know what your claim needs and what you can provide, but you have not yet reconciled them. That gap does not close by itself — it closes either by narrowing the claim this week, or by an examiner closing it for you in the viva.';
+            } else if (on.length < 9) {
+                card.className = 'card tint-good';
+                v.innerHTML = 'Your evidence and your quantifier match. This is rarer than it sounds: most reports promise universal properties on the strength of a benchmark, and yours no longer does.';
+            } else {
+                card.className = 'card tint-good';
+                v.innerHTML = 'You are reasoning like a methodologist — assumptions listed, limits stated, the model-versus-implementation gap acknowledged, and a claim sized exactly to its evidence. Carry this into Class Test 1.';
+            }
+        }
+
+
+        /* ---------------- boot ---------------- */
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+        exitScore();
+    </script>
+</body>
+
+</html>

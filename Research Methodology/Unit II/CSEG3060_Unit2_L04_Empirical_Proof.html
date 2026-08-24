@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · II.4 — Proof Methods II: Empirical Proof</title>
+    <meta name="description"
+        content="Activity-led lecture II.4 for Research Methodology in Computer Science (CSEG3060): empirical proof - experiment design with independent, dependent, controlled and confounding variables, the honest baseline, benchmarks and workloads, reproducibility; plus user studies, surveys, and the controlled experiment, quasi-experiment, case study, action research and replication designs used in software engineering research.">
+    <style>
+        /* ============================================================
+           CSEG3060 - Unit II - Lecture II.4
+           Self-contained interactive deck. No external assets.
+           Activity-led: slides marked data-mode="do" are student work.
+           Keys: → / Space next · ← prev · O overview · T timer · D dark · F fullscreen
+           ============================================================ */
+
+        :root {
+            --ink: #0f1e35;
+            --ink-soft: #3d5372;
+            --ink-faint: #6b7f9c;
+            --bg: #eef2f8;
+            --surface: #ffffff;
+            --surface-2: #f6f9fd;
+            --line: #d3dced;
+            --brand: #1d5fd0;
+            --brand-soft: #e5eeff;
+            --good: #147a45;
+            --good-soft: #e2f5ea;
+            --bad: #b3182b;
+            --bad-soft: #fdeaec;
+            --warn: #a9640a;
+            --warn-soft: #fdf1de;
+            --do: #7b2fd0;
+            --do-soft: #f1e8fd;
+            --shadow: 0 2px 4px rgba(15, 30, 53, .06), 0 12px 32px rgba(15, 30, 53, .10);
+            --radius: 16px;
+            --fs: clamp(18px, 1.0vw + 12px, 33px);
+        }
+
+        html[data-theme="dark"] {
+            --ink: #eaf1fb;
+            --ink-soft: #b6c6dd;
+            --ink-faint: #8ea3c0;
+            --bg: #0b1220;
+            --surface: #131f33;
+            --surface-2: #18263d;
+            --line: #2c3d59;
+            --brand: #6ea8ff;
+            --brand-soft: #1a2c4c;
+            --good: #4ade80;
+            --good-soft: #123024;
+            --bad: #fb7185;
+            --bad-soft: #3a1620;
+            --warn: #fbbf24;
+            --warn-soft: #392a10;
+            --do: #c99bff;
+            --do-soft: #2a1a44;
+            --shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: var(--fs);
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            gap: .8em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            font-size: .68em;
+            letter-spacing: .02em;
+            color: var(--ink-faint);
+            z-index: 40;
+        }
+
+        .topbar b {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .topbar .spacer {
+            flex: 1;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .18em .8em;
+            background: var(--surface-2);
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .chip:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .progress {
+            position: fixed;
+            top: 2.4em;
+            left: 0;
+            height: 4px;
+            background: var(--brand);
+            z-index: 41;
+            transition: width .25s ease;
+        }
+
+        .deck {
+            position: absolute;
+            inset: 2.4em 0 0 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: clamp(14px, 2.2vh, 30px) clamp(18px, 3.4vw, 70px) 4.2em;
+            display: none;
+            animation: in .28s ease both;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide[data-mode="do"] {
+            background:
+                linear-gradient(90deg, var(--do) 0 6px, transparent 6px);
+        }
+
+        .fit {
+            display: flow-root;
+            transform-origin: top center;
+        }
+
+        @keyframes in {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.1em;
+            display: flex;
+            align-items: center;
+            gap: .6em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            z-index: 40;
+            font-size: .7em;
+        }
+
+        .navbar .count {
+            font-weight: 800;
+            color: var(--ink-soft);
+            min-width: 5.5em;
+        }
+
+        .navbar .title-now {
+            color: var(--ink-faint);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button.nav {
+            font: inherit;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: .45em 1.1em;
+            cursor: pointer;
+        }
+
+        button.nav:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            line-height: 1.08;
+            margin: .1em 0 .3em;
+            letter-spacing: -.02em;
+        }
+
+        h2 {
+            font-size: 1.72em;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            letter-spacing: -.015em;
+        }
+
+        h3 {
+            font-size: 1.12em;
+            margin: 0 0 .4em;
+        }
+
+        p {
+            margin: 0 0 .7em;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: .62em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: .35em 1em;
+            margin-bottom: .9em;
+        }
+
+        .kicker.do {
+            color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .lead {
+            font-size: 1.12em;
+            color: var(--ink-soft);
+        }
+
+        .big {
+            font-size: 1.35em;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .huge {
+            font-size: 2.1em;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+        }
+
+        em.hl {
+            font-style: normal;
+            background: linear-gradient(transparent 62%, rgba(29, 95, 208, .26) 0);
+            font-weight: 700;
+        }
+
+        .quote {
+            font-size: 1.15em;
+            border-left: 6px solid var(--brand);
+            padding: .3em 0 .3em 1em;
+            color: var(--ink-soft);
+            font-style: italic;
+            margin: .8em 0;
+        }
+
+        code,
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: .92em;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: .06em .38em;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(10px, 1.4vw, 20px);
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .g5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .g23 {
+            grid-template-columns: 2fr 3fr;
+        }
+
+        .g32 {
+            grid-template-columns: 3fr 2fr;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: clamp(12px, 1.5vw, 22px);
+            box-shadow: var(--shadow);
+        }
+
+        .flat {
+            box-shadow: none;
+        }
+
+        .tint-good {
+            background: var(--good-soft);
+            border-color: color-mix(in srgb, var(--good) 35%, transparent);
+        }
+
+        .tint-bad {
+            background: var(--bad-soft);
+            border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+        }
+
+        .tint-warn {
+            background: var(--warn-soft);
+            border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+        }
+
+        .tint-brand {
+            background: var(--brand-soft);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+
+        .tint-do {
+            background: var(--do-soft);
+            border-color: color-mix(in srgb, var(--do) 40%, transparent);
+        }
+
+        ul,
+        ol {
+            margin: 0 0 .6em;
+            padding-left: 1.15em;
+        }
+
+        li {
+            margin-bottom: .42em;
+        }
+
+        li::marker {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .stack-tight li {
+            margin-bottom: .25em;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: .66em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+            padding: .2em .6em;
+            border: 1px solid currentColor;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88em;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: .5em .7em;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: .82em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--ink-faint);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .reveal-btn {
+            font: inherit;
+            font-weight: 800;
+            font-size: .88em;
+            border: 2px dashed var(--brand);
+            color: var(--brand);
+            background: transparent;
+            border-radius: 10px;
+            padding: .4em 1em;
+            cursor: pointer;
+        }
+
+        .reveal-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pick {
+            text-align: left;
+            font: inherit;
+            width: 100%;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .55em .8em;
+            color: var(--ink);
+            transition: .15s;
+        }
+
+        .pick:hover {
+            border-color: var(--brand);
+            transform: translateY(-2px);
+        }
+
+        .pick.sel {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .pick.right {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .pick.wrong {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .verdict {
+            margin-top: .6em;
+            font-size: .92em;
+            border-left: 5px solid var(--brand);
+            padding-left: .8em;
+            color: var(--ink-soft);
+        }
+
+        .ck {
+            font: inherit;
+            font-size: .82em;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .35em .6em;
+            color: var(--ink);
+        }
+
+        .ck.on {
+            border-color: var(--good);
+            background: var(--good-soft);
+            font-weight: 700;
+        }
+
+        .ck .star {
+            color: var(--bad);
+            font-weight: 900;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: .5em;
+            font-weight: 900;
+        }
+
+        .timer .t {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 1.5em;
+            min-width: 3.4em;
+            text-align: center;
+            background: var(--surface-2);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .05em .3em;
+        }
+
+        .timer .t.low {
+            color: var(--bad);
+            border-color: var(--bad);
+        }
+
+        .tbtn {
+            font: inherit;
+            font-size: .8em;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 8px;
+            padding: .3em .8em;
+            cursor: pointer;
+        }
+
+        .tbtn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .overview {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 60;
+            padding: 2em clamp(18px, 4vw, 70px);
+            overflow-y: auto;
+        }
+
+        .ov-item {
+            display: flex;
+            gap: .8em;
+            align-items: baseline;
+            width: 100%;
+            text-align: left;
+            font: inherit;
+            font-size: .82em;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: .5em .8em;
+            margin-bottom: .4em;
+            cursor: pointer;
+            color: var(--ink);
+        }
+
+        .ov-item:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .ov-item b {
+            color: var(--brand);
+            min-width: 2.2em;
+        }
+
+        .ov-item .do-dot {
+            margin-left: auto;
+            font-size: .7em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: var(--do);
+            background: var(--do-soft);
+            border-radius: 999px;
+            padding: .1em .7em;
+        }
+
+        .score {
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .footnote {
+            font-size: .74em;
+            color: var(--ink-faint);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--brand);
+            font-weight: 900;
+        }
+
+        /* ---- activity banner ---- */
+        .runbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .7em;
+            background: var(--do-soft);
+            border: 1px solid color-mix(in srgb, var(--do) 40%, transparent);
+            border-left: 6px solid var(--do);
+            border-radius: 12px;
+            padding: .5em .9em;
+            font-size: .8em;
+            margin-bottom: .8em;
+        }
+
+        .runbar b {
+            color: var(--do);
+        }
+
+        .runbar .step {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .15em .8em;
+            font-weight: 700;
+        }
+
+        /* ---- Toulmin diagram ---- */
+        .toul {
+            display: grid;
+            gap: .5em;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: stretch;
+        }
+
+        .tbox {
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .5em .8em;
+            background: var(--surface);
+        }
+
+        .tbox h4 {
+            margin: 0 0 .15em;
+            font-size: .78em;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        .tbox p {
+            margin: 0;
+            font-size: .92em;
+        }
+
+        .tbox.k-claim {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .tbox.k-warrant {
+            border-color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .tbox.k-ground {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .tbox.k-reb {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .tbox.k-qual {
+            border-color: var(--warn);
+            background: var(--warn-soft);
+        }
+
+        .tarrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--ink-faint);
+        }
+
+        @media (max-width: 900px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .g5,
+            .g23,
+            .g32,
+            .toul {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+
+            body,
+            html {
+                overflow: visible;
+                background: #fff;
+            }
+
+            .topbar,
+            .navbar,
+            .progress,
+            .overview {
+                display: none !important;
+            }
+
+            .deck {
+                position: static;
+            }
+
+            .slide {
+                display: block !important;
+                position: static;
+                page-break-after: always;
+                animation: none;
+                padding: 12mm;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .hidden {
+                display: block !important;
+            }
+
+            .fit {
+                transform: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <b>CSEG3060</b><span>Research Methodology in Computer Science</span>
+        <span>·</span><span>Unit II · Lecture II.4</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit II · Lecture II.4 · CO2 · activity-led · focus topic</span>
+            <h1>Proof Methods II<br><span style="color:var(--brand)">Empirical Proof</span></h1>
+            <p class="lead big" style="max-width:36em">Last hour you had to delete the word <em>better</em>. This hour
+                you earn it back — and the price is a design, not more code.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · Experiment design</h3>
+                    <p style="margin:0">Independent, dependent, controlled and <b>confounding</b> variables — and the
+                        honest baseline.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Benchmarks &amp; reproducibility</h3>
+                    <p style="margin:0">Workload selection, seeds, variance, and what a stranger needs to get your
+                        number again.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · The study designs</h3>
+                    <p style="margin:0">Controlled experiment, quasi-experiment, case study, action research,
+                        replication — and user studies and surveys.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>You leave with</h3>
+                    <p style="margin:0">A written experiment design for your own claim, red-teamed by a neighbour who
+                        was told to break it.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · 5th Semester
+                B.Tech CSE · 55 minutes · <b style="color:var(--do)">≈ 28 minutes of this hour is your work</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Break this experiment">
+            <span class="kicker do">Do first · 5 minutes · no theory yet</span>
+            <h2>Find everything wrong with this experiment</h2>
+            <div class="runbar">
+                <span class="step">1 · Alone, 2 min — list every flaw you can see</span>
+                <span class="step">2 · Pairs, 2 min — pool your lists, rank the worst</span>
+                <span class="step">3 · Class, 1 min — count them off</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="300">5:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="card tint-do">
+                <p class="big" style="margin:0 0 .4em">“<b>Does our new caching layer speed up the API?</b>”</p>
+                <p style="margin:0 0 .3em">The team reports the following method, verbatim:</p>
+                <ul class="stack-tight" style="margin:0">
+                    <li>“We deployed the caching layer to production on 14 March.”</li>
+                    <li>“We compared average response time in the week before against the week after.”</li>
+                    <li>“Average response time fell from 340 ms to 250 ms.”</li>
+                    <li>“We conclude the caching layer improves API performance by 26%.”</li>
+                </ul>
+            </div>
+            <div class="card" style="margin-top:.8em">
+                <p class="big" style="margin:0">Prompts, if you get stuck:</p>
+                <ol class="stack-tight" style="margin:.4em 0 0">
+                    <li>What else changed between those two weeks, other than the cache?</li>
+                    <li>Is <b>average</b> the right number for a response time?</li>
+                    <li>How would you know whether 340 → 250 is <b>bigger than the ordinary week-to-week wobble</b>?</li>
+                </ol>
+            </div>
+            <p class="footnote" style="margin-top:.6em">There are at least six distinct problems. Groups usually find
+                three unaided. Every one of them has a name, and by the end of the hour you will know all six.</p>
+        </section>
+
+        <!-- ============ 3 · REVEAL ============ -->
+        <section class="slide" data-title="Reveal · six named problems">
+            <span class="kicker">Reveal · every flaw has a name</span>
+            <h2>Six problems, and this hour is the repair manual</h2>
+            <div class="grid g3" style="gap:.55em">
+                <div class="card flat tint-bad">
+                    <h3>1 · No control</h3>
+                    <p class="footnote" style="margin:0">The two weeks differ in the cache <em>and</em> in traffic mix,
+                        deploys, term dates, weather, and whatever else happened in March. Any of them could produce
+                        90 ms.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>2 · Confounded by time</h3>
+                    <p class="footnote" style="margin:0">“Before vs after” is the weakest design there is. Mid-March
+                        may simply be quieter than early March.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>3 · Wrong aggregate</h3>
+                    <p class="footnote" style="margin:0">The <b>mean</b> of a latency distribution is dominated by its
+                        tail and hides it. Users experience p95 and p99, not the average.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>4 · No variance</h3>
+                    <p class="footnote" style="margin:0">One week vs one week is <b>n = 1 vs n = 1</b>. Nothing tells
+                        you whether 90 ms exceeds normal week-to-week noise.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>5 · No baseline discipline</h3>
+                    <p class="footnote" style="margin:0">The “before” system was not tuned, warmed, or given the same
+                        care as the new one. The comparison measures <em>effort</em>, not architecture.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>6 · Construct slip</h3>
+                    <p class="footnote" style="margin:0">The claim is “speeds up the <b>API</b>”; the measure is
+                        server-side response time, which excludes the network and the client — most of what a user
+                        feels.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.9em">
+                <p class="big" style="margin:0">Note what is <em>not</em> on the list: the code. The caching layer may
+                    well be excellent. <em class="hl">A good system and a bad experiment produce exactly the same
+                        evidence as a bad system and a bad experiment — none.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 4 · VARIABLES ============ -->
+        <section class="slide" data-title="A1 · The four kinds of variable">
+            <span class="kicker">Part A · experiment design</span>
+            <h2>Every experiment has four kinds of variable. You control three.</h2>
+            <div class="grid g4" style="gap:.6em">
+                <div class="card flat tint-brand">
+                    <h3>Independent</h3>
+                    <p style="margin:0 0 .3em"><b>What you deliberately change.</b></p>
+                    <p class="footnote" style="margin:0">The <em>treatment</em>. Cache on / cache off. Scheduler A / B /
+                        C. Its possible values are called <b>levels</b>.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Rule:</b> vary <em>one</em> at a time, or use a
+                        factorial design and say so. Changing two and reporting one is the classic student error.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>Dependent</h3>
+                    <p style="margin:0 0 .3em"><b>What you measure.</b></p>
+                    <p class="footnote" style="margin:0">The outcome: p95 latency, top-1 accuracy, task completion time,
+                        defects per KLOC.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Rule:</b> fix the metric <em>and</em> its aggregate
+                        before you collect. Choosing after you see the data is metric-shopping.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Controlled</h3>
+                    <p style="margin:0 0 .3em"><b>What you hold fixed.</b></p>
+                    <p class="footnote" style="margin:0">Hardware, OS, dataset, compiler flags, input order, time of
+                        day, the person running it.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Rule:</b> list them explicitly in the paper. An
+                        unlisted control is an uncontrolled variable as far as a reader can tell.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>Confounding</h3>
+                    <p style="margin:0 0 .3em"><b>What varied without your permission.</b></p>
+                    <p class="footnote" style="margin:0">Warm caches, thermal throttling, a noisy neighbour VM, a
+                        library upgrade, learners improving with practice.</p>
+                    <p class="footnote" style="margin:.35em 0 0"><b>Rule:</b> you cannot list what you did not think
+                        of — so <b>randomise</b> and <b>interleave</b>, which defend against confounders you never
+                        named.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.8em">
+                <p class="big" style="margin:0">The definition worth memorising: <em class="hl">a confounder is anything
+                        that varies together with your treatment and could also explain your result.</em></p>
+                <p class="footnote" style="margin:.4em 0 0">It is the exact mechanism of the <b>internal validity</b>
+                    threat from II.1 — and every experimental technique in this hour exists to eliminate confounders,
+                    one way or another.</p>
+            </div>
+        </section>
+
+        <!-- ============ 5 · THE HONEST BASELINE ============ -->
+        <section class="slide" data-title="A2 · The honest baseline">
+            <span class="kicker">Part A · the thing reviewers attack first</span>
+            <h2>Your result is only as good as what you compared it to</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <h3>Four ways a baseline is dishonest <span class="footnote">(usually by accident)</span></h3>
+                    <ul class="stack-tight">
+                        <li><b>The straw man.</b> Comparing against something nobody would use. A new sort beating
+                            bubble sort proves nothing.</li>
+                        <li><b>The untuned rival.</b> You spent six weeks on your method and an afternoon on theirs.
+                            The comparison measures your attention, not your idea.</li>
+                        <li><b>The stale state of the art.</b> The best published method is from 2024; you compared
+                            against 2019 because its code was easier to run.</li>
+                        <li><b>The missing trivial baseline.</b> Nobody checked whether “always predict the majority
+                            class”, “return the most recent item”, or “do nothing” already scores as well as
+                            you do.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0">The last one is the most humbling and the most
+                        frequently omitted. Run it first, before you build anything.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>What an honest comparison requires</h3>
+                    <ul class="stack-tight">
+                        <li><b>Use the authors' own released code</b> where it exists. Re-implementing a rival is how
+                            you accidentally weaken it.</li>
+                        <li><b>Equal tuning budget.</b> State the hyperparameter search for <em>both</em> sides — same
+                            number of trials, same search space, same person.</li>
+                        <li><b>Same everything else.</b> Same data, same split, same hardware, same session, same
+                            metric, same aggregate.</li>
+                        <li><b>Include the trivial baseline</b> and report it even when it is embarrassing.</li>
+                        <li><b>Report the strongest rival</b>, not the most convenient one — and say why it is the
+                            strongest.</li>
+                    </ul>
+                    <p class="big" style="margin:.4em 0 0">The test: <em class="hl">would the author of the baseline
+                            method agree that you gave it a fair run?</em></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · REPRODUCIBILITY ============ -->
+        <section class="slide" data-title="A3 · Variance and reproducibility">
+            <span class="kicker">Part A · the number you report</span>
+            <h2>One run is an anecdote. Report a distribution.</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>The mechanics, and they are not optional</h3>
+                    <ul class="stack-tight">
+                        <li><b>Repeat.</b> 3–5 seeds minimum for anything stochastic; 10+ runs for timing. Report
+                            <b>mean ± SD</b>, never a bare number.</li>
+                        <li><b>Discard warm-up.</b> Say how many runs you dropped and why. JIT, caches and page tables
+                            all need warming.</li>
+                        <li><b>Interleave, do not batch.</b> Run A,B,A,B,A,B — not all of A then all of B. Batching
+                            confounds your treatment with drift, heat and time.</li>
+                        <li><b>Randomise order</b> of conditions and inputs.</li>
+                        <li><b>Report the right aggregate.</b> Latency lives in the tail: give p50, p95, p99. The mean
+                            of a heavy-tailed distribution is close to meaningless.</li>
+                        <li><b>Effect size, not just significance.</b> “p &lt; 0.05” says the difference is probably
+                            real; it says nothing about whether it <em>matters</em>.</li>
+                    </ul>
+                </div>
+                <div class="card tint-brand">
+                    <h3>What a stranger needs to reproduce you</h3>
+                    <p style="margin:0 0 .4em">Write this list into your methodology section. Every item, every
+                        time.</p>
+                    <div class="grid" style="gap:.3em">
+                        <div class="card flat" style="padding:.35em .7em"><p style="margin:0; font-size:.86em">
+                                <b>Code</b> at a specific commit hash · <b>data</b> with a version or retrieval date
+                            </p></div>
+                        <div class="card flat" style="padding:.35em .7em"><p style="margin:0; font-size:.86em">
+                                <b>Seeds</b> · <b>hyperparameters</b> · <b>the search</b> that chose them</p></div>
+                        <div class="card flat" style="padding:.35em .7em"><p style="margin:0; font-size:.86em">
+                                <b>Hardware</b>, OS, driver, library versions · <b>compiler flags</b></p></div>
+                        <div class="card flat" style="padding:.35em .7em"><p style="margin:0; font-size:.86em">
+                                <b>Raw per-run results</b>, not only the summary table</p></div>
+                    </div>
+                    <p class="big" style="margin:.5em 0 0">The reason for the last one: <em class="hl">a distribution
+                            cannot be recovered from a mean.</em> Throw away the raw runs and nobody — including
+                        you, in six months — can ever recheck the claim.</p>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Reproducibility</b> = same data, same code, same
+                        result. <b>Replicability</b> = new data or new implementation, same conclusion. The second is
+                        much harder and much more valuable; it is what II.5's replication studies are for.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · DRILL 1 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill · name the design flaw">
+            <span class="kicker do">Do · 7 items · 6 minutes</span>
+            <h2>What is broken in this design?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="eq-n">1</span> of <span id="eq-total">7</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="eq-score">0</span></p>
+                <p class="big" id="eq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="eq-opts" style="gap:.5em"></div>
+                <div id="eq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="eq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="eq-restart">Restart</button>
+                    <span class="footnote">Most items have more than one flaw. Name the one that would
+                        <b>invalidate the conclusion</b>, not merely weaken it.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · STUDY DESIGNS ============ -->
+        <section class="slide" data-title="C1 · The five empirical designs">
+            <span class="kicker">Part C · designs used in computing research</span>
+            <h2>Five designs, in decreasing order of control</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Design</th>
+                            <th>You control</th>
+                            <th>Answers</th>
+                            <th>CS example</th>
+                            <th>Main weakness</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>Controlled experiment</b></td>
+                            <td>Assignment to conditions, and everything else</td>
+                            <td><b>Causal:</b> does X cause Y?</td>
+                            <td>120 students, assistant on/off, 3 counterbalanced debugging tasks</td>
+                            <td>Artificial setting; often small; hard to recruit</td>
+                        </tr>
+                        <tr>
+                            <td><b>Quasi-experiment</b></td>
+                            <td>Conditions, but <em>not</em> who goes where</td>
+                            <td>Causal-ish, with named alternatives</td>
+                            <td>Teams that already adopted a tool vs teams that did not</td>
+                            <td><b>Selection bias</b> — the groups differed beforehand</td>
+                        </tr>
+                        <tr>
+                            <td><b>Case study</b></td>
+                            <td>Nothing; you observe in depth, in context</td>
+                            <td><b>How and why</b>, in a real setting</td>
+                            <td>One company's migration to microservices over 18 months</td>
+                            <td>n = 1; generalises to theory, not to a population</td>
+                        </tr>
+                        <tr>
+                            <td><b>Action research</b></td>
+                            <td>You <em>intervene</em> and study your own intervention</td>
+                            <td>Does this change help <em>here</em>, and what did we learn?</td>
+                            <td>Introducing code review in a team while studying the effect</td>
+                            <td>Researcher is not neutral — you want it to work</td>
+                        </tr>
+                        <tr>
+                            <td><b>Replication</b></td>
+                            <td>Whatever the original study controlled</td>
+                            <td>Does the earlier finding <b>hold up</b>?</td>
+                            <td>Re-running a published SE experiment on a new population</td>
+                            <td>Undervalued; needs the original to be well reported</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="grid g2" style="margin-top:.8em">
+                <div class="card flat tint-do">
+                    <p style="margin:0"><b>The rule that chooses for you:</b> <em class="hl">only random assignment
+                            buys you the word “causes”.</em> Everything below the first row supports “is associated
+                        with”, and must say so.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <p style="margin:0"><b>The one to take seriously as a student:</b> <b>replication</b>. The problem
+                        is already defined, the success criteria are published, and either outcome is a genuine
+                        result — provided you report honestly, <em>including when it does reproduce</em>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · HUMAN STUDIES ============ -->
+        <section class="slide" data-title="C2 · When the subjects are people">
+            <span class="kicker">Part C · user studies and surveys</span>
+            <h2>People are instruments that change when you measure them</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Design choices you must make and state</h3>
+                    <ul class="stack-tight">
+                        <li><b>Between-subjects</b> — each person sees one condition. Needs more people; no carry-over
+                            effects.</li>
+                        <li><b>Within-subjects</b> — each person sees all conditions. Far more statistical power from
+                            fewer people, but now you must <b>counterbalance the order</b>, because people learn and
+                            people tire.</li>
+                        <li><b>Latin square</b> when there are more than two conditions and every order cannot be
+                            covered.</li>
+                        <li><b>Pilot with 3–5 people</b> and time it. Every user study that ran long, confused
+                            participants or produced unusable data skipped this step.</li>
+                    </ul>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Four effects that will contaminate your data</h3>
+                    <ul class="stack-tight">
+                        <li><b>Hawthorne / observer effect</b> — people behave differently because you are
+                            watching.</li>
+                        <li><b>Demand characteristics</b> — participants work out what you are hoping for and
+                            helpfully deliver it. Worst when <em>you</em> built the tool and <em>you</em> run the
+                            session.</li>
+                        <li><b>Learning and fatigue</b> — the second task is easier because it is second, and the
+                            fourth is worse because they are tired. Counterbalancing is the only defence.</li>
+                        <li><b>Non-response bias</b> — the people who did not reply to your survey differ
+                            systematically from those who did. <b>Always report the response rate.</b></li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0"><b>Ethics is not optional here:</b> informed consent,
+                        the right to withdraw, anonymisation, and no identifier you do not need. Unit III makes this a
+                        formal requirement of your proposal.</p>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:.7em">Twenty CS students in a lab are <em class="hl">not
+                    “users”</em> — they are twenty CS students in a lab. Say so, and your study survives.</p>
+        </section>
+
+        <!-- ============ 10 · DRILL 2 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill · choose the design">
+            <span class="kicker do">Do · 6 questions · 5 minutes</span>
+            <h2>Which design answers this question?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="sq-n">1</span> of <span id="sq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="sq-score">0</span></p>
+                <p class="big" id="sq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g5" id="sq-opts" style="gap:.5em"></div>
+                <div id="sq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="sq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="sq-restart">Restart</button>
+                    <span class="footnote">Ask what the question needs: a <b>cause</b>, a <b>description</b>, or a
+                        <b>check</b>?</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · MAIN ACTIVITY ============ -->
+        <section class="slide" data-mode="do" data-title="DO 4 · Design your experiment + red team">
+            <span class="kicker do">Do · 10 minutes · the piece of work you keep</span>
+            <h2>Design the experiment that earns your claim</h2>
+            <div class="runbar">
+                <span class="step">1 · <b>5 min</b> alone — fill the seven lines</span>
+                <span class="step">2 · <b>3 min</b> swap — neighbour is a <b>red team</b>: find the confounder</span>
+                <span class="step">3 · <b>2 min</b> — patch it</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="600">10:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Step 1 · Seven lines. No prose.</h3>
+                    <ol class="stack-tight">
+                        <li><b>Claim</b> — the comparative sentence you want to earn.</li>
+                        <li><b>Independent variable</b> and its levels.</li>
+                        <li><b>Dependent variable</b>, with metric <em>and</em> aggregate (p95? mean? top-1?).</li>
+                        <li><b>Baseline</b> — named, and why it is the <em>strongest</em> available, not the
+                            easiest.</li>
+                        <li><b>Controlled</b> — at least five things you hold fixed.</li>
+                        <li><b>Repetition</b> — how many runs/seeds/participants, and what you will report
+                            (mean ± SD).</li>
+                        <li><b>Failure threshold</b> — the number that would make you say “my method did not
+                            work”. <span class="footnote">Write it now, before any data exists.</span></li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Line 7 is the one that matters. If you cannot state
+                        today what result would count as failure, you are not running an experiment — you are
+                        collecting decoration for a conclusion you already wrote.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Step 2 · You are a red team. Be unpleasant.</h3>
+                    <p style="margin:0 0 .4em">Your job is to find <b>one confounder</b> — something that varies with
+                        their treatment and could also explain their result. Use this checklist:</p>
+                    <ul class="stack-tight">
+                        <li>Different <b>hardware, machine state or time</b> between conditions?</li>
+                        <li>Was the <b>baseline tuned</b> as hard as the method?</li>
+                        <li><b>Order effects</b> — did anything run or get seen first, always?</li>
+                        <li>Does the <b>metric</b> actually capture the claim's noun?</li>
+                        <li>Would the <b>trivial baseline</b> (do nothing / majority class) score the same?</li>
+                        <li>Is <b>n</b> big enough for the difference they expect to find?</li>
+                    </ul>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.5em">
+                        <p style="margin:0"><b>What will happen.</b> The commonest confounder found in this room will
+                            be the <b>untuned baseline</b> — and the commonest missing line will be number 7.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · EXIT TICKET ============ -->
+        <section class="slide" data-mode="do" data-title="DO 5 · Exit ticket">
+            <span class="kicker do">Exit ticket · tick what is true right now</span>
+            <h2>Would your experiment survive a reviewer?</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <div class="grid" id="exit" style="gap:.4em; grid-template-columns:1fr 1fr"></div>
+                    <p class="footnote" style="margin:.5em 0 0"><span class="star"
+                            style="color:var(--bad); font-weight:900">★</span> = non-negotiable. Five starred
+                        items.</p>
+                </div>
+                <div class="card" id="ex-card">
+                    <h3>Ticked: <span class="score" id="ex-score">0</span> / 12 &nbsp;·&nbsp; essentials: <span
+                            class="score" id="ex-ess">0</span> / 5</h3>
+                    <p id="ex-verdict" style="margin:0">Tick what is written down — not what you intend.</p>
+                    <div class="card flat tint-brand" style="padding:.5em .8em; margin-top:.6em">
+                        <p style="margin:0"><b>Where this goes next.</b> Empirical proof buys you “better <em>on
+                                this</em>”. It can never buy “better <em>always</em>”, because no experiment ranges
+                            over all inputs. <b>II.5</b> supplies the only method that can: mathematical proof — and
+                            then puts all three methods side by side.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 13 · TAKEAWAYS ============ -->
+        <section class="slide" data-title="Eight things that must survive">
+            <span class="kicker">Consolidation</span>
+            <h2>Eight things that must survive this hour</h2>
+            <div class="grid g2">
+                <ol class="stack-tight big" style="line-height:1.3">
+                    <li>Four variables: <b>independent · dependent · controlled · confounding</b>. You choose the
+                        first three; the fourth chooses you.</li>
+                    <li>A <b>confounder</b> is anything varying with your treatment that could also explain the
+                        result.</li>
+                    <li><b>Randomise and interleave</b> — they defend against confounders you never thought of.</li>
+                    <li>Your result is only as good as your <b>baseline</b>. Run the trivial one first.</li>
+                </ol>
+                <ol class="stack-tight big" start="5" style="line-height:1.3">
+                    <li><b>One run is an anecdote.</b> Repeat, report mean ± SD, keep the raw data.</li>
+                    <li>Latency lives in the <b>tail</b> — p95 and p99, not the mean.</li>
+                    <li><b>Only random assignment licenses the word “causes.”</b> Everything else is “associated
+                        with”.</li>
+                    <li>With people: <b>counterbalance</b>, pilot, report response rate, and never call 20 CS students
+                        “users”.</li>
+                </ol>
+            </div>
+            <div class="card tint-brand" style="margin-top:.8em">
+                <p class="big" style="margin:0">If you remember one sentence: <em class="hl">write down the number that
+                        would count as failure before you collect any data — everything else in experiment design is a
+                        way of making sure that number means what you think it means.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 14 · NOTEBOOK & CLOSE ============ -->
+        <section class="slide" data-title="Notebook task and what's next">
+            <span class="kicker">Research Notebook · entry after Lecture II.4</span>
+            <h2>Your notebook task</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Three things to add before the next session</h3>
+                    <ol class="stack-tight">
+                        <li><b>Lecture log.</b> Date, “II.4 — empirical proof”, and your exit-ticket score out of
+                            12.</li>
+                        <li><b>Section 7 · Experiment design.</b> All seven lines from the activity, including the
+                            <b>failure threshold</b>, plus the design you are using (controlled · quasi · case study ·
+                            action research · replication) and one sentence on why.</li>
+                        <li><b>Section 7b · Confounders.</b> The confounder your red team found, your patch for it, and
+                            two more you thought of afterwards. For each: <em>control it, randomise it, or declare
+                                it</em> — those are the only three moves.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Stamp the entry <code>\version{9}{...}{after Lecture
+                            II.4}</code>.</p>
+                </div>
+                <div class="card">
+                    <div class="card flat tint-good" style="padding:.7em .9em">
+                        <h3 style="margin-bottom:.2em">Next session · II.5 · Mathematical Proof</h3>
+                        <p style="margin:0"><b>The only method that says “always”.</b> Proof by induction, by
+                            contradiction, by construction, and loop invariants as research evidence, plus <b>complexity bounds
+                            as deductive evidence</b> — worst-case, average, amortised and lower bounds — followed by
+                            the head-to-head comparison of all three proof methods, the most examinable slide in
+                            Unit II.</p>
+                        <p style="margin:.4em 0 0"><b>Bring:</b> your seven-line design. We will ask what it can never
+                            establish.</p>
+                    </div>
+                    <div class="card flat tint-warn" style="padding:.7em .9em; margin-top:.6em">
+                        <p style="margin:0"><b>Class Test 1 is on 12 September.</b> The four variables, the confounder
+                            definition and the five designs table are all directly examinable.</p>
+                    </div>
+                    <p class="footnote" style="margin:.6em 0 0"><b>Reading:</b> C. Wohlin et al.,
+                        <i>Experimentation in Software Engineering</i>, ch. 6–8 · P. Runeson &amp; M. Höst,
+                        <i>“Guidelines for conducting and reporting case study research in SE”</i> (2009) ·
+                        R. Jain, <i>The Art of Computer Systems Performance Analysis</i>, ch. 16–17 ·
+                        Melville &amp; Goddard, ch. 5–6.</p>
+                </div>
+            </div>
+        </section>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 14</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script>
+        /* ---------------- deck engine ---------------- */
+        const slides = [...document.querySelectorAll('.slide')];
+        let cur = 0;
+
+        slides.forEach(s => {
+            const fit = document.createElement('div');
+            fit.className = 'fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+        });
+
+        function fitSlide(s) {
+            const f = s.querySelector('.fit');
+            if (!f) return;
+            f.style.transform = 'none';
+            const cs = getComputedStyle(s);
+            const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const h = f.offsetHeight;
+            if (avail <= 0 || h <= 0) return;
+            const k = Math.min(1, avail / h);
+            f.style.transform = k > 0.995 ? 'none' : 'scale(' + k.toFixed(4) + ')';
+        }
+        const fitNow = () => fitSlide(slides[cur]);
+        const fitSoon = () => requestAnimationFrame(() => requestAnimationFrame(fitNow));
+        window.addEventListener('resize', fitNow);
+        document.addEventListener('click', fitSoon, true);
+        document.addEventListener('change', fitSoon, true);
+        document.addEventListener('input', fitSoon, true);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('title-now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            slides[cur].scrollTop = 0;
+            location.hash = 's' + (cur + 1);
+            fitSlide(slides[cur]);
+        }
+        function go(d) { show(cur + d); }
+
+        document.addEventListener('keydown', e => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.key === 'Escape') { document.getElementById('overview').classList.add('hidden'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'd') toggleTheme();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 't') { const t = document.getElementById('lect-t'); t.__toggle && t.__toggle(); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        function toggleTheme() {
+            const h = document.documentElement;
+            h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('hidden'); }
+
+        const ovList = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + (i + 1) + '</b><span>' + (s.dataset.title || '') + '</span>' +
+                (s.dataset.mode === 'do' ? '<span class="do-dot">STUDENT WORK</span>' : '');
+            b.onclick = () => { show(i); toggleOverview(); };
+            ovList.appendChild(b);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(b => {
+            const label = b.textContent;
+            b.addEventListener('click', () => {
+                const t = document.querySelector(b.dataset.reveal);
+                t.classList.toggle('hidden');
+                b.textContent = t.classList.contains('hidden') ? label : 'Hide again';
+            });
+        });
+
+        document.querySelectorAll('.timer').forEach(box => {
+            const disp = box.querySelector('.t');
+            const total = parseInt(disp.dataset.sec, 10);
+            let left = total, id = null;
+            const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            const paint = () => {
+                disp.textContent = fmt(left);
+                disp.classList.toggle('low', left <= Math.max(10, total * 0.15));
+            };
+            const tick = () => { if (left > 0) { left--; paint(); } else { clearInterval(id); id = null; } };
+            const toggle = () => { if (id) { clearInterval(id); id = null; } else { id = setInterval(tick, 1000); } };
+            disp.__toggle = toggle;
+            box.querySelector('[data-timer=start]').addEventListener('click', toggle);
+            box.querySelector('[data-timer=reset]').addEventListener('click', () => {
+                clearInterval(id); id = null; left = total; paint();
+            });
+            paint();
+        });
+
+        /* ---------------- generic drill engine ---------------- */
+        function makeDrill(p, items, done) {
+            const el = k => document.getElementById(p + '-' + k);
+            const opts = el('opts');
+            let i = 0, sc = 0, lock = false;
+
+            function paint() {
+                el('n').textContent = i + 1;
+                el('total').textContent = items.length;
+                el('stmt').innerHTML = items[i].q;
+                el('score').textContent = sc;
+                el('fb').classList.add('hidden');
+                opts.innerHTML = '';
+                items[i].o.forEach((t, k) => {
+                    const b = document.createElement('button');
+                    b.className = 'pick';
+                    b.innerHTML = '<b>' + 'ABCDEF'[k] + '.</b> ' + t;
+                    b.addEventListener('click', () => {
+                        if (lock) return;
+                        lock = true;
+                        const right = items[i].a;
+                        if (k === right) { b.classList.add('right'); sc++; }
+                        else { b.classList.add('wrong'); opts.children[right].classList.add('right'); }
+                        el('score').textContent = sc;
+                        const fb = el('fb');
+                        fb.innerHTML = items[i].w;
+                        fb.classList.remove('hidden');
+                    });
+                    opts.appendChild(b);
+                });
+                lock = false;
+            }
+
+            el('next').addEventListener('click', () => {
+                if (i < items.length - 1) { i++; paint(); }
+                else {
+                    const fb = el('fb');
+                    fb.classList.remove('hidden');
+                    fb.innerHTML = done(sc, items.length);
+                }
+            });
+            const r = document.getElementById(p + '-restart');
+            if (r) r.addEventListener('click', () => { i = 0; sc = 0; paint(); });
+            paint();
+        }
+
+
+        /* ---------------- Drill 1 · name the design flaw ---------------- */
+        const FLAW = ['Confounding variable', 'Weak or unfair baseline',
+            'No repetition / no variance reported', 'Wrong metric or wrong aggregate'];
+        makeDrill('eq', [
+            {
+                q: 'Method A is benchmarked on the lab workstation on Monday; method B is benchmarked on a cloud VM on Friday. B is 12% faster.',
+                o: FLAW, a: 0,
+                w: '<b>Confounding variable</b> — several at once: machine, virtualisation, noisy neighbours, and day. The 12% has at least four candidate causes besides the method. Repair costs nothing: same machine, same session, runs interleaved A,B,A,B in randomised order.'
+            },
+            {
+                q: 'A new recommender is compared against a version of a published competitor that the authors re-implemented themselves in a weekend, using default hyperparameters.',
+                o: FLAW, a: 1,
+                w: '<b>Unfair baseline.</b> A rival re-implemented in a weekend by the people competing with it is systematically under-tuned — this is one of the best-documented biases in empirical computing. Repair: use the authors\' released code, and report an equal hyperparameter search budget for both sides.'
+            },
+            {
+                q: 'A paper reports that the proposed model achieves 94.2% accuracy and the baseline 93.8%, based on one training run each.',
+                o: FLAW, a: 2,
+                w: '<b>No variance.</b> A 0.4-point gap from single runs is almost certainly inside seed noise for any deep model — re-run both with a different seed and the ordering may flip. Repair: 3–5 seeds, mean ± SD, and an effect size. If the gap sits inside the noise band, report that honestly; it is still a finding.'
+            },
+            {
+                q: 'A latency evaluation reports that average response time improved from 340 ms to 250 ms, with no other statistics.',
+                o: FLAW, a: 3,
+                w: '<b>Wrong aggregate.</b> Latency distributions are heavy-tailed, so the mean is dominated by — and simultaneously hides — the tail that users actually notice. A change that improves the mean while worsening p99 makes the service feel worse. Repair: report p50, p95 and p99, and plot the distribution.'
+            },
+            {
+                q: 'In a user study, every participant completes the task with the old interface first, then with the new interface.',
+                o: FLAW, a: 0,
+                w: '<b>Confounding variable — the order.</b> By the second attempt every participant has learned the task, so “new interface” is confounded with “second time doing it”. This alone can manufacture an improvement from an identical interface. Repair: counterbalance — half see new-then-old — or use a Latin square for more conditions.'
+            },
+            {
+                q: 'An intrusion detector is evaluated on traffic that is 99.7% benign, and the paper reports 99.5% accuracy against a baseline that also reports accuracy.',
+                o: FLAW, a: 3,
+                w: '<b>Wrong metric.</b> On this class balance, a classifier that always answers “benign” scores 99.7% — better than the proposed system — while detecting nothing at all. Accuracy simply does not measure detection here. Repair: precision, recall and F1 on the attack class, or AUC, plus the majority-class baseline stated explicitly.'
+            },
+            {
+                q: 'A team reports that their compiler optimisation improved SPEC scores, comparing an optimised build against an unoptimised -O0 build of the same program.',
+                o: FLAW, a: 1,
+                w: '<b>Weak baseline — a straw man.</b> Nobody ships at -O0, so beating it demonstrates nothing about the contribution. The meaningful comparison is against -O2 or -O3 <em>with</em> and <em>without</em> the new pass, holding every other flag fixed. Choose the baseline a practitioner would actually use.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'You can now red-team a design, which is exactly what you will do to your neighbour in three slides.'
+            : 'Four questions, in order: <b>What else differed between the conditions?</b> (confounder) <b>Was the rival given a fair run?</b> (baseline) <b>How many times was this measured?</b> (variance) <b>Does the number mean what the claim says?</b> (metric).'));
+
+        /* ---------------- Drill 2 · choose the design ---------------- */
+        const DESIGNS = ['Controlled experiment', 'Quasi-experiment', 'Case study', 'Action research', 'Replication'];
+        makeDrill('sq', [
+            {
+                q: 'Does using an AI coding assistant cause first-year students to introduce more silent defects?',
+                o: DESIGNS, a: 0,
+                w: '<b>Controlled experiment.</b> The question contains the word <em>cause</em>, and only random assignment to assistant-on / assistant-off licenses a causal answer. Design it within-subjects with counterbalanced tasks to get power from a small cohort — and pre-register your failure threshold.'
+            },
+            {
+                q: 'How did one bank\'s engineering organisation actually manage the 18-month migration from a monolith to microservices, and what went wrong?',
+                o: DESIGNS, a: 2,
+                w: '<b>Case study.</b> The question is <em>how and why</em>, in a real context you cannot manipulate, over a long period. Follow Runeson &amp; Höst: multiple data sources (interviews, documents, commit history), a chain of evidence, and generalisation to <em>theory</em> rather than to a population. n = 1 is not a flaw here; claiming it holds for all banks would be.'
+            },
+            {
+                q: 'A published study found that pair programming reduces defects. Does the finding hold for final-year students in an Indian university?',
+                o: DESIGNS, a: 4,
+                w: '<b>Replication.</b> The problem, the instruments and the success criteria are already published — a genuine gift for a student project, and a <em>new context</em> in the Unit I novelty sense. Either outcome is publishable, provided you report honestly when it does reproduce, which is the part people skip.'
+            },
+            {
+                q: 'Teams in our company that voluntarily adopted static analysis had 30% fewer production defects. Does the tool help?',
+                o: DESIGNS, a: 1,
+                w: '<b>Quasi-experiment</b> — because you did not choose who adopted. The groups differed <em>before</em> the tool: teams that voluntarily adopt quality tooling are already quality-focused. You can still learn a great deal by matching teams on size, domain and prior defect rate, but the write-up must say “associated with”, never “causes”.'
+            },
+            {
+                q: 'We want to introduce code review into our own lab\'s workflow, and study what happens as we do it.',
+                o: DESIGNS, a: 3,
+                w: '<b>Action research.</b> You are simultaneously the change agent and the researcher, working in cycles of plan → act → observe → reflect. Legitimate and valuable for organisational questions — but name the obvious threat: you <em>want</em> it to work, so pre-commit to your measures and have someone outside the lab review the interpretation.'
+            },
+            {
+                q: 'Is our new scheduler faster than the default across a range of datacentre workloads?',
+                o: DESIGNS, a: 0,
+                w: '<b>Controlled experiment.</b> With machines rather than people it is easy to do properly: you fully control assignment, hardware and inputs, so there is no excuse for confounders. Same machine, interleaved runs, randomised order, 12 workloads chosen to disagree with each other, 5 seeds, p95 reported, and the qualifier from II.1 on the conclusion.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'Now name the design for your own study — and if it is not a controlled experiment, check that your claim says “associated with” rather than “causes”.'
+            : 'Decide with two questions. <b>Do I control who or what goes into each condition?</b> Yes → controlled experiment. No, but there are conditions → quasi-experiment. <b>Am I observing rather than intervening?</b> In depth, one context → case study. Intervening in my own setting → action research. Checking someone else\'s finding → replication.'));
+
+        /* ---------------- exit ticket ---------------- */
+        const EXIT = [
+            { t: 'My <b>independent</b> variable and its levels are named', ess: 1 },
+            { t: 'My <b>dependent</b> variable has a metric <b>and</b> an aggregate', ess: 1 },
+            { t: 'My <b>baseline</b> is named, and is the strongest available', ess: 1 },
+            { t: 'I have written the <b>failure threshold</b> before collecting data', ess: 1 },
+            { t: 'I will <b>repeat</b> and report mean ± SD, not a single number', ess: 1 },
+            { t: 'I have listed <b>five things held fixed</b> across conditions', ess: 0 },
+            { t: 'Runs are <b>interleaved and randomised</b>, not batched', ess: 0 },
+            { t: 'I have run the <b>trivial baseline</b> (do nothing / majority class)', ess: 0 },
+            { t: 'I can name <b>one confounder</b> and my move for it', ess: 0 },
+            { t: 'My verb matches my design — “<b>causes</b>” only with random assignment', ess: 0 },
+            { t: 'For human studies: <b>counterbalanced</b>, piloted, consent recorded', ess: 0 },
+            { t: '<b>Raw per-run data</b> will be kept, not only the summary table', ess: 0 }
+        ];
+        const exitBox = document.getElementById('exit');
+        EXIT.forEach((r, i) => {
+            const b = document.createElement('button');
+            b.className = 'ck';
+            b.dataset.i = i;
+            b.innerHTML = (r.ess ? '<span class="star">★</span> ' : '') + r.t;
+            b.addEventListener('click', () => { b.classList.toggle('on'); exitScore(); });
+            exitBox.appendChild(b);
+        });
+        function exitScore() {
+            const on = [...exitBox.querySelectorAll('.ck.on')].map(b => +b.dataset.i);
+            const ess = on.filter(i => EXIT[i].ess).length;
+            document.getElementById('ex-score').textContent = on.length;
+            document.getElementById('ex-ess').textContent = ess;
+            const card = document.getElementById('ex-card'), v = document.getElementById('ex-verdict');
+            if (ess < 3) {
+                card.className = 'card tint-bad';
+                v.innerHTML = 'You do not yet have an experiment — you have an intention to measure something. Until the independent variable, the metric and the baseline are all named, there is no design a reviewer could evaluate, and no result that could count as failure.';
+            } else if (ess < 5) {
+                card.className = 'card tint-warn';
+                v.innerHTML = 'A design is taking shape, but the missing starred items are the ones that fail <em>late</em> — usually the baseline and the failure threshold. Both are cheap now and impossible to add honestly after you have seen your results.';
+            } else if (on.length < 9) {
+                card.className = 'card tint-good';
+                v.innerHTML = 'This is a real experiment. It has a treatment, an honest comparator, repetition, and a pre-committed criterion for being wrong — which is what separates evidence from decoration.';
+            } else {
+                card.className = 'card tint-good';
+                v.innerHTML = 'Publication standard. Interleaved randomised runs, a trivial baseline, named confounders, retained raw data and a verb that matches the design — a reviewer would have to argue with your <em>question</em>, because they cannot argue with your method.';
+            }
+        }
+
+
+        /* ---------------- boot ---------------- */
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+        exitScore();
+    </script>
+</body>
+
+</html>

@@ -8,7 +8,7 @@
 
 **Grounding.** Lectures 1–4 below are summarised from the delivered decks (`Lecture00`, `Unit1_L01`, `L02`, `L03`, `L04`) — terminology, hooks and examples match what students have already seen. Lectures 5–7 are drafted forward from the delivery plan and the syllabus, carrying the same vocabulary so the unit reads as one argument.
 
-**Note on structure.** What were originally three separate hours — investigative approaches (I.7), data collection and interpretation (I.8), and instrumentation, case studies and unit review (I.9) — are now **merged into a single Lecture 7** covering research fundamentals, SMART objectives and data fundamentals. Slot I.8 is a consolidation workshop with Quiz 1 and the Assignment 1 deadline.
+**Note on structure.** What were originally three separate hours — investigative approaches (I.7), data collection and interpretation (I.8), and instrumentation, case studies and unit review (I.9) — are now **merged into a single Lecture 7** covering research fundamentals, SMART objectives and data fundamentals. Unit I therefore ends at Lecture 7; the slot that follows it (25 Aug CCVT / 26 Aug Full Stack AI) is **Quiz 1** — 25 scenario questions, 25 marks, the full slot — and Assignment 1 is collected there.
 
 **The spine of the unit.** One sentence per lecture, in order:
 
@@ -241,4 +241,4 @@ Each type has a characteristic failure, and the comparison table is what an exam
 - `Unit I/CSEG3060_Unit1_L06_Scope_Objectives_Hypotheses.html`
 - `Unit I/CSEG3060_Unit1_L07_Research_Fundamentals_SMART_Objectives_Data.html`
 - `Syllabus_RMinCS_B.Tech CSE_AY2024.pdf` — Unit I scope and CO mapping
-- `CSEG3060_Course_Delivery_Plan_Aug-Dec_2026.xlsx` (via `index.html` plan data) — topics, pedagogy and assessment for I.5–I.8
+- `CSEG3060_Course_Delivery_Plan_Aug-Dec_2026.xlsx` (via `index.html` plan data) — topics, pedagogy and assessment for I.5–I.7 and the Quiz 1 slot

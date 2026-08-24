@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · II.7 — Performance Evaluation and Benchmarking</title>
+    <meta name="description"
+        content="Activity-led lecture II.7 for Research Methodology in Computer Science (CSEG3060): performance evaluation parameters - time efficiency, space efficiency, scalability and reliability - complexity analysis as evidence, and the process of benchmarking algorithms and systems, including workload selection, metrics and aggregates, and the pitfalls that invalidate a benchmark. Group Project released.">
+    <style>
+        /* ============================================================
+           CSEG3060 - Unit II - Lecture II.7
+           Self-contained interactive deck. No external assets.
+           Activity-led: slides marked data-mode="do" are student work.
+           Keys: → / Space next · ← prev · O overview · T timer · D dark · F fullscreen
+           ============================================================ */
+
+        :root {
+            --ink: #0f1e35;
+            --ink-soft: #3d5372;
+            --ink-faint: #6b7f9c;
+            --bg: #eef2f8;
+            --surface: #ffffff;
+            --surface-2: #f6f9fd;
+            --line: #d3dced;
+            --brand: #1d5fd0;
+            --brand-soft: #e5eeff;
+            --good: #147a45;
+            --good-soft: #e2f5ea;
+            --bad: #b3182b;
+            --bad-soft: #fdeaec;
+            --warn: #a9640a;
+            --warn-soft: #fdf1de;
+            --do: #7b2fd0;
+            --do-soft: #f1e8fd;
+            --shadow: 0 2px 4px rgba(15, 30, 53, .06), 0 12px 32px rgba(15, 30, 53, .10);
+            --radius: 16px;
+            --fs: clamp(18px, 1.0vw + 12px, 33px);
+        }
+
+        html[data-theme="dark"] {
+            --ink: #eaf1fb;
+            --ink-soft: #b6c6dd;
+            --ink-faint: #8ea3c0;
+            --bg: #0b1220;
+            --surface: #131f33;
+            --surface-2: #18263d;
+            --line: #2c3d59;
+            --brand: #6ea8ff;
+            --brand-soft: #1a2c4c;
+            --good: #4ade80;
+            --good-soft: #123024;
+            --bad: #fb7185;
+            --bad-soft: #3a1620;
+            --warn: #fbbf24;
+            --warn-soft: #392a10;
+            --do: #c99bff;
+            --do-soft: #2a1a44;
+            --shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: var(--fs);
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            gap: .8em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            font-size: .68em;
+            letter-spacing: .02em;
+            color: var(--ink-faint);
+            z-index: 40;
+        }
+
+        .topbar b {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .topbar .spacer {
+            flex: 1;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .18em .8em;
+            background: var(--surface-2);
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .chip:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .progress {
+            position: fixed;
+            top: 2.4em;
+            left: 0;
+            height: 4px;
+            background: var(--brand);
+            z-index: 41;
+            transition: width .25s ease;
+        }
+
+        .deck {
+            position: absolute;
+            inset: 2.4em 0 0 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            padding: clamp(14px, 2.2vh, 30px) clamp(18px, 3.4vw, 70px) 4.2em;
+            display: none;
+            animation: in .28s ease both;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide[data-mode="do"] {
+            background:
+                linear-gradient(90deg, var(--do) 0 6px, transparent 6px);
+        }
+
+        .fit {
+            display: flow-root;
+            transform-origin: top center;
+        }
+
+        @keyframes in {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.1em;
+            display: flex;
+            align-items: center;
+            gap: .6em;
+            padding: 0 1.1em;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            z-index: 40;
+            font-size: .7em;
+        }
+
+        .navbar .count {
+            font-weight: 800;
+            color: var(--ink-soft);
+            min-width: 5.5em;
+        }
+
+        .navbar .title-now {
+            color: var(--ink-faint);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button.nav {
+            font: inherit;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: .45em 1.1em;
+            cursor: pointer;
+        }
+
+        button.nav:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            line-height: 1.08;
+            margin: .1em 0 .3em;
+            letter-spacing: -.02em;
+        }
+
+        h2 {
+            font-size: 1.72em;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            letter-spacing: -.015em;
+        }
+
+        h3 {
+            font-size: 1.12em;
+            margin: 0 0 .4em;
+        }
+
+        p {
+            margin: 0 0 .7em;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: .62em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: .35em 1em;
+            margin-bottom: .9em;
+        }
+
+        .kicker.do {
+            color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .lead {
+            font-size: 1.12em;
+            color: var(--ink-soft);
+        }
+
+        .big {
+            font-size: 1.35em;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .huge {
+            font-size: 2.1em;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+        }
+
+        em.hl {
+            font-style: normal;
+            background: linear-gradient(transparent 62%, rgba(29, 95, 208, .26) 0);
+            font-weight: 700;
+        }
+
+        .quote {
+            font-size: 1.15em;
+            border-left: 6px solid var(--brand);
+            padding: .3em 0 .3em 1em;
+            color: var(--ink-soft);
+            font-style: italic;
+            margin: .8em 0;
+        }
+
+        code,
+        .mono {
+            font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: .92em;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: .06em .38em;
+        }
+
+        .grid {
+            display: grid;
+            gap: clamp(10px, 1.4vw, 20px);
+        }
+
+        .g2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .g5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .g23 {
+            grid-template-columns: 2fr 3fr;
+        }
+
+        .g32 {
+            grid-template-columns: 3fr 2fr;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: clamp(12px, 1.5vw, 22px);
+            box-shadow: var(--shadow);
+        }
+
+        .flat {
+            box-shadow: none;
+        }
+
+        .tint-good {
+            background: var(--good-soft);
+            border-color: color-mix(in srgb, var(--good) 35%, transparent);
+        }
+
+        .tint-bad {
+            background: var(--bad-soft);
+            border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+        }
+
+        .tint-warn {
+            background: var(--warn-soft);
+            border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+        }
+
+        .tint-brand {
+            background: var(--brand-soft);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+
+        .tint-do {
+            background: var(--do-soft);
+            border-color: color-mix(in srgb, var(--do) 40%, transparent);
+        }
+
+        ul,
+        ol {
+            margin: 0 0 .6em;
+            padding-left: 1.15em;
+        }
+
+        li {
+            margin-bottom: .42em;
+        }
+
+        li::marker {
+            color: var(--brand);
+            font-weight: 800;
+        }
+
+        .stack-tight li {
+            margin-bottom: .25em;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: .66em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+            padding: .2em .6em;
+            border: 1px solid currentColor;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88em;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: .5em .7em;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: .82em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--ink-faint);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .reveal-btn {
+            font: inherit;
+            font-weight: 800;
+            font-size: .88em;
+            border: 2px dashed var(--brand);
+            color: var(--brand);
+            background: transparent;
+            border-radius: 10px;
+            padding: .4em 1em;
+            cursor: pointer;
+        }
+
+        .reveal-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-style: solid;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pick {
+            text-align: left;
+            font: inherit;
+            width: 100%;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .55em .8em;
+            color: var(--ink);
+            transition: .15s;
+        }
+
+        .pick:hover {
+            border-color: var(--brand);
+            transform: translateY(-2px);
+        }
+
+        .pick.sel {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .pick.right {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .pick.wrong {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .verdict {
+            margin-top: .6em;
+            font-size: .92em;
+            border-left: 5px solid var(--brand);
+            padding-left: .8em;
+            color: var(--ink-soft);
+        }
+
+        .ck {
+            font: inherit;
+            font-size: .82em;
+            text-align: left;
+            cursor: pointer;
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .35em .6em;
+            color: var(--ink);
+        }
+
+        .ck.on {
+            border-color: var(--good);
+            background: var(--good-soft);
+            font-weight: 700;
+        }
+
+        .ck .star {
+            color: var(--bad);
+            font-weight: 900;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: .5em;
+            font-weight: 900;
+        }
+
+        .timer .t {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 1.5em;
+            min-width: 3.4em;
+            text-align: center;
+            background: var(--surface-2);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            padding: .05em .3em;
+        }
+
+        .timer .t.low {
+            color: var(--bad);
+            border-color: var(--bad);
+        }
+
+        .tbtn {
+            font: inherit;
+            font-size: .8em;
+            font-weight: 800;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 8px;
+            padding: .3em .8em;
+            cursor: pointer;
+        }
+
+        .tbtn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .overview {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 60;
+            padding: 2em clamp(18px, 4vw, 70px);
+            overflow-y: auto;
+        }
+
+        .ov-item {
+            display: flex;
+            gap: .8em;
+            align-items: baseline;
+            width: 100%;
+            text-align: left;
+            font: inherit;
+            font-size: .82em;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: .5em .8em;
+            margin-bottom: .4em;
+            cursor: pointer;
+            color: var(--ink);
+        }
+
+        .ov-item:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .ov-item b {
+            color: var(--brand);
+            min-width: 2.2em;
+        }
+
+        .ov-item .do-dot {
+            margin-left: auto;
+            font-size: .7em;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: var(--do);
+            background: var(--do-soft);
+            border-radius: 999px;
+            padding: .1em .7em;
+        }
+
+        .score {
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .footnote {
+            font-size: .74em;
+            color: var(--ink-faint);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--brand);
+            font-weight: 900;
+        }
+
+        /* ---- activity banner ---- */
+        .runbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .7em;
+            background: var(--do-soft);
+            border: 1px solid color-mix(in srgb, var(--do) 40%, transparent);
+            border-left: 6px solid var(--do);
+            border-radius: 12px;
+            padding: .5em .9em;
+            font-size: .8em;
+            margin-bottom: .8em;
+        }
+
+        .runbar b {
+            color: var(--do);
+        }
+
+        .runbar .step {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .15em .8em;
+            font-weight: 700;
+        }
+
+        /* ---- Toulmin diagram ---- */
+        .toul {
+            display: grid;
+            gap: .5em;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: stretch;
+        }
+
+        .tbox {
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            padding: .5em .8em;
+            background: var(--surface);
+        }
+
+        .tbox h4 {
+            margin: 0 0 .15em;
+            font-size: .78em;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        .tbox p {
+            margin: 0;
+            font-size: .92em;
+        }
+
+        .tbox.k-claim {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .tbox.k-warrant {
+            border-color: var(--do);
+            background: var(--do-soft);
+        }
+
+        .tbox.k-ground {
+            border-color: var(--good);
+            background: var(--good-soft);
+        }
+
+        .tbox.k-reb {
+            border-color: var(--bad);
+            background: var(--bad-soft);
+        }
+
+        .tbox.k-qual {
+            border-color: var(--warn);
+            background: var(--warn-soft);
+        }
+
+        .tarrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--ink-faint);
+        }
+
+        @media (max-width: 900px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .g5,
+            .g23,
+            .g32,
+            .toul {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+
+            body,
+            html {
+                overflow: visible;
+                background: #fff;
+            }
+
+            .topbar,
+            .navbar,
+            .progress,
+            .overview {
+                display: none !important;
+            }
+
+            .deck {
+                position: static;
+            }
+
+            .slide {
+                display: block !important;
+                position: static;
+                page-break-after: always;
+                animation: none;
+                padding: 12mm;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .hidden {
+                display: block !important;
+            }
+
+            .fit {
+                transform: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <b>CSEG3060</b><span>Research Methodology in Computer Science</span>
+        <span>·</span><span>Unit II · Lecture II.7</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit II · Lecture II.7 · CO2 · activity-led · focus topic · GROUP PROJECT released</span>
+            <h1>Performance Evaluation<br><span style="color:var(--brand)">and Benchmarking</span></h1>
+            <p class="lead big" style="max-width:36em">The last hour of Unit II — and the one your project will actually
+                be marked on. <em>Four parameters, one process, and a long list of ways to produce a number that means
+                    nothing.</em></p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · The four parameters</h3>
+                    <p style="margin:0"><b>Time · space · scalability · reliability.</b> What each means precisely, and
+                        how each is measured.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Complexity as evidence</h3>
+                    <p style="margin:0">Asymptotic analysis and measurement answer <em>different</em> questions. You
+                        need both.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · Benchmarking</h3>
+                    <p style="margin:0">The process, and the eight pitfalls that turn a benchmark into
+                        decoration.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>You leave with</h3>
+                    <p style="margin:0">A complete evaluation plan for your group project — parameters, workloads,
+                        metrics, aggregates, baselines.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · 5th Semester
+                B.Tech CSE · 55 minutes · <b style="color:var(--do)">≈ 28 minutes of this hour is your work</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Which system is faster?">
+            <span class="kicker do">Do first · 5 minutes · no theory yet</span>
+            <h2>Two systems. Six numbers. Which one do you deploy?</h2>
+            <div class="runbar">
+                <span class="step">1 · Alone, 2 min — pick one and write why</span>
+                <span class="step">2 · Pairs, 2 min — find someone who chose the other</span>
+                <span class="step">3 · Class, 1 min</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="300">5:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Measurement</th>
+                            <th style="color:var(--brand)">System A</th>
+                            <th style="color:var(--good)">System B</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Mean response time</td><td><b>45 ms</b></td><td>62 ms</td></tr>
+                        <tr><td>p95 response time</td><td>420 ms</td><td><b>91 ms</b></td></tr>
+                        <tr><td>p99 response time</td><td>2,100 ms</td><td><b>140 ms</b></td></tr>
+                        <tr><td>Peak memory</td><td><b>180 MB</b></td><td>1.4 GB</td></tr>
+                        <tr><td>Throughput at 8 cores</td><td>12,000 req/s</td><td><b>31,000 req/s</b></td></tr>
+                        <tr><td>Throughput at 1 core</td><td><b>4,000 req/s</b></td><td>2,900 req/s</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card tint-do" style="margin-top:.7em">
+                <p class="big" style="margin:0">Before you answer, notice: <b>A wins on three rows and B wins on
+                        three.</b></p>
+                <ol class="stack-tight" style="margin:.4em 0 0">
+                    <li>Which rows would a <b>user</b> feel? Which would an <b>operations team</b> care about?</li>
+                    <li>What does the last two rows together tell you that neither tells you alone?</li>
+                    <li>Is there <b>any</b> single number that settles this?</li>
+                </ol>
+            </div>
+            <p class="footnote" style="margin-top:.6em">There is a defensible answer for each system. What there is not
+                is a defensible answer that ignores half the table.</p>
+        </section>
+
+        <!-- ============ 3 · REVEAL ============ -->
+        <section class="slide" data-title="Reveal · 'faster' is not a measurement">
+            <span class="kicker">Reveal · four different questions were hiding in one word</span>
+            <h2>“Faster” was never one question</h2>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>What the table actually says</h3>
+                    <ul class="stack-tight">
+                        <li><b>A has a better mean and a catastrophic tail.</b> Its p99 is 47× its mean — something
+                            pathological happens to 1 in 100 requests. Users experience the tail, not the mean.</li>
+                        <li><b>B is slower on average and dramatically more predictable.</b> For an interactive service,
+                            B is the better system despite losing the headline row.</li>
+                        <li><b>A uses 8× less memory</b> — which may decide it on constrained hardware, or when you are
+                            paying per GB.</li>
+                        <li><b>A barely scales: 4,000 → 12,000 on 8 cores is 3×.</b> B goes 2,900 → 31,000, about
+                            10.7×. B has far better <em>scalability</em> even though it is worse on one core.</li>
+                    </ul>
+                </div>
+                <div class="card tint-do">
+                    <h3>Four independent parameters were in play</h3>
+                    <div class="grid" style="gap:.35em">
+                        <div class="card flat tint-brand" style="padding:.4em .8em"><p style="margin:0">
+                                <b>Time efficiency</b> — and it split into <em>latency</em> (rows 1–3) and
+                                <em>throughput</em> (rows 5–6), which trade off against each other.</p></div>
+                        <div class="card flat tint-warn" style="padding:.4em .8em"><p style="margin:0">
+                                <b>Space efficiency</b> — row 4, and it can dominate everything else.</p></div>
+                        <div class="card flat tint-good" style="padding:.4em .8em"><p style="margin:0">
+                                <b>Scalability</b> — visible only from rows 5 and 6 <em>together</em>. A single
+                                configuration can never show it.</p></div>
+                        <div class="card flat" style="padding:.4em .8em"><p style="margin:0">
+                                <b>Reliability</b> — <em>not measured at all here</em>, and nobody noticed. What happens
+                                when a node dies?</p></div>
+                    </div>
+                    <p class="big" style="margin:.5em 0 0"><em class="hl">A performance claim with one number is a
+                            performance claim that chose which question to answer without telling you.</em></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 4 · TIME AND SPACE ============ -->
+        <section class="slide" data-title="A1 · Time efficiency and space efficiency">
+            <span class="kicker">Part A · parameters 1 and 2</span>
+            <h2>Time and space — and the sub-questions inside each</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <h3>Time efficiency</h3>
+                    <p style="margin:0 0 .3em">Three different things, routinely confused:</p>
+                    <ul class="stack-tight">
+                        <li><b>Latency</b> — time for <em>one</em> operation. Report <b>p50, p95, p99</b>, never the
+                            mean alone. Users feel the tail.</li>
+                        <li><b>Throughput</b> — operations per unit time under load. Measured at saturation, with the
+                            offered load stated.</li>
+                        <li><b>Total runtime</b> — wall-clock for a whole job. The right measure for batch work, the
+                            wrong one for services.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0"><b>They trade off.</b> Batching raises throughput and
+                        worsens latency. A system tuned for one will look bad on the other, so state which you
+                        optimised.</p>
+                    <p class="footnote" style="margin:.3em 0 0"><b>Measure honestly:</b> monotonic clock, warm-up
+                        discarded and counted, CPU time vs wall time distinguished, probe overhead measured, and the
+                        machine otherwise idle.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Space efficiency</h3>
+                    <p style="margin:0 0 .3em">Also three things:</p>
+                    <ul class="stack-tight">
+                        <li><b>Peak memory</b> — what decides whether it runs at all on the target device. Usually the
+                            number that matters.</li>
+                        <li><b>Working set / steady-state</b> — what decides cache behaviour and, indirectly, most of
+                            your time performance.</li>
+                        <li><b>Storage and bandwidth</b> — on-disk size, model size, bytes on the wire.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0"><b>The trade-off you will meet constantly:</b>
+                        time–space. Caching, memoisation, indexes and precomputation all buy time with space. Neither
+                        number is meaningful without the other, so <b>report both or your claim is incomplete</b>.</p>
+                    <p class="footnote" style="margin:.3em 0 0"><b>Measure honestly:</b> RSS vs virtual vs heap —
+                        say which. Include the runtime, the model weights and the buffers, not just your allocations.</p>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:.7em">Before measuring anything, answer:
+                <em class="hl">which of these six numbers would change someone's decision?</em> Measure those.</p>
+        </section>
+
+        <!-- ============ 5 · SCALABILITY ============ -->
+        <section class="slide" data-title="A2 · Scalability">
+            <span class="kicker">Part A · parameter 3 · the one students get wrong</span>
+            <h2>Scalability is a <em>shape</em>, not a number</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>The definition, and why one measurement cannot give it</h3>
+                    <p style="margin:0 0 .4em"><b>Scalability is how a metric changes as a resource or a load
+                            changes.</b> It is a <em>curve</em>. A single configuration produces a point, and a point
+                        has no shape.</p>
+                    <p style="margin:0 0 .3em">Two directions, and they are different claims:</p>
+                    <ul class="stack-tight">
+                        <li><b>Scale-up (vertical)</b> — more cores, more RAM on one machine.</li>
+                        <li><b>Scale-out (horizontal)</b> — more machines. Brings coordination cost.</li>
+                        <li><b>Load scaling</b> — same resources, more data or more users. Often the one that
+                            matters most and is measured least.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0"><b>Report:</b> speedup S(n) = T(1)/T(n) and efficiency
+                        E(n) = S(n)/n, plotted over at least four settings — 1, 2, 4, 8. <b>Three points minimum, four
+                            preferred</b>; two points is a line through anything.</p>
+                </div>
+                <div class="card tint-bad">
+                    <h3>What limits it — and the law you must be able to state</h3>
+                    <p style="margin:0 0 .4em"><b>Amdahl's Law.</b> If a fraction <i>s</i> of the work is inherently
+                        serial, maximum speedup is <b>1/s</b>, no matter how many processors you add.</p>
+                    <div class="card flat" style="padding:.5em .8em">
+                        <p style="margin:0"><b>The number that ends arguments:</b> if just <b>5%</b> of your program is
+                            serial, you can never exceed <b>20×</b> speedup — with a thousand cores or a million. This
+                            is why “we will just add machines” is not a performance plan.</p>
+                    </div>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Gustafson's counterpoint:</b> in practice bigger
+                        machines get given bigger problems, and the serial fraction often shrinks as the problem grows —
+                        so scaled speedup can look much better. Both laws are right about different questions; say
+                        which one you are asking.</p>
+                    <p class="footnote" style="margin:.3em 0 0"><b>Other limits:</b> coordination and synchronisation
+                        overhead, contention on a shared resource, network bandwidth, and load imbalance — the slowest
+                        worker sets the pace.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · RELIABILITY ============ -->
+        <section class="slide" data-title="A3 · Reliability">
+            <span class="kicker">Part A · parameter 4 · the one that never gets measured</span>
+            <h2>Reliability: performance when things go wrong</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <h3>The vocabulary, kept apart</h3>
+                    <ul class="stack-tight">
+                        <li><b>Reliability</b> — probability of correct operation over a period. Often summarised as
+                            <b>MTBF</b> (mean time between failures).</li>
+                        <li><b>Availability</b> — the fraction of time the system is usable:
+                            MTBF / (MTBF + MTTR). <span class="footnote">Note that cutting recovery time
+                                (<b>MTTR</b>) improves availability just as much as preventing failures — and is usually
+                                far cheaper.</span></li>
+                        <li><b>Fault tolerance</b> — continuing correctly <em>despite</em> component failure.</li>
+                        <li><b>Robustness</b> — behaving sensibly on malformed, adversarial or out-of-distribution
+                            input.</li>
+                        <li><b>Correctness under load</b> — does it still give right answers at 95% utilisation, or
+                            does it start dropping and corrupting?</li>
+                    </ul>
+                    <p class="footnote" style="margin:.3em 0 0"><b>“Five nines”</b> = 99.999% availability ≈ 5 minutes
+                        of downtime per year. Quote such figures only with the measurement window attached.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>How to actually evaluate it</h3>
+                    <ul class="stack-tight">
+                        <li><b>Fault injection.</b> Kill a node, drop packets, fill a disk, add latency — and measure
+                            what happens. This is the core technique.</li>
+                        <li><b>Stress and soak testing.</b> Run past capacity, and run for a long time. Memory leaks and
+                            resource exhaustion are invisible in a 60-second benchmark.</li>
+                        <li><b>Chaos engineering.</b> Fault injection in production, deliberately.</li>
+                        <li><b>Adversarial / edge-case input</b> for robustness claims.</li>
+                        <li><b>Graceful degradation:</b> does it get slower, or does it fall over? Measure the
+                            difference — a system that degrades is a different product from one that collapses.</li>
+                    </ul>
+                    <p class="big" style="margin:.4em 0 0">The examiner's question: <em class="hl">you measured your
+                            system when everything worked. What did you measure when it did not?</em></p>
+                    <p class="footnote" style="margin:.4em 0 0">For ML projects this parameter maps onto distribution
+                        shift, adversarial robustness and calibration — the same idea in different clothing.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · DRILL 1 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill · which parameter, which metric?">
+            <span class="kicker do">Do · 7 items · 6 minutes</span>
+            <h2>Which parameter is this question about?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="pq-n">1</span> of <span id="pq-total">7</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="pq-score">0</span></p>
+                <p class="big" id="pq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g4" id="pq-opts" style="gap:.5em"></div>
+                <div id="pq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="pq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="pq-restart">Restart</button>
+                    <span class="footnote">Then say, out loud, the <b>metric and the aggregate</b> you would
+                        report.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · COMPLEXITY AS EVIDENCE ============ -->
+        <section class="slide" data-title="B1 · Where the bound meets the stopwatch">
+            <span class="kicker">Part B · carrying II.5 forward</span>
+            <h2>You proved the bound in II.5. Now you have to measure it.</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <h3>Recall from II.5 <span class="footnote">(the four claims)</span></h3>
+                    <p style="margin:0 0 .3em">A complexity bound is a <b>theorem, not a measurement</b>, and there were
+                        four different kinds:</p>
+                    <p style="margin:0"><b>Worst case</b> (every input) · <b>average case</b> (a distribution you
+                        assumed) · <b>amortised</b> (any sequence of operations) · <b>lower bound</b> (every possible
+                        algorithm).</p>
+                    <p class="footnote" style="margin:.4em 0 0">Carry the label into this hour: <em>which</em> of those
+                        four your evaluation is testing changes what workload you must run. Testing an average-case
+                        claim on adversarial input, or a worst-case claim on random input, measures the wrong
+                        thing.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Why measurement is still required</h3>
+                    <ul class="stack-tight">
+                        <li><b>The constants</b>, which decide everything at realistic sizes.</li>
+                        <li><b>Real hardware effects</b> — caches, NUMA, GC pauses, thermal throttling — all invisible
+                            to the model.</li>
+                        <li><b>The inputs you actually have</b>, rather than worst cases that never occur.</li>
+                    </ul>
+                    <div class="card flat tint-do" style="padding:.5em .8em; margin-top:.4em">
+                        <p style="margin:0"><b>The move that uses both:</b> derive the complexity, then <b>measure
+                                across a range of n and check the curve has the shape the theory predicts</b>. Theory
+                            says O(n log n) and the measurements bend quadratically? You have found a bug, an unmet
+                            assumption or a hidden cost — and each is a genuine finding.</p>
+                    </div>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:.7em">II.5 gave you the <em>proof</em> half of algorithmic evidence.
+                <em class="hl">This hour is the measurement half — and neither is sufficient alone.</em></p>
+        </section>
+
+        <!-- ============ 9 · BENCHMARKING PROCESS ============ -->
+        <section class="slide" data-title="C1 · The benchmarking process">
+            <span class="kicker">Part C · the process, in order</span>
+            <h2>Seven steps, and the order is not negotiable</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <ol class="stack-tight">
+                        <li><b>State the question and the decision.</b> Who will do what differently depending on the
+                            answer? If nobody, do not run it.</li>
+                        <li><b>Choose the parameters</b> — which of the four, and why those.</li>
+                        <li><b>Choose metrics and aggregates</b> — p95, not "time"; peak RSS, not "memory".
+                            <b>Fix these before collecting.</b></li>
+                        <li><b>Choose the workload.</b> Representative of the real use, diverse enough to disagree with
+                            itself, and including the trivial and adversarial cases.</li>
+                        <li><b>Choose baselines</b> — the strongest available, tuned equally (II.4).</li>
+                        <li><b>Control the environment</b> — same machine, idle, fixed frequency, interleaved
+                            randomised runs, warm-up discarded.</li>
+                        <li><b>Run, repeat, report</b> — multiple runs, mean ± SD or full distribution, raw data kept,
+                            versions and seeds recorded.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Steps 3 and 4 done <em>after</em> seeing results is
+                        metric-shopping and workload-shopping — an integrity issue, not a technique issue. Unit III
+                        returns to it.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Choosing a workload — four options, ranked</h3>
+                    <ol class="stack-tight">
+                        <li><b>Real production traces.</b> Best evidence; hardest to obtain. Ask early.</li>
+                        <li><b>Standard benchmark suites</b> — SPEC, TPC, YCSB, MLPerf, GLUE, SPECjbb. Comparable
+                            across papers, which is their whole value; may not match <em>your</em> use.</li>
+                        <li><b>Synthetic workloads</b> with stated parameters. Controllable and reproducible; you must
+                            justify that the parameters are realistic.</li>
+                        <li><b>Microbenchmarks.</b> Isolate one operation. Useful for explaining <em>why</em>;
+                            dangerously misleading as a headline result, because they omit exactly the interactions
+                            that dominate real systems.</li>
+                    </ol>
+                    <p class="big" style="margin:.4em 0 0"><em class="hl">A benchmark is a model of a workload</em> —
+                        so everything from II.6 applies. What did it delete, and does the deletion matter?</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · PITFALLS ============ -->
+        <section class="slide" data-title="C2 · Eight ways to invalidate your own benchmark">
+            <span class="kicker">Part C · the pitfalls</span>
+            <h2>Eight benchmarking crimes, all of them accidental</h2>
+            <div class="grid g4" style="gap:.55em">
+                <div class="card flat tint-bad">
+                    <h3>1 · Measuring the wrong thing</h3>
+                    <p class="footnote" style="margin:0">Timing the whole program when only 4% of it is your
+                        contribution. <b>Amdahl applies to your evaluation too.</b></p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>2 · Cold vs warm confusion</h3>
+                    <p class="footnote" style="margin:0">First run pays JIT, page faults and cold caches. Discard
+                        warm-up — and <em>say how many runs you discarded</em>.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>3 · The dead-code trap</h3>
+                    <p class="footnote" style="margin:0">The compiler noticed you never use the result and deleted your
+                        benchmark. Consume the output, or check the assembly.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>4 · Unstable environment</h3>
+                    <p class="footnote" style="margin:0">Thermal throttling, turbo boost, other processes, a noisy
+                        cloud neighbour. Pin frequency; use an idle machine.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>5 · Mean of a heavy tail</h3>
+                    <p class="footnote" style="margin:0">The mean of latencies hides the tail users feel. Percentiles,
+                        always. Never average percentiles across machines.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>6 · Cherry-picked workload</h3>
+                    <p class="footnote" style="margin:0">Reporting the 3 benchmarks you win, omitting the 9 you lose.
+                        Report all, and discuss the losses.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>7 · Unfair baseline</h3>
+                    <p class="footnote" style="margin:0">Untuned, unoptimised, or an old version. The II.4 lesson,
+                        and the commonest of all.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>8 · Ignoring variance</h3>
+                    <p class="footnote" style="margin:0">One run per configuration, differences reported to three
+                        decimal places. Precision is not accuracy.</p>
+                </div>
+            </div>
+            <div class="card tint-do" style="margin-top:.8em">
+                <p class="big" style="margin:0">Notice that <em class="hl">not one of these requires dishonesty.</em>
+                    Every one is what happens when a benchmark is run without a plan — which is why the seven steps come
+                    before the code, not after.</p>
+            </div>
+        </section>
+
+        <!-- ============ 11 · DRILL 2 ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill · spot the benchmarking crime">
+            <span class="kicker do">Do · 6 items · 5 minutes</span>
+            <h2>What invalidated this benchmark?</h2>
+            <div class="card" style="min-height:11em">
+                <p class="footnote" style="margin:0 0 .3em">Item <span id="bq-n">1</span> of <span id="bq-total">6</span>
+                    &nbsp;·&nbsp; Score: <span class="score" id="bq-score">0</span></p>
+                <p class="big" id="bq-stmt" style="margin:0 0 .5em">—</p>
+                <div class="grid g2" id="bq-opts" style="gap:.5em"></div>
+                <div id="bq-fb" class="verdict hidden"></div>
+                <div style="margin-top:.7em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap">
+                    <button class="nav" id="bq-next" style="font-size:.85em">Next →</button>
+                    <button class="tbtn" id="bq-restart">Restart</button>
+                    <span class="footnote">Name the crime that makes the <b>reported number wrong</b>, not merely
+                        incomplete.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · MAIN ACTIVITY ============ -->
+        <section class="slide" data-mode="do" data-title="DO 4 · Build your evaluation plan">
+            <span class="kicker do">Do · 10 minutes · this is your group project deliverable</span>
+            <h2>Write the evaluation plan for your group project</h2>
+            <div class="runbar">
+                <span class="step">1 · <b>5 min</b> in your team — fill the seven rows</span>
+                <span class="step">2 · <b>3 min</b> — swap with another team, find one crime</span>
+                <span class="step">3 · <b>2 min</b> — patch</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="600">10:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>The seven rows</h3>
+                    <table style="font-size:.84em">
+                        <tbody>
+                            <tr><td><b>1 · Decision</b></td><td>Who does what differently depending on the
+                                result?</td></tr>
+                            <tr><td><b>2 · Parameters</b></td><td>Which of time / space / scalability / reliability —
+                                and why not the others?</td></tr>
+                            <tr><td><b>3 · Metric + aggregate</b></td><td>Exactly. “p95 end-to-end latency”, not
+                                “speed”.</td></tr>
+                            <tr><td><b>4 · Workload</b></td><td>Which, from the four options — and what it
+                                deletes.</td></tr>
+                            <tr><td><b>5 · Baselines</b></td><td>The strongest available <b>plus the trivial
+                                one</b>.</td></tr>
+                            <tr><td><b>6 · Environment</b></td><td>Machine, warm-up policy, run count, interleaving,
+                                seeds.</td></tr>
+                            <tr><td><b>7 · Failure threshold</b></td><td>The number at which you would say it did not
+                                work.</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="footnote" style="margin:.3em 0 0">If you name <em>every</em> parameter in row 2, you have
+                        not chosen — you have deferred. Pick one or two and justify the omissions.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Step 2 · Audit the other team against the eight crimes</h3>
+                    <p style="margin:0 0 .4em">Go down the list on slide 10 and find <b>one</b> that would invalidate
+                        their plan as written. State it as: <i>“Your plan reports <b>___</b>, which is crime
+                            <b>___</b>, so your number would be wrong because <b>___</b>.”</i></p>
+                    <div class="card flat tint-warn" style="padding:.5em .8em">
+                        <p style="margin:0"><b>What will happen.</b> The two most common findings in this room will be
+                            <b>crime 5</b> (a mean where a percentile was needed) and <b>crime 7</b> (no baseline at all,
+                            or a baseline nobody would use). The second is usually fatal and always fixable this
+                            week.</p>
+                    </div>
+                    <p class="big" style="margin:.5em 0 0">This sheet <em class="hl">is</em> the evaluation section of
+                        your group project. Do it properly now and you have written it.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 13 · GROUP PROJECT ============ -->
+        <section class="slide" data-title="GROUP PROJECT released">
+            <span class="kicker" style="color:var(--bad); background:var(--bad-soft)">Assessment · released
+                today</span>
+            <h2>Group Project — 10 marks · CO2 + CO4</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <h3>What you are producing</h3>
+                    <p style="margin:0 0 .4em"><b>Teams of 4–5.</b> A mini empirical study with a defined method, an
+                        honest baseline, and a full evaluation plan.</p>
+                    <ol class="stack-tight">
+                        <li><b>A claim</b> in Toulmin form, with its quantifier and its arrow named (II.1, II.2).</li>
+                        <li><b>A method</b> — which proof method, and why that one (II.3–II.5).</li>
+                        <li><b>A model</b>, explicit or implicit, with its deletions listed (II.6).</li>
+                        <li><b>An evaluation plan</b> — the seven rows you just filled in (II.7).</li>
+                        <li><b>Results</b> with variance, and a Threats to Validity section naming all four
+                            categories.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Presented at <b>lecture IV.5</b> to a mock review panel,
+                        with faculty and peer scoring.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>How it is marked</h3>
+                    <ul class="stack-tight">
+                        <li><b>The claim is sized to the evidence.</b> A modest claim fully supported beats an ambitious
+                            claim asserted — every time.</li>
+                        <li><b>The baseline is honest</b>, and the trivial baseline was run.</li>
+                        <li><b>Variance is reported.</b> A single number anywhere costs marks.</li>
+                        <li><b>The limitations are named by you</b>, not discovered by the panel.</li>
+                        <li><b>A negative result, honestly reported, scores full marks.</b> You are marked on method,
+                            not on whether your idea won.</li>
+                    </ul>
+                    <p class="big" style="margin:.4em 0 0">Every deliverable maps onto one lecture of this unit. That is
+                        <em class="hl">why Unit II was taught in this order.</em></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 14 · EXIT TICKET ============ -->
+        <section class="slide" data-mode="do" data-title="DO 5 · Exit ticket">
+            <span class="kicker do">Exit ticket · tick what is true of your plan</span>
+            <h2>Would your benchmark survive a reviewer?</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <div class="grid" id="exit" style="gap:.4em; grid-template-columns:1fr 1fr"></div>
+                    <p class="footnote" style="margin:.5em 0 0"><span class="star"
+                            style="color:var(--bad); font-weight:900">★</span> = non-negotiable. Five starred
+                        items.</p>
+                </div>
+                <div class="card" id="ex-card">
+                    <h3>Ticked: <span class="score" id="ex-score">0</span> / 12 &nbsp;·&nbsp; essentials: <span
+                            class="score" id="ex-ess">0</span> / 5</h3>
+                    <p id="ex-verdict" style="margin:0">Tick what is written down — not what you intend.</p>
+                    <div class="card flat tint-warn" style="padding:.5em .8em; margin-top:.6em">
+                        <p style="margin:0"><b>Unit II ends here.</b> <b>Class Test 1 is the next session, 12
+                                September</b> — Unit I complete and Unit II complete. Then Unit III: literature studies,
+                            reading research, plagiarism and ethics, in four sessions to 29/30 September.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 15 · TAKEAWAYS ============ -->
+        <section class="slide" data-title="Ten things that must survive">
+            <span class="kicker">Consolidation · end of Unit II</span>
+            <h2>Ten things that must survive this hour</h2>
+            <div class="grid g2">
+                <ol class="stack-tight big" style="line-height:1.28">
+                    <li>Four parameters: <b>time · space · scalability · reliability</b>. “Faster” names none of
+                        them.</li>
+                    <li>Time splits into <b>latency, throughput and total runtime</b>, and they trade off.</li>
+                    <li><b>Report percentiles, not means</b>, for anything a user waits on.</li>
+                    <li><b>Time and space are a trade-off</b> — report both or the claim is incomplete.</li>
+                    <li><b>Scalability is a curve</b>, so it needs three or four configurations, never one.</li>
+                </ol>
+                <ol class="stack-tight big" start="6" style="line-height:1.28">
+                    <li><b>Amdahl:</b> 5% serial caps you at 20× speedup, forever.</li>
+                    <li><b>Reliability is what you measured when things broke</b> — and almost nobody measures it.</li>
+                    <li>Complexity and measurement answer <b>different questions</b>: derive the curve, then check its
+                        shape.</li>
+                    <li>Fix <b>metric, aggregate and workload before collecting</b>. Afterwards is metric-shopping.</li>
+                    <li>A benchmark is <b>a model of a workload</b> — ask what it deleted.</li>
+                </ol>
+            </div>
+            <div class="card tint-brand" style="margin-top:.8em">
+                <p class="big" style="margin:0">If you remember one sentence from all of Unit II:
+                    <em class="hl">decide what would count as failure before you measure — the claim, the method, the
+                        model and the benchmark are all just machinery for making that decision honest.</em></p>
+            </div>
+        </section>
+
+        <!-- ============ 16 · NOTEBOOK & CLOSE ============ -->
+        <section class="slide" data-title="Notebook task and what's next">
+            <span class="kicker">Research Notebook · entry after Lecture II.7 · end of Unit II</span>
+            <h2>Your notebook task</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Three things to add before Class Test 1</h3>
+                    <ol class="stack-tight">
+                        <li><b>Lecture log.</b> Date, “II.7 — performance evaluation and benchmarking”, and your
+                            exit-ticket score out of 12.</li>
+                        <li><b>Section 10 · Evaluation plan.</b> All seven rows, plus the crime the auditing team found
+                            and your patch for it. This is your group-project evaluation section.</li>
+                        <li><b>Unit II consolidation.</b> One page: your claim, its arrow, its quantifier, its proof
+                            method, its model, its evaluation plan — <em>one line each</em>. If any line is blank, that
+                            is the lecture to re-read before 12 September.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.3em 0 0">Stamp the entry <code>\version{12}{...}{after Lecture
+                            II.7}</code>.</p>
+                </div>
+                <div class="card">
+                    <div class="card flat tint-bad" style="padding:.7em .9em">
+                        <h3 style="margin-bottom:.2em">Next session · CLASS TEST 1 · 12 September</h3>
+                        <p style="margin:0"><b>10 marks · CO1 + CO2 · the full slot.</b> Unit I complete and Unit II
+                            complete.</p>
+                        <p style="margin:.4em 0 0"><b>The four most examinable things in Unit II:</b> the
+                            three-method comparison table (II.5) · deduction/induction/abduction with one CS example
+                            each (II.2) · the four model families with a limitation each (II.6) · the four performance
+                            parameters with a metric each (II.7).</p>
+                    </div>
+                    <div class="card flat tint-good" style="padding:.7em .9em; margin-top:.6em">
+                        <p style="margin:0"><b>Then Unit III</b>, 15 Sep – 29/30 Sep: effective literature studies and
+                            search strategy · reading and analysing research · plagiarism and research ethics
+                            (<b>Case Studies 1</b>) · responsible use of generative AI (<b>Quiz 2</b>).</p>
+                    </div>
+                    <p class="footnote" style="margin:.6em 0 0"><b>Reading:</b> R. Jain, <i>The Art of Computer Systems
+                            Performance Analysis</i>, ch. 1–2 and 9–12 (the classic; ch. 2 is a list of common
+                        mistakes) · Skiena, <i>The Algorithm Design Manual</i>, ch. 2 · G. Amdahl (1967) ·
+                        J. Gustafson (1988) · Melville &amp; Goddard, ch. 6.</p>
+                </div>
+            </div>
+        </section>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 16</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script>
+        /* ---------------- deck engine ---------------- */
+        const slides = [...document.querySelectorAll('.slide')];
+        let cur = 0;
+
+        slides.forEach(s => {
+            const fit = document.createElement('div');
+            fit.className = 'fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+        });
+
+        function fitSlide(s) {
+            const f = s.querySelector('.fit');
+            if (!f) return;
+            f.style.transform = 'none';
+            const cs = getComputedStyle(s);
+            const avail = s.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const h = f.offsetHeight;
+            if (avail <= 0 || h <= 0) return;
+            const k = Math.min(1, avail / h);
+            f.style.transform = k > 0.995 ? 'none' : 'scale(' + k.toFixed(4) + ')';
+        }
+        const fitNow = () => fitSlide(slides[cur]);
+        const fitSoon = () => requestAnimationFrame(() => requestAnimationFrame(fitNow));
+        window.addEventListener('resize', fitNow);
+        document.addEventListener('click', fitSoon, true);
+        document.addEventListener('change', fitSoon, true);
+        document.addEventListener('input', fitSoon, true);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('title-now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            slides[cur].scrollTop = 0;
+            location.hash = 's' + (cur + 1);
+            fitSlide(slides[cur]);
+        }
+        function go(d) { show(cur + d); }
+
+        document.addEventListener('keydown', e => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.key === 'Escape') { document.getElementById('overview').classList.add('hidden'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'd') toggleTheme();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 't') { const t = document.getElementById('lect-t'); t.__toggle && t.__toggle(); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        function toggleTheme() {
+            const h = document.documentElement;
+            h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+        }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('hidden'); }
+
+        const ovList = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + (i + 1) + '</b><span>' + (s.dataset.title || '') + '</span>' +
+                (s.dataset.mode === 'do' ? '<span class="do-dot">STUDENT WORK</span>' : '');
+            b.onclick = () => { show(i); toggleOverview(); };
+            ovList.appendChild(b);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(b => {
+            const label = b.textContent;
+            b.addEventListener('click', () => {
+                const t = document.querySelector(b.dataset.reveal);
+                t.classList.toggle('hidden');
+                b.textContent = t.classList.contains('hidden') ? label : 'Hide again';
+            });
+        });
+
+        document.querySelectorAll('.timer').forEach(box => {
+            const disp = box.querySelector('.t');
+            const total = parseInt(disp.dataset.sec, 10);
+            let left = total, id = null;
+            const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            const paint = () => {
+                disp.textContent = fmt(left);
+                disp.classList.toggle('low', left <= Math.max(10, total * 0.15));
+            };
+            const tick = () => { if (left > 0) { left--; paint(); } else { clearInterval(id); id = null; } };
+            const toggle = () => { if (id) { clearInterval(id); id = null; } else { id = setInterval(tick, 1000); } };
+            disp.__toggle = toggle;
+            box.querySelector('[data-timer=start]').addEventListener('click', toggle);
+            box.querySelector('[data-timer=reset]').addEventListener('click', () => {
+                clearInterval(id); id = null; left = total; paint();
+            });
+            paint();
+        });
+
+        /* ---------------- generic drill engine ---------------- */
+        function makeDrill(p, items, done) {
+            const el = k => document.getElementById(p + '-' + k);
+            const opts = el('opts');
+            let i = 0, sc = 0, lock = false;
+
+            function paint() {
+                el('n').textContent = i + 1;
+                el('total').textContent = items.length;
+                el('stmt').innerHTML = items[i].q;
+                el('score').textContent = sc;
+                el('fb').classList.add('hidden');
+                opts.innerHTML = '';
+                items[i].o.forEach((t, k) => {
+                    const b = document.createElement('button');
+                    b.className = 'pick';
+                    b.innerHTML = '<b>' + 'ABCDEF'[k] + '.</b> ' + t;
+                    b.addEventListener('click', () => {
+                        if (lock) return;
+                        lock = true;
+                        const right = items[i].a;
+                        if (k === right) { b.classList.add('right'); sc++; }
+                        else { b.classList.add('wrong'); opts.children[right].classList.add('right'); }
+                        el('score').textContent = sc;
+                        const fb = el('fb');
+                        fb.innerHTML = items[i].w;
+                        fb.classList.remove('hidden');
+                    });
+                    opts.appendChild(b);
+                });
+                lock = false;
+            }
+
+            el('next').addEventListener('click', () => {
+                if (i < items.length - 1) { i++; paint(); }
+                else {
+                    const fb = el('fb');
+                    fb.classList.remove('hidden');
+                    fb.innerHTML = done(sc, items.length);
+                }
+            });
+            const r = document.getElementById(p + '-restart');
+            if (r) r.addEventListener('click', () => { i = 0; sc = 0; paint(); });
+            paint();
+        }
+
+
+        /* ---------------- Drill 1 · which parameter ---------------- */
+        const PARAM = ['Time efficiency', 'Space efficiency', 'Scalability', 'Reliability'];
+        makeDrill('pq', [
+            {
+                q: 'Our recommendation service handles 5,000 requests/second today. Will it cope when the user base triples?',
+                o: PARAM, a: 2,
+                w: '<b>Scalability</b> — specifically load scaling. You cannot answer it from today\'s single measurement: run at 1×, 2×, 4× offered load and plot the curve, watching for where latency turns up sharply. Expect the answer to be non-linear, because queueing delay explodes as utilisation approaches 1.'
+            },
+            {
+                q: 'Can the disease-classification model run on the sub-$80 Android handsets our users actually own?',
+                o: PARAM, a: 1,
+                w: '<b>Space efficiency</b> — peak memory is the binding constraint that decides whether it runs <em>at all</em>. Report peak RSS including the runtime and the model weights, not just your own allocations, plus on-disk model size. Latency matters too, but a model that does not fit has no latency.'
+            },
+            {
+                q: 'Users complain the dashboard "sometimes hangs", although our average load time is 300 ms.',
+                o: PARAM, a: 0,
+                w: '<b>Time efficiency</b> — and the whole lesson is in the word "sometimes". The mean is fine and the tail is not: measure p95 and p99, and you will almost certainly find a small fraction of requests taking seconds. Averages are precisely the statistic that hides the complaint being reported.'
+            },
+            {
+                q: 'What happens to our distributed queue when one of the three broker nodes is killed mid-transaction?',
+                o: PARAM, a: 3,
+                w: '<b>Reliability</b> — evaluated by <b>fault injection</b>. Kill the node deliberately and measure: are messages lost, duplicated, or reordered? How long is recovery (MTTR)? Does throughput degrade gracefully or collapse? This is the parameter nearly every student project omits entirely, and the one an industry reviewer asks about first.'
+            },
+            {
+                q: 'Adding a fourth worker thread improved throughput by only 6%, although going from one to two nearly doubled it.',
+                o: PARAM, a: 2,
+                w: '<b>Scalability</b>, and the curve is already telling you the answer: you are hitting Amdahl\'s serial fraction, or contention on a shared resource such as a lock, a connection pool or memory bandwidth. Profile to find which. Note that this diagnosis was only possible because more than one configuration was measured.'
+            },
+            {
+                q: 'Our in-memory index made queries 8x faster, but the service now gets OOM-killed under peak load.',
+                o: PARAM, a: 1,
+                w: '<b>Space efficiency</b> — and this is the time-space trade-off in its most literal form. You bought time with memory and overdrew. The correct report gives <em>both</em> numbers together: an 8× speedup claim that omits the memory cost is not an incomplete claim, it is a misleading one.'
+            },
+            {
+                q: 'Does our OCR pipeline still produce correct output when 30% of input images are blurred or skewed?',
+                o: PARAM, a: 3,
+                w: '<b>Reliability</b> — the robustness aspect. This is correctness under degraded input rather than under component failure, but it is the same parameter: how does the system behave when conditions are not ideal? For ML projects this is where distribution shift and calibration live, and it belongs in your evaluation plan.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'Now check your own project: which of the four are you measuring, and which have you silently skipped? It is almost always reliability.'
+            : 'Route by the question: <b>how long / how many per second</b> → time. <b>does it fit</b> → space. <b>what happens when there is more of it</b> → scalability. <b>what happens when something breaks or the input is bad</b> → reliability.'));
+
+        /* ---------------- Drill 2 · benchmarking crime ---------------- */
+        const CRIME = ['Warm-up / cold-start not handled', 'Mean used where a percentile was needed',
+            'Unfair or missing baseline', 'Measuring the wrong scope'];
+        makeDrill('bq', [
+            {
+                q: 'A team times their Java service by starting it, sending 100 requests, and reporting the mean of all 100.',
+                o: CRIME, a: 0,
+                w: '<b>Warm-up.</b> The first requests pay JIT compilation, class loading, cold caches and page faults — on the JVM the first few can be an order of magnitude slower, dragging the mean of only 100 samples badly. Discard a warm-up phase, state how many you discarded, then measure thousands of requests in steady state.'
+            },
+            {
+                q: 'A paper reports the new algorithm takes 2.1 s versus the old one at 2.4 s, where both timings include 1.9 s of data loading from disk.',
+                o: CRIME, a: 3,
+                w: '<b>Measuring the wrong scope.</b> Of the total, 1.9 s is shared overhead — so the algorithms actually take 0.2 s and 0.5 s, a 2.5× difference reported as 14%. Time the component you changed, report it separately from the pipeline, and give the end-to-end number too so the reader sees how much the improvement matters in context.'
+            },
+            {
+                q: 'A new key-value store is benchmarked against Redis running with default configuration and no persistence tuning, while the new store was tuned for two weeks.',
+                o: CRIME, a: 2,
+                w: '<b>Unfair baseline.</b> Effort is confounded with architecture — the comparison measures how long each system was tuned, not which design is better. Give the baseline an equal tuning budget, document the configuration for both, and ideally have someone who favours the baseline check it. This is the most common flaw in systems papers and student projects alike.'
+            },
+            {
+                q: 'A latency graph shows the new version reduced average request time from 120 ms to 95 ms, and the team ships it. Users report the site feels worse.',
+                o: CRIME, a: 1,
+                w: '<b>Mean where a percentile was needed.</b> A change can lower the mean while worsening the tail — for example by batching, which helps most requests and badly delays a few. Users notice the slow ones. Report p50, p95 and p99, and plot the distribution: the shape would have shown this before shipping.'
+            },
+            {
+                q: 'A microbenchmark shows the new serialisation library is 4x faster, so the team claims a 4x improvement to the API.',
+                o: CRIME, a: 3,
+                w: '<b>Wrong scope</b> — Amdahl applied to your evaluation. If serialisation is 5% of request time, making it 4× faster improves the API by under 4%, not 400%. Microbenchmarks are excellent for explaining <em>why</em> something is faster and dangerous as a headline. Always report the end-to-end effect alongside the component measurement.'
+            },
+            {
+                q: 'Two GPU configurations are compared by running each once, back to back, on the same machine; the second run is 8% faster.',
+                o: CRIME, a: 0,
+                w: '<b>Warm-up and thermal state</b> — and the direction is instructive. The second run benefits from warm caches and a populated page table, but on sustained GPU work it may equally be <em>penalised</em> by thermal throttling. Either way, run order is confounded with condition. Interleave, randomise the order, repeat many times, and report variance.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 5
+            ? 'You are ready to audit another team\'s plan in two slides — and to audit your own before the group project is submitted.'
+            : 'Four questions of any benchmark: <b>What was warmed up, and what was discarded?</b> <b>Is this a mean of something with a tail?</b> <b>Was the baseline given a fair run?</b> <b>Am I timing the part I changed, or the whole program?</b>'));
+
+        /* ---------------- exit ticket ---------------- */
+        const EXIT = [
+            { t: 'I named the <b>decision</b> my evaluation informs', ess: 1 },
+            { t: 'I chose <b>which parameters</b> to measure, and justified the omissions', ess: 1 },
+            { t: 'Every metric has an explicit <b>aggregate</b> (p95, peak RSS, not "speed")', ess: 1 },
+            { t: 'I have a <b>baseline</b> — the strongest available, equally tuned', ess: 1 },
+            { t: 'Metric, aggregate and workload were fixed <b>before</b> collecting', ess: 1 },
+            { t: 'I run the <b>trivial baseline</b> too (do nothing / majority class)', ess: 0 },
+            { t: 'Anything user-facing is reported as <b>percentiles</b>, not means', ess: 0 },
+            { t: 'Scalability claims rest on <b>3+ configurations</b>, not one', ess: 0 },
+            { t: 'I report <b>time and space together</b>, not one in isolation', ess: 0 },
+            { t: 'I measured something about <b>reliability</b> — failure, load or bad input', ess: 0 },
+            { t: 'Warm-up discarded and <b>counted</b>; runs interleaved and randomised', ess: 0 },
+            { t: 'I stated the <b>failure threshold</b> before seeing any results', ess: 0 }
+        ];
+        const exitBox = document.getElementById('exit');
+        EXIT.forEach((r, i) => {
+            const b = document.createElement('button');
+            b.className = 'ck';
+            b.dataset.i = i;
+            b.innerHTML = (r.ess ? '<span class="star">★</span> ' : '') + r.t;
+            b.addEventListener('click', () => { b.classList.toggle('on'); exitScore(); });
+            exitBox.appendChild(b);
+        });
+        function exitScore() {
+            const on = [...exitBox.querySelectorAll('.ck.on')].map(b => +b.dataset.i);
+            const ess = on.filter(i => EXIT[i].ess).length;
+            document.getElementById('ex-score').textContent = on.length;
+            document.getElementById('ex-ess').textContent = ess;
+            const card = document.getElementById('ex-card'), v = document.getElementById('ex-verdict');
+            if (ess < 3) {
+                card.className = 'card tint-bad';
+                v.innerHTML = 'You have an intention to measure, not an evaluation plan — and a benchmark run without a plan produces a number nobody can interpret, including you. Start with row 1: what decision does this result change?';
+            } else if (ess < 5) {
+                card.className = 'card tint-warn';
+                v.innerHTML = 'Half a plan. The missing starred items are almost certainly the <b>baseline</b> and the <b>pre-committed metric</b> — and both become impossible to add honestly once you have seen your results. Close them before you run anything.';
+            } else if (on.length < 9) {
+                card.className = 'card tint-good';
+                v.innerHTML = 'This is a real evaluation plan. It measures named parameters with named aggregates against an honest comparator, and it was fixed before collection — so whatever number comes out will mean something.';
+            } else {
+                card.className = 'card tint-good';
+                v.innerHTML = 'Publication standard, and comfortably above what the group project requires. Percentiles, a scalability curve, both sides of the time-space trade-off, and something measured under failure — that last one alone puts you ahead of most submitted work.';
+            }
+        }
+
+
+        /* ---------------- boot ---------------- */
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+        exitScore();
+    </script>
+</body>
+
+</html>
