@@ -209,13 +209,33 @@ export function displayOptions(question, attemptId) {
 }
 
 // Compulsory reading time on the instructions screen, in seconds, before the
-// Start button unlocks. Defaults to 5 minutes; set readingMinutes: 0 on the
+// Start button unlocks. Defaults to 2 minutes; set readingMinutes: 0 on the
 // quiz to remove the gate entirely.
 export function readingSeconds(quiz) {
   const raw = quiz ? quiz.readingMinutes : undefined;
   if (raw === 0 || raw === "0") return 0;
   const n = Number(raw);
-  return Math.round((Number.isFinite(n) && n > 0 ? n : 5) * 60);
+  return Math.round((Number.isFinite(n) && n > 0 ? n : 2) * 60);
+}
+
+// ---------------------------------------------------------------------------
+// Attempt timing
+// ---------------------------------------------------------------------------
+// A browser that has not checked in for this long is shown as "stale" in the
+// dashboard: the student crashed, slept the laptop or lost the network.
+export const STALE_MS = 60000;
+
+// Extra minutes granted by faculty to make up for a disconnection.
+export function extraMinutes(attempt) {
+  const n = Number(attempt && attempt.extraMinutes);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// How long this particular attempt runs for: the quiz duration plus whatever
+// faculty granted afterwards.
+export function attemptMinutes(quiz, attempt) {
+  const base = Number((attempt && attempt.durationMinutes) || (quiz && quiz.durationMinutes)) || 0;
+  return base + extraMinutes(attempt);
 }
 
 // Safe Firestore doc id from a SAP id (doc ids can't contain / etc.).

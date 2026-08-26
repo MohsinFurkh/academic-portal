@@ -3,7 +3,9 @@ import {
   collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc,
   increment, arrayUnion, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { shuffle, safeId, fmtTime, displayOptions, readingSeconds } from "./common.js";
+import {
+  shuffle, safeId, fmtTime, displayOptions, readingSeconds, extraMinutes, attemptMinutes,
+} from "./common.js";
 import { createProctor, goFullscreen, exitFullscreen } from "./proctor.js";
 
 // ---------------------------------------------------------------------------
@@ -39,6 +41,7 @@ let timerHandle = null;
 let heartbeatHandle = null;
 let deadlineAt = 0;        // in SERVER time
 let clockOffset = 0;       // serverNow - Date.now()
+let grantedExtra = 0;      // extra minutes added by faculty after a disconnection
 let submitting = false;
 let finished = false;
 let saveTimer = null;
@@ -126,7 +129,9 @@ async function onContinue() {
         // browser session.
         return msg($("loginMsg"),
           "This SAP ID already has an attempt started on another device or browser. " +
-          "If that was not you, tell your instructor.", "warn");
+          "If that was you and the other device is gone, ask your instructor to press " +
+          "<b>Allow resume</b> on the dashboard, then try again. If it was not you, " +
+          "tell your instructor now.", "warn");
       }
       return msg($("loginMsg"),
         "Could not reach the quiz server (" + escapeHtml(e.code || "network error") +
@@ -269,7 +274,7 @@ async function onBegin() {
   const fresh = await getDoc(attemptRef);
   const startedMs = toMillis(fresh.data().startedAt) || Date.now();
   clockOffset = startedMs - Date.now();
-  deadlineAt = startedMs + quiz.durationMinutes * 60 * 1000;
+  deadlineAt = startedMs + attemptMinutes(quiz, fresh.data()) * 60 * 1000;
 
   persistLocal();
   enterQuiz();
@@ -283,9 +288,27 @@ async function resumeAttempt(data) {
     ? data.order
     : (quiz.questions || []).map((q) => q.id);
 
-  await syncClock();
+  // Faculty pressed "Allow resume" on the dashboard: the attempt may be picked
+  // up on a device other than the one that started it. Claiming it ties the
+  // attempt to THIS browser and consumes the grant, so nobody can walk in
+  // behind the student on the same SAP ID.
+  if (data.resumeAllowed && data.uid !== uid) {
+    try {
+      await updateDoc(attemptRef, { uid, resumeAllowed: false, lastSeenAt: serverTimestamp() });
+    } catch (e) {
+      console.warn("resume claim failed", e);
+      return msg($("loginMsg"),
+        "The server would not hand this attempt over to this device. Ask your " +
+        "instructor to press <b>Allow resume</b> again, then reload this page.", "err");
+    }
+  }
+
+  // Fall back to what we just read, then let the clock sync refine it — that
+  // way a resume still works when the network is too poor to sync.
   const startedMs = toMillis(data.startedAt) || (now() - 1000);
-  deadlineAt = startedMs + (data.durationMinutes || quiz.durationMinutes) * 60 * 1000;
+  deadlineAt = startedMs + attemptMinutes(quiz, data) * 60 * 1000;
+  await syncClock();
+  if (finished) return;            // faculty closed the attempt while we synced
 
   await goFullscreen();
   persistLocal();
@@ -296,16 +319,59 @@ async function resumeAttempt(data) {
   }
 }
 
-// Writes a server timestamp and reads it back to align the local clock.
+// Writes a server timestamp and reads it back to align the local clock. The
+// same read picks up extra time granted from the dashboard while the quiz is
+// running, so the student does not have to reload to receive it.
 async function syncClock() {
   try {
     await updateDoc(attemptRef, { lastSeenAt: serverTimestamp() });
     const snap = await getDoc(attemptRef);
-    const serverNow = toMillis(snap.data().lastSeenAt);
+    const data = snap.data() || {};
+    const serverNow = toMillis(data.lastSeenAt);
     if (serverNow) clockOffset = serverNow - Date.now();
+    if (data.status === "submitted" && !finished && !submitting) return endByFaculty();
+    applyGrantedTime(data);
   } catch (e) {
     console.warn("clock sync failed", e);
   }
+}
+
+// Faculty pressed "Force submit" on the dashboard while this browser was still
+// open. Close the paper here too, rather than letting the student keep
+// answering into a document the rules will no longer accept.
+function endByFaculty() {
+  finished = true;
+  clearInterval(timerHandle);
+  clearInterval(heartbeatHandle);
+  clearTimeout(saveTimer);
+  disableProctoring();
+  exitFullscreen();
+  $("proctorOverlay").classList.add("hidden");
+  localStorage.removeItem(LS_KEY);
+  const answered = order.filter((qid) => (answers[qid] || []).length > 0).length;
+  $("resultTitle").textContent = "Attempt closed";
+  $("resultMeta").textContent =
+    "Your instructor closed this attempt. The answers already saved on the server were kept.";
+  $("rAnswered").textContent = `${answered} / ${order.length}`;
+  $("rSwitches").textContent = violations;
+  $("rReceipt").textContent = receiptCode();
+  show("result");
+}
+
+// Extra minutes are added to the ORIGINAL start time, so a grant is worth the
+// same whether it arrives now or after a reload — and the timer still cannot be
+// stretched from the student's side.
+function applyGrantedTime(data) {
+  const startedMs = toMillis(data.startedAt);
+  if (!startedMs) return;
+  deadlineAt = startedMs + attemptMinutes(quiz, data) * 60 * 1000;
+
+  const granted = extraMinutes(data);
+  if (granted === grantedExtra) return;
+  grantedExtra = granted;
+  const chip = $("extraChip");
+  chip.classList.toggle("hidden", granted === 0);
+  chip.textContent = granted ? `+${granted} min granted` : "";
 }
 
 function toMillis(ts) {

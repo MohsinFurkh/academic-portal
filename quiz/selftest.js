@@ -4,7 +4,7 @@
 import {
   normalizeQuestions, splitKey, mergeKey, parseRoster,
   gradeQuestion, gradeAttempt, shuffle, safeId, fmtTime,
-  seededShuffle, displayOptions, readingSeconds,
+  seededShuffle, displayOptions, readingSeconds, extraMinutes, attemptMinutes,
 } from "./common.js";
 import { createProctor, VIOLATION_DEBOUNCE_MS } from "./proctor.js";
 
@@ -115,16 +115,31 @@ check("shuffle keeps every element", eq([...sh].sort(), [1, 2, 3, 4, 5]));
 
 // --- reading gate ---------------------------------------------------------
 group("Compulsory reading time");
-check("Defaults to 5 minutes when the quiz says nothing", readingSeconds({}) === 300);
+check("Defaults to 2 minutes when the quiz says nothing", readingSeconds({}) === 120);
 check("Honours a quiz-specific reading time", readingSeconds({ readingMinutes: 3 }) === 180);
 check("readingMinutes: 0 removes the gate", readingSeconds({ readingMinutes: 0 }) === 0);
 check("A string value from a form input still works",
   readingSeconds({ readingMinutes: "7" }) === 420);
-check("Nonsense values fall back to 5 minutes, never to 0",
-  readingSeconds({ readingMinutes: "abc" }) === 300 &&
-  readingSeconds({ readingMinutes: -4 }) === 300);
+check("Nonsense values fall back to 2 minutes, never to 0",
+  readingSeconds({ readingMinutes: "abc" }) === 120 &&
+  readingSeconds({ readingMinutes: -4 }) === 120);
 check("Fractional minutes are supported for a quick dry run",
   readingSeconds({ readingMinutes: 0.5 }) === 30);
+
+// --- faculty-granted extra time -------------------------------------------
+group("Resume after a disconnection");
+check("No grant means the plain quiz duration",
+  attemptMinutes({ durationMinutes: 20 }, { durationMinutes: 20 }) === 20);
+check("Granted minutes are added to the attempt's own duration",
+  attemptMinutes({ durationMinutes: 20 }, { durationMinutes: 20, extraMinutes: 7 }) === 27);
+check("The attempt's stored duration wins over the quiz's current one",
+  attemptMinutes({ durationMinutes: 45 }, { durationMinutes: 20 }) === 20);
+check("Junk and negative grants are ignored",
+  extraMinutes({ extraMinutes: "abc" }) === 0 &&
+  extraMinutes({ extraMinutes: -5 }) === 0 &&
+  extraMinutes({}) === 0);
+check("A grant sent as a string from a prompt still counts",
+  extraMinutes({ extraMinutes: "10" }) === 10);
 
 // --- proctoring engine ----------------------------------------------------
 group("Proctoring engine");

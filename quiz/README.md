@@ -16,6 +16,7 @@ Firestore** as the backend, so the faculty dashboard sees every student live.
 | **Roster restriction** | Only SAP IDs you upload can start. Everyone else is refused by the rules. |
 | **Server clock** | The countdown is derived from Firestore's server timestamp and re-synced during the quiz, so changing the device clock does not buy time. |
 | **Reliability** | Autosave on every answer + a 20 s heartbeat, retry-with-backoff on every write, resume after refresh/disconnect with the original time remaining, and a downloadable signed receipt if submission ever fails. |
+| **Faculty rescue** | A student who is knocked offline can be put back into the quiz from the dashboard — on any device, with extra minutes to cover the time they lost — or have their attempt closed for grading as it stands. |
 | **Input blocking** | Copy, cut, paste, right-click, text selection, drag, printing, F12, Ctrl+Shift+I/J/C, Ctrl+U/S/P/F, Ctrl+T/N/W. |
 
 ### What it honestly cannot do
@@ -79,13 +80,21 @@ service cloud.firestore {
     }
 
     match /attempts/{attemptId} {
+      // Faculty pressed "Allow resume" for a student who dropped off the
+      // network. While this flag is set — and only while it is set — a browser
+      // other than the one that started the attempt may open it.
+      function resumeOpen() {
+        return resource.data.get('resumeAllowed', false) == true;
+      }
+
       // A student may read only their own attempt; faculty read everything.
       // `resource == null` must come first: a student starting a fresh attempt
       // reads a document that does not exist yet, and without this clause that
       // read is denied — which looks like "someone else already started".
       allow get: if isAdmin()
                  || resource == null
-                 || (request.auth != null && resource.data.uid == request.auth.uid);
+                 || (request.auth != null && resource.data.uid == request.auth.uid)
+                 || (request.auth != null && resumeOpen());
 
       // Only faculty may list/query the collection. Students never need to.
       allow list: if isAdmin();
@@ -101,9 +110,23 @@ service cloud.firestore {
                     && onRoster(request.resource.data.quizId,
                                 request.resource.data.sapId);
 
+      // Taking over a granted resume: the ONLY way a different browser can
+      // claim an attempt. It works exactly once — the same write spends the
+      // grant — and it can change nothing except who owns the attempt.
+      function claimResume() {
+        return request.auth != null
+               && resumeOpen()
+               && resource.data.status == 'in-progress'
+               && request.resource.data.uid == request.auth.uid
+               && request.resource.data.resumeAllowed == false
+               && request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['uid', 'resumeAllowed', 'lastSeenAt']);
+      }
+
       // During/at the end of an attempt the student may only touch these fields,
       // may never score themselves, and may never reopen a submitted attempt.
       allow update: if isAdmin()
+                    || claimResume()
                     || (request.auth != null
                         && resource.data.uid == request.auth.uid
                         && resource.data.status == 'in-progress'
@@ -129,7 +152,13 @@ The email in `isAdmin()` **must be identical** to the one in `ADMIN_EMAILS` in
 [`firebase-config.js`](firebase-config.js), and an account with that exact address must
 exist under Firebase → Authentication → Users. Note what the update rule enforces: a student can add answers and *increase* their violation count,
 but cannot decrease it, cannot write a score, cannot alter their start time, and cannot
-edit an attempt after it is submitted.
+edit an attempt after it is submitted. Extra time (`extraMinutes`) and the resume grant
+(`resumeAllowed`) are outside the list a student may write, so only the dashboard can
+issue them — and a granted resume is spent by the first browser that claims it.
+
+> **Re-publish the rules** if your project is still running the earlier version: without
+> `resumeOpen()` and `claimResume()`, **Allow resume** works only when the student comes
+> back on the same browser they started in.
 
 ---
 
@@ -138,7 +167,8 @@ edit an attempt after it is submitted.
 **Before the class**
 
 1. Open `quiz/admin.html`, sign in.
-2. Upload the questions JSON, set duration / marks / negative marks / violations allowed.
+2. Upload the questions JSON, set duration / marks / negative marks / violations allowed /
+   reading time (the compulsory instructions screen, **2 minutes** by default; `0` removes it).
 3. Paste the **roster** of SAP IDs (or upload a `.txt`/`.csv`). Saving is blocked without one.
 4. Leave status **Draft**. Save. Verify the quiz appears in the monitor dropdown.
 
@@ -150,13 +180,45 @@ edit an attempt after it is submitted.
 7. Keep the dashboard open. Watch the **Violations** and **Live** columns — "stale" means
    a student's browser has not checked in for a minute (crash, sleep or disconnection).
 
+**When a student drops out mid-quiz**
+
+The **Action** column on that student's row gives you the two ways out. Their answers are
+already on the server — every answer is saved as it is ticked — so nothing is lost either way.
+
+| Button | What it does |
+|---|---|
+| **Allow resume** | Puts the attempt back in play. You are asked how many **extra minutes** to grant (pre-filled with the time they lost while away); the deadline moves by that much. The student signs in again with the same SAP ID — **on any device**, not just the one that crashed — and carries on from their saved answers, with their violation count intact. The row reads **resume open** until they are back. |
+| **Force submit** | Closes the attempt as it stands, so it can be graded. Marked `faculty` in the submit-reason column and the CSV. If that browser is somehow still running, it is shown "Attempt closed" at its next check-in. |
+
+**Reopen** does the same as Allow resume for an attempt that is already submitted — use it
+when a disconnection caused an automatic proctoring submit. Any score it had is cleared, so
+run **Grade all attempts** again afterwards.
+
+Two things to know:
+
+- Grant the resume **before** you press *Close quiz*. A closed quiz is not listed on the
+  student page, so they cannot get back to it.
+- While a resume is open, the roster is still enforced but the identity check is not — the
+  next person to sign in with that SAP ID takes the attempt. Grant it when the student is
+  in front of you.
+
 **After**
 
 8. Press **Close quiz** so late arrivals cannot start.
 9. Press **Grade all attempts** — this reads the answer key, grades every *submitted*
    attempt and writes the scores.
-10. **Export CSV** — includes each violation with its kind and timestamp, answered count,
-    score, and the true elapsed time from server timestamps.
+10. **Export CSV** — the marks sheet: each violation with its kind and timestamp, answered
+    count, score, extra minutes granted, and the true elapsed time from server timestamps.
+11. **Download all attempts** — the papers themselves, as **one** self-contained HTML file:
+    a summary table, a question-by-question breakdown of how the class did (attempted,
+    % correct, most-chosen options), then every student's full answer sheet — each question
+    with the options **in the order that student saw them**, their pick and the correct one
+    marked, and the explanation. It opens in any browser with no network, and printing it
+    gives one student per page. Run **Grade all attempts** first if you want the stored
+    scores to agree with it.
+
+    The file contains the answer key and the explanations — it is a **faculty copy**, not
+    something to hand back as it is.
 
 If a student's submission failed (rare — they will show a red "Submission not confirmed"
 panel), they can download a JSON receipt with their answers. Grade it manually.
@@ -181,5 +243,6 @@ quizzes/{quizId}    public   { title, durationMinutes, marksPerQuestion, negativ
 quizKeys/{quizId}   faculty  { correct: { qid: [keys] }, roster: [sapId, ...] }
 attempts/{quizId__sapId}     { uid, name, sapId, status, startedAt, submittedAt,
                                lastSeenAt, answers, order, violations, violationLog[],
-                               score, graded, autoSubmitted, submitReason }
+                               score, graded, autoSubmitted, submitReason,
+                               extraMinutes, resumeAllowed, resumeGrantedAt }  ← faculty-set
 ```
