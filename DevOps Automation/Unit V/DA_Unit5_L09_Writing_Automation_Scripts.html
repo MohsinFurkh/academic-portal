@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Automation · L09 — Writing Automation Scripts</title>
+    <meta name="description"
+        content="Lecture 9 of DevOps Automation (Unit 5): writing automation scripts, always beginning with a shebang, making use of the shell's built-in options, naming conventions, annotations that make the logic clean, variable substitution and command substitution.">
+    <link rel="stylesheet" href="../assets/deck.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <b>DevOps Automation</b><span>Unit 5 · Scripting Development Tasks</span>
+        <span>·</span><span>Lecture 9</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit 5 · Lecture 9 · Scripting Development Tasks</span>
+            <h1>Writing<br><span style="color:var(--brand)">Automation Scripts</span></h1>
+            <p class="lead big" style="max-width:36em">You have been writing shell all term. This hour is about the
+                difference between <em class="hl">a script that works when you run it</em> and one that is safe to leave
+                running on a production server for two years.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · The skeleton</h3>
+                    <p style="margin:0">Shebang, strict mode, usage, traps — the first fifteen lines.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Built-in options</h3>
+                    <p style="margin:0"><code>set</code>, <code>shopt</code>, and builtins over external commands.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · Naming &amp; annotation</h3>
+                    <p style="margin:0">Conventions and comments that make the logic clean.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>D · Substitution</h3>
+                    <p style="margin:0">Variable and command substitution, and their traps.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · UPES ·
+                55 minutes<br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Nine bugs in twelve lines">
+            <span class="kicker do">Do first · 7 minutes</span>
+            <h2>This script deleted a customer's data. Find as many defects as you can.</h2>
+            <pre class="term"><span class="c">#!/bin/sh</span>
+<span class="c"># archive old reports and clean up</span>
+
+DIR=<span class="v">$1</span>
+DAYS=<span class="v">$2</span>
+TMP=/tmp/archive.tmp
+
+cd <span class="v">$DIR</span>
+tar czf <span class="v">$TMP</span> *.pdf
+mv <span class="v">$TMP</span> /backup/reports-`date +%F`.tar.gz
+rm -rf <span class="v">$DIR</span>/*
+<span class="k">echo</span> <span class="s">"Archived $DIR"</span></pre>
+            <div class="runbar">
+                <span class="step">1 · Alone, 4 min — list every defect</span>
+                <span class="step">2 · Pairs, 2 min — merge lists</span>
+                <span class="step">3 · Class, 1 min — count</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="420">7:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <p class="footnote" style="margin:0">There are at least <b>nine</b>. Some are about failure handling, some
+                about quoting, some about the temporary file, and one is about what happens when the script is run
+                twice at the same time. <b>We repair it line by line and finish with a version you can defend in a
+                    review.</b></p>
+        </section>
+
+        <!-- ============ 3 · SHEBANG ============ -->
+        <section class="slide" data-title="A1 · Always begin with a shebang">
+            <span class="kicker">Part A · the skeleton</span>
+            <h2>Always begin with a shebang</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <p class="lead">The first two bytes <code>#!</code> tell the <em>kernel</em> which interpreter to
+                        run the file with. Without it, what happens depends on who invokes you — a hidden dependency on
+                        the caller's shell.</p>
+                    <table>
+                        <thead><tr><th>Form</th><th>Meaning</th><th>Use when</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>#!/bin/sh</code></td><td>POSIX shell — <b>dash</b> on Debian/Ubuntu</td><td>Strict portability; no bash features at all</td></tr>
+                            <tr><td><code>#!/bin/bash</code></td><td>bash at a fixed path</td><td>Linux system scripts; bash is always at /bin/bash</td></tr>
+                            <tr><td><code>#!/usr/bin/env bash</code></td><td>The first bash on <code>PATH</code></td><td>Portable across macOS/BSD, where bash may be elsewhere — <b>the usual default</b></td></tr>
+                            <tr><td><code>#!/usr/bin/env python3</code></td><td>Same idea for any interpreter</td><td>Respects virtualenvs</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="margin:0"><b>The trade-off:</b> <code>env</code> finds whichever bash is first on
+                        <code>PATH</code> — good for portability, but it means a user's modified <code>PATH</code>
+                        chooses your interpreter. For a root-owned system script, the fixed <code>/bin/bash</code> is
+                        the safer choice.</p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>The production skeleton — memorise this</h3>
+                    <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="c">#</span>
+<span class="c"># archive-reports.sh — archive PDFs and purge the source</span>
+<span class="c">#</span>
+<span class="c"># Usage:   archive-reports.sh [--dry-run] &lt;dir&gt; &lt;days&gt;</span>
+<span class="c"># Author:  ops@example.com    Repo: git@…/ops-scripts</span>
+<span class="c"># Exit:    0 ok · 2 usage · 3 preflight failed · 4 archive failed</span>
+
+<span class="k">set</span> -euo pipefail
+IFS=<span class="v">$'</span>\n\t<span class="v">'</span>
+
+readonly SCRIPT_NAME=<span class="v">${0##*/}</span>
+readonly LOCK_FILE=<span class="s">"/var/lock/${SCRIPT_NAME}.lock"</span>
+
+usage() { sed -n <span class="s">'3,8p'</span> <span class="s">"$0"</span> &gt;&amp;2; <span class="k">exit</span> 2; }
+log()   { printf <span class="s">'%s [%s] %s\n'</span> <span class="s">"$(date -Is)"</span> <span class="s">"$1"</span> <span class="s">"${*:2}"</span> &gt;&amp;2; }
+die()   { log ERROR <span class="s">"$*"</span>; <span class="k">exit</span> <span class="s">"${EXIT_CODE:-1}"</span>; }
+
+WORK=<span class="v">$(</span>mktemp -d<span class="v">)</span>
+<span class="k">trap</span> <span class="s">'rc=$?; rm -rf -- "$WORK"; exit $rc'</span> EXIT
+<span class="k">trap</span> <span class="s">'die "interrupted"'</span> INT TERM</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 4 · SHELL BUILT-IN OPTIONS ============ -->
+        <section class="slide" data-title="B1 · Make use of the shell's built-in options">
+            <span class="kicker">Part B · built-in options</span>
+            <h2>Make use of the shell's built-in options</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3><code>set</code> — the strict-mode trio</h3>
+                    <table>
+                        <thead><tr><th>Option</th><th>Effect</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>set -e</code></td><td>Exit immediately if any command fails. <b>Without it, a failed <code>cd</code> is followed cheerfully by <code>rm -rf *</code> in the wrong directory.</b></td></tr>
+                            <tr><td><code>set -u</code></td><td>Treat an unset variable as an error. Catches typos and missing arguments <em>before</em> they expand to nothing.</td></tr>
+                            <tr><td><code>set -o pipefail</code></td><td>A pipeline fails if <em>any</em> stage fails. By default only the last command's status counts, so <code>false | wc -l</code> "succeeds".</td></tr>
+                            <tr><td><code>set -x</code></td><td>Print each command after expansion. The debugging tool. Pair with <code>PS4='+${BASH_SOURCE}:${LINENO}: '</code>.</td></tr>
+                            <tr><td><code>set -n</code></td><td>Parse without executing — a free syntax check for CI.</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="margin:0"><b><code>IFS=$'\n\t'</code></b> removes the space from the word-splitting set, so
+                        unquoted expansions no longer split on spaces. It is a safety net, <em>not</em> a substitute for
+                        quoting.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3><code>set -e</code> is not magic — know its holes</h3>
+                    <ul class="stack-tight">
+                        <li>It does <b>not</b> trigger for a command in a condition:
+                            <code>if cmd; then</code>, <code>while cmd</code>, <code>cmd && other</code>,
+                            <code>! cmd</code>. That is deliberate and usually what you want.</li>
+                        <li><b>The trap that catches everyone:</b> <code>count=$(grep -c x f)</code> under
+                            <code>set -e</code> exits when grep finds nothing (status 1). Write
+                            <code>count=$(grep -c x f || true)</code>.</li>
+                        <li>A function called in a condition loses <code>-e</code> <em>inside</em> it too.</li>
+                        <li><b>Test both paths</b> — <code>-e</code> gives a false sense of safety if you have never
+                            watched your script fail.</li>
+                    </ul>
+                    <h3><code>shopt</code> — the ones worth setting</h3>
+                    <pre class="term">shopt -s nullglob   <span class="c"># *.log with no matches → nothing,</span>
+                    <span class="c"># not the literal string "*.log"</span>
+shopt -s failglob   <span class="c"># or: make it an error</span>
+shopt -s globstar   <span class="c"># ** matches across directories</span>
+shopt -s inherit_errexit  <span class="c"># -e inside $( )</span></pre>
+                    <p class="footnote" style="margin:0"><code>nullglob</code> fixes a real bug: without it,
+                        <code>for f in *.log</code> in an empty directory loops <em>once</em> with <code>f</code> set to
+                        the literal <code>*.log</code>.</p>
+                </div>
+            </div>
+            <div class="card flat tint-good" style="margin-top:.5em">
+                <p style="margin:0"><b>Builtins over external commands.</b> <code>[[ ]]</code>,
+                    <code>printf</code>, <code>${var##*/}</code> and <code>$(( ))</code> run <em>inside</em> the shell;
+                    <code>[</code>, <code>echo</code>(sometimes), <code>expr</code>, <code>basename</code> and
+                    <code>seq</code> fork a process each call. In a 100,000-iteration loop that is the difference
+                    between one second and several minutes. Use <code>type -a name</code> to see which you are getting.
+                </p>
+            </div>
+        </section>
+
+        <!-- ============ 5 · NAMING ============ -->
+        <section class="slide" data-title="C1 · Naming conventions">
+            <span class="kicker">Part C · naming &amp; annotation</span>
+            <h2>Naming conventions</h2>
+            <div class="grid g3">
+                <div class="card flat">
+                    <h3>Variables</h3>
+                    <pre class="term"><span class="c"># Environment / exported: UPPER_SNAKE</span>
+<span class="k">export</span> DATABASE_URL
+
+<span class="c"># Script constants: UPPER, readonly</span>
+readonly MAX_RETRIES=5
+readonly ARCHIVE_DIR=/var/archive
+
+<span class="c"># Local / internal: lower_snake</span>
+<span class="k">local</span> retry_count=0
+target_file=<span class="s">"$1"</span>
+
+<span class="c"># ALWAYS declare function locals</span>
+process() { <span class="k">local</span> f=<span class="s">"$1"</span> n=0; …; }</pre>
+                    <p class="footnote" style="margin:0"><b>Why the case split matters:</b> shell variables share one
+                        global namespace with the environment. A variable named <code>PATH</code> or <code>IFS</code> or
+                        <code>HOME</code> in your script overwrites something the system depends on. Lower case for your
+                        own values keeps you out of that space.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Functions and files</h3>
+                    <pre class="term"><span class="c"># verb_noun, lower_snake, no `function` keyword</span>
+archive_reports() { …; }
+validate_input()  { …; }
+require_command() { …; }
+
+<span class="c"># Prefix internal helpers</span>
+_cleanup_temp() { …; }</pre>
+                    <p class="kv" style="margin:.3em 0 0"><b>Files:</b> <code>backup-database.sh</code> — lower case,
+                        hyphens, a verb, <code>.sh</code> for shell. Name it after what it <em>does</em>, not what it
+                        operates on: <code>rotate-nginx-logs.sh</code>, not <code>nginx.sh</code>. <b>Once installed in
+                            <code>/usr/local/bin</code>, drop the extension</b> — users type
+                        <code>rotate-nginx-logs</code>, and the extension is an implementation detail that will be wrong
+                        if you rewrite it in Python.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Rules that prevent real bugs</h3>
+                    <ul class="stack-tight">
+                        <li><b>Never name a variable after a command</b> you also call — <code>test</code>,
+                            <code>date</code>, <code>time</code>.</li>
+                        <li><b>Do not shadow the specials</b>: <code>PATH</code>, <code>IFS</code>, <code>HOME</code>,
+                            <code>PWD</code>, <code>UID</code>, <code>RANDOM</code>, <code>SECONDS</code>.</li>
+                        <li><b>Say what the unit is</b>: <code>timeout_seconds</code>, <code>size_mb</code>,
+                            <code>retention_days</code>. Half of all off-by-1000 bugs are unit confusion.</li>
+                        <li><b>Name booleans as a question</b>: <code>is_dry_run</code>, <code>has_lock</code>.</li>
+                        <li><b><code>readonly</code> your constants.</b> The shell will then stop you reassigning them
+                            300 lines later.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · ANNOTATIONS ============ -->
+        <section class="slide" data-title="C2 · Annotations make the logic clean">
+            <span class="kicker">Part C · naming &amp; annotation</span>
+            <h2>Annotations that make the logic clean</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <h3>Comments that earn nothing</h3>
+                    <pre class="term"><span class="c"># set i to 0</span>
+i=0
+
+<span class="c"># loop through the files</span>
+<span class="k">for</span> f <span class="k">in</span> *.log; <span class="k">do</span>
+
+<span class="c"># remove the file</span>
+rm -f <span class="s">"$f"</span>
+
+<span class="c"># increment counter</span>
+((i++))</pre>
+                    <p style="margin:0">These restate the code, so they add reading time and nothing else — and worse,
+                        they <em>rot</em>. When the code changes and the comment does not, the comment becomes a
+                        confident lie, and the next reader believes it over the code.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Comments that carry information the code cannot</h3>
+                    <pre class="term"><span class="c"># The vendor's SFTP drops connections above 4 parallel</span>
+<span class="c"># streams and returns a misleading 550. Ticket VEN-4412.</span>
+readonly MAX_PARALLEL=4
+
+<span class="c"># mysqldump exits 0 on a partial dump if the connection</span>
+<span class="c"># drops mid-table, so we assert the trailer explicitly.</span>
+zcat <span class="s">"$OUT"</span> | tail -1 | grep -q <span class="s">'Dump completed'</span>
+
+<span class="c"># NOTE: the reopen signal MUST follow the rename, or nginx</span>
+<span class="c"># keeps writing to the moved inode. See lecture 3.</span>
+nginx -s reopen
+
+<span class="c"># TODO(mohsin, 2026-10): replace with systemd timer once</span>
+<span class="c">#   the fleet is on Ubuntu 24.04.</span></pre>
+                    <p style="margin:0"><b>The rule: comment the <em>why</em>, never the <em>what</em>.</b> The code
+                        already states what it does. Reserve comments for the reason, the constraint, the ticket, the
+                        surprising behaviour of an external tool, and the thing you tried that did not work.</p>
+                </div>
+            </div>
+            <div class="grid g2" style="margin-top:.5em">
+                <div class="card flat tint-brand">
+                    <h3>The header block is the most valuable annotation</h3>
+                    <p style="margin:0">Name, one-line purpose, usage synopsis, what it assumes about the environment,
+                        the exit codes it returns, and who to contact. It costs six lines and answers every question the
+                        person woken at 3 a.m. will have. Make <code>usage()</code> print it, so the documentation
+                        cannot drift from the script — it <em>is</em> the script.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Structure is an annotation too</h3>
+                    <p style="margin:0"><b>Named functions beat comments.</b> A block commented
+                        <code># validate the inputs</code> should be a function called
+                        <code>validate_inputs</code> — now the label is checked by the machine, is reusable, and cannot
+                        drift. Keep <code>main "$@"</code> at the bottom so the top-level flow reads as a summary of the
+                        script in six lines.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · VARIABLE SUBSTITUTION ============ -->
+        <section class="slide" data-title="D1 · Variable substitution">
+            <span class="kicker">Part D · substitution</span>
+            <h2>Variable substitution</h2>
+            <div class="grid g3">
+                <div class="card flat">
+                    <h3>Defaults and assertions</h3>
+                    <pre class="term"><span class="v">${var}</span>            <span class="c"># braces: always safe</span>
+<span class="v">${var:-def}</span>       <span class="c"># use def if unset/empty</span>
+<span class="v">${var-def}</span>        <span class="c"># use def only if UNSET</span>
+<span class="v">${var:=def}</span>       <span class="c"># ...and assign it</span>
+<span class="v">${var:?msg}</span>       <span class="c"># ABORT with msg if unset</span>
+<span class="v">${var:+alt}</span>       <span class="c"># alt only if var IS set</span>
+
+<span class="c"># The one that prevents disasters:</span>
+DIR=<span class="s">"${1:?usage: script &lt;dir&gt;}"</span>
+rm -rf -- <span class="s">"${DIR:?refusing empty}"</span>/*</pre>
+                    <p class="footnote" style="margin:0"><code>${DIR:?}</code> makes an empty or unset path a hard stop
+                        rather than a catastrophe. Put it on <em>every</em> destructive line.</p>
+                </div>
+                <div class="card flat">
+                    <h3>Trimming and replacing</h3>
+                    <pre class="term">f=/var/log/app/access.log.gz
+<span class="v">${f##*/}</span>    → access.log.gz   <span class="c"># basename</span>
+<span class="v">${f%/*}</span>     → /var/log/app    <span class="c"># dirname</span>
+<span class="v">${f%.gz}</span>    → …/access.log    <span class="c"># drop suffix</span>
+<span class="v">${f%%.*}</span>    → /var/log/app/access
+<span class="v">${f/log/LOG}</span>  <span class="c"># replace first</span>
+<span class="v">${f//log/LOG}</span> <span class="c"># replace all</span>
+<span class="v">${#f}</span>       → 26              <span class="c"># length</span>
+<span class="v">${f^^}</span>  <span class="v">${f,,}</span>  <span class="c"># upper / lower</span>
+<span class="v">${f:5:3}</span>    → r/l             <span class="c"># substring</span></pre>
+                    <p class="footnote" style="margin:0"><b>Mnemonic:</b> <code>#</code> is left of
+                        <code>$</code> on the keyboard so it trims from the <em>left</em>; <code>%</code> is right of it
+                        so it trims from the <em>right</em>. Doubling the character makes the match greedy. These are
+                        builtins — far faster than <code>basename</code>/<code>dirname</code>, which fork.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>Quoting — the rule</h3>
+                    <pre class="term">f=<span class="s">"my report.pdf"</span>
+rm <span class="v">$f</span>       <span class="c"># TWO files: "my", "report.pdf"</span>
+rm <span class="s">"$f"</span>     <span class="c"># correct</span>
+
+<span class="c"># Arrays: "${a[@]}" is the ONLY correct form</span>
+files=(<span class="s">"a b.txt"</span> <span class="s">"c.txt"</span>)
+<span class="k">for</span> f <span class="k">in</span> <span class="s">"${files[@]}"</span>; <span class="k">do</span> …   <span class="c"># 2 items ✓</span>
+<span class="k">for</span> f <span class="k">in</span> <span class="v">${files[@]}</span>;  <span class="k">do</span> …   <span class="c"># 3 items ✗</span>
+<span class="s">"${files[*]}"</span>   <span class="c"># ONE string, joined by $IFS</span>
+
+<span class="s">"$@"</span>   <span class="c"># each argument preserved ✓</span>
+<span class="s">"$*"</span>   <span class="c"># all arguments as one string</span></pre>
+                    <p style="margin:0"><b>Quote every expansion.</b> The exceptions are so rare that "always quote" is
+                        the correct rule to memorise. Word splitting and globbing happen <em>after</em> substitution —
+                        quoting is what stops them.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · COMMAND SUBSTITUTION ============ -->
+        <section class="slide" data-title="D2 · Command substitution">
+            <span class="kicker">Part D · substitution</span>
+            <h2>Command substitution</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <pre class="term">now=<span class="v">$(</span>date +%F<span class="v">)</span>          <span class="c">#  ✓ modern form</span>
+now=`date +%F`            <span class="c">#  ✗ backticks: legacy</span>
+
+<span class="c"># $( ) nests cleanly; backticks need escaping:</span>
+<span class="v">$(</span>dirname <span class="s">"$(readlink -f "$0")"</span><span class="v">)</span>     <span class="c"># ✓</span>
+`dirname \`readlink -f $0\``           <span class="c"># ✗</span>
+
+<span class="c"># Arithmetic — its own construct, no $ inside</span>
+total=<span class="v">$((</span> count * size <span class="v">))</span>
+(( retries &gt; MAX )) &amp;&amp; die <span class="s">"too many"</span>
+
+<span class="c"># Process substitution: a command that looks like a file</span>
+diff &lt;(sort a.txt) &lt;(sort b.txt)
+<span class="k">while read</span> -r line; <span class="k">do</span> …; <span class="k">done</span> &lt; &lt;(find . -name <span class="s">'*.log'</span>)</pre>
+                    <p class="footnote" style="margin:0"><b>Why the last form matters:</b>
+                        <code>find … | while read</code> runs the loop in a <em>subshell</em>, so any variable it sets
+                        is lost when the pipeline ends. Feeding it with <code>&lt; &lt;(…)</code> keeps the loop in the
+                        current shell. This is the cause of "my counter is always 0 after the loop".</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Four traps</h3>
+                    <ul class="stack-tight">
+                        <li><b>Trailing newlines are stripped</b> — usually helpful, occasionally not. To keep them:
+                            <code>out=$(cmd; printf x); out=${out%x}</code>.</li>
+                        <li><b>Unquoted output is split and globbed.</b>
+                            <code>files=$(ls)</code> then <code>rm $files</code> breaks on every name containing a
+                            space. <em>Never parse <code>ls</code>;</em> use a glob or <code>find -print0</code> with
+                            <code>read -d ''</code>.</li>
+                        <li><b>The exit status is the inner command's</b>, and it is easy to discard:
+                            <code>out=$(cmd)</code> propagates it, but <code>local out=$(cmd)</code> does <em>not</em> —
+                            <code>local</code> succeeds, masking the failure. Declare first, assign second.</li>
+                        <li><b>Every <code>$( )</code> forks a subshell.</b> Inside a large loop this dominates
+                            runtime. Prefer parameter expansion where it will do.</li>
+                    </ul>
+                    <p style="margin:0"><b>And never build a command as a string</b> and <code>eval</code> it — that is
+                        Lecture 4's injection, reintroduced. Use an array:
+                        <code>cmd=(rsync -a "$src" "$dst"); "${cmd[@]}"</code>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · THE REPAIR ============ -->
+        <section class="slide" data-title="Repair · slide 2, rewritten">
+            <span class="kicker">Reveal · the nine defects</span>
+            <h2>Slide 2, repaired</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="c"># archive-reports.sh — archive PDFs, then purge the source.</span>
+<span class="c"># Usage: archive-reports.sh &lt;dir&gt; &lt;days&gt;   Exit: 0 ok · 2 usage · 3 preflight</span>
+<span class="k">set</span> -euo pipefail
+shopt -s nullglob
+umask 077
+
+readonly DIR=<span class="s">"${1:?usage: archive-reports.sh &lt;dir&gt; &lt;days&gt;}"</span>
+readonly DAYS=<span class="s">"${2:?usage: archive-reports.sh &lt;dir&gt; &lt;days&gt;}"</span>
+readonly DEST=/backup
+[[ <span class="s">"$DAYS"</span> =~ ^[0-9]+<span class="v">$</span> ]] || { <span class="k">echo</span> <span class="s">"days must be numeric"</span> &gt;&amp;2; <span class="k">exit</span> 2; }
+[[ -d <span class="s">"$DIR"</span> ]]              || { <span class="k">echo</span> <span class="s">"no such dir: $DIR"</span> &gt;&amp;2; <span class="k">exit</span> 3; }
+mountpoint -q <span class="s">"$DEST"</span>       || { <span class="k">echo</span> <span class="s">"$DEST not mounted"</span> &gt;&amp;2; <span class="k">exit</span> 3; }
+
+<span class="c"># Only one run at a time; a slow run must not overlap the next.</span>
+exec 9&gt;/var/lock/archive-reports.lock
+flock -n 9 || { <span class="k">echo</span> <span class="s">"already running"</span> &gt;&amp;2; <span class="k">exit</span> 0; }
+
+WORK=<span class="v">$(</span>mktemp -d<span class="v">)</span>
+<span class="k">trap</span> <span class="s">'rc=$?; rm -rf -- "$WORK"; exit $rc'</span> EXIT
+
+pdfs=( <span class="s">"$DIR"</span>/*.pdf )
+(( <span class="v">${#pdfs[@]}</span> )) || { <span class="k">echo</span> <span class="s">"nothing to archive"</span>; <span class="k">exit</span> 0; }
+
+archive=<span class="s">"$WORK/reports-$(date +%F).tar.gz"</span>
+tar czf <span class="s">"$archive"</span> -C <span class="s">"$DIR"</span> -- <span class="s">"${pdfs[@]##*/}"</span>
+tar tzf <span class="s">"$archive"</span> &gt;/dev/null          <span class="c"># VERIFY before deleting anything</span>
+
+mv -n -- <span class="s">"$archive"</span> <span class="s">"$DEST/"</span>           <span class="c"># -n: never clobber a previous archive</span>
+find <span class="s">"$DIR"</span> -maxdepth 1 -type f -name <span class="s">'*.pdf'</span> -mtime +<span class="s">"$DAYS"</span> -print -delete
+logger -t archive-reports <span class="s">"archived ${#pdfs[@]} files from $DIR"</span></pre>
+                </div>
+                <div class="card tint-good">
+                    <h3>The nine</h3>
+                    <ol class="stack-tight">
+                        <li><b><code>#!/bin/sh</code></b> with bash intentions → correct shebang.</li>
+                        <li><b>No error handling</b> — every failure was ignored → <code>set -euo pipefail</code>.</li>
+                        <li><b><code>cd $DIR</code> unquoted and unchecked</b>; if it fails the script carries on and
+                            deletes in the <em>current</em> directory → validate, and never <code>cd</code> at all.</li>
+                        <li><b>No argument validation</b> — missing arguments expanded to nothing →
+                            <code>${1:?}</code> plus a numeric check.</li>
+                        <li><b><code>*.pdf</code> with no matches</b> passed the literal string to <code>tar</code> →
+                            <code>nullglob</code> and an explicit count check.</li>
+                        <li><b>Predictable temp file in <code>/tmp</code></b> — a symlink attack, and a collision
+                            between two runs → <code>mktemp -d</code> with a cleanup <code>trap</code>.</li>
+                        <li><b>Deleted the source without verifying the archive</b> → <code>tar tzf</code> first. <em>The
+                                defect that lost the data.</em></li>
+                        <li><b><code>rm -rf $DIR/*</code> deleted everything</b>, not just archived PDFs older than
+                            <code>$DAYS</code> — and would have deleted <code>/*</code> had <code>$DIR</code> been empty
+                            → a narrow, name-filtered, age-filtered <code>find</code>.</li>
+                        <li><b>No locking and no logging</b> → <code>flock</code> and <code>logger</code>.</li>
+                    </ol>
+                    <p class="footnote" style="margin:0">Bonus: backticks, and <code>mv</code> without
+                        <code>-n</code> silently overwriting yesterday's archive.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill">
+            <span class="kicker do">Your turn · 8 questions</span>
+            <h2>Predict the output</h2>
+            <div class="card">
+                <p class="big" style="margin:.1em 0 .5em"><span id="sc-stmt"></span></p>
+                <div class="grid g2" id="sc-opts" style="gap:.4em"></div>
+                <div class="verdict hidden" id="sc-fb"></div>
+                <div style="display:flex; gap:.6em; align-items:center; margin-top:.7em">
+                    <button class="nav" id="sc-next">Next →</button>
+                    <button class="tbtn" id="sc-restart">Restart</button>
+                    <span class="spacer" style="flex:1"></span>
+                    <span class="footnote">Question <b id="sc-n">1</b> of <b id="sc-total">8</b> · score
+                        <b class="score" id="sc-score">0</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · CLOSE ============ -->
+        <section class="slide" data-title="Close">
+            <span class="kicker">Close</span>
+            <h2>The first fifteen lines decide everything</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <p class="big" style="margin:0 0 .4em">Shebang · <code>set -euo pipefail</code> ·
+                        <code>umask</code> · <code>readonly</code> constants · <code>${1:?}</code> validation ·
+                        <code>usage()</code> · <code>log()</code> · <code>mktemp</code> + <code>trap</code>.</p>
+                    <p style="margin:0">Everything after that is the task. Everything <em>before</em> it is what makes
+                        the task survivable. Type the skeleton from slide 3 from memory until it is automatic — it takes
+                        a week and it saves you for a career.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Homework</h3>
+                    <ol class="stack-tight">
+                        <li>Rewrite your Unit 2 script onto the skeleton: header block, strict mode,
+                            <code>usage()</code>, <code>log()</code>, validation, <code>trap</code> cleanup, meaningful
+                            exit codes, <code>main "$@"</code>.</li>
+                        <li>Replace every <code>basename</code>, <code>dirname</code> and <code>expr</code> with
+                            parameter expansion or <code>$(( ))</code>.</li>
+                        <li>Run <code>shellcheck</code> on it and fix <em>every</em> warning, or justify each one you
+                            suppress with a comment giving the reason.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Next — the final lecture:</b> conditionals, regular
+                        expressions, scheduling it all with cron, and the best-practice checklist for the capstone.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 11</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script src="../assets/deck.js"></script>
+    <script>
+        makeDrill('sc', [
+            {
+                q: 'With <code>f="my report.pdf"</code>, what does <code>rm $f</code> attempt to delete?',
+                o: ['The file "my report.pdf"',
+                    'Two files: "my" and "report.pdf"',
+                    'Nothing — it is a syntax error',
+                    'A file literally named $f'],
+                a: 1,
+                w: '<b>Two files.</b> Word splitting happens <em>after</em> the variable is substituted, so the space becomes an argument boundary. Quoting is what suppresses it: <code>rm -- "$f"</code>. This one rule accounts for the majority of shell bugs involving real-world filenames.'
+            },
+            {
+                q: 'In an empty directory, how many times does <code>for f in *.log; do echo "$f"; done</code> iterate?',
+                o: ['Zero times',
+                    'Once, with f set to the literal string "*.log"',
+                    'It errors',
+                    'It depends on the shell version'],
+                a: 1,
+                w: '<b>Once, with the literal pattern.</b> An unmatched glob expands to itself by default, so your loop body runs on a "file" that does not exist — and something like <code>rm "$f"</code> then fails confusingly. Fix with <code>shopt -s nullglob</code> (expands to nothing) or <code>failglob</code> (makes it an error).'
+            },
+            {
+                q: 'Under <code>set -e</code>, the line <code>count=$(grep -c ERROR app.log)</code> runs on a clean log with no matches. What happens?',
+                o: ['count is set to 0 and the script continues',
+                    'The script exits, because grep returns 1 when it finds nothing',
+                    'count is empty and the script continues',
+                    'grep errors because the file has no matches'],
+                a: 1,
+                w: '<b>The script exits.</b> <code>grep</code> deliberately returns 1 for "no matches found" — not an error, but <code>set -e</code> cannot tell the difference. This is the most common <code>set -e</code> surprise. Write <code>count=$(grep -c ERROR app.log || true)</code>, and remember that "no results" is a normal outcome for grep, find and diff alike.'
+            },
+            {
+                q: 'Why does <code>find . -name "*.log" | while read -r f; do ((n++)); done; echo "$n"</code> print an empty value?',
+                o: ['find produced no output',
+                    'The while loop runs in a subshell, so n does not survive the pipeline',
+                    '((n++)) does not work on unset variables',
+                    'read -r cannot be used in a pipeline'],
+                a: 1,
+                w: '<b>The subshell.</b> Each stage of a pipeline runs in its own process, so <code>n</code> is incremented in a child and discarded when the pipeline ends. Use process substitution — <code>while read -r f; do …; done &lt; &lt;(find …)</code> — which keeps the loop in the current shell. (<code>shopt -s lastpipe</code> is an alternative, but only in non-interactive shells with job control off.)'
+            },
+            {
+                q: 'What is the practical difference between <code>${DIR:-/tmp}</code> and <code>${DIR:?not set}</code>?',
+                o: ['They are equivalent',
+                    'The first substitutes a fallback; the second aborts the script with a message',
+                    'The first aborts; the second substitutes',
+                    'The second only works inside functions'],
+                a: 1,
+                w: '<b>Fallback versus assertion.</b> Use <code>:-</code> when a sensible default exists, and <code>:?</code> when continuing without a value would be dangerous — which is every destructive operation. <code>rm -rf -- "${DIR:?}"/*</code> turns a catastrophic empty expansion into a one-line abort.'
+            },
+            {
+                q: 'Which pair correctly extracts the basename and the directory from <code>f=/var/log/app.log</code> without forking a process?',
+                o: ['${f##*/} and ${f%/*}',
+                    '${f%%*/} and ${f#/*}',
+                    '$(basename $f) and $(dirname $f)',
+                    '${f:0:4} and ${f:5}'],
+                a: 0,
+                w: '<b><code>${f##*/}</code> → <code>app.log</code>, <code>${f%/*}</code> → <code>/var/log</code>.</b> <code>#</code> trims from the left, <code>%</code> from the right, doubled means greedy. Option 3 gives the right answers but forks two processes per call — a real cost inside a loop over thousands of files, and it also mishandles trailing newlines in the general case.'
+            },
+            {
+                q: 'A script builds a command as text: <code>cmd="rsync -a $src $dst"; eval "$cmd"</code>. What is the flaw?',
+                o: ['eval is slower than direct execution',
+                    'Any special characters or spaces in $src or $dst are re-parsed as shell syntax — the injection from lecture 4',
+                    'rsync cannot be run through eval',
+                    'The variables need to be exported first'],
+                a: 1,
+                w: '<b>Re-parsing is injection.</b> <code>eval</code> hands the fully expanded string back to the shell as source code, so a path containing a space breaks the arguments and one containing <code>;</code> runs a second command. Use an array instead: <code>cmd=(rsync -a "$src" "$dst"); "${cmd[@]}"</code> — each element stays exactly one argument, regardless of its contents.'
+            },
+            {
+                q: 'Which comment is worth writing?',
+                o: ['# increment the counter',
+                    '# mysqldump exits 0 on a partial dump if the connection drops, so we assert the trailer',
+                    '# loop over the files',
+                    '# set the variable to zero'],
+                a: 1,
+                w: '<b>The one carrying information the code cannot express.</b> The other three restate syntax the reader can already see, cost reading time, and become lies the moment the code changes without them. Comment the <em>why</em>: the constraint, the external quirk, the ticket number, the approach you rejected and the reason.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 7
+            ? 'You are reading shell the way the shell reads it. Do the shellcheck homework — it will still find things, and each finding is a lesson.'
+            : 'Four to burn in: quote every expansion; set nullglob; grep returning 1 is normal, and set -e disagrees; and never eval a built command string.'));
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Automation · L03 — Advantages of Automation: Logs, Archives, Backups, Reporting</title>
+    <meta name="description"
+        content="Lecture 3 of DevOps Automation (Unit 2): advantages of automation, automation scenarios, archiving logs, auto-discarding old archives, MySQL (RDBMS) backups and emailing a web server summary.">
+    <link rel="stylesheet" href="../assets/deck.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <b>DevOps Automation</b><span>Unit 2 · Advantages of Automation</span>
+        <span>·</span><span>Lecture 3</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit 2 · Lecture 3 · Advantages of Automation</span>
+            <h1>Logs, Archives,<br><span style="color:var(--brand)">Backups and Reports</span></h1>
+            <p class="lead big" style="max-width:36em">Unit 1 was the map. From here to the end of the course you are
+                <em class="hl">writing the thing</em>. Four scenarios today, and every one of them is a real job that a
+                real server needs done tonight.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>Advantages</h3>
+                    <p style="margin:0">What automation buys, and how to spot a good candidate for it.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>1 · Archiving logs</h3>
+                    <p style="margin:0">Compress and roll yesterday's logs; auto-discard old archives.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>2 · MySQL backups</h3>
+                    <p style="margin:0">Dump, compress, verify, retain — and the part everyone skips.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>3 · Web server summary</h3>
+                    <p style="margin:0">Turn an access log into a mailed daily report with awk.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · UPES ·
+                55 minutes · <b style="color:var(--do)">bring a terminal — you will type today</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · ADVANTAGES ============ -->
+        <section class="slide" data-title="A1 · Advantages of automation">
+            <span class="kicker">Part A · why</span>
+            <h2>Advantages of automation</h2>
+            <div class="grid g3">
+                <div class="card flat tint-good">
+                    <h3>Correctness</h3>
+                    <ul class="stack-tight">
+                        <li><b>Consistency</b> — identical execution every time, on every host.</li>
+                        <li><b>Fewer errors</b> — no mistyped path, no forgotten step, no wrong server at 2 a.m.</li>
+                        <li><b>Testable</b> — a script can be run in a sandbox; a habit cannot.</li>
+                        <li><b>Reviewable</b> — it goes through Git and code review like any other code.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-brand">
+                    <h3>Capacity</h3>
+                    <ul class="stack-tight">
+                        <li><b>Speed</b> — seconds instead of an afternoon.</li>
+                        <li><b>Scale</b> — the same script serves 1 server or 500. This is the advantage with no manual
+                            equivalent at all.</li>
+                        <li><b>Availability</b> — it runs at 03:00 on a Sunday without complaint.</li>
+                        <li><b>Parallelism</b> — do twenty hosts at once.</li>
+                        <li><b>People freed</b> for work that needs judgement.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Governance</h3>
+                    <ul class="stack-tight">
+                        <li><b>Executable documentation</b> — the script <em>is</em> the procedure, and it cannot go
+                            stale without failing.</li>
+                        <li><b>Auditability</b> — logged, timestamped, attributable runs.</li>
+                        <li><b>Knowledge retention</b> — the procedure survives the person who wrote it.</li>
+                        <li><b>Lower cost</b> — engineer hours, and the outages that no longer happen.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card flat tint-bad" style="margin-top:.6em">
+                <p style="margin:0"><b>The honest counterweight.</b> Automation has costs: it must be written, tested
+                    and maintained; a bug now executes at machine speed on every host at once; and skills atrophy when
+                    nobody remembers the manual procedure. <b>An automated wrong action is far more damaging than a
+                        manual one</b> — which is why the rest of this unit insists on dry-run modes, checks before
+                    destructive steps, and logging.</p>
+            </div>
+        </section>
+
+        <!-- ============ 3 · WHAT TO AUTOMATE ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Which tasks are worth automating?">
+            <span class="kicker do">Do first · 5 minutes</span>
+            <h2>Score these eight tasks. Which would you automate first?</h2>
+            <div class="runbar">
+                <span class="step">1 · Alone, 3 min — rank them</span>
+                <span class="step">2 · Pairs, 2 min — defend your top and bottom</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="300">5:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2" style="gap:.45em">
+                <div class="card flat"><p style="margin:0; font-size:.9em"><span class="tag">1</span> Rotating and
+                        compressing logs on 12 web servers, daily.</p></div>
+                <div class="card flat"><p style="margin:0; font-size:.9em"><span class="tag">2</span> Choosing which
+                        features go into the next release.</p></div>
+                <div class="card flat"><p style="margin:0; font-size:.9em"><span class="tag">3</span> Taking a database
+                        backup every night and checking it restores.</p></div>
+                <div class="card flat"><p style="margin:0; font-size:.9em"><span class="tag">4</span> Diagnosing a
+                        novel production outage nobody has seen before.</p></div>
+                <div class="card flat"><p style="margin:0; font-size:.9em"><span class="tag">5</span> Creating 300
+                        student accounts at the start of a semester.</p></div>
+                <div class="card flat"><p style="margin:0; font-size:.9em"><span class="tag">6</span> Checking disk
+                        usage on every server and alerting above 85%.</p></div>
+                <div class="card flat"><p style="margin:0; font-size:.9em"><span class="tag">7</span> A one-off data
+                        migration you will never repeat.</p></div>
+                <div class="card flat"><p style="margin:0; font-size:.9em"><span class="tag">8</span> Deciding whether
+                        a failing test is a real bug or a bad test.</p></div>
+            </div>
+            <div class="card flat tint-brand" style="margin-top:.6em">
+                <p style="margin:0"><b>The scoring rule — automate where all four are high:</b> <b>frequency</b> (how
+                    often), <b>determinism</b> (are the rules fixed?), <b>error-proneness</b> (what does a mistake
+                    cost?), <b>tedium</b> (does attention drift?). By that rule: 1, 3, 5 and 6 are prime; 2, 4 and 8
+                    need judgement and cannot be automated at all — you automate the <em>data-gathering</em> around
+                    them. Number 7 is the interesting one: it is once-only, so the payback looks negative — but
+                    scripting it still gives you a dry run, a repeatable retry after failure, and a record of what was
+                    done. <b>Automate one-offs when getting them wrong is expensive.</b></p>
+            </div>
+        </section>
+
+        <!-- ============ 4 · SCENARIO 1 : LOG ARCHIVING ============ -->
+        <section class="slide" data-title="S1 · Archiving logs">
+            <span class="kicker">Scenario 1</span>
+            <h2>Archiving logs</h2>
+            <div class="grid g23">
+                <div class="card">
+                    <h3>The problem</h3>
+                    <p>A busy web server writes hundreds of megabytes of log a day. Left alone, three things happen: the
+                        disk fills and the service dies; the file becomes too large to search; and nobody can find last
+                        Tuesday's entries.</p>
+                    <h3>The shape of the solution</h3>
+                    <ol class="stack-tight">
+                        <li>Every night, take the current log and <b>roll it</b> to a dated name.</li>
+                        <li><b>Compress</b> it — text logs compress by 90% or more.</li>
+                        <li><b>Signal the service</b> to reopen its log file, or the process keeps writing to the file
+                            you just moved.</li>
+                        <li>Move the archive to an archive directory (or object storage).</li>
+                        <li><b>Verify</b> the archive is readable before considering the job done.</li>
+                    </ol>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Step 3 is the one that catches everybody</h3>
+                    <p style="margin:0">On Linux, a running process holds an open <em>file descriptor</em>, not a
+                        filename. Rename <code>access.log</code> and nginx happily keeps writing to the renamed
+                        inode — your "archive" grows all day and the new <code>access.log</code> stays empty. Worse, if
+                        you delete it, the space is <b>not</b> reclaimed until the process exits, so
+                        <code>df</code> shows a full disk while <code>du</code> shows nothing.</p>
+                    <p style="margin:.4em 0 0"><b>The fix:</b> after rolling, send the daemon the signal that makes it
+                        reopen its logs (<code>nginx -s reopen</code>, <code>systemctl reload</code>, or
+                        <code>kill -USR1</code>), or use <code>copytruncate</code>, which copies the file and truncates
+                        the original in place — at the cost of losing any lines written during the copy.</p>
+                </div>
+            </div>
+            <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="k">set</span> -euo pipefail
+
+LOG_DIR=<span class="s">/var/log/nginx</span>;  ARCHIVE_DIR=<span class="s">/var/archive/nginx</span>
+STAMP=<span class="v">$(</span>date +%F<span class="v">)</span>                       <span class="c"># 2026-09-03 — sorts correctly, always</span>
+
+mkdir -p <span class="s">"$ARCHIVE_DIR"</span>
+<span class="k">for</span> f <span class="k">in</span> <span class="s">"$LOG_DIR"</span>/*.log; <span class="k">do</span>
+    [[ -s <span class="s">"$f"</span> ]] || <span class="k">continue</span>                    <span class="c"># skip empty logs</span>
+    base=<span class="v">$(</span>basename <span class="s">"$f"</span> .log<span class="v">)</span>
+    mv <span class="s">"$f"</span> <span class="s">"$ARCHIVE_DIR/${base}-${STAMP}.log"</span>
+<span class="k">done</span>
+
+nginx -s reopen                              <span class="c"># CRITICAL: make nginx reopen its files</span>
+gzip -9 <span class="s">"$ARCHIVE_DIR"</span>/*-<span class="s">"$STAMP"</span>.log
+gzip -t <span class="s">"$ARCHIVE_DIR"</span>/*-<span class="s">"$STAMP"</span>.log.gz    <span class="c"># verify: an unverified archive is a rumour</span></pre>
+            <p class="footnote" style="margin:0"><b>In production, prefer <code>logrotate</code></b> — it already
+                handles rolling, compression, signalling, retention and error cases, and it is declarative:
+                <code>/etc/logrotate.d/nginx</code>. Write the script once to understand what logrotate is doing for
+                you; then use logrotate. <b>Knowing when <em>not</em> to write a script is part of the skill.</b></p>
+        </section>
+
+        <!-- ============ 5 · SCENARIO 2 : RETENTION ============ -->
+        <section class="slide" data-title="S2 · Auto-discarding old archives">
+            <span class="kicker">Scenario 2</span>
+            <h2>Auto-discard old archives — the most dangerous script you will write</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>The task</h3>
+                    <p>Archiving without expiry only delays the disk-full incident. A retention policy answers one
+                        question: <b>how long must we be able to look back?</b> Usually set by law or contract, not by
+                        engineering taste (audit logs 1–7 years; web logs 30–90 days; backups on a
+                        grandfather-father-son cycle).</p>
+                    <pre class="term"><span class="c"># The core idea, and note the ORDER of the tests</span>
+find <span class="s">"$ARCHIVE_DIR"</span> \
+     -maxdepth 1 -type f -name <span class="s">'*.log.gz'</span> \
+     -mtime +30 -print -delete</pre>
+                    <p class="kv"><b>-maxdepth 1</b> do not recurse into other people's directories ·
+                        <b>-type f</b> never match a directory · <b>-name</b> narrow to files you created ·
+                        <b>-mtime +30</b> modified more than 30×24 h ago · <b>-print</b> before <b>-delete</b> so the
+                        log records what went.</p>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Four rules, learned the hard way</h3>
+                    <ul class="stack-tight">
+                        <li><b>Always run it as a dry run first.</b> Replace <code>-delete</code> with
+                            <code>-print</code> and read every line. Do this on the real server, not just your laptop.
+                        </li>
+                        <li><b>Never let the directory be empty or unset.</b> If <code>$ARCHIVE_DIR</code> is unset,
+                            <code>find "" -delete</code> or <code>find / -delete</code> is what you have written.
+                            <code>set -u</code> plus <code>${ARCHIVE_DIR:?not set}</code> prevents this, and it is the
+                            single most valuable habit in this lecture.</li>
+                        <li><b>Filter by name, not only by age.</b> <code>-name '*.log.gz'</code> means a mistake in the
+                            path still cannot delete somebody's photos.</li>
+                        <li><b>Log every deletion</b>, and alert if the count is wildly different from yesterday's — a
+                            sudden jump from 1 file to 4,000 means your date logic is wrong, and that alert is the only
+                            thing standing between you and a very bad morning.</li>
+                    </ul>
+                    <p class="footnote" style="margin:0">Prefer moving to a trash directory over deleting outright —
+                        Lecture 4 builds exactly that.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin:.5em 0 0"><b>Watch the units:</b> <code>-mtime +30</code> counts 24-hour
+                periods and <em>truncates</em>, so it means "at least 31 days old". <code>-mmin</code> counts minutes.
+                And <code>-atime</code> (access time) is unreliable on modern mounts because of
+                <code>relatime</code> — always retain on <code>-mtime</code>.</p>
+        </section>
+
+        <!-- ============ 6 · SCENARIO 3 : MYSQL BACKUP ============ -->
+        <section class="slide" data-title="S3 · MySQL (RDBMS) backups">
+            <span class="kicker">Scenario 3</span>
+            <h2>MySQL (RDBMS) backups</h2>
+            <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="k">set</span> -euo pipefail
+
+DB=<span class="s">"${1:?usage: backup-db.sh &lt;database&gt;}"</span>
+DEST=<span class="s">/var/backups/mysql</span>;  STAMP=<span class="v">$(</span>date +%F_%H%M<span class="v">)</span>
+OUT=<span class="s">"$DEST/${DB}-${STAMP}.sql.gz"</span>
+
+mkdir -p <span class="s">"$DEST"</span>
+
+<span class="c"># --defaults-extra-file holds the credentials, chmod 600, owned by the backup user.</span>
+<span class="c"># NEVER put a password on the command line: it is visible in `ps` to every user.</span>
+mysqldump --defaults-extra-file=/etc/mysql/backup.cnf \
+          --single-transaction --quick --routines --triggers --events \
+          --set-gtid-purged=OFF <span class="s">"$DB"</span> \
+    | gzip -9 &gt; <span class="s">"$OUT"</span>
+
+gzip -t <span class="s">"$OUT"</span>                                <span class="c"># 1. is the archive intact?</span>
+[[ <span class="v">$(</span>stat -c%s <span class="s">"$OUT"</span><span class="v">)</span> -gt 1024 ]]           <span class="c"># 2. is it plausibly non-empty?</span>
+zcat <span class="s">"$OUT"</span> | tail -1 | grep -q <span class="s">'Dump completed'</span>  <span class="c"># 3. did the dump FINISH?</span>
+
+logger -t db-backup <span class="s">"ok $DB -&gt; $OUT ($(du -h "$OUT" | cut -f1))"</span></pre>
+            <div class="grid g3">
+                <div class="card flat tint-brand">
+                    <h3>Why those flags</h3>
+                    <ul class="stack-tight">
+                        <li><b>--single-transaction</b> — a consistent snapshot on InnoDB <em>without locking the
+                                tables</em>, so the site stays up. Without it you either lock users out or get a dump
+                            that is internally inconsistent.</li>
+                        <li><b>--quick</b> — stream rows instead of buffering a huge table in memory.</li>
+                        <li><b>--routines --triggers --events</b> — not included by default; restore without them and
+                            the schema is silently incomplete.</li>
+                        <li><b>Pipe straight into gzip</b> — never write the plaintext dump to disk first.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>The part everyone skips</h3>
+                    <p style="margin:0"><b>A backup that has never been restored is not a backup.</b> The three checks
+                        above prove the <em>file</em> is sound; they do not prove the <em>data</em> is. Once a month,
+                        automatically restore the latest dump into a scratch database and run a query that counts rows
+                        in three key tables. Almost every catastrophic data-loss story ends with the sentence "the
+                        backups had been failing silently for months".</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>The rest of a real policy</h3>
+                    <ul class="stack-tight">
+                        <li><b>3-2-1</b>: three copies, two media, one off-site. A backup on the same disk as the
+                            database is not a backup.</li>
+                        <li><b>Encrypt</b> dumps at rest — they contain everything you have promised to protect.</li>
+                        <li><b>Retention</b>: daily 7, weekly 4, monthly 12 — reuse Scenario 2, per class.</li>
+                        <li><b>Alert on absence.</b> Silence is the failure mode: page someone if no successful backup
+                            has been recorded in 26 hours.</li>
+                        <li>For large databases, add <b>binary-log shipping</b> for point-in-time recovery; a nightly
+                            dump means you can lose up to a day.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · SCENARIO 4 : SUMMARY EMAIL ============ -->
+        <section class="slide" data-title="S4 · Email a web server summary">
+            <span class="kicker">Scenario 4</span>
+            <h2>Email a web server summary</h2>
+            <p class="lead">Turn last night's access log into six numbers a human will actually read over coffee. This
+                is the <b>reporting</b> pattern: gather → summarise → deliver → repeat on a schedule.</p>
+            <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="k">set</span> -euo pipefail
+LOG=<span class="s">/var/archive/nginx/access-$(date -d yesterday +%F).log.gz</span>
+REPORT=<span class="v">$(</span>mktemp<span class="v">)</span>;  <span class="k">trap</span> <span class="s">'rm -f "$REPORT"'</span> EXIT   <span class="c"># always clean up</span>
+
+{
+  <span class="k">echo</span> <span class="s">"Web summary for $(date -d yesterday +%F) on $(hostname -f)"</span>
+  <span class="k">echo</span>
+  <span class="k">echo</span> <span class="s">"Total requests : $(zcat "$LOG" | wc -l)"</span>
+  <span class="k">echo</span> <span class="s">"Unique clients : $(zcat "$LOG" | awk '{print $1}' | sort -u | wc -l)"</span>
+  <span class="k">echo</span> <span class="s">"Bytes served   : $(zcat "$LOG" | awk '{s+=$10} END {printf "%.2f GB", s/1073741824}')"</span>
+  <span class="k">echo</span>
+  <span class="k">echo</span> <span class="s">"Status codes:"</span>
+  zcat <span class="s">"$LOG"</span> | awk <span class="s">'{c[$9]++} END {for (k in c) printf "  %-5s %8d\n", k, c[k]}'</span> | sort
+  <span class="k">echo</span>
+  <span class="k">echo</span> <span class="s">"Top 10 URLs:"</span>
+  zcat <span class="s">"$LOG"</span> | awk <span class="s">'{print $7}'</span> | sort | uniq -c | sort -rn | head -10
+  <span class="k">echo</span>
+  <span class="k">echo</span> <span class="s">"Top 10 clients by 4xx/5xx:"</span>
+  zcat <span class="s">"$LOG"</span> | awk <span class="s">'$9 &gt;= 400 {print $1}'</span> | sort | uniq -c | sort -rn | head -10
+} &gt; <span class="s">"$REPORT"</span>
+
+mail -s <span class="s">"[$(hostname -s)] web summary $(date -d yesterday +%F)"</span> ops@example.com &lt; <span class="s">"$REPORT"</span></pre>
+            <div class="grid g2">
+                <div class="card flat tint-brand">
+                    <h3>The awk idiom worth memorising</h3>
+                    <p style="margin:0"><code>{c[$9]++} END {for (k in c) print k, c[k]}</code> — a one-line
+                        group-by-and-count over any column of any log. Change <code>$9</code> and you have counted
+                        anything. Combined with <code>sort | uniq -c | sort -rn | head</code>, this pair answers most
+                        "what is happening on my server" questions without any tooling at all.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Making the report actually useful</h3>
+                    <ul class="stack-tight">
+                        <li><b>Compare with yesterday.</b> "412,000 requests" means nothing; "412,000, up 38%" is a
+                            story. Store yesterday's numbers in a file and print the delta.</li>
+                        <li><b>Send failures loudly, successes quietly.</b> A daily green email trains people to filter
+                            it, and then the red one is filtered too. Report by exception where you can.</li>
+                        <li><b>Use a real transport</b> in production: a local <code>mail</code> command usually lands
+                            in spam. Send via the organisation's SMTP relay or an API, or post to Slack/Teams.</li>
+                        <li><b>Never email log <em>contents</em></b> containing user data or tokens.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · LAB ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Lab — write the retention policy">
+            <span class="kicker do">Terminals open · 8 minutes</span>
+            <h2>Build and test a retention script — safely</h2>
+            <div class="runbar">
+                <span class="step">1 · Build the fixture</span>
+                <span class="step">2 · Dry run</span>
+                <span class="step">3 · Only then delete</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="480">8:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Step 1 — make a safe playground with fake dates</h3>
+                    <pre class="term">mkdir -p ~/lab/archive &amp;&amp; <span class="k">cd</span> ~/lab/archive
+<span class="k">for</span> d <span class="k">in</span> 1 5 20 31 45 90; <span class="k">do</span>
+    f=access-<span class="v">$(</span>date -d <span class="s">"$d days ago"</span> +%F<span class="v">)</span>.log.gz
+    <span class="k">echo</span> fake &gt; <span class="s">"$f"</span>
+    touch -d <span class="s">"$d days ago"</span> <span class="s">"$f"</span>     <span class="c"># backdate mtime</span>
+<span class="k">done</span>
+<span class="k">echo</span> keepme &gt; important.txt; touch -d <span class="s">'200 days ago'</span> important.txt
+ls -l</pre>
+                    <p class="footnote" style="margin:0"><code>touch -d</code> is how you test time-based logic without
+                        waiting a month. Note the decoy: <code>important.txt</code> is the oldest file in the directory
+                        and must survive.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>Step 2 — your tasks</h3>
+                    <ol class="stack-tight">
+                        <li>Write a <code>find</code> that <b>lists</b> the <code>.log.gz</code> files older than 30
+                            days. Confirm exactly three match, and that <code>important.txt</code> is not among them.
+                        </li>
+                        <li>Add <code>-delete</code>. Re-run <code>ls -l</code> and confirm.</li>
+                        <li>Wrap it in a script that takes the directory and the age as arguments, refuses to run if
+                            the directory is unset or does not exist, prints each deletion, and exits non-zero on
+                            failure. Start it with <code>set -euo pipefail</code>.</li>
+                        <li><b>Stretch:</b> add a <code>--dry-run</code> flag that prints what would be deleted and
+                            changes nothing. Make it the <em>default</em>, so deletion requires an explicit
+                            <code>--force</code>.</li>
+                    </ol>
+                    <p class="footnote" style="margin:0">Point 4 is the professional habit: <b>destructive by request,
+                            never destructive by default.</b> Bring your script to Lecture 4.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill — spot the bug">
+            <span class="kicker do">Your turn · 7 questions</span>
+            <h2>Each of these scripts has one defect</h2>
+            <div class="card">
+                <p class="big" style="margin:.1em 0 .5em"><span id="lg-stmt"></span></p>
+                <div class="grid g2" id="lg-opts" style="gap:.4em"></div>
+                <div class="verdict hidden" id="lg-fb"></div>
+                <div style="display:flex; gap:.6em; align-items:center; margin-top:.7em">
+                    <button class="nav" id="lg-next">Next →</button>
+                    <button class="tbtn" id="lg-restart">Restart</button>
+                    <span class="spacer" style="flex:1"></span>
+                    <span class="footnote">Question <b id="lg-n">1</b> of <b id="lg-total">7</b> · score
+                        <b class="score" id="lg-score">0</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · CLOSE ============ -->
+        <section class="slide" data-title="Close · the pattern behind all four">
+            <span class="kicker">Close</span>
+            <h2>Four scenarios, one shape</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <p class="big">Every scenario today was: <b>select the inputs → transform them → verify the result →
+                            record what happened → alert if it did not.</b></p>
+                    <p style="margin:0">The commands change; the shape does not. When you meet an unfamiliar automation
+                        task, write those five lines as comments first and fill them in. The two students always forget
+                        are <b>verify</b> and <b>alert</b> — and those two are the difference between a script and an
+                        <em>unattended</em> script.</p>
+                </div>
+                <div class="card">
+                    <h3>What you should be able to do now</h3>
+                    <ul class="stack-tight">
+                        <li>Explain why a rolled log needs the daemon signalled, and what happens if it is not.</li>
+                        <li>Write a retention <code>find</code> that cannot delete the wrong thing.</li>
+                        <li>Take a consistent, verified, credential-safe MySQL dump — and say why an unrestored backup
+                            does not count.</li>
+                        <li>Summarise any log column with one <code>awk</code> idiom.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.5em 0 0"><b>Next lecture:</b> keeping a web server alive,
+                        validating user input safely, disk-usage alarms, and building a recycle bin with restore and an
+                        audit trail.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 10</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script src="../assets/deck.js"></script>
+    <script>
+        makeDrill('lg', [
+            {
+                q: 'The log archiver runs nightly. <code>access.log</code> is renamed and gzipped, but every morning the new <code>access.log</code> is empty and the disk keeps filling. Why?',
+                o: ['gzip corrupted the archive',
+                    'nginx was never signalled, so it still writes to the moved file descriptor',
+                    'The archive directory is on a different filesystem',
+                    'The cron job runs as the wrong user'],
+                a: 1,
+                w: '<b>No reopen signal.</b> The process holds an open file descriptor to the inode, not the name, so renaming the file does not redirect its writes. Add <code>nginx -s reopen</code> (or <code>copytruncate</code>). The disk-filling symptom is the tell: space held by an open deleted or moved file is not released until the process closes it, which is why <code>df</code> and <code>du</code> disagree.'
+            },
+            {
+                q: 'A retention script contains <code>find $DIR -mtime +30 -delete</code>, and one night <code>$DIR</code> is unset because of a typo in the config file. What happens?',
+                o: ['find errors out safely with no path given',
+                    'find defaults to the current directory and deletes matching files there',
+                    'The script exits because of set -u',
+                    'Nothing — an unset variable expands to a safe empty path'],
+                a: 1,
+                w: '<b>Unquoted and unset, the argument disappears entirely, so <code>find</code> falls back to the current directory</b> — whatever that happens to be for cron, and it recurses. This is a genuine incident pattern. Three defences, use all three: <code>set -u</code>, <code>${DIR:?DIR not set}</code>, and always quoting <code>"$DIR"</code>. (Option 3 would be right only if the script actually had <code>set -u</code> — this one does not.)'
+            },
+            {
+                q: 'A nightly <code>mysqldump</code> runs without <code>--single-transaction</code> on a busy InnoDB database. What is the most likely consequence?',
+                o: ['The dump file will be corrupt and unreadable',
+                    'The dump will be slower but perfectly correct',
+                    'Tables are locked during the dump, or the dump is internally inconsistent across tables',
+                    'The dump will silently omit stored routines'],
+                a: 2,
+                w: '<b>Locking or inconsistency.</b> Without a consistent snapshot, tables are dumped at different moments, so an order can reference a customer row that the dump did not capture — a restore that looks fine and fails at referential integrity. Note that option 4 is a real bug too, but it is caused by omitting <code>--routines</code>, not by the transaction flag.'
+            },
+            {
+                q: 'A backup script passes the password with <code>mysqldump -u root -pSecret123</code>. What is the specific risk?',
+                o: ['The password is visible in the process list to every user on the host',
+                    'mysqldump does not accept passwords that way',
+                    'It only works for the root user',
+                    'The password is silently truncated to eight characters'],
+                a: 0,
+                w: '<b><code>ps aux</code> shows the full command line to every user on the machine</b>, and it lands in shell history and process accounting too. Use <code>--defaults-extra-file</code> pointing at a <code>chmod 600</code> file owned by the backup user, or a credential store. This is the single most common secret leak in ops scripting.'
+            },
+            {
+                q: 'The team is confident about backups: the nightly job has reported success for eleven months. What has almost certainly not been verified?',
+                o: ['That the dump file is not empty',
+                    'That gzip can read the archive',
+                    'That the dump can actually be restored into a working database',
+                    'That the backup is stored off-site'],
+                a: 2,
+                w: '<b>Restorability.</b> Exit status, file size and gzip integrity all prove the <em>file</em> is sound; none of them prove the <em>data</em> is usable. Schedule an automated monthly restore into a scratch database with a row-count assertion. Off-site storage matters too, but a copy of an unrestorable dump in another region is still worthless.'
+            },
+            {
+                q: 'A daily summary email has been sent for six months. One morning it does not arrive, and nobody notices for nine days. What is the design flaw?',
+                o: ['The email should have been sent hourly instead',
+                    'Silence is indistinguishable from success — there is no alert on absence',
+                    'The report should have been an attachment',
+                    'The script needed a longer cron interval'],
+                a: 1,
+                w: '<b>No dead-man\'s switch.</b> When a routine green report stops arriving, humans do not notice the absence of a thing. Have the job write a heartbeat (a timestamp file, or a ping to a monitoring service) and alert when the heartbeat is stale. The general rule: <b>monitor for the absence of success, not only for the presence of failure.</b>'
+            },
+            {
+                q: 'Which of these is the strongest reason to use <code>logrotate</code> instead of the hand-written archiving script from slide 4?',
+                o: ['It runs faster than a shell script',
+                    'It is declarative and already handles signalling, compression, retention and error cases',
+                    'Shell scripts cannot compress files',
+                    'It avoids the need for cron entirely'],
+                a: 1,
+                w: '<b>It is a solved problem, declaratively configured and widely tested.</b> Your script has to get reopen signals, partial failures, ownership and retention right; logrotate already has. Writing it once yourself is how you understand what it does — then delete yours. (It still runs from cron or a systemd timer, so option 4 is wrong.)'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'You are catching the failure modes that only appear in production at 3 a.m. Bring your retention script with the --dry-run default to the next lecture.'
+            : 'Four things to fix in your habits: signal the daemon after rolling, never let a path variable be unset, never put a password on a command line, and alert on the <em>absence</em> of success.'));
+    </script>
+</body>
+
+</html>

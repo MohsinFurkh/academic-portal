@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Automation · L10 — Conditionals, Regular Expressions, Scheduling and Best Practice</title>
+    <meta name="description"
+        content="Lecture 10 of DevOps Automation (Unit 5): conditionals, regular expressions, task scheduling using cron, and best practices for scripting — the closing lecture of the course.">
+    <link rel="stylesheet" href="../assets/deck.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <b>DevOps Automation</b><span>Unit 5 · Scripting Development Tasks</span>
+        <span>·</span><span>Lecture 10 · course close</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit 5 · Lecture 10 · Scripting Development Tasks</span>
+            <h1>Conditionals, Regex,<br><span style="color:var(--brand)">and Shipping It</span></h1>
+            <p class="lead big" style="max-width:36em">The last hour. Decisions, pattern matching, putting it on a
+                schedule — and the checklist that decides whether your script is <em class="hl">a tool or a liability
+                </em>.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · Conditionals</h3>
+                    <p style="margin:0">Exit status as truth, <code>[[ ]]</code>, file tests, <code>case</code>.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Regex</h3>
+                    <p style="margin:0">BRE, ERE, PCRE; grep, sed, awk, <code>=~</code> — and when not to.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · Scheduling</h3>
+                    <p style="margin:0">Everything assembled into one production job.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>D · Best practice</h3>
+                    <p style="margin:0">The review checklist, and the capstone.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · UPES ·
+                55 minutes · <b style="color:var(--do)">closes the course</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Six conditionals, which are wrong?">
+            <span class="kicker do">Do first · 6 minutes</span>
+            <h2>Five of these six are broken. Which one is correct, and why do the others fail?</h2>
+            <pre class="term">1.  <span class="k">if</span> [ <span class="v">$name</span> = <span class="s">"admin"</span> ]; <span class="k">then</span> …
+
+2.  <span class="k">if</span> [ <span class="s">"$count"</span> &gt; 10 ]; <span class="k">then</span> …
+
+3.  <span class="k">if</span> [[ <span class="s">"$file"</span> == <span class="s">"*.log"</span> ]]; <span class="k">then</span> …
+
+4.  <span class="k">if</span> [ -f <span class="v">$path</span> ]; <span class="k">then</span> rm <span class="v">$path</span>; <span class="k">fi</span>
+
+5.  <span class="k">if</span> [[ <span class="s">"$version"</span> = 1.10 ]]; <span class="k">then</span> …
+
+6.  <span class="k">if</span> grep -q ERROR app.log; <span class="k">then</span> …</pre>
+            <div class="runbar">
+                <span class="step">1 · Alone, 3 min</span>
+                <span class="step">2 · Pairs, 2 min — what does each one <em>actually</em> do?</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="360">6:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <p class="footnote" style="margin:0">Number 2 is the nastiest: it does not error, it does not compare, and
+                it silently creates a file. Work out which file. Answers on slide 4.</p>
+        </section>
+
+        <!-- ============ 3 · CONDITIONALS ============ -->
+        <section class="slide" data-title="A1 · Conditionals — exit status is truth">
+            <span class="kicker">Part A · conditionals</span>
+            <h2>In the shell, truth is an exit status</h2>
+            <div class="grid g3">
+                <div class="card flat tint-brand">
+                    <h3>The foundation</h3>
+                    <p><b>0 means success (true); anything else means failure (false).</b> Note that this is inverted
+                        from C and Python, and it is the source of endless confusion.</p>
+                    <pre class="term"><span class="k">if</span> command; <span class="k">then</span> … <span class="k">fi</span>
+<span class="c"># runs `command`, branches on ITS status</span>
+
+<span class="k">if</span> grep -q ERROR log; <span class="k">then</span> …
+<span class="k">if</span> systemctl is-active --quiet nginx; <span class="k">then</span> …
+<span class="k">if</span> ! ping -c1 -W2 host &gt;/dev/null; <span class="k">then</span> …
+
+<span class="k">echo</span> <span class="v">$?</span>          <span class="c"># last exit status</span>
+a &amp;&amp; b            <span class="c"># b only if a succeeded</span>
+a || b            <span class="c"># b only if a failed</span></pre>
+                    <p style="margin:0"><b><code>[</code> is not syntax — it is a command</b> (<code>/usr/bin/[</code>
+                        still exists). That is why it needs spaces around everything, and why
+                        <code>[$x = 1]</code> is "command not found".</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3><code>[[ ]]</code> — use this in bash</h3>
+                    <pre class="term"><span class="c"># strings</span>
+[[ <span class="s">"$a"</span> == <span class="s">"$b"</span> ]]      <span class="c"># equal</span>
+[[ <span class="s">"$a"</span> == a* ]]        <span class="c"># GLOB (unquoted!)</span>
+[[ <span class="s">"$a"</span> =~ ^[0-9]+<span class="v">$</span> ]] <span class="c"># REGEX</span>
+[[ -z <span class="s">"$a"</span> ]]           <span class="c"># empty</span>
+[[ -n <span class="s">"$a"</span> ]]           <span class="c"># non-empty</span>
+
+<span class="c"># numbers — words, not symbols</span>
+[[ <span class="s">"$n"</span> -gt 10 ]]       <span class="c"># or (( n &gt; 10 ))</span>
+<span class="c"># -eq -ne -lt -le -gt -ge</span>
+
+<span class="c"># combining</span>
+[[ -f <span class="s">"$f"</span> &amp;&amp; -r <span class="s">"$f"</span> ]]
+[[ <span class="s">"$x"</span> == a || <span class="s">"$x"</span> == b ]]</pre>
+                    <p class="footnote" style="margin:0"><code>[[ ]]</code> does no word splitting or globbing on its
+                        operands, so an empty variable cannot break the syntax. It is bash-only — with
+                        <code>#!/bin/sh</code> you must use <code>[ ]</code>.</p>
+                </div>
+                <div class="card flat">
+                    <h3>File tests and <code>case</code></h3>
+                    <pre class="term">-e exists      -f regular file
+-d directory   -L symlink
+-s non-empty   -r -w -x  perms
+-nt newer than -ot older than
+
+<span class="c"># case: cleaner than an if-chain</span>
+<span class="k">case</span> <span class="s">"$1"</span> <span class="k">in</span>
+  --dry-run)  dry=1 ;;
+  --force)    force=1 ;;
+  -h|--help)  usage ;;
+  -*)         die <span class="s">"unknown: $1"</span> ;;
+  *)          target=<span class="s">"$1"</span> ;;
+<span class="k">esac</span>
+
+<span class="c"># arithmetic context</span>
+(( retries++ ))
+(( retries &gt;= MAX )) &amp;&amp; die <span class="s">"gave up"</span></pre>
+                    <p class="footnote" style="margin:0"><b>Careful:</b> <code>(( expr ))</code> returns <em>false</em>
+                        when the expression evaluates to 0, so <code>(( count ))</code> under <code>set -e</code> exits
+                        the script when count is 0.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 4 · THE SIX ANSWERS ============ -->
+        <section class="slide" data-title="A2 · Slide 2 answered">
+            <span class="kicker">Reveal</span>
+            <h2>Only number 6 was correct</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <ol class="stack-tight">
+                        <li><b><code>[ $name = "admin" ]</code></b> — unquoted. If <code>$name</code> is empty the test
+                            becomes <code>[ = "admin" ]</code>: a syntax error. If it contains a space, too many
+                            arguments. → <code>[[ "$name" == "admin" ]]</code>.</li>
+                        <li><b><code>[ "$count" &gt; 10 ]</code></b> — <b>the nasty one.</b> <code>&gt;</code> is a
+                            <em>redirection</em>, so the shell tests whether <code>"$count"</code> is a non-empty string
+                            (almost always true) and <b>creates a file named <code>10</code></b> in the current
+                            directory. No error, wrong branch, mystery file. → <code>(( count &gt; 10 ))</code> or
+                            <code>[ "$count" -gt 10 ]</code>.</li>
+                        <li><b><code>[[ "$file" == "*.log" ]]</code></b> — quoting the pattern disables globbing, so it
+                            compares against the literal five characters <code>*.log</code>. → drop the quotes on the
+                            <em>right</em>: <code>[[ "$file" == *.log ]]</code>.</li>
+                        <li><b><code>[ -f $path ]</code></b> then <code>rm $path</code> — unquoted twice. A path with a
+                            space fails the test, or deletes the wrong files. Also: the test-then-act is a race; prefer
+                            <code>rm -f -- "$path"</code> and check the status.</li>
+                        <li><b><code>[[ "$version" = 1.10 ]]</code></b> — string comparison, so
+                            <code>1.10</code> ≠ <code>1.1</code> and, if you switch to <code>-lt</code>,
+                            <code>1.10 &lt; 1.9</code>. Version comparison needs
+                            <code>sort -V</code> or <code>dpkg --compare-versions</code>.</li>
+                        <li><b><code>grep -q ERROR app.log</code></b> — <b>correct.</b> It branches on a command's exit
+                            status, which is the idiomatic shell conditional. <code>-q</code> suppresses output and
+                            exits early on the first match.</li>
+                    </ol>
+                </div>
+                <div class="card tint-good">
+                    <h3>The four rules that would have caught all five</h3>
+                    <ol class="stack-tight">
+                        <li><b>Use <code>[[ ]]</code>, not <code>[ ]</code></b>, whenever you have bash. It removes the
+                            empty-variable and word-splitting failures by construction.</li>
+                        <li><b>Quote the left, think about the right.</b> Quoting the right-hand side turns a
+                            pattern into a literal — sometimes what you want, often not.</li>
+                        <li><b>Numbers use <code>(( ))</code> or <code>-gt</code></b>, never
+                            <code>&gt;</code> and <code>&lt;</code> inside a test.</li>
+                        <li><b>Prefer testing a command over testing a string.</b>
+                            <code>if systemctl is-active --quiet nginx</code> is more honest than parsing the output of
+                            <code>systemctl status</code>.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.4em 0 0"><b>shellcheck catches every one of these five</b>, plus
+                        several you have not thought of. It should be a required gate in your pipeline — a linter that
+                        knows the language better than you do is the cheapest engineer you will ever hire.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · REGEX ============ -->
+        <section class="slide" data-title="B1 · Regular expressions">
+            <span class="kicker">Part B · regex</span>
+            <h2>Regular expressions — and the three dialects</h2>
+            <div class="grid g3">
+                <div class="card flat">
+                    <h3>The building blocks</h3>
+                    <pre class="term">.        any single character
+^  <span class="v">$</span>     start / end of line
+[abc]    one of a b c
+[^abc]   NOT one of them
+[0-9]    a digit
+\w \d \s word, digit, space (PCRE)
+*        0 or more
++        1 or more     (ERE)
+?        0 or 1        (ERE)
+{2,5}    between 2 and 5
+(ab|cd)  group + alternation (ERE)
+\1       backreference
+\b       word boundary</pre>
+                    <p class="footnote" style="margin:0"><b>Anchor everything.</b> <code>[0-9]+</code> matches the
+                        <code>7</code> inside <code>abc7def</code>. If you mean "is entirely digits", write
+                        <code>^[0-9]+$</code>. Unanchored validation patterns are a standard security bug.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Three dialects, one lecture of pain</h3>
+                    <table>
+                        <thead><tr><th>Flavour</th><th>Tools</th><th>Note</th></tr></thead>
+                        <tbody>
+                            <tr><td><b>BRE</b> basic</td><td><code>grep</code>, <code>sed</code></td><td><code>+ ? { } ( ) |</code> must be <b>backslashed</b> to be special</td></tr>
+                            <tr><td><b>ERE</b> extended</td><td><code>grep -E</code>, <code>sed -E</code>, <code>awk</code>, <code>[[ =~ ]]</code></td><td>Those characters are special as written. <b>Prefer this.</b></td></tr>
+                            <tr><td><b>PCRE</b></td><td><code>grep -P</code>, perl, python</td><td>Adds <code>\d \w \s</code>, lazy <code>*?</code>, lookarounds</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="margin:0"><b>This table explains the classic frustration:</b> a pattern that works in
+                        Python fails in <code>grep</code> because <code>\d</code> is PCRE-only, and one that works in
+                        <code>grep -E</code> fails in plain <code>grep</code> because <code>+</code> is literal in BRE.
+                        <b>Use <code>-E</code> everywhere and be consistent.</b></p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>In practice</h3>
+                    <pre class="term"><span class="c"># bash native — captures in BASH_REMATCH</span>
+<span class="k">if</span> [[ <span class="s">"$line"</span> =~ ^([0-9.]+)\ .*\ ([0-9]{3})\ ]]; <span class="k">then</span>
+    ip=<span class="s">"${BASH_REMATCH[1]}"</span>
+    status=<span class="s">"${BASH_REMATCH[2]}"</span>
+<span class="k">fi</span>
+<span class="c"># NOTE: the pattern must be UNQUOTED to be a regex.</span>
+<span class="c"># Store complex patterns in a variable instead:</span>
+re=<span class="s">'^[0-9]+$'</span>;  [[ <span class="s">"$n"</span> =~ <span class="v">$re</span> ]]
+
+<span class="c"># grep / sed / awk</span>
+grep -E <span class="s">'^(WARN|ERROR)'</span> app.log
+grep -oE <span class="s">'[0-9]{1,3}(\.[0-9]{1,3}){3}'</span> app.log
+sed -E <span class="s">'s/([0-9]{4})-([0-9]{2})/\2\/\1/'</span> f
+awk <span class="s">'$9 ~ /^5/ {print $7}'</span> access.log</pre>
+                </div>
+            </div>
+            <div class="card flat tint-bad" style="margin-top:.5em">
+                <p style="margin:0"><b>When not to use a regex.</b> Structured formats are not text — parse them with a
+                    parser. <code>jq</code> for JSON, <code>yq</code> for YAML, <code>xmllint</code>/an XML library for
+                    XML. A regex over HTML or JSON works on your five test cases and fails on the sixth in a way you
+                    cannot predict. Also beware <b>catastrophic backtracking</b>: nested quantifiers like
+                    <code>(a+)+$</code> can take exponential time on a crafted input, which is a genuine
+                    denial-of-service vector (ReDoS). If a pattern is longer than a line, that is a message: use a real
+                    parser, or write it in Python.</p>
+            </div>
+        </section>
+
+        <!-- ============ 6 · PUTTING IT TOGETHER ============ -->
+        <section class="slide" data-title="C1 · Task scheduling using cron — assembled">
+            <span class="kicker">Part C · scheduling</span>
+            <h2>The whole course, in one job</h2>
+            <div class="grid g23">
+                <div class="card">
+                    <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="c"># rotate-and-report.sh — archive yesterday's logs, purge old</span>
+<span class="c"># archives, mail a summary.  Usage: rotate-and-report.sh [--dry-run]</span>
+<span class="c"># Exit: 0 ok · 2 usage · 3 preflight · 4 archive · 5 report</span>
+<span class="k">set</span> -euo pipefail
+shopt -s nullglob
+umask 077
+
+readonly LOG_DIR=/var/log/nginx  ARCHIVE_DIR=/var/archive/nginx
+readonly RETENTION_DAYS=30  STAMP=<span class="v">$(</span>date -d yesterday +%F<span class="v">)</span>
+readonly HEARTBEAT=/var/lib/rotate/last-success
+dry_run=0
+
+<span class="k">case</span> <span class="s">"${1:-}"</span> <span class="k">in</span> --dry-run) dry_run=1 ;; <span class="s">""</span>) ;; *) usage ;; <span class="k">esac</span>
+
+log() { printf <span class="s">'%s [%s] %s\n'</span> <span class="s">"$(date -Is)"</span> <span class="s">"$1"</span> <span class="s">"${*:2}"</span>; }
+run() { (( dry_run )) &amp;&amp; { log DRY <span class="s">"$*"</span>; <span class="k">return</span> 0; }; <span class="s">"$@"</span>; }
+
+<span class="c"># --- preflight: fail fast, with a distinct code -----------------</span>
+exec 9&gt;/var/lock/rotate.lock; flock -n 9 || { log WARN <span class="s">"running"</span>; <span class="k">exit</span> 0; }
+mountpoint -q /var/archive || { log ERROR <span class="s">"archive not mounted"</span>; <span class="k">exit</span> 3; }
+command -v gzip &gt;/dev/null || { log ERROR <span class="s">"gzip missing"</span>; <span class="k">exit</span> 3; }
+
+<span class="c"># --- archive ---------------------------------------------------</span>
+logs=( <span class="s">"$LOG_DIR"</span>/*.log )
+(( <span class="v">${#logs[@]}</span> )) || { log INFO <span class="s">"nothing to rotate"</span>; <span class="k">exit</span> 0; }
+<span class="k">for</span> f <span class="k">in</span> <span class="s">"${logs[@]}"</span>; <span class="k">do</span>
+    run mv -- <span class="s">"$f"</span> <span class="s">"$ARCHIVE_DIR/${f##*/}-$STAMP"</span>
+<span class="k">done</span>
+run nginx -s reopen
+run gzip -9 <span class="s">"$ARCHIVE_DIR"</span>/*-<span class="s">"$STAMP"</span>
+(( dry_run )) || gzip -t <span class="s">"$ARCHIVE_DIR"</span>/*-<span class="s">"$STAMP"</span>.gz || { log ERROR <span class="s">"bad archive"</span>; <span class="k">exit</span> 4; }
+
+<span class="c"># --- retention (destructive: narrow, named, logged) -------------</span>
+run find <span class="s">"${ARCHIVE_DIR:?}"</span> -maxdepth 1 -type f -name <span class="s">'*.gz'</span> \
+         -mtime +<span class="s">"$RETENTION_DAYS"</span> -print -delete
+
+<span class="c"># --- report + heartbeat ----------------------------------------</span>
+run summarise <span class="s">"$ARCHIVE_DIR"</span> | run mail -s <span class="s">"[$(hostname -s)] $STAMP"</span> ops@example.com
+(( dry_run )) || date -Is &gt; <span class="s">"$HEARTBEAT"</span>
+log INFO <span class="s">"done: ${#logs[@]} logs"</span></pre>
+                </div>
+                <div class="card tint-brand">
+                    <h3>And the schedule</h3>
+                    <pre class="term"><span class="c"># /etc/cron.d/rotate-and-report  (0644 root:root)</span>
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=ops@example.com
+
+17 2 * * * logsvc /usr/local/bin/rotate-and-report \
+    &gt;&gt; /var/log/rotate/rotate.log 2&gt;&amp;1
+
+<span class="c"># independent dead-man's switch — the job that</span>
+<span class="c"># watches the job</span>
+0 9 * * * ops /usr/local/bin/check-heartbeat \
+    /var/lib/rotate/last-success 26h</pre>
+                    <h3>Every unit is present</h3>
+                    <ul class="stack-tight">
+                        <li><b>U1</b> — it is a repeatable, versioned, reviewable process.</li>
+                        <li><b>U2</b> — rotation, retention, reporting; verify before deleting; alert on absence.</li>
+                        <li><b>U3</b> — cron.d, explicit SHELL and PATH, both streams redirected, locked, off the hour.
+                        </li>
+                        <li><b>U4</b> — a service account, FHS paths, the mount check, <code>umask 077</code>.</li>
+                        <li><b>U5</b> — shebang, strict mode, <code>readonly</code>, <code>case</code>,
+                            <code>${:?}</code>, <code>${f##*/}</code>, arrays, dry-run, exit codes.</li>
+                    </ul>
+                    <p class="footnote" style="margin:0">Note the <code>run</code> wrapper: one three-word function
+                        gives the entire script a dry-run mode. That is the cheapest safety feature in shell
+                        scripting.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · BEST PRACTICES ============ -->
+        <section class="slide" data-title="D1 · Best practices for scripting">
+            <span class="kicker">Part D · best practice</span>
+            <h2>Best practices for scripting — the review checklist</h2>
+            <div class="grid g3">
+                <div class="card flat tint-brand">
+                    <h3>Correctness</h3>
+                    <ul class="stack-tight">
+                        <li>Shebang; <code>set -euo pipefail</code>.</li>
+                        <li>Every expansion quoted; <code>shellcheck</code> clean.</li>
+                        <li>Arguments validated; <code>${x:?}</code> before anything destructive.</li>
+                        <li><b>Idempotent</b> — safe to run twice.</li>
+                        <li>Preflight assertions: commands present, paths mounted, space free, permissions right.</li>
+                        <li><b>Verify results</b>, do not assume: test the archive, check the health endpoint.</li>
+                        <li>Meaningful, documented exit codes.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>Operability</h3>
+                    <ul class="stack-tight">
+                        <li><b><code>--dry-run</code>, and make it the default</b> for destructive tools.</li>
+                        <li>Timestamped logs to stderr; <code>logger</code> for the journal.</li>
+                        <li><code>flock</code> against overlapping runs.</li>
+                        <li><code>trap</code> cleanup on EXIT, INT and TERM.</li>
+                        <li>A <b>heartbeat</b>, and an independent watcher that alerts on its absence.</li>
+                        <li>Configuration in a file or environment — never constants edited in place.</li>
+                        <li>Rotate the log your own script writes.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Maintainability &amp; security</h3>
+                    <ul class="stack-tight">
+                        <li>Header block: purpose, usage, assumptions, exit codes, owner.</li>
+                        <li>Functions with <code>local</code>; <code>main "$@"</code> at the bottom.</li>
+                        <li>Comment the <b>why</b>, never the what.</li>
+                        <li>In version control, code-reviewed like any other code.</li>
+                        <li>Tested — <code>bats</code>, or at minimum a documented manual test including the failure
+                            paths.</li>
+                        <li>Runs as a dedicated service account with least privilege.</li>
+                        <li>No secrets in the script, in Git, on a command line, or in the environment.</li>
+                        <li><b>Know when to stop.</b> Past roughly 300 lines, or when you need data structures,
+                            arithmetic on floats or real error handling, <b>rewrite it in Python.</b> Shell is a
+                            magnificent glue language and a poor programming language.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Final drill">
+            <span class="kicker do">Your turn · 8 questions</span>
+            <h2>Conditionals, regex and shipping</h2>
+            <div class="card">
+                <p class="big" style="margin:.1em 0 .5em"><span id="fn-stmt"></span></p>
+                <div class="grid g2" id="fn-opts" style="gap:.4em"></div>
+                <div class="verdict hidden" id="fn-fb"></div>
+                <div style="display:flex; gap:.6em; align-items:center; margin-top:.7em">
+                    <button class="nav" id="fn-next">Next →</button>
+                    <button class="tbtn" id="fn-restart">Restart</button>
+                    <span class="spacer" style="flex:1"></span>
+                    <span class="footnote">Question <b id="fn-n">1</b> of <b id="fn-total">8</b> · score
+                        <b class="score" id="fn-score">0</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · CAPSTONE ============ -->
+        <section class="slide" data-mode="do" data-title="Capstone">
+            <span class="kicker do">Capstone · assessed</span>
+            <h2>Capstone: one automation, done properly</h2>
+            <div class="grid g2">
+                <div class="card tint-do">
+                    <h3>Deliverables</h3>
+                    <ol class="stack-tight">
+                        <li><b>The script</b> — your Unit 2 scenario, on the Unit 5 skeleton, shellcheck-clean, with a
+                            <code>--dry-run</code> mode.</li>
+                        <li><b>The identity</b> — <code>setup-identity.sh</code> creating the service account,
+                            directories, ownership and modes, idempotently.</li>
+                        <li><b>The schedule</b> — a <code>/etc/cron.d/</code> file with correct mode, ownership,
+                            <code>SHELL</code>, <code>PATH</code>, locking and redirection.</li>
+                        <li><b>The watcher</b> — a heartbeat written by the job, and an independent job that alerts when
+                            it goes stale.</li>
+                        <li><b>The logrotate config</b> for your own log.</li>
+                        <li><b>README</b> — purpose, assumptions, exit codes, how to test it, how it fails, how to
+                            recover.</li>
+                        <li><b>Test evidence</b> — output showing it survives six hostile cases you chose, including at
+                            least one where it correctly <em>refuses</em> to act.</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h3>How it will be marked</h3>
+                    <table>
+                        <thead><tr><th>Dimension</th><th>Weight</th></tr></thead>
+                        <tbody>
+                            <tr><td>Correctness &amp; idempotence</td><td>25%</td></tr>
+                            <tr><td>Failure handling: validation, verification, exit codes, cleanup</td><td>25%</td></tr>
+                            <tr><td>Operability: dry-run, logging, locking, heartbeat</td><td>20%</td></tr>
+                            <tr><td>Security: identity, permissions, secret handling</td><td>15%</td></tr>
+                            <tr><td>Readability &amp; documentation</td><td>15%</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="margin:.4em 0 0"><b>Note where the marks are.</b> Only a quarter is for making it work.
+                        Three quarters are for what happens when it does <em>not</em> — which is the honest weighting of
+                        real operations work, and the single most important idea in this course.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · CLOSE ============ -->
+        <section class="slide" data-title="Close · the course in one slide">
+            <span class="kicker">Course close</span>
+            <h2>DevOps Automation, in one slide</h2>
+            <div class="grid g5" style="gap:.5em">
+                <div class="card flat tint-brand">
+                    <h3>Unit 1</h3>
+                    <p style="margin:0">A pipeline moves change from commit to user through gates ordered by cost.
+                        Automating it buys <b>repeatability first</b>, speed second.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>Unit 2</h3>
+                    <p style="margin:0">Fourteen real scenarios, six ideas: <b>verify, be idempotent, validate at the
+                            boundary, stay reversible, alert on absence, protect secrets.</b></p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Unit 3</h3>
+                    <p style="margin:0">cron runs it without you — with an empty environment, no retries and no memory.
+                        <b>Everything must be declared, redirected, locked and watched.</b></p>
+                </div>
+                <div class="card flat">
+                    <h3>Unit 4</h3>
+                    <p style="margin:0">A file is an inode, a path is not a disk, and <b>every job runs as somebody</b>
+                        — choose that identity deliberately and give it the least it needs.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>Unit 5</h3>
+                    <p style="margin:0">The first fifteen lines decide everything. Quote every expansion, comment the
+                        why, and <b>know when to stop writing shell.</b></p>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:1em">Automation does not remove human error. It
+                <em class="hl">moves it to a place where it can be reviewed, tested and fixed before it costs
+                    anything.</em></p>
+            <p class="footnote" style="margin-top:.8em"><b>Where to go next:</b> Ansible or Terraform (declarative
+                infrastructure) · Docker and Kubernetes (immutable rather than provisioned servers) · GitHub Actions,
+                GitLab CI or Jenkins (pipelines) · Prometheus and Grafana (monitoring) · <em>The DevOps Handbook</em> ·
+                Humble &amp; Farley, <em>Continuous Delivery</em> · <em>The Phoenix Project</em> · the Google SRE book ·
+                and <code>shellcheck.net</code>, every single time.</p>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 10</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script src="../assets/deck.js"></script>
+    <script>
+        makeDrill('fn', [
+            {
+                q: 'What does <code>[ "$count" &gt; 10 ]</code> actually do?',
+                o: ['Compares count numerically against 10',
+                    'Tests whether "$count" is a non-empty string, and creates a file named 10',
+                    'Raises a syntax error',
+                    'Compares the two values as strings'],
+                a: 1,
+                w: '<b>It redirects.</b> Inside <code>[ ]</code> the <code>&gt;</code> is still the shell\'s redirection operator, so the test degenerates to "is this string non-empty" — nearly always true — and a file called <code>10</code> appears in the working directory. No error, wrong branch, mystery file. Use <code>(( count &gt; 10 ))</code> or <code>[ "$count" -gt 10 ]</code>.'
+            },
+            {
+                q: 'Why does <code>[[ "$f" == "*.log" ]]</code> fail to match <code>app.log</code>?',
+                o: ['== does not do glob matching',
+                    'Quoting the right-hand side turns the pattern into a literal string',
+                    '[[ ]] requires =~ for patterns',
+                    'The variable needs to be unquoted'],
+                a: 1,
+                w: '<b>The quotes on the right disable pattern matching.</b> In <code>[[ ]]</code>, an unquoted right-hand side is a glob and a quoted one is a literal — so this asks whether the filename is the five characters <code>*.log</code>. Write <code>[[ "$f" == *.log ]]</code>. The same rule applies to <code>=~</code>: quote the regex and it stops being a regex.'
+            },
+            {
+                q: 'A validation uses <code>[[ "$input" =~ [0-9]+ ]]</code> to check the input is a number. What gets through?',
+                o: ['Only digits, as intended',
+                    'Anything containing at least one digit, such as "rm -rf /; 7"',
+                    'Nothing — the syntax is wrong',
+                    'Only positive integers'],
+                a: 1,
+                w: '<b>Anything with a digit anywhere in it.</b> An unanchored pattern matches a <em>substring</em>, so the check passes and the dangerous text goes through. Anchor it: <code>^[0-9]+$</code>. Unanchored validation regexes are a standard security defect — in every language, not just shell.'
+            },
+            {
+                q: 'Your pattern <code>\\d{3}-\\d{4}</code> works in Python but matches nothing in <code>grep -E</code>. Why?',
+                o: ['grep does not support quantifiers',
+                    '\\d is a PCRE feature; ERE requires [0-9]',
+                    'The pattern needs to be quoted differently',
+                    'grep -E only handles single characters'],
+                a: 1,
+                w: '<b>Dialect mismatch.</b> <code>\\d</code>, <code>\\w</code>, <code>\\s</code> and lookarounds are PCRE; POSIX ERE has none of them. Write <code>[0-9]{3}-[0-9]{4}</code>, or use <code>grep -P</code> where available (it is not, on BusyBox or macOS). Knowing which of BRE, ERE and PCRE you are speaking saves hours.'
+            },
+            {
+                q: 'A destructive script is run twice concurrently by an operator and by cron. Which single measure prevents the damage?',
+                o: ['set -euo pipefail',
+                    'flock on a lock file, so the second invocation exits immediately',
+                    'Running it as root',
+                    'Adding more logging'],
+                a: 1,
+                w: '<b><code>flock</code>.</b> Strict mode catches errors within one run but knows nothing about a second one; logging records the disaster rather than preventing it. <code>exec 9&gt;/var/lock/job.lock; flock -n 9 || exit 0</code> is two lines and eliminates the entire class of concurrent-run corruption.'
+            },
+            {
+                q: 'Which is the best default behaviour for a script that deletes files?',
+                o: ['Delete immediately; add --dry-run for the cautious',
+                    'Dry-run by default; require an explicit --force to delete',
+                    'Always prompt for confirmation',
+                    'Delete, but write a log of what was removed'],
+                a: 1,
+                w: '<b>Safe by default, destructive by request.</b> A wrong invocation then costs a printed list instead of data. Prompting fails outright in cron (there is no tty), and a log tells you what you destroyed rather than preventing it — both are worth having, neither is the default. This is the same principle as trash-instead-of-delete.'
+            },
+            {
+                q: 'Your job has succeeded nightly for a year. Then cron is accidentally disabled during a server rebuild. What tells you?',
+                o: ['MAILTO, since cron emails failures',
+                    'Nothing — unless an independent heartbeat watcher alerts on the absence of success',
+                    'The application will error',
+                    'The log file will show an error'],
+                a: 1,
+                w: '<b>Nothing at all.</b> Every mechanism inside the job depends on the job running: no run means no output, no email, no log line, no error. Only an <em>external</em> observer — a watcher checking that a heartbeat file is newer than 26 hours, or a dead-man\'s-switch service — can detect silence. <b>Monitor for the absence of success, not the presence of failure.</b>'
+            },
+            {
+                q: 'A shell script has grown to 600 lines with nested associative arrays, floating-point arithmetic via <code>bc</code>, and its own JSON parser. What is the right response?',
+                o: ['Refactor it into more shell functions',
+                    'Rewrite it in Python — shell is a glue language, and this passed its limits some time ago',
+                    'Add more comments',
+                    'Split it into several shell scripts'],
+                a: 1,
+                w: '<b>Rewrite it.</b> Shell is superb at orchestrating other programs and poor at data structures, arithmetic, error handling and testing. Hand-rolled JSON parsing in bash is a guaranteed bug. Knowing the boundary — roughly 300 lines, or the first time you need a real data structure — is a mark of judgement, not of defeat.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 7
+            ? 'That is the course. You can write automation that fails safely, runs unattended, and can be handed to someone else. Go and build the capstone.'
+            : 'Revise: conditionals branch on exit status; anchor every validation regex; know your regex dialect; lock, dry-run by default, and watch for silence.'));
+    </script>
+</body>
+
+</html>

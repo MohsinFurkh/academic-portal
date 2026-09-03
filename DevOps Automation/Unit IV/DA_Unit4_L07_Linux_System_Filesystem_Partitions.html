@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Automation · L07 — The Linux System, File System and Partitions</title>
+    <meta name="description"
+        content="Lecture 7 of DevOps Automation (Unit 4): the Linux system, the Linux file system, partitions, common system directories and the role of the shell.">
+    <link rel="stylesheet" href="../assets/deck.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <b>DevOps Automation</b><span>Unit 4 · Interacting with the Linux Environment</span>
+        <span>·</span><span>Lecture 7</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit 4 · Lecture 7 · Interacting with the Linux Environment</span>
+            <h1>The System<br><span style="color:var(--brand)">Underneath Your Scripts</span></h1>
+            <p class="lead big" style="max-width:36em">Every script you have written this term made assumptions about
+                the machine it runs on. <em class="hl">Today we make those assumptions explicit</em> — because the ones
+                you cannot name are the ones that break at 3 a.m.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · The system</h3>
+                    <p style="margin:0">Kernel, userland, shell — and what a "distribution" actually is.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · The file system</h3>
+                    <p style="margin:0">One tree, inodes, links, and why "everything is a file" matters to you.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · Partitions</h3>
+                    <p style="margin:0">Block devices, mount points, fstab — and the disk-full incident.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>D · Directories</h3>
+                    <p style="margin:0">The FHS, and where <em>your</em> automation belongs.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · UPES ·
+                55 minutes<br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · The disk is full, but it isn't">
+            <span class="kicker do">Do first · 6 minutes</span>
+            <h2>Production is down. Diagnose it from these three outputs.</h2>
+            <pre class="term"><span class="p">$</span> df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda1        20G   20G     0 100% /
+
+<span class="p">$</span> du -sh /* 2&gt;/dev/null | sort -rh | head -5
+2.1G    /usr
+890M    /var
+410M    /opt
+120M    /home
+ 45M    /etc
+<span class="c"># That totals about 3.6 GB. Where are the other 16 GB?</span>
+
+<span class="p">$</span> lsof +L1 | head -3
+COMMAND   PID   USER   FD   TYPE DEVICE   SIZE/OFF NLINK NODE NAME
+java     4127    app   3w   REG  253,1 16094371840     0 5243 /var/log/app.log (deleted)</pre>
+            <div class="runbar">
+                <span class="step">1 · Alone, 3 min — what happened, and what do you do?</span>
+                <span class="step">2 · Pairs, 2 min</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="360">6:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <p class="footnote" style="margin:0">Hint: <code>df</code> asks the <em>filesystem</em>; <code>du</code>
+                walks the <em>directory tree</em>. When they disagree by 16 GB, the space belongs to something that has
+                no name. What in Linux can have data but no name? <b>Slide 4 has the answer, and it is the single most
+                    useful thing in this lecture.</b></p>
+        </section>
+
+        <!-- ============ 3 · THE LINUX SYSTEM ============ -->
+        <section class="slide" data-title="A1 · The Linux system">
+            <span class="kicker">Part A · the system</span>
+            <h2>The Linux system: three layers you keep confusing</h2>
+            <div class="grid g3">
+                <div class="card flat tint-brand">
+                    <h3>1 · The kernel</h3>
+                    <p>Linux, strictly, is <em>only</em> this. It owns the hardware and provides processes, memory,
+                        the filesystem layer, networking and device drivers. Programs reach it through <b>system
+                            calls</b> — <code>open</code>, <code>read</code>, <code>write</code>, <code>fork</code>,
+                        <code>execve</code>.</p>
+                    <p style="margin:0" class="footnote">Everything you type is ultimately a sequence of system calls.
+                        <code>strace -f ./script.sh</code> shows you exactly which — the best debugging tool nobody
+                        teaches.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>2 · The userland</h3>
+                    <p>The C library (glibc, musl) plus the standard utilities — GNU coreutils, findutils, grep, sed,
+                        awk — plus service managers and package tools. This is what you actually call.</p>
+                    <p style="margin:0" class="footnote"><b>Portability warning:</b> GNU and BusyBox versions of the
+                        "same" command differ. <code>sed -i</code> takes no argument on GNU and requires one on BSD/mac;
+                        <code>date -d</code> is GNU-only. Scripts written on Ubuntu break inside Alpine containers for
+                        exactly this reason.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>3 · The shell</h3>
+                    <p>A program like any other, whose job is to read your line, <b>expand</b> it, and ask the kernel to
+                        run the result. It is your primary interface to the other two layers, and it is what runs every
+                        script in this course.</p>
+                    <p style="margin:0"><b>A distribution</b> = kernel + userland + package manager + init + policy.
+                        Debian, RHEL and Alpine differ in package names, paths and defaults far more than students
+                        expect — which is why "it worked on my machine" is a statement about the distribution, not
+                        about Linux.</p>
+                </div>
+            </div>
+            <div class="card flat" style="margin-top:.6em">
+                <p style="margin:0"><b>Why this matters for automation.</b> Your script is a userland program asking the
+                    kernel for things, through a shell that rewrites your text first. Nearly every mysterious scripting
+                    bug is one of three things: <b>the shell expanded something you did not expect</b> (Unit 5), <b>the
+                        userland tool is a different implementation</b> from the one you tested with, or <b>the kernel
+                        refused</b> because of permissions (next lecture).</p>
+            </div>
+        </section>
+
+        <!-- ============ 4 · FILE SYSTEM ============ -->
+        <section class="slide" data-title="B1 · The Linux file system">
+            <span class="kicker">Part B · the file system</span>
+            <h2>The file system — and the answer to slide 2</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Two organising ideas</h3>
+                    <p><b>1 · One tree.</b> There are no drive letters. Every device, every partition, every network
+                        share is <em>grafted onto</em> the single tree rooted at <code>/</code> at a <b>mount point</b>.
+                        <code>/home</code> may be a different disk from <code>/</code> and paths look identical.</p>
+                    <p><b>2 · Everything is a file.</b> Regular files, directories, devices
+                        (<code>/dev/sda</code>), pipes, sockets, and kernel data (<code>/proc</code>,
+                        <code>/sys</code>) all answer to <code>open</code>/<code>read</code>/<code>write</code>. This is
+                        why a script can read the CPU count from <code>/proc/cpuinfo</code> with <code>cat</code>.</p>
+                    <h3>The inode — the actual file</h3>
+                    <p style="margin:0">A file's data and metadata live in an <b>inode</b>. A directory entry is just a
+                        <em>name pointing at an inode</em>. So a file is not its name — a name is a reference to a file.
+                        Three consequences follow, and they explain a great deal:</p>
+                </div>
+                <div class="card tint-bad">
+                    <h3>The three consequences</h3>
+                    <ul class="stack-tight">
+                        <li><b>A file can have several names</b> (hard links) and is destroyed only when the last one is
+                            removed. <code>rm</code> is really <code>unlink</code>.</li>
+                        <li><b>Renaming a file does not disturb a process that has it open</b> — the process holds the
+                            inode. <em>This is Lecture 3's log-rotation problem.</em></li>
+                        <li><b>Deleting a file that a process still holds open frees no space at all.</b> The name is
+                            gone, so <code>du</code> cannot see it; the inode lives on until the process closes it, so
+                            <code>df</code> still counts it.</li>
+                    </ul>
+                    <p class="big" style="margin:.4em 0"><b>That is slide 2.</b> Someone deleted
+                        <code>/var/log/app.log</code> to free space while the Java process had it open. 16 GB is still
+                        allocated, invisible to <code>du</code>, and still growing.</p>
+                    <pre class="term"><span class="c"># find it</span>
+lsof +L1                 <span class="c"># NLINK 0 = deleted but open</span>
+
+<span class="c"># fix without a restart</span>
+: &gt; /proc/4127/fd/3      <span class="c"># truncate through the fd</span>
+
+<span class="c"># or restart the process to release it</span>
+systemctl restart app</pre>
+                    <p class="footnote" style="margin:0"><b>The lesson:</b> never free space by deleting an open log.
+                        Truncate it (<code>: &gt; file</code>) or rotate it properly and signal the daemon.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin:.4em 0 0"><b>Hard vs symbolic links.</b> A <b>hard link</b> is another
+                name for the same inode — same filesystem only, no directories, indistinguishable from the "original".
+                A <b>symlink</b> is a small file containing a path; it can cross filesystems and point at nothing (a
+                dangling link). In scripts this distinction matters: <code>-e</code> follows symlinks and
+                <code>-L</code> tests for them, <code>realpath</code> resolves them, and <code>rm</code> on a symlink to
+                a directory removes the link, while <code>rm -r symlink/</code> — with the trailing slash — goes through
+                it and deletes the contents.</p>
+        </section>
+
+        <!-- ============ 5 · PARTITIONS ============ -->
+        <section class="slide" data-title="C1 · Partitions">
+            <span class="kicker">Part C · partitions</span>
+            <h2>Partitions and mounting</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <pre class="term"><span class="p">$</span> lsblk
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda    253:0    0  100G  0 disk
+├─vda1 253:1    0   20G  0 part /
+├─vda2 253:2    0    8G  0 part [SWAP]
+└─vda3 253:3    0   72G  0 part /var
+vdb    253:16   0  500G  0 disk
+└─vdb1 253:17   0  500G  0 part /var/lib/mysql
+
+<span class="p">$</span> df -hT           <span class="c"># -T shows the filesystem type</span>
+<span class="p">$</span> df -i            <span class="c"># inode usage — the other way to run out</span>
+<span class="p">$</span> mount | column -t
+<span class="p">$</span> findmnt /var     <span class="c"># which device backs this path?</span>
+<span class="p">$</span> blkid            <span class="c"># UUIDs — use these, not /dev names</span></pre>
+                    <h3>Why separate partitions at all?</h3>
+                    <ul class="stack-tight">
+                        <li><b>Blast radius.</b> Runaway logs fill <code>/var</code> and stop there instead of wedging
+                            the whole system. A full <code>/</code> means you cannot even log in to fix it.</li>
+                        <li><b>Different policies</b> — mount <code>/tmp</code> with
+                            <code>noexec,nosuid,nodev</code>; mount data volumes <code>noatime</code> for speed.</li>
+                        <li><b>Different hardware</b> — fast SSD for the database, cheap bulk storage for archives.</li>
+                        <li><b>Independent resize and snapshot</b>, especially with LVM.</li>
+                    </ul>
+                </div>
+                <div class="card tint-warn">
+                    <h3><code>/etc/fstab</code> — and the mistake that bricks a server</h3>
+                    <pre class="term"><span class="c"># device            mount        type  options              d p</span>
+UUID=6f2a-…         /            ext4  defaults             0 1
+UUID=91bc-…         /var         ext4  defaults,noatime     0 2
+UUID=c7d3-…         /var/lib/mysql xfs defaults,noatime     0 2
+tmpfs               /tmp         tmpfs defaults,noexec,nosuid 0 0</pre>
+                    <ul class="stack-tight">
+                        <li><b>Use UUIDs or labels, never <code>/dev/sdb1</code>.</b> Device names are assigned in
+                            detection order and can change between boots — after which <code>/var</code> is mounted on
+                            the wrong disk.</li>
+                        <li><b>A typo here does not fail at edit time; it fails at boot</b>, and drops the machine into
+                            emergency mode with no network. Always run <code>mount -a</code> after editing, while you
+                            can still fix it. On a remote server this is the difference between a correction and a
+                            support ticket to the datacentre.</li>
+                        <li>Consider <code>nofail</code> for non-essential volumes so a missing disk does not block
+                            boot.</li>
+                    </ul>
+                    <p class="footnote" style="margin:0"><b>For automation:</b> a script that writes to
+                        <code>/data</code> must confirm <code>/data</code> is <em>mounted</em>, not merely that the
+                        directory exists. If the mount failed, the directory is still there — empty, on the root
+                        filesystem — and your backups quietly fill <code>/</code> instead. Check with
+                        <code>mountpoint -q /data || exit 1</code>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · DIRECTORIES ============ -->
+        <section class="slide" data-title="D1 · Common system directories">
+            <span class="kicker">Part D · directories</span>
+            <h2>Common system directories (the FHS)</h2>
+            <div class="grid g3">
+                <div class="card flat">
+                    <h3>Programs</h3>
+                    <ul class="stack-tight kv">
+                        <li><b>/bin, /sbin</b> — essential commands; <code>s</code> = system/admin. On modern systems
+                            these are symlinks into <code>/usr</code>.</li>
+                        <li><b>/usr/bin, /usr/sbin</b> — the bulk of distribution-installed software. <b>Package
+                                manager territory: never write here yourself.</b></li>
+                        <li><b>/usr/local/bin</b> — <b>software you install by hand. This is where your automation
+                                scripts belong.</b></li>
+                        <li><b>/opt</b> — large self-contained third-party applications in their own directory.</li>
+                        <li><b>/lib, /usr/lib</b> — shared libraries and kernel modules.</li>
+                    </ul>
+                </div>
+                <div class="card flat">
+                    <h3>Data and state</h3>
+                    <ul class="stack-tight kv">
+                        <li><b>/etc</b> — all system configuration, text files, no binaries. <b>Back this up.</b></li>
+                        <li><b>/var</b> — data that changes: <code>/var/log</code> (logs),
+                            <code>/var/lib</code> (application state such as databases),
+                            <code>/var/spool</code> (queues, and crontabs), <code>/var/cache</code>,
+                            <code>/var/backups</code>.</li>
+                        <li><b>/home</b> — user home directories. <b>/root</b> — root's home, deliberately on
+                            <code>/</code> so it works when other mounts fail.</li>
+                        <li><b>/tmp</b> — world-writable scratch, cleared on reboot, often <code>noexec</code>.
+                            <b>/var/tmp</b> — scratch that survives reboot. <b>/run</b> — runtime state (PIDs, sockets),
+                            in memory, cleared every boot.</li>
+                        <li><b>/srv</b> — data served by this machine (web roots, ftp).</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-brand">
+                    <h3>Virtual — not on any disk</h3>
+                    <ul class="stack-tight kv">
+                        <li><b>/proc</b> — kernel and process information as files.
+                            <code>/proc/cpuinfo</code>, <code>/proc/meminfo</code>,
+                            <code>/proc/loadavg</code>, <code>/proc/&lt;pid&gt;/</code>. Your system-information script
+                            is mostly reading this.</li>
+                        <li><b>/sys</b> — device and driver attributes, many of them writable.</li>
+                        <li><b>/dev</b> — device nodes. <code>/dev/null</code> discards,
+                            <code>/dev/zero</code> yields zeros, <code>/dev/urandom</code> yields randomness.</li>
+                        <li><b>/boot</b> — kernel and bootloader. Small, and famous for filling up with old kernels.
+                        </li>
+                    </ul>
+                    <p class="footnote" style="margin:0">Sizes in <code>/proc</code> are reported as 0. Do not be
+                        alarmed — the content is generated when you read it.</p>
+                </div>
+            </div>
+            <div class="card flat tint-good" style="margin-top:.5em">
+                <p style="margin:0"><b>Where <em>your</em> automation goes.</b> Script →
+                    <code>/usr/local/bin/backup.sh</code> (or <code>/opt/myapp/bin/</code>). Its configuration →
+                    <code>/etc/myapp/backup.conf</code>. Its schedule → <code>/etc/cron.d/myapp-backup</code>. Its log →
+                    <code>/var/log/myapp/backup.log</code>. Its state (lock files, last-success markers) →
+                    <code>/var/lib/myapp/</code> for persistent, <code>/run/myapp/</code> for boot-scoped. Its temporary
+                    files → <code>mktemp -d</code>, cleaned by a <code>trap</code>. <b>Follow this and any Linux
+                        administrator can operate your script without reading it.</b></p>
+            </div>
+        </section>
+
+        <!-- ============ 7 · SHELL ROLE ============ -->
+        <section class="slide" data-title="D2 · The shell's place in all of this">
+            <span class="kicker">Part D · directories</span>
+            <h2>Where the shell fits — a preview of the next lecture</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>What happens when you press Enter</h3>
+                    <ol class="stack-tight">
+                        <li><b>Read</b> the line and split it into words.</li>
+                        <li><b>Expand</b> it: aliases, braces, <code>~</code>, variables, command substitution,
+                            arithmetic, word splitting, then globbing. <em>This is the step that surprises people, and
+                                Unit 5 is largely about it.</em></li>
+                        <li><b>Redirect</b> — set up the file descriptors.</li>
+                        <li><b>Execute</b> — is it a builtin, a function, or a program on <code>PATH</code>? If a
+                            program: <code>fork</code>, then <code>execve</code>.</li>
+                        <li><b>Wait</b> and collect the exit status into <code>$?</code>.</li>
+                    </ol>
+                    <p style="margin:0"><b>The consequence for you:</b> the command that runs is not the text you typed
+                        — it is the text after step 2. When a script misbehaves, run <code>set -x</code> and read what
+                        was <em>actually</em> executed.</p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Which shell is running your script?</h3>
+                    <p>Not necessarily the one you use interactively. On Debian and Ubuntu <code>/bin/sh</code> is
+                        <b>dash</b>, not bash — it is faster and strictly POSIX, and it does not understand
+                        <code>[[ ]]</code>, arrays, <code>local -n</code> or <code>&lt;&lt;&lt;</code>.</p>
+                    <pre class="term"><span class="p">$</span> ls -l /bin/sh
+lrwxrwxrwx 1 root root 4 … /bin/sh -&gt; dash
+
+<span class="p">$</span> echo <span class="v">$0</span>            <span class="c"># the current shell</span>
+<span class="p">$</span> readlink -f /proc/<span class="v">$$</span>/exe</pre>
+                    <p style="margin:.3em 0 0"><b>So: cron runs <code>/bin/sh</code>, which is dash, which does not
+                            speak bash.</b> That is one of the seven defects from Lecture 6, seen from the other side.
+                        Fix it in two places — a correct shebang in the script, and <code>SHELL=/bin/bash</code> in the
+                        crontab.</p>
+                    <p class="footnote" style="margin:.4em 0 0">A login shell reads <code>/etc/profile</code> and
+                        <code>~/.bash_profile</code>; an interactive non-login shell reads <code>~/.bashrc</code>; a
+                        <b>non-interactive</b> shell — your script, your cron job — reads <b>neither</b>. Next lecture
+                        covers this properly.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · LAB ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Lab — read your own machine">
+            <span class="kicker do">Terminals open · 8 minutes</span>
+            <h2>Answer these about the machine in front of you</h2>
+            <div class="runbar">
+                <span class="step">Work down the list · write the command AND the answer</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="480">8:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card tint-do">
+                    <h3>Investigate</h3>
+                    <ol class="stack-tight">
+                        <li>How many partitions, and which is mounted where? Is <code>/var</code> separate from
+                            <code>/</code>?</li>
+                        <li>Which filesystem type backs your home directory, and how full is it — by <em>space</em> and
+                            by <em>inodes</em>?</li>
+                        <li>Is <code>/bin/sh</code> bash or dash on this machine?</li>
+                        <li>How many CPUs does <code>/proc/cpuinfo</code> report? Get the same number two other ways.
+                        </li>
+                        <li>Find any deleted-but-open files: <code>sudo lsof +L1</code>. Anything holding space?</li>
+                        <li>Which device backs <code>/tmp</code>? Is it <code>tmpfs</code>? What does that imply for a
+                            script that leaves a large file there?</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h3>Then reproduce the slide-2 incident</h3>
+                    <pre class="term"><span class="c"># terminal 1 — a process holding an open file</span>
+<span class="k">cd</span> /tmp
+<span class="k">while</span> :; <span class="k">do</span> <span class="k">echo</span> <span class="s">"line $(date)"</span>; sleep 1; <span class="k">done</span> &gt; big.log &amp;
+
+<span class="c"># terminal 2</span>
+ls -l /tmp/big.log
+rm /tmp/big.log            <span class="c"># the name is gone...</span>
+du -sh /tmp                <span class="c"># ...and du can no longer see it</span>
+lsof +L1 | grep big.log    <span class="c"># ...but there it is, NLINK 0</span>
+ls -l /proc/<span class="v">$(</span>pgrep -f <span class="s">'while :'</span> | head -1<span class="v">)</span>/fd/</pre>
+                    <p class="footnote" style="margin:0">Watch the file keep growing after you deleted it. When you have
+                        seen this once, you will never again "free up space" by deleting an active log — and you will
+                        diagnose that incident in two minutes instead of two hours. Kill the loop when done.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill">
+            <span class="kicker do">Your turn · 7 questions</span>
+            <h2>System, filesystem, partitions, directories</h2>
+            <div class="card">
+                <p class="big" style="margin:.1em 0 .5em"><span id="fs-stmt"></span></p>
+                <div class="grid g2" id="fs-opts" style="gap:.4em"></div>
+                <div class="verdict hidden" id="fs-fb"></div>
+                <div style="display:flex; gap:.6em; align-items:center; margin-top:.7em">
+                    <button class="nav" id="fs-next">Next →</button>
+                    <button class="tbtn" id="fs-restart">Restart</button>
+                    <span class="spacer" style="flex:1"></span>
+                    <span class="footnote">Question <b id="fs-n">1</b> of <b id="fs-total">7</b> · score
+                        <b class="score" id="fs-score">0</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · CLOSE ============ -->
+        <section class="slide" data-title="Close">
+            <span class="kicker">Close</span>
+            <h2>Five things to carry into every script you write</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <ol class="stack-tight">
+                        <li><b>A file is an inode, not a name.</b> Renaming does not redirect an open process; deleting
+                            does not free space.</li>
+                        <li><b>A path is not a disk.</b> Check <code>mountpoint -q</code> before writing where you
+                            expect a volume.</li>
+                        <li><b>Full has two meanings</b> — bytes and inodes. Check both.</li>
+                        <li><b>Put things where the FHS says</b>: <code>/usr/local/bin</code>, <code>/etc</code>,
+                            <code>/var/log</code>, <code>/var/lib</code>.</li>
+                        <li><b><code>/bin/sh</code> is not bash</b>, and your userland may not be GNU. Declare what you
+                            need rather than inheriting it.</li>
+                    </ol>
+                </div>
+                <div class="card tint-do">
+                    <h3>Homework</h3>
+                    <ol class="stack-tight">
+                        <li>Take your Unit 2 script and relocate every path it uses to its correct FHS home. Write two
+                            sentences justifying each choice.</li>
+                        <li>Add a preflight block: refuse to run unless the target directory is a real mount point,
+                            there is at least 1 GB free, and inode usage is below 90%. Fail loudly with a distinct exit
+                            code for each condition.</li>
+                        <li>Explain in five sentences why deleting an open log file does not free space, and what to do
+                            instead.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Next lecture:</b> users, groups, the passwd file,
+                        creating accounts, ownership and permissions — and the shell features that make bash worth
+                        using.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 10</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script src="../assets/deck.js"></script>
+    <script>
+        makeDrill('fs', [
+            {
+                q: '<code>df</code> reports the root filesystem 100% full; <code>du -sh /*</code> accounts for only 4 GB of 20 GB. What is the explanation?',
+                o: ['du is inaccurate on large filesystems',
+                    'Files were deleted while processes still had them open, so the space is allocated but unnamed',
+                    'The filesystem needs fsck',
+                    'Reserved blocks for root account for the difference'],
+                a: 1,
+                w: '<b>Deleted-but-open files.</b> <code>du</code> walks directory entries — names — while <code>df</code> asks the filesystem about allocated blocks. An unlinked inode held by a running process has blocks but no name, so only <code>df</code> can see it. Find them with <code>lsof +L1</code>, and release the space by truncating through <code>/proc/PID/fd/N</code> or restarting the process. (Root reserve is real but is 5%, not 80%.)'
+            },
+            {
+                q: 'A backup script writes to <code>/data/backups</code>. The <code>/data</code> volume failed to mount after a reboot. What happens?',
+                o: ['The script fails because the directory does not exist',
+                    'The script writes into the empty mount-point directory on the root filesystem, silently filling /',
+                    'The kernel refuses writes to unmounted paths',
+                    'The files go to /tmp instead'],
+                a: 1,
+                w: '<b>It writes to the underlying directory on <code>/</code>.</b> A mount point is an ordinary directory when nothing is mounted on it, so every write succeeds — and the backups quietly consume the root filesystem until the machine dies. Guard every such path: <code>mountpoint -q /data || { echo "not mounted"; exit 1; }</code>. This is one of the most common silent failures in scheduled jobs.'
+            },
+            {
+                q: 'You free disk space with <code>rm /var/log/huge.log</code> while the application is running. What happens to the free space?',
+                o: ['It is freed immediately',
+                    'It is freed after a few minutes when the kernel catches up',
+                    'It is not freed until the process closes the file or exits',
+                    'It is freed only after a reboot'],
+                a: 2,
+                w: '<b>Nothing is freed while the file is open.</b> <code>rm</code> removes the <em>name</em>; the inode survives as long as any process holds a descriptor to it. Meanwhile the application keeps writing into a file you can no longer see or rotate. Truncate instead — <code>: &gt; /var/log/huge.log</code> — or rotate properly and signal the daemon to reopen.'
+            },
+            {
+                q: 'Where should a hand-written automation script and its config be installed on a Debian server?',
+                o: ['/usr/bin and /usr/etc',
+                    '/usr/local/bin and /etc/&lt;app&gt;/',
+                    '~/scripts and ~/.config',
+                    '/tmp and /tmp'],
+                a: 1,
+                w: '<b><code>/usr/local/bin</code> for locally installed programs, <code>/etc</code> for configuration.</b> <code>/usr/bin</code> belongs to the package manager and your file there may be overwritten by an update. A home directory disappears with the account and is invisible to other administrators, and <code>/tmp</code> is cleared on reboot. Following the FHS means any Linux administrator can find and operate your script without asking you.'
+            },
+            {
+                q: 'A server has plenty of free space but cannot create new files. What is the likely cause?',
+                o: ['The filesystem is mounted read-only or has exhausted its inodes',
+                    'RAM is full',
+                    'The kernel needs an upgrade',
+                    'Too many processes are running'],
+                a: 0,
+                w: '<b>Read-only remount or inode exhaustion — check both.</b> A filesystem that hits an I/O error typically remounts read-only to protect itself (<code>mount | grep " / "</code>), and a directory of millions of tiny files exhausts the inode table while using little space (<code>df -i</code>). Both present identically as "no space" errors with a comfortable-looking <code>df -h</code>.'
+            },
+            {
+                q: 'A script tested on Ubuntu fails inside an Alpine container with <code>sed: unrecognized option</code>. Why?',
+                o: ['Alpine has no sed',
+                    'Alpine uses BusyBox utilities, whose options differ from GNU coreutils',
+                    'The container lacks permissions',
+                    'sed cannot run in containers'],
+                a: 1,
+                w: '<b>Different userland.</b> Alpine ships BusyBox — one small binary implementing minimal versions of many tools — so GNU extensions such as <code>sed -i</code> without a suffix, <code>date -d</code> or <code>grep -P</code> are missing or behave differently. Either install <code>coreutils</code> in the image, or restrict yourself to POSIX options. This is the same class of bug as <code>/bin/sh</code> being dash.'
+            },
+            {
+                q: 'Why should <code>/etc/fstab</code> reference UUIDs rather than <code>/dev/sdb1</code>?',
+                o: ['UUIDs are shorter to type',
+                    'Device names are assigned in detection order and can change between boots, mounting the wrong disk',
+                    '/dev names do not work with ext4',
+                    'UUIDs mount faster'],
+                a: 1,
+                w: '<b>Device names are not stable.</b> Add a disk, change a controller, or simply boot on a day when the kernel probes in a different order, and <code>/dev/sdb</code> becomes <code>/dev/sdc</code> — so <code>/var</code> mounts on the database volume, or the boot fails outright. UUIDs and labels are properties of the filesystem itself and travel with it. Related habit: after any fstab edit, run <code>mount -a</code> immediately, while you can still fix the mistake.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'You can now debug the class of incident where the obvious tool tells you the wrong thing. Do the preflight-block homework — it turns this knowledge into code.'
+            : 'Three sentences to fix: a file is an inode not a name; a mount point is an ordinary directory when nothing is mounted; and "full" means bytes OR inodes.'));
+    </script>
+</body>
+
+</html>

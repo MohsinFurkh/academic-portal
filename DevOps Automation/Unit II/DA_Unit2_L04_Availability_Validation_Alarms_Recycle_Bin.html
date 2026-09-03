@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Automation · L04 — Availability, Validation, Alarms and a Recycle Bin</title>
+    <meta name="description"
+        content="Lecture 4 of DevOps Automation (Unit 2): ensuring a web server is running, user command validation, disk usage alarms, sending files to a recycle bin, restoring files from the recycle bin and logging delete actions.">
+    <link rel="stylesheet" href="../assets/deck.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <b>DevOps Automation</b><span>Unit 2 · Advantages of Automation</span>
+        <span>·</span><span>Lecture 4</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit 2 · Lecture 4 · Advantages of Automation</span>
+            <h1>Keep it Up,<br><span style="color:var(--brand)">Keep it Safe</span></h1>
+            <p class="lead big" style="max-width:36em">Four scenarios in which an automated script <em class="hl">acts on
+                    the system</em> rather than merely reporting on it — which is exactly where automation stops being
+                convenient and starts being dangerous.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-good">
+                    <h3>5 · Stay alive</h3>
+                    <p style="margin:0">Ensure the web server is running — and why naive restart loops are a trap.</p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>6 · Validate input</h3>
+                    <p style="margin:0">User command validation, and the injection your script invites by default.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>7 · Disk alarm</h3>
+                    <p style="margin:0">Threshold alerting that people do not learn to ignore.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>8 · Recycle bin</h3>
+                    <p style="margin:0">Safe delete, restore, and a delete audit log.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · UPES ·
+                55 minutes<br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Break this script">
+            <span class="kicker do">Do first · 5 minutes · no theory yet</span>
+            <h2>A colleague wrote this. Find three ways to make it do something terrible.</h2>
+            <pre class="term"><span class="c">#!/bin/bash</span>
+<span class="c"># cleanup.sh — delete a user's temporary files</span>
+<span class="k">echo</span> -n <span class="s">"Which directory should I clean? "</span>
+<span class="k">read</span> dir
+<span class="k">echo</span> -n <span class="s">"Which pattern? "</span>
+<span class="k">read</span> pattern
+rm -rf <span class="v">$dir</span>/<span class="v">$pattern</span>
+<span class="k">echo</span> <span class="s">"Cleaned $dir"</span></pre>
+            <div class="runbar">
+                <span class="step">1 · Alone, 2 min — write down three inputs that cause damage</span>
+                <span class="step">2 · Pairs, 2 min — compare, then rank them by severity</span>
+                <span class="step">3 · Class, 1 min</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="300">5:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <p class="footnote" style="margin:0">Hints if you are stuck: what if the user just presses <b>Enter</b>?
+                What if they type <code>/</code>? What if the directory name contains a <b>space</b>? What if they type
+                <code>. ; rm -rf ~</code>? What if they have permission to a directory the script's owner does not
+                intend?</p>
+        </section>
+
+        <!-- ============ 3 · SCENARIO 5 : SERVICE UP ============ -->
+        <section class="slide" data-title="S5 · Ensure the web server is running">
+            <span class="kicker">Scenario 5</span>
+            <h2>Ensure the web server is running</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <h3>The naive version, and why it is wrong</h3>
+                    <pre class="term">pgrep nginx || systemctl start nginx</pre>
+                    <ul class="stack-tight">
+                        <li><b>A running process is not a working service.</b> nginx can be alive and returning 502 for
+                            every request because its backend is down. You must test <em>behaviour</em>, not existence.
+                        </li>
+                        <li><b><code>pgrep nginx</code> matches too much</b> — including your own editor session named
+                            <code>vim nginx.conf</code>. Use <code>pgrep -x</code>, or better, ask systemd.</li>
+                        <li><b>It restarts forever.</b> If nginx dies because of a bad config, this loop restarts it
+                            every minute all night, filling logs and hiding the real fault.</li>
+                        <li><b>It tells nobody.</b> A service that silently restarts 400 times looks healthy on a
+                            dashboard.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>The version you would put on a real host</h3>
+                    <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="k">set</span> -uo pipefail
+URL=<span class="s">"http://127.0.0.1/healthz"</span>;  SVC=nginx
+STATE=<span class="s">/var/lib/watchdog/$SVC.fails</span>;  MAX=3
+
+<span class="c"># Behavioural check: real request, short timeout, expect 200</span>
+<span class="k">if</span> curl -fsS --max-time 5 <span class="s">"$URL"</span> &gt;/dev/null; <span class="k">then</span>
+    <span class="k">echo</span> 0 &gt; <span class="s">"$STATE"</span>; <span class="k">exit</span> 0
+<span class="k">fi</span>
+
+fails=<span class="v">$(</span>&lt; <span class="s">"$STATE"</span><span class="v">)</span>; fails=<span class="v">$((</span> fails + 1 <span class="v">))</span>
+<span class="k">echo</span> <span class="s">"$fails"</span> &gt; <span class="s">"$STATE"</span>
+logger -t watchdog -p daemon.err <span class="s">"$SVC health check failed ($fails/$MAX)"</span>
+
+<span class="k">if</span> (( fails &gt;= MAX )); <span class="k">then</span>
+    logger -t watchdog -p daemon.crit <span class="s">"$SVC: giving up, paging on-call"</span>
+    notify-oncall <span class="s">"$SVC down on $(hostname -f) after $fails checks"</span>
+    <span class="k">exit</span> 1                       <span class="c"># STOP restarting; a human is needed</span>
+<span class="k">fi</span>
+
+nginx -t &amp;&amp; systemctl restart <span class="s">"$SVC"</span>   <span class="c"># validate config BEFORE restarting</span></pre>
+                </div>
+            </div>
+            <div class="card flat tint-good" style="margin-top:.5em">
+                <p style="margin:0"><b>In production, let the init system do it.</b> systemd already restarts crashed
+                    services with back-off: <code>Restart=on-failure</code>, <code>RestartSec=5</code>,
+                    <code>StartLimitBurst=3</code>, <code>StartLimitIntervalSec=60</code>. A script like the one above
+                    is for the case systemd cannot see — the process is alive but <em>not serving</em>. The three ideas
+                    to carry away: <b>check behaviour, back off after repeated failures, and escalate to a human.</b>
+                </p>
+            </div>
+        </section>
+
+        <!-- ============ 4 · SCENARIO 6 : VALIDATION ============ -->
+        <section class="slide" data-title="S6 · User command validation">
+            <span class="kicker">Scenario 6</span>
+            <h2>User command validation — the answers to slide 2</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <h3>Five defects in eleven lines</h3>
+                    <ul class="stack-tight">
+                        <li><b>Empty input.</b> Press Enter twice and the script runs <code>rm -rf /</code> — the
+                            unquoted <code>$dir/$pattern</code> becomes just <code>/</code>.</li>
+                        <li><b>Command injection.</b> Input <code>. ; rm -rf ~</code>. Because the variable is unquoted
+                            and the value is re-parsed by the shell, your semicolon becomes a command separator.</li>
+                        <li><b>Word splitting.</b> <code>/var/my logs</code> becomes two arguments —
+                            <code>rm -rf /var/my</code> and <code>logs</code>.</li>
+                        <li><b>Path traversal.</b> <code>../../etc</code> escapes wherever you thought you were.</li>
+                        <li><b>No confirmation, no dry run, no log.</b> Nothing records what was destroyed.</li>
+                    </ul>
+                </div>
+                <div class="card tint-good">
+                    <h3>The validation rules</h3>
+                    <ul class="stack-tight">
+                        <li><b>Quote every expansion.</b> <code>"$dir"</code>, always. This one habit removes two of the
+                            five defects above.</li>
+                        <li><b>Allow-list, never block-list.</b> Do not try to strip dangerous characters — you will
+                            miss one. Accept only what matches a pattern you defined.</li>
+                        <li><b>Validate type, range and existence</b> before use: is it a directory? is it under the
+                            permitted root? is the number actually a number?</li>
+                        <li><b>Canonicalise before comparing.</b> <code>realpath</code> resolves <code>..</code> and
+                            symlinks, so your "is it inside /var/tmp" check cannot be fooled.</li>
+                        <li><b>Never <code>eval</code> user input</b>, and never build a command string from it. Pass
+                            values as <em>arguments</em>, not as text to be re-parsed.</li>
+                        <li><b>Confirm destructive actions</b>, and refuse them entirely when not on a terminal.</li>
+                    </ul>
+                </div>
+            </div>
+            <pre class="term"><span class="c"># The repaired core</span>
+ALLOWED_ROOT=<span class="s">/var/tmp/cleanup</span>
+
+<span class="k">read</span> -r -p <span class="s">"Directory: "</span> dir
+[[ -n <span class="s">"$dir"</span> ]]                     || { <span class="k">echo</span> <span class="s">"empty input"</span> &gt;&amp;2; <span class="k">exit</span> 2; }
+[[ <span class="s">"$dir"</span> =~ ^[A-Za-z0-9_/.-]+$ ]] || { <span class="k">echo</span> <span class="s">"illegal characters"</span> &gt;&amp;2; <span class="k">exit</span> 2; }
+dir=<span class="v">$(</span>realpath -e -- <span class="s">"$dir"</span><span class="v">)</span>       <span class="c"># resolves .. and symlinks; -e = must exist</span>
+[[ <span class="s">"$dir"</span> == <span class="s">"$ALLOWED_ROOT"</span>/* ]]   || { <span class="k">echo</span> <span class="s">"outside allowed root"</span> &gt;&amp;2; <span class="k">exit</span> 2; }
+
+<span class="k">read</span> -r -p <span class="s">"Delete everything under $dir? type YES: "</span> ok
+[[ <span class="s">"$ok"</span> == <span class="s">"YES"</span> ]]              || { <span class="k">echo</span> <span class="s">"aborted"</span>; <span class="k">exit</span> 0; }
+
+logger -t cleanup <span class="s">"$USER purging $dir"</span>
+find <span class="s">"$dir"</span> -mindepth 1 -delete   <span class="c"># note: not `rm -rf "$dir"/*` — no glob surprises</span></pre>
+            <p class="footnote" style="margin:0"><b>The mental model:</b> in a shell, an unquoted variable is not a
+                value — it is <em>text that the shell will re-read as syntax</em>. Every shell injection bug in
+                existence follows from forgetting that sentence.</p>
+        </section>
+
+        <!-- ============ 5 · SCENARIO 7 : DISK ALARM ============ -->
+        <section class="slide" data-title="S7 · Disk usage alarm">
+            <span class="kicker">Scenario 7</span>
+            <h2>Disk usage alarm</h2>
+            <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="k">set</span> -uo pipefail
+THRESHOLD=<span class="v">${1:-85}</span>
+STATE_DIR=<span class="s">/var/lib/diskalarm</span>; mkdir -p <span class="s">"$STATE_DIR"</span>
+
+<span class="c"># -P forces POSIX single-line output; without it long device names wrap and break awk.</span>
+<span class="c"># -x excludes pseudo-filesystems that are always "100% full" and always fine.</span>
+df -P -x tmpfs -x devtmpfs -x squashfs | awk <span class="s">'NR&gt;1 {gsub(/%/,"",$5); print $5, $6, $4}'</span> |
+<span class="k">while read</span> -r pct mount avail; <span class="k">do</span>
+    flag=<span class="s">"$STATE_DIR/$(systemd-escape "$mount")"</span>
+    <span class="k">if</span> (( pct &gt;= THRESHOLD )); <span class="k">then</span>
+        <span class="c"># Alert once per crossing, not once per run — otherwise 96 emails a day.</span>
+        <span class="k">if</span> [[ ! -e <span class="s">"$flag"</span> ]]; <span class="k">then</span>
+            <span class="k">echo</span> <span class="s">"$mount at ${pct}% (only ${avail}K free) on $(hostname -f)"</span> |
+                mail -s <span class="s">"[DISK] $(hostname -s) $mount ${pct}%"</span> ops@example.com
+            date -Is &gt; <span class="s">"$flag"</span>
+        <span class="k">fi</span>
+    <span class="k">elif</span> (( pct &lt; THRESHOLD - 5 )); <span class="k">then</span>
+        <span class="c"># Hysteresis: clear only well below the line, so a filesystem hovering</span>
+        <span class="c"># at exactly 85% does not alternate alert/clear every five minutes.</span>
+        [[ -e <span class="s">"$flag"</span> ]] &amp;&amp; { <span class="k">echo</span> <span class="s">"$mount recovered: ${pct}%"</span> | mail -s <span class="s">"[OK] $mount"</span> ops@example.com; rm -f <span class="s">"$flag"</span>; }
+    <span class="k">fi</span>
+<span class="k">done</span></pre>
+            <div class="grid g3">
+                <div class="card flat tint-warn">
+                    <h3>Three ideas doing the work</h3>
+                    <ul class="stack-tight">
+                        <li><b>State on disk</b> so the script knows whether it has already complained. Without it, an
+                            alert every five minutes trains the team to filter your emails, and then they miss the
+                            important one.</li>
+                        <li><b>Hysteresis</b> — a different threshold for clearing than for firing — stops alert
+                            flapping.</li>
+                        <li><b>Report free space as well as percentage.</b> 90% of 40 GB is comfortable; 90% of a 20 GB
+                            root disk is two hours from an outage.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>The failure nobody expects: inodes</h3>
+                    <p style="margin:0">A filesystem can be 20% full and still refuse to create a file, because it has
+                        run out of <b>inodes</b> — typically a directory holding millions of tiny session or cache
+                        files. <code>df -h</code> looks fine; <code>df -i</code> shows 100%. Check both. This is a
+                        classic "the disk isn't full, but nothing works" incident.</p>
+                </div>
+                <div class="card flat tint-brand">
+                    <h3>Better than a threshold</h3>
+                    <p style="margin:0">85% is arbitrary. What operators actually need is <b>time to exhaustion</b>:
+                        record usage each run, fit the recent trend and alert when the disk will be full within, say,
+                        four hours. A slow leak at 60% that fills in three hours matters far more than a stable 88%.
+                        This is what production monitoring tools compute for you — but knowing why is the point.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · SCENARIO 8 : RECYCLE BIN ============ -->
+        <section class="slide" data-title="S8 · Sending files to a recycle bin">
+            <span class="kicker">Scenario 8 · part 1</span>
+            <h2>Sending files to a recycle bin</h2>
+            <p class="lead"><code>rm</code> is final. There is no undelete on ext4 worth relying on. So: intercept
+                deletion, move the file aside, and keep enough metadata to put it back.</p>
+            <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="c"># trash — move files to a recycle bin instead of destroying them</span>
+<span class="k">set</span> -euo pipefail
+TRASH=<span class="s">"${TRASH_DIR:-$HOME/.local/share/Trash}"</span>
+mkdir -p <span class="s">"$TRASH/files"</span> <span class="s">"$TRASH/info"</span>
+
+(( <span class="v">$#</span> )) || { <span class="k">echo</span> <span class="s">"usage: trash FILE..."</span> &gt;&amp;2; <span class="k">exit</span> 2; }
+
+<span class="k">for</span> target <span class="k">in</span> <span class="s">"$@"</span>; <span class="k">do</span>
+    [[ -e <span class="s">"$target"</span> || -L <span class="s">"$target"</span> ]] || { <span class="k">echo</span> <span class="s">"no such file: $target"</span> &gt;&amp;2; <span class="k">continue</span>; }
+
+    src=<span class="v">$(</span>realpath -s -- <span class="s">"$target"</span><span class="v">)</span>            <span class="c"># -s: do not follow the final symlink</span>
+    base=<span class="v">$(</span>basename -- <span class="s">"$src"</span><span class="v">)</span>
+    id=<span class="s">"${base}.$(date +%Y%m%d-%H%M%S).$$"</span>       <span class="c"># collision-proof: two deletes of</span>
+                                                <span class="c"># the same name must not overwrite</span>
+    <span class="c"># The info file is what makes RESTORE possible at all.</span>
+    { <span class="k">echo</span> <span class="s">"Path=$src"</span>
+      <span class="k">echo</span> <span class="s">"DeletionDate=$(date -Is)"</span>
+      <span class="k">echo</span> <span class="s">"DeletedBy=$USER"</span>
+      <span class="k">echo</span> <span class="s">"Mode=$(stat -c '%a' -- "$src")"</span>
+      <span class="k">echo</span> <span class="s">"Owner=$(stat -c '%U:%G' -- "$src")"</span>
+    } &gt; <span class="s">"$TRASH/info/$id.info"</span>
+
+    mv -- <span class="s">"$src"</span> <span class="s">"$TRASH/files/$id"</span>
+    logger -t trash <span class="s">"$USER trashed $src as $id"</span>
+    <span class="k">echo</span> <span class="s">"trashed: $src"</span>
+<span class="k">done</span></pre>
+            <div class="grid g3">
+                <div class="card flat tint-brand">
+                    <h3>Why <code>--</code> everywhere</h3>
+                    <p style="margin:0">It ends option parsing. Without it, a file literally named
+                        <code>-rf</code> or <code>--help</code> is read as a <em>flag</em> by <code>mv</code>. Attackers
+                        and clumsy users both create such names; <code>--</code> costs nothing.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>The cross-filesystem catch</h3>
+                    <p style="margin:0"><code>mv</code> within one filesystem is an instant rename. Across filesystems
+                        it becomes copy-then-delete — slow for large files, and it can fill the trash volume. Either
+                        keep a trash directory per filesystem, or refuse and warn when
+                        <code>stat -c %d</code> differs.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>Deploying it</h3>
+                    <p style="margin:0">Put it in <code>~/bin</code> or <code>/usr/local/bin</code>. <b>Do not alias
+                            <code>rm</code> to it.</b> Aliases do not apply in scripts or over ssh, so you get a false
+                        sense of safety and a nasty surprise. Train the habit of typing <code>trash</code> instead.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · RESTORE + AUDIT ============ -->
+        <section class="slide" data-title="S8 · Restoring, and logging delete actions">
+            <span class="kicker">Scenario 8 · part 2</span>
+            <h2>Restoring files, and the delete audit trail</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Restore — the reason the info file exists</h3>
+                    <pre class="term"><span class="c"># untrash — list and restore</span>
+<span class="k">case</span> <span class="s">"${1:-list}"</span> <span class="k">in</span>
+  list)
+     <span class="k">for</span> i <span class="k">in</span> <span class="s">"$TRASH"</span>/info/*.info; <span class="k">do</span>
+        [[ -e <span class="s">"$i"</span> ]] || <span class="k">break</span>
+        id=<span class="v">$(</span>basename <span class="s">"$i"</span> .info<span class="v">)</span>
+        printf <span class="s">'%-40s %s\n'</span> <span class="s">"$id"</span> <span class="s">"$(sed -n 's/^Path=//p' "$i")"</span>
+     <span class="k">done</span> ;;
+  restore)
+     id=<span class="s">"${2:?which id? run: untrash list}"</span>
+     info=<span class="s">"$TRASH/info/$id.info"</span>
+     [[ -f <span class="s">"$info"</span> ]] || { <span class="k">echo</span> <span class="s">"unknown id"</span> &gt;&amp;2; <span class="k">exit</span> 1; }
+     dest=<span class="v">$(</span>sed -n <span class="s">'s/^Path=//p'</span> <span class="s">"$info"</span><span class="v">)</span>
+     [[ -e <span class="s">"$dest"</span> ]] &amp;&amp; { <span class="k">echo</span> <span class="s">"$dest exists; refusing"</span> &gt;&amp;2; <span class="k">exit</span> 1; }
+     mkdir -p <span class="s">"$(dirname "$dest")"</span>
+     mv -- <span class="s">"$TRASH/files/$id"</span> <span class="s">"$dest"</span>
+     chmod <span class="s">"$(sed -n 's/^Mode=//p' "$info")"</span> -- <span class="s">"$dest"</span>
+     rm -f <span class="s">"$info"</span>
+     logger -t trash <span class="s">"$USER restored $dest"</span> ;;
+<span class="k">esac</span></pre>
+                    <p class="footnote" style="margin:0">Note the refusal to overwrite an existing destination: a
+                        restore that silently clobbers a newer file has caused more data loss than the original delete.
+                    </p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Logging delete actions</h3>
+                    <p>Both scripts call <code>logger</code>, which writes to syslog with a tag, so entries land in the
+                        journal alongside everything else and are picked up by log shipping automatically:</p>
+                    <pre class="term">journalctl -t trash --since <span class="s">"2 days ago"</span></pre>
+                    <p><b>What a delete audit record must contain:</b> who, what (full original path), when (ISO-8601),
+                        from where (tty, ssh client), and the result. That is the difference between "some files went
+                        missing" and a five-minute answer.</p>
+                    <p style="margin:0"><b>Expiry closes the loop.</b> A trash directory that is never emptied is just
+                        a slower disk-full incident. Reuse Lecture 3's retention pattern — purge trashed items older
+                        than 30 days, log every purge, and keep the info files a little longer than the data so you can
+                        still say what was removed.</p>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Note:</b> <code>logger</code> is not tamper-proof —
+                        a user who can delete files can usually also write misleading log lines. Real auditing ships
+                        logs off-host immediately, and uses <code>auditd</code> rules for kernel-level file events.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · LAB ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Lab — build trash and untrash">
+            <span class="kicker do">Terminals open · 10 minutes</span>
+            <h2>Build it, then try to break it</h2>
+            <div class="runbar">
+                <span class="step">1 · Make it work</span>
+                <span class="step">2 · Attack your own script</span>
+                <span class="step">3 · Fix what you broke</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="600">10:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card tint-do">
+                    <h3>Build</h3>
+                    <ol class="stack-tight">
+                        <li>Write <code>trash</code> and <code>untrash</code> as above into <code>~/bin</code>, and make
+                            them executable.</li>
+                        <li>Trash three files, list them, restore one, confirm its permissions came back with
+                            <code>ls -l</code>.</li>
+                        <li>Add a <code>--empty N</code> mode that purges items older than N days and logs each purge.
+                        </li>
+                    </ol>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Attack — every one of these must be handled</h3>
+                    <ol class="stack-tight">
+                        <li><code>trash</code> with no arguments.</li>
+                        <li><code>trash "my report.txt"</code> — a name with a space.</li>
+                        <li><code>touch -- -rf &amp;&amp; trash -- -rf</code> — a name that looks like a flag.</li>
+                        <li>Trash two <em>different</em> files that share a basename, from different directories. Both
+                            must survive and both must restore to the right place.</li>
+                        <li>Trash a file, recreate a file at the same path, then restore. The script must refuse rather
+                            than overwrite.</li>
+                        <li>Trash a symlink. The link should move — not its target.</li>
+                    </ol>
+                    <p class="footnote" style="margin:0">Test 4 is the one most student scripts fail. That is what the
+                        timestamp-and-PID suffix in the id is defending against.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill">
+            <span class="kicker do">Your turn · 7 questions</span>
+            <h2>Availability, validation, alarms and safe deletes</h2>
+            <div class="card">
+                <p class="big" style="margin:.1em 0 .5em"><span id="sv-stmt"></span></p>
+                <div class="grid g2" id="sv-opts" style="gap:.4em"></div>
+                <div class="verdict hidden" id="sv-fb"></div>
+                <div style="display:flex; gap:.6em; align-items:center; margin-top:.7em">
+                    <button class="nav" id="sv-next">Next →</button>
+                    <button class="tbtn" id="sv-restart">Restart</button>
+                    <span class="spacer" style="flex:1"></span>
+                    <span class="footnote">Question <b id="sv-n">1</b> of <b id="sv-total">7</b> · score
+                        <b class="score" id="sv-score">0</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · CLOSE ============ -->
+        <section class="slide" data-title="Close">
+            <span class="kicker">Close</span>
+            <h2>Scripts that act on the system need three things scripts that report do not</h2>
+            <div class="grid g3">
+                <div class="card tint-good">
+                    <h3>1 · A validated input boundary</h3>
+                    <p style="margin:0">Allow-list the input, quote every expansion, canonicalise paths and confine
+                        them to a permitted root. Everything past that boundary can then be trusted.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>2 · A limit on its own zeal</h3>
+                    <p style="margin:0">Back off after repeated failures, alert once per crossing not once per run, and
+                        escalate to a human instead of retrying forever. An automation that never gives up is an
+                        automation that hides faults.</p>
+                </div>
+                <div class="card tint-do">
+                    <h3>3 · A way back</h3>
+                    <p style="margin:0">Trash instead of delete, refuse to overwrite on restore, and log who did what
+                        to which path and when. Reversibility is a feature you build, not a hope.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:.8em"><b>Next lecture:</b> file formatting, decrypting files safely,
+                bulk downloading, system-information reporting, installing a LAMP stack idempotently, getting a NIC's IP
+                without regret — and a survey of the scenarios where automation prevents errors.</p>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 10</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script src="../assets/deck.js"></script>
+    <script>
+        makeDrill('sv', [
+            {
+                q: 'A watchdog runs <code>pgrep nginx || systemctl start nginx</code> every minute. nginx is running, but every request returns 502. What does the watchdog do?',
+                o: ['Restarts nginx, fixing the problem',
+                    'Nothing — the process exists, so the check passes while the site stays broken',
+                    'Alerts the on-call engineer',
+                    'Fails, because pgrep needs root'],
+                a: 1,
+                w: '<b>Nothing.</b> It measures existence, not service. A 502 means nginx is healthy and its <em>backend</em> is not — exactly the situation a process check cannot see. Health checks must make a real request and assert a real response, which is why the fixed version uses <code>curl -fsS /healthz</code>.'
+            },
+            {
+                q: 'A script does <code>read dir; rm -rf $dir/*</code>. The user presses Enter without typing anything. What runs?',
+                o: ['rm -rf with no arguments, which is harmless',
+                    'The script errors because dir is empty',
+                    'rm -rf /* — the unquoted empty variable vanishes, leaving the root glob',
+                    'rm -rf ./* in the current directory'],
+                a: 2,
+                w: '<b><code>rm -rf /*</code>.</b> The empty expansion disappears entirely, and what remains is the literal <code>/*</code>. Run as root, that is the end of the machine. Two defences that each stop it independently: quote the expansion, and validate for non-emptiness before use — <code>[[ -n "$dir" ]]</code>.'
+            },
+            {
+                q: 'You want to stop a user passing <code>; rm -rf ~</code> into a script. Which approach is sound?',
+                o: ['Strip semicolons and backticks from the input',
+                    'Accept only input matching an explicit allow-list pattern, and never re-parse it as a command',
+                    'Wrap the whole command in eval so the shell handles it correctly',
+                    'Escape the input with backslashes before use'],
+                a: 1,
+                w: '<b>Allow-list, and never re-parse.</b> Block-lists always miss a case — newline, <code>$()</code>, <code>&amp;</code>, <code>|</code>, Unicode look-alikes — and each patch invites the next bypass. Define what is legal (<code>^[A-Za-z0-9_/.-]+$</code>), reject everything else, and pass values as arguments rather than building a command string. <code>eval</code> is the disease, not the cure.'
+            },
+            {
+                q: 'A disk alarm fires whenever usage is ≥ 85%, on a five-minute cron. A filesystem sits at exactly 85%. What is the outcome?',
+                o: ['One alert, then silence',
+                    '288 alert emails a day, until the team makes a filter rule and then misses a real alert',
+                    'No alerts, because the threshold is not exceeded',
+                    'The alarm disables itself automatically'],
+                a: 1,
+                w: '<b>Alert fatigue.</b> Firing on <em>state</em> rather than on a <em>state change</em> is the classic monitoring mistake, and the real damage is not the noise — it is the filter rule the team writes next, which also swallows the genuine alert three weeks later. Fix with a state flag (alert once per crossing) plus hysteresis (clear only below 80%).'
+            },
+            {
+                q: 'A server refuses to create new files. <code>df -h</code> shows the root filesystem is 22% full. What should you check next?',
+                o: ['Whether the disk is failing',
+                    'df -i — the filesystem has probably exhausted its inodes',
+                    'Whether swap is full',
+                    'The file permissions on /tmp'],
+                a: 1,
+                w: '<b>Inode exhaustion.</b> Every file consumes an inode regardless of size, so millions of tiny session or cache files exhaust the table while using almost no space. <code>df -i</code> shows 100% where <code>df -h</code> shows 22%. A complete disk alarm checks both — and this is precisely the incident that a percentage-only check will never catch.'
+            },
+            {
+                q: 'Your <code>trash</code> script names each item after its basename only. A user trashes <code>/etc/app/config.yml</code> on Monday and <code>/home/rita/config.yml</code> on Tuesday. What happens?',
+                o: ['Both are stored safely under distinct names',
+                    'The second silently overwrites the first, and Monday\'s file is gone for good',
+                    'The script errors and refuses the second delete',
+                    'They are merged into one file'],
+                a: 1,
+                w: '<b>Silent overwrite — a safety tool that destroys data.</b> The unique id (basename + timestamp + PID) exists exactly for this, and the info file preserves the distinct original paths so restore still knows where each belongs. This is lab test 4, and the one most student implementations fail.'
+            },
+            {
+                q: 'Someone suggests <code>alias rm=\'trash\'</code> in <code>/etc/profile</code> so everyone is protected. What is wrong with that?',
+                o: ['Aliases cannot take arguments',
+                    'Aliases do not apply in scripts or non-interactive shells, so the protection is illusory exactly when it matters',
+                    'It would make rm too slow',
+                    'Nothing — this is the recommended approach'],
+                a: 1,
+                w: '<b>It creates false confidence.</b> Aliases are expanded only by interactive shells, so cron jobs, deploy scripts and <code>ssh host rm -rf ...</code> all get the real <code>rm</code> — while users have stopped being careful because they believe they are protected. Worse, muscle memory built on your machine fails on every other host. Give the safe tool its own name and train the habit.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'You are thinking about failure modes before writing the happy path, which is the actual skill. Bring your trash/untrash pair, with all six attacks handled, next time.'
+            : 'Revise three sentences: an unquoted variable is text the shell re-reads as syntax; alert on state <em>changes</em>, not on state; and any tool that prevents data loss must itself be collision-proof.'));
+    </script>
+</body>
+
+</html>

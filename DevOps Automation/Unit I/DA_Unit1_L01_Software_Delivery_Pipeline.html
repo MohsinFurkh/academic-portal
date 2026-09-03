@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Automation · L01 — The Software Delivery Pipeline</title>
+    <meta name="description"
+        content="Lecture 1 of DevOps Automation (Unit 1): the software delivery pipeline, an overview of the continuous delivery pipeline, the fully automated software delivery process, the build process, automated build, automated test and automated deployment.">
+    <link rel="stylesheet" href="../assets/deck.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <b>DevOps Automation</b><span>Unit 1 · Introduction to Automation</span>
+        <span>·</span><span>Lecture 1</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit 1 · Lecture 1 · Introduction to Automation</span>
+            <h1>The Software<br><span style="color:var(--brand)">Delivery Pipeline</span></h1>
+            <p class="lead big" style="max-width:36em">Your code is worth nothing on your laptop. Everything in this
+                course is about the distance between <em class="hl">"it works on my machine"</em> and "it is running for
+                a user" — and about making that distance travel itself.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · The pipeline</h3>
+                    <p style="margin:0">What a delivery pipeline is, and the stages every one of them has.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Fully automated</h3>
+                    <p style="margin:0">What "fully automated delivery" actually means, and what it does not mean.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · Build &amp; test</h3>
+                    <p style="margin:0">The build process, automated build, automated test.</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>D · Deploy</h3>
+                    <p style="margin:0">Automated deployment, and CI vs CD vs continuous deployment.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · UPES ·
+                55 minutes · <b style="color:var(--do)">pre-requisite: Linux programming</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Trace your own last release">
+            <span class="kicker do">Do first · 6 minutes · no theory yet</span>
+            <h2>Write down every step between your last commit and a user seeing it</h2>
+            <div class="runbar">
+                <span class="step">1 · Alone, 3 min — list the steps in order</span>
+                <span class="step">2 · Pairs, 2 min — mark each step <b>H</b> (a human does it) or <b>M</b> (a machine
+                    does it)</span>
+                <span class="step">3 · Class, 1 min</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="360">6:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Prompts, in case your project was small</h3>
+                    <ul class="stack-tight">
+                        <li>Who decided the code was good enough?</li>
+                        <li>How was it compiled or packaged — and on whose machine?</li>
+                        <li>Which tests ran? Who ran them? What if they had failed?</li>
+                        <li>How did the files get onto the server? WinSCP? Git pull? A zip on WhatsApp?</li>
+                        <li>Who restarted the service? How did you know it came back up?</li>
+                        <li>If it had broken, how would you have got the old version back?</li>
+                    </ul>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Count two numbers</h3>
+                    <p><b>H</b> = number of steps a human performs.<br><b>T</b> = total number of steps.</p>
+                    <p class="big" style="margin:.4em 0">Keep <b>H / T</b> on your page. We will come back to it at the
+                        end of the hour.</p>
+                    <p class="footnote" style="margin:0">In most student projects H/T is between 0.8 and 1.0 — that is,
+                        almost every step is a person. In a mature engineering organisation it is close to 0.
+                        <b>The whole subject you are about to study is the process of driving that ratio down.</b></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 3 · WHY IT MATTERS ============ -->
+        <section class="slide" data-title="Why manual delivery fails">
+            <span class="kicker">Reveal · what your H/T number costs</span>
+            <h2>Manual delivery does not fail because people are careless</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <h3>It fails because it is <em>varied</em></h3>
+                    <ul class="stack-tight">
+                        <li><b>Nobody performs a 40-step checklist identically twice.</b> Not you, not a senior
+                            engineer, not at 3 a.m. on a Friday.</li>
+                        <li><b>The steps live in someone's head</b>, or in a Word document last updated two releases
+                            ago. That person is on leave.</li>
+                        <li><b>Rare things go wrong most.</b> A step performed once a month is a step nobody is good at.
+                        </li>
+                        <li><b>Fear becomes the schedule.</b> Because releasing is painful, you release rarely; because
+                            you release rarely, each release is huge; because each release is huge, it is more likely to
+                            break. This loop is the single most expensive thing in software delivery.</li>
+                    </ul>
+                </div>
+                <div class="card tint-good">
+                    <h3>Automation attacks variance, not effort</h3>
+                    <p>Students usually think automation is about <em>saving time</em>. Saving time is a side effect.
+                        The real product is <b>repeatability</b>: the same inputs produce the same outputs, on any
+                        machine, at any hour, run by anyone.</p>
+                    <ul class="stack-tight">
+                        <li>A script that takes 30 minutes but is <em>identical</em> every time beats a 5-minute manual
+                            process that is <em>slightly different</em> every time.</li>
+                        <li>An automated process is <b>executable documentation</b>. It cannot go stale — if it were
+                            wrong, it would fail.</li>
+                        <li>It is <b>auditable</b>: version-controlled, reviewed, logged.</li>
+                    </ul>
+                    <p class="quote" style="margin-bottom:0">If it hurts, do it more often — and bring the pain
+                        forward.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 4 · THE PIPELINE ============ -->
+        <section class="slide" data-title="A1 · The delivery pipeline">
+            <span class="kicker">Part A · the pipeline</span>
+            <h2>The software delivery pipeline</h2>
+            <p class="lead">An automated implementation of the path your software takes from <b>version control</b> to
+                <b>the user</b>. Every change enters at the left; only changes that survive every stage reach the right.
+            </p>
+            <div class="pipeline" style="margin:.8em 0">
+                <div class="stage auto"><b>Commit</b>compile, unit tests, static analysis</div>
+                <span class="sep">→</span>
+                <div class="stage auto"><b>Build</b>one versioned artifact</div>
+                <span class="sep">→</span>
+                <div class="stage auto"><b>Test</b>integration, acceptance</div>
+                <span class="sep">→</span>
+                <div class="stage auto"><b>Stage</b>production-like environment</div>
+                <span class="sep">→</span>
+                <div class="stage manual"><b>Release</b>a human decision</div>
+                <span class="sep">→</span>
+                <div class="stage auto"><b>Operate</b>monitor, roll back</div>
+            </div>
+            <div class="grid g3">
+                <div class="card flat tint-brand">
+                    <h3>Three rules that define it</h3>
+                    <ul class="stack-tight">
+                        <li><b>Build the artifact once.</b> The binary that ran the tests is the binary that reaches
+                            production. Never rebuild per environment.</li>
+                        <li><b>Same process everywhere.</b> Deploying to your laptop, to staging and to production uses
+                            the same script, with different configuration.</li>
+                        <li><b>Fail fast, fail cheap.</b> The cheapest, fastest checks run first.</li>
+                    </ul>
+                </div>
+                <div class="card flat">
+                    <h3>Why the order is that order</h3>
+                    <p style="margin:0">A unit test costs milliseconds; an acceptance test costs minutes; a production
+                        incident costs a weekend. Stages are arranged so that a defect is caught by the cheapest stage
+                        capable of catching it. Each stage is a <b>gate</b>: it either passes the candidate on, or stops
+                        it and tells you why.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Note the one red box</h3>
+                    <p style="margin:0"><b>Release stays a human decision</b> in continuous <em>delivery</em>. The
+                        pipeline makes every change <em>releasable</em>; a person (or a business rule) decides whether
+                        to release it. Remove that person and you have continuous <em>deployment</em> — slide 10.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · FULLY AUTOMATED ============ -->
+        <section class="slide" data-title="A2 · Fully automated delivery">
+            <span class="kicker">Part A · the pipeline</span>
+            <h2>What "fully automated software delivery" means</h2>
+            <div class="grid g23">
+                <div class="card tint-good">
+                    <h3>It means</h3>
+                    <ul class="stack-tight">
+                        <li><b>Every step is expressed as code</b> — build scripts, test suites, deployment scripts,
+                            infrastructure definitions — and all of it is in version control alongside the application.
+                        </li>
+                        <li><b>The pipeline is triggered by the commit</b>, not by a person remembering.</li>
+                        <li><b>Any team member can deploy</b> any successful build to any environment, without
+                            specialist knowledge.</li>
+                        <li><b>Rolling back is as automated as rolling forward.</b> An un-undoable deployment is not
+                            finished work.</li>
+                        <li><b>The state of every environment is known</b> — which version, deployed when, by which
+                            pipeline run.</li>
+                    </ul>
+                </div>
+                <div class="card tint-bad">
+                    <h3>It does not mean</h3>
+                    <ul class="stack-tight">
+                        <li><b>No humans.</b> Humans review code, approve releases and decide priorities. Automation
+                            takes the <em>mechanical</em> work, not the judgement.</li>
+                        <li><b>No testing effort.</b> It moves testing earlier and makes it repeatable.</li>
+                        <li><b>Buying a tool.</b> Jenkins does not give you a pipeline any more than buying a stove
+                            gives you dinner.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card flat tint-brand" style="margin-top:.6em">
+                <p style="margin:0"><b>The honest test of a pipeline.</b> Delete every one of your environments except
+                    version control and the empty machines. Can you get the system running again by pushing a button?
+                    If yes, it is automated. If the answer contains the word "then someone", it is not — that "someone"
+                    is a single point of failure, and it is usually you.</p>
+            </div>
+        </section>
+
+        <!-- ============ 6 · BUILD ============ -->
+        <section class="slide" data-title="B1 · The build process and automated build">
+            <span class="kicker">Part B · build</span>
+            <h2>The build process, and what makes a build <em>automated</em></h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>The build process — what actually happens</h3>
+                    <ol class="stack-tight">
+                        <li><b>Fetch</b> the exact source revision from version control.</li>
+                        <li><b>Resolve dependencies</b> at pinned versions (Maven, npm, pip, apt).</li>
+                        <li><b>Compile / transpile</b> the source.</li>
+                        <li><b>Run unit tests and static analysis</b> — a build that compiles but fails its tests is a
+                            failed build.</li>
+                        <li><b>Package</b> into a single deployable artifact: .jar, .whl, .deb, a container image, a
+                            tarball.</li>
+                        <li><b>Stamp a version</b> and publish it to an artifact repository.</li>
+                    </ol>
+                    <p class="footnote" style="margin:0">Steps 1–6 are one command. If your build needs a person to
+                        "just also copy the config file", step 6 has not happened yet.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Properties of a good automated build</h3>
+                    <ul class="stack-tight">
+                        <li><b>Single command.</b> <code>make</code>, <code>mvn package</code>, <code>./build.sh</code>.
+                        </li>
+                        <li><b>Reproducible.</b> Same revision in ⇒ same artifact out. Pinned dependency versions, no
+                            "latest", no machine-specific paths.</li>
+                        <li><b>Clean-room.</b> Runs on a fresh machine or container with nothing pre-installed but the
+                            declared toolchain — this is what catches "works on my machine".</li>
+                        <li><b>Fast.</b> Aim for under ten minutes to first feedback; developers stop waiting after
+                            that and start context-switching.</li>
+                        <li><b>Self-diagnosing.</b> When it fails, the log says which step and why, without anyone
+                            re-running it locally.</li>
+                        <li><b>Versioned artifact.</b> The output is traceable back to a commit hash.</li>
+                    </ul>
+                </div>
+            </div>
+            <pre class="term"><span class="c"># A build is a script in the repository — not a wiki page.</span>
+<span class="p">$</span> ./build.sh
+<span class="c">--&gt; resolving dependencies (locked)      ok   4.1s</span>
+<span class="c">--&gt; compiling                            ok  12.7s</span>
+<span class="c">--&gt; unit tests            214 passed     ok  31.2s</span>
+<span class="c">--&gt; static analysis       0 blockers     ok   6.8s</span>
+<span class="c">--&gt; package  dist/payments-1.8.3+9f2c1ab.tar.gz  ok</span></pre>
+        </section>
+
+        <!-- ============ 7 · TEST ============ -->
+        <section class="slide" data-title="B2 · Automated test">
+            <span class="kicker">Part B · build</span>
+            <h2>Automated test: the pipeline's immune system</h2>
+            <div class="grid g32">
+                <div class="card">
+                    <h3>Layers, cheapest first</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Asks</th><th>Cost</th><th>How many</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><b>Unit</b></td><td>Is this function correct in isolation?</td><td>ms</td><td>Thousands</td></tr>
+                            <tr><td><b>Integration</b></td><td>Do these components talk correctly? Does the query run against a real database?</td><td>seconds</td><td>Hundreds</td></tr>
+                            <tr><td><b>Acceptance</b></td><td>Does the system do what the user asked for?</td><td>minutes</td><td>Tens</td></tr>
+                            <tr><td><b>Non-functional</b></td><td>Is it fast enough, secure enough, available enough under load?</td><td>minutes–hours</td><td>A few</td></tr>
+                            <tr><td><b>Smoke / post-deploy</b></td><td>Did the thing we just deployed actually come up?</td><td>seconds</td><td>A handful</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card tint-warn">
+                    <h3>The three failures that kill test automation</h3>
+                    <ul class="stack-tight">
+                        <li><b>Flaky tests.</b> A test that fails randomly trains the team to ignore red builds. One
+                            flaky test is worse than no test — quarantine or delete it the day it appears.</li>
+                        <li><b>Inverted pyramid.</b> Mostly slow end-to-end UI tests, few unit tests: a two-hour suite
+                            nobody runs before pushing.</li>
+                        <li><b>Tests that never fail.</b> If a suite has never caught a bug, it is measuring nothing.
+                            Sabotage a line of code deliberately and confirm something goes red.</li>
+                    </ul>
+                    <p class="footnote" style="margin:0"><b>The rule:</b> a red pipeline is the highest-priority item on
+                        the team. Not "I will look at it after lunch."</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · DEPLOY ============ -->
+        <section class="slide" data-title="B3 · Automated deployment">
+            <span class="kicker">Part B · build</span>
+            <h2>Automated deployment</h2>
+            <p class="lead">Taking a <em>built, tested artifact</em> and making it the running system in a target
+                environment — configured, started, verified — without manual steps.</p>
+            <div class="grid g3">
+                <div class="card">
+                    <h3>What a deployment script does</h3>
+                    <ol class="stack-tight">
+                        <li>Fetch the exact artifact version (never rebuild).</li>
+                        <li>Apply environment configuration from outside the artifact.</li>
+                        <li>Run database migrations, forward-compatible.</li>
+                        <li>Stop / start or swap the service.</li>
+                        <li><b>Verify</b> with a health check before declaring success.</li>
+                        <li>Register the version, and keep the previous one ready.</li>
+                    </ol>
+                </div>
+                <div class="card tint-good">
+                    <h3>The two properties that matter</h3>
+                    <p><b>Idempotent</b> — running it twice leaves the system in the same state as running it once. The
+                        script says "ensure the service is at version 1.8.3", not "install version 1.8.3". This is why
+                        a half-failed run can simply be re-run.</p>
+                    <p style="margin:0"><b>Reversible</b> — you can get back to the previous version by the same
+                        mechanism, in minutes, without heroics. Blue-green and canary deployments are just structured
+                        ways of buying that reversibility.</p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Configuration is not code, but it is versioned</h3>
+                    <p style="margin:0">The same artifact must run in dev, staging and production. So hostnames,
+                        credentials and feature flags come from <b>environment variables or a config service</b> — never
+                        from an <code>if (env == "prod")</code> inside the code, and never from a file someone edits on
+                        the server. Secrets go in a secret store, not in Git.</p>
+                    <p class="footnote" style="margin:.4em 0 0">Unit 5 is where you will actually write scripts with
+                        these properties.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · CI / CD ============ -->
+        <section class="slide" data-title="C1 · CI vs CD vs continuous deployment">
+            <span class="kicker">Part C · the words people confuse</span>
+            <h2>Three terms, three different commitments</h2>
+            <div class="grid g3">
+                <div class="card tint-brand">
+                    <h3>Continuous Integration</h3>
+                    <p><b>Every developer merges to the mainline at least daily</b>, and every merge triggers an
+                        automated build and test.</p>
+                    <p style="margin:0" class="footnote">The commitment: no long-lived branches, and a broken build is
+                        fixed immediately. CI is a <em>practice</em>, not a server. Running Jenkins while everyone works
+                        on a three-week branch is not CI.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Continuous Delivery</h3>
+                    <p><b>Every build that passes the pipeline is <em>deployable to production</em> at any moment</b>,
+                        by pressing a button.</p>
+                    <p style="margin:0" class="footnote">The commitment: the software is always in a releasable state.
+                        Release becomes a <em>business</em> decision rather than a technical event.</p>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Continuous Deployment</h3>
+                    <p><b>Every build that passes the pipeline goes to production automatically</b> — no button.</p>
+                    <p style="margin:0" class="footnote">The commitment: strong automated tests, feature flags, canary
+                        releases and fast rollback. Appropriate for a web service; not for a pacemaker, a satellite or a
+                        banking core.</p>
+                </div>
+            </div>
+            <div class="card flat" style="margin-top:.6em">
+                <p style="margin:0"><b>All three depend on the same foundation:</b> everything in version control,
+                    an automated build, an automated test suite you trust, and an automated deployment. That foundation
+                    is exactly the content of this course. The rest of the units teach you to build the pieces on
+                    Linux — scenarios (Unit 2), scheduling (Unit 3), the environment (Unit 4), and the scripts
+                    themselves (Unit 5).</p>
+            </div>
+        </section>
+
+        <!-- ============ 10 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Drill — which stage should have caught it?">
+            <span class="kicker do">Your turn · 7 questions</span>
+            <h2>Which stage of the pipeline should have caught this?</h2>
+            <div class="card">
+                <p class="big" style="margin:.1em 0 .5em"><span id="pl-stmt"></span></p>
+                <div class="grid g2" id="pl-opts" style="gap:.4em"></div>
+                <div class="verdict hidden" id="pl-fb"></div>
+                <div style="display:flex; gap:.6em; align-items:center; margin-top:.7em">
+                    <button class="nav" id="pl-next">Next →</button>
+                    <button class="tbtn" id="pl-restart">Restart</button>
+                    <span class="spacer" style="flex:1"></span>
+                    <span class="footnote">Question <b id="pl-n">1</b> of <b id="pl-total">7</b> · score
+                        <b class="score" id="pl-score">0</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · CLOSE ============ -->
+        <section class="slide" data-title="Close · your H/T number, and what is next">
+            <span class="kicker">Close</span>
+            <h2>Back to the number on your page</h2>
+            <div class="grid g2">
+                <div class="card tint-do">
+                    <h3>Homework — one page, next class</h3>
+                    <ol class="stack-tight">
+                        <li>Write out your project's delivery steps again, now labelled with the pipeline stage each one
+                            belongs to (commit / build / test / stage / release / operate).</li>
+                        <li>For each <b>H</b> step, write one sentence: <em>what would have to be true for a machine to
+                                do this?</em></li>
+                        <li>Pick the <b>single</b> step whose automation would save the most pain, and say why.</li>
+                    </ol>
+                    <p class="footnote" style="margin:0">That last step is your candidate for the scripting work in
+                        Unit 5.</p>
+                </div>
+                <div class="card">
+                    <h3>What you should be able to say now</h3>
+                    <ul class="stack-tight">
+                        <li>What a delivery pipeline is, and why its stages are ordered by cost.</li>
+                        <li>The six steps of a build, and the five properties of a <em>good</em> automated build.</li>
+                        <li>The test layers, and why an inverted pyramid or a flaky test destroys the pipeline.</li>
+                        <li>Why deployments must be idempotent and reversible.</li>
+                        <li>The difference between continuous integration, delivery and deployment.</li>
+                    </ul>
+                    <p class="footnote" style="margin:.5em 0 0"><b>Next lecture:</b> the benefits of automated
+                        deployment, how automation drives DevOps adoption, and Rapid Application Development with code
+                        generation.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:.7em"><b>Reading:</b> Humble &amp; Farley, <em>Continuous
+                    Delivery</em>, ch. 1–5 · Forsgren, Humble &amp; Kim, <em>Accelerate</em>, ch. 2 (the four delivery
+                metrics) · Kim et al., <em>The DevOps Handbook</em>, part III.</p>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 11</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script src="../assets/deck.js"></script>
+    <script>
+        const STAGES = ['Commit stage (compile, unit tests, static analysis)',
+            'Build / packaging stage', 'Automated acceptance or integration test stage',
+            'Deployment stage (health check after deploy)'];
+        makeDrill('pl', [
+            {
+                q: 'A null-pointer exception in a date-formatting helper reaches production.',
+                o: STAGES, a: 0,
+                w: '<b>Commit stage.</b> A defect in a single pure function is exactly what unit tests exist for — they cost milliseconds and run on every push. If this reached production, either the function has no test, or the suite is not a gate on the merge.'
+            },
+            {
+                q: 'The application works in staging but crashes in production because a library version differs between the two machines.',
+                o: STAGES, a: 1,
+                w: '<b>Build / packaging.</b> This is the classic symptom of building separately per environment, or of unpinned dependencies. The fix is not more testing — it is building <em>one</em> artifact with locked dependency versions and promoting that same artifact through every environment.'
+            },
+            {
+                q: 'Checkout succeeds, but the confirmation email is never sent because the payment service and the mail service disagree on the message format.',
+                o: STAGES, a: 2,
+                w: '<b>Acceptance / integration.</b> Both components pass their own unit tests — the defect only exists in the space between them. This is precisely the class of bug that unit tests cannot see and that a contract or end-to-end test catches.'
+            },
+            {
+                q: 'The deployment script reports success, but the service never actually started; users see 502 errors for 40 minutes until someone notices.',
+                o: STAGES, a: 3,
+                w: '<b>Deployment stage.</b> The script confirmed that <em>it finished</em>, not that the system <em>works</em>. A deployment is not complete until an automated smoke test hits a health endpoint and gets the expected response — and rolls back or alerts if it does not.'
+            },
+            {
+                q: 'A developer commits a file containing a hard-coded AWS access key.',
+                o: STAGES, a: 0,
+                w: '<b>Commit stage — static analysis.</b> Secret scanning is a cheap, fast, automated check that belongs with compilation and linting. Note the timing: once a secret is pushed it must be rotated, not merely deleted, because it is in the Git history forever.'
+            },
+            {
+                q: 'The release is fine functionally, but response time triples under real traffic.',
+                o: STAGES, a: 2,
+                w: '<b>Acceptance stage — the non-functional part of it.</b> Performance is a requirement like any other, so it needs an automated test with a threshold that fails the pipeline. "It felt fast on my laptop" is not a measurement, and production is not the place to discover the answer.'
+            },
+            {
+                q: 'A rollback is attempted after a bad release, but the previous version cannot be restored because the database migration dropped a column.',
+                o: STAGES, a: 1,
+                w: '<b>Build / packaging — and the migration design inside it.</b> Reversibility has to be engineered in: migrations must be forward-compatible (add first, deploy, backfill, only drop in a later release). No amount of testing rescues a deployment that has made itself irreversible.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'You are locating defects at the cheapest stage that could have caught them — which is the whole design principle of a pipeline. Bring that eye to your homework.'
+            : 'Ask two questions of every incident: <b>what was the cheapest check that could have caught this?</b> and <b>why was that check not a gate?</b> Nearly every answer in this drill follows from those two.'));
+    </script>
+</body>
+
+</html>

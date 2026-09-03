@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Automation · L05 — Files, Crypto, Downloads, Provisioning</title>
+    <meta name="description"
+        content="Lecture 5 of DevOps Automation (Unit 2): file formatter, decrypting files, bulk file downloader, system information, installing a LAMP stack, getting a NIC's IP, and the scenarios where automation prevents errors.">
+    <link rel="stylesheet" href="../assets/deck.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <b>DevOps Automation</b><span>Unit 2 · Advantages of Automation</span>
+        <span>·</span><span>Lecture 5</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit 2 · Lecture 5 · Advantages of Automation</span>
+            <h1>Files, Secrets,<br><span style="color:var(--brand)">Downloads and Machines</span></h1>
+            <p class="lead big" style="max-width:36em">Six more scenarios, and then the question the whole unit has
+                been building to: <em class="hl">which errors does automation actually prevent — and which does it
+                    manufacture?</em></p>
+            <div class="grid g3" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>9–10 · Files &amp; crypto</h3>
+                    <p style="margin:0">A file formatter, and decrypting files without leaking the key.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>11–12 · Fetch &amp; inspect</h3>
+                    <p style="margin:0">Bulk file downloader with retries and checksums; system information.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>13–14 · Provision</h3>
+                    <p style="margin:0">Installing a LAMP stack idempotently; getting the NIC's IP address.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · UPES ·
+                55 minutes · <b style="color:var(--do)">closes Unit 2</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · FILE FORMATTER ============ -->
+        <section class="slide" data-title="S9 · File formatter">
+            <span class="kicker">Scenario 9</span>
+            <h2>File formatter</h2>
+            <p class="lead">Two different jobs share this name. Know which one you are doing.</p>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>A · Normalising messy text and data files</h3>
+                    <pre class="term"><span class="c"># Strip Windows CR, trailing spaces and blank runs; align columns</span>
+sed -i <span class="s">'s/\r$//; s/[[:space:]]*$//'</span> data.csv
+cat -s report.txt | fmt -w 78 &gt; report.clean.txt
+column -t -s, data.csv | head            <span class="c"># readable table preview</span>
+
+<span class="c"># Reformat a fixed-width extract into CSV with awk</span>
+awk <span class="s">'{ printf "%s,%s,%.2f\n", $1, $2, $3 }'</span> extract.txt &gt; out.csv
+
+<span class="c"># Pretty-print structured data — never with sed</span>
+jq . config.json &gt; config.pretty.json
+yq -P . values.yaml</pre>
+                    <p class="footnote" style="margin:0"><b>The stray <code>\r</code> is the single most common
+                            cause</b> of "the script works on my laptop but the server says
+                        <code>bad interpreter: /bin/bash^M</code>". A file edited on Windows carries CRLF line endings;
+                        run <code>file</code> or <code>dos2unix</code> before believing anything else.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>B · Formatting source code — do this in the pipeline</h3>
+                    <p>Every language has a canonical formatter: <code>black</code> (Python),
+                        <code>prettier</code> (JS/TS/CSS), <code>gofmt</code> (Go), <code>clang-format</code> (C/C++),
+                        <code>shfmt</code> (shell). Automating them removes an entire category of pointless code review.
+                    </p>
+                    <ul class="stack-tight">
+                        <li><b>Locally</b>: a Git pre-commit hook formats staged files.</li>
+                        <li><b>In CI</b>: run the formatter in <em>check</em> mode (<code>black --check</code>) and fail
+                            the build on a difference. Checking is better than rewriting in CI — a pipeline that pushes
+                            commits back to your branch is a pipeline that will surprise someone.</li>
+                        <li><b>Format the whole repository in one commit</b>, then add the check. A gradual rollout
+                            means every diff is polluted with formatting noise forever.</li>
+                    </ul>
+                    <p style="margin:0"><b>The point is not beauty.</b> It is that a mechanical, unarguable rule is
+                        applied identically to everyone, so reviewers spend their attention on logic instead of on brace
+                        placement.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 3 · DECRYPTING FILES ============ -->
+        <section class="slide" data-title="S10 · Decrypting files">
+            <span class="kicker">Scenario 10</span>
+            <h2>Decrypting files in an automated job</h2>
+            <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="k">set</span> -euo pipefail
+umask 077                                     <span class="c"># anything we create is 0600 from birth</span>
+
+IN=<span class="s">"${1:?usage: decrypt.sh &lt;file.gpg&gt;}"</span>
+WORK=<span class="v">$(</span>mktemp -d<span class="v">)</span>
+<span class="k">trap</span> <span class="s">'rm -rf -- "$WORK"'</span> EXIT INT TERM        <span class="c"># plaintext dies with the script,</span>
+                                              <span class="c"># even on Ctrl-C or a failure</span>
+
+<span class="c"># Passphrase from a 0600 file or an agent — NEVER an argument, NEVER hardcoded.</span>
+gpg --quiet --batch --yes \
+    --passphrase-file /etc/creds/vendor.pass \
+    --decrypt --output <span class="s">"$WORK/payload.csv"</span> -- <span class="s">"$IN"</span>
+
+<span class="c"># Verify the signature too: decryption proves secrecy, not authenticity.</span>
+gpg --verify -- <span class="s">"$IN"</span> 2&gt;/dev/null || { <span class="k">echo</span> <span class="s">"UNSIGNED or bad signature"</span> &gt;&amp;2; <span class="k">exit</span> 1; }
+
+process-payload <span class="s">"$WORK/payload.csv"</span>              <span class="c"># plaintext never leaves $WORK</span></pre>
+            <div class="grid g3">
+                <div class="card flat tint-bad">
+                    <h3>Four ways people leak the key</h3>
+                    <ul class="stack-tight">
+                        <li><b>On the command line</b> — <code>--passphrase 'hunter2'</code> is visible in
+                            <code>ps</code> to every user on the host.</li>
+                        <li><b>In the script</b>, which is then committed to Git, where it lives in history forever.
+                            A deleted secret is a <em>rotated</em> secret or it is still a secret you have lost.</li>
+                        <li><b>In an environment variable</b> that a child process inherits and helpfully dumps into a
+                            crash log or an error report.</li>
+                        <li><b>In the plaintext left behind</b> in <code>/tmp</code> after the job failed halfway.
+                            Hence the <code>trap</code>.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>Rules that hold everywhere</h3>
+                    <ul class="stack-tight">
+                        <li><b>Decrypt to memory or to a private temp dir</b>, never in place next to the ciphertext.
+                        </li>
+                        <li><b>Stream where you can:</b>
+                            <code>gpg -d file.gpg | mysql db</code> — the plaintext never touches a disk.</li>
+                        <li><b>Least privilege:</b> the decryption key belongs to a dedicated service account, and no
+                            human logs in as it.</li>
+                        <li><b>Rotate keys</b> on a schedule, and have a tested procedure for doing so.</li>
+                        <li><b>Prefer a secret manager</b> (Vault, AWS/GCP KMS, systemd credentials) over any file on
+                            disk.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Encryption ≠ authentication</h3>
+                    <p style="margin:0">Anyone can encrypt a file <em>to</em> your public key, including an attacker who
+                        wants you to process their data. Only a <b>signature</b> tells you who sent it. Automated
+                        pipelines that decrypt vendor files and act on the contents must verify the signature — and
+                        must treat "no signature" as a failure, not as a warning to be logged and ignored.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 4 · BULK DOWNLOADER ============ -->
+        <section class="slide" data-title="S11 · Bulk file downloader">
+            <span class="kicker">Scenario 11</span>
+            <h2>Bulk file downloader</h2>
+            <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="c"># fetch-all.sh urls.txt outdir   — resumable, parallel, verified</span>
+<span class="k">set</span> -euo pipefail
+LIST=<span class="s">"${1:?url list}"</span>;  OUT=<span class="s">"${2:?output dir}"</span>;  JOBS=<span class="s">"${JOBS:-4}"</span>
+mkdir -p <span class="s">"$OUT"</span>
+
+fetch_one() {
+    <span class="k">local</span> url=<span class="s">"$1"</span> out=<span class="s">"$2"</span>
+    curl --fail --location --silent --show-error \
+         --retry 5 --retry-delay 2 --retry-all-errors \
+         --connect-timeout 10 --max-time 600 \
+         --continue-at - \
+         --remote-time \
+         --output <span class="s">"$out/$(basename "${url%%\?*}")"</span> \
+         -- <span class="s">"$url"</span>
+}
+<span class="k">export</span> -f fetch_one
+
+<span class="c"># -P runs JOBS in parallel; -n1 one URL per invocation.</span>
+<span class="c"># grep strips blank lines and # comments so the list file can be documented.</span>
+grep -Ev <span class="s">'^\s*(#|$)'</span> <span class="s">"$LIST"</span> |
+    xargs -P <span class="s">"$JOBS"</span> -n1 -I{} bash -c <span class="s">'fetch_one "$@"'</span> _ {} <span class="s">"$OUT"</span>
+
+<span class="c"># Integrity: a download that "succeeded" can still be a truncated file or an</span>
+<span class="c"># HTML error page saved with a .tar.gz name.</span>
+( <span class="k">cd</span> <span class="s">"$OUT"</span> &amp;&amp; sha256sum -c SHA256SUMS ) || { <span class="k">echo</span> <span class="s">"CHECKSUM FAILURE"</span> &gt;&amp;2; <span class="k">exit</span> 1; }</pre>
+            <div class="grid g3">
+                <div class="card flat tint-brand">
+                    <h3>Why each flag is there</h3>
+                    <ul class="stack-tight">
+                        <li><b>--fail</b> — without it, curl exits 0 on a 404 and you save the error page. This single
+                            flag is the difference between a script that works and one that lies.</li>
+                        <li><b>--location</b> — follow redirects; most download URLs are one.</li>
+                        <li><b>--retry / --retry-delay</b> — networks fail transiently; retry is not optimism, it is
+                            correctness.</li>
+                        <li><b>--continue-at -</b> — resume a partial file instead of restarting a 4 GB download.</li>
+                        <li><b>--max-time</b> — bound the whole transfer so one stalled host cannot hang the job until
+                            the next cron run collides with it.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>Be a good citizen</h3>
+                    <ul class="stack-tight">
+                        <li><b>Keep parallelism modest</b> (2–8). Forty parallel streams is indistinguishable from a
+                            denial-of-service attack, and you will be blocked.</li>
+                        <li><b>Respect <code>robots.txt</code>, rate limits and terms of service</b>, and identify
+                            yourself with a real <code>--user-agent</code> including a contact address.</li>
+                        <li><b>Use conditional requests</b> — <code>curl -z file</code> or
+                            <code>wget --timestamping</code> — so a re-run downloads only what changed.</li>
+                        <li><b>Only download what you are authorised to.</b> Automation makes it trivially easy to
+                            scrape at a scale that is a legal problem, not a technical one.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>The simpler forms</h3>
+                    <pre class="term"><span class="c"># wget already reads a list</span>
+wget -i urls.txt -P out/ \
+     -c -t 5 --timeout=30 \
+     --no-verbose
+
+<span class="c"># mirror a directory, only new files</span>
+wget -r -np -nH --cut-dirs=2 \
+     -N -A <span class="s">'*.tar.gz'</span> https://host/pkgs/</pre>
+                    <p class="footnote" style="margin:0">Reach for <code>wget</code> for recursive mirroring, and
+                        <code>curl</code> when you need control over a single request. For anything that must be
+                        <em>reliable</em>, add checksums.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · SYSTEM INFORMATION ============ -->
+        <section class="slide" data-title="S12 · System information">
+            <span class="kicker">Scenario 12</span>
+            <h2>System information — the script you run first on any unfamiliar host</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="k">set</span> -uo pipefail
+
+<span class="k">echo</span> <span class="s">"=== identity ==="</span>
+hostname -f;  <span class="k">source</span> /etc/os-release &amp;&amp; <span class="k">echo</span> <span class="s">"$PRETTY_NAME"</span>
+uname -r;     uptime -p;  <span class="k">echo</span> <span class="s">"booted: $(uptime -s)"</span>
+
+<span class="k">echo</span> <span class="s">"=== cpu ==="</span>
+lscpu | grep -E <span class="s">'^(Model name|Socket|Core|CPU\(s\))'</span>
+<span class="k">echo</span> <span class="s">"load: $(cut -d' ' -f1-3 /proc/loadavg) over $(nproc) cpus"</span>
+
+<span class="k">echo</span> <span class="s">"=== memory ==="</span>
+free -h
+
+<span class="k">echo</span> <span class="s">"=== disk ==="</span>
+df -hT -x tmpfs -x devtmpfs
+df -i  -x tmpfs -x devtmpfs | awk <span class="s">'NR==1 || $5+0 &gt; 80'</span>   <span class="c"># inode pressure</span>
+
+<span class="k">echo</span> <span class="s">"=== network ==="</span>
+ip -brief address
+ip route show default
+
+<span class="k">echo</span> <span class="s">"=== services and ports ==="</span>
+systemctl list-units --type=service --state=failed --no-pager
+ss -tulpn | head -20
+
+<span class="k">echo</span> <span class="s">"=== recent errors ==="</span>
+journalctl -p err -n 20 --no-pager</pre>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Why this is worth automating</h3>
+                    <ul class="stack-tight">
+                        <li><b>Incident response.</b> One command produces the same picture from every host, so you
+                            compare like with like instead of remembering nine commands under pressure.</li>
+                        <li><b>Inventory.</b> Run it across the fleet and you have an asset register that is true today
+                            rather than true in 2023.</li>
+                        <li><b>Drift detection.</b> Store the output, diff it weekly: an unexpected new listening port
+                            or a changed kernel is exactly what you want to notice.</li>
+                        <li><b>Bug reports.</b> Attach it and stop the "what version are you on?" round trip.</li>
+                    </ul>
+                    <h3>Two upgrades</h3>
+                    <p style="margin:0"><b>Emit machine-readable output</b> as well as human — <code>lsblk -J</code>,
+                        <code>ip -j</code>, <code>lscpu -J</code> all speak JSON, so the same script can feed both a
+                        human and a dashboard. And <b>guard every command</b>: <code>command -v lscpu &gt;/dev/null ||
+                            echo "lscpu unavailable"</code>, because a minimal container has none of these.</p>
+                    <p class="footnote" style="margin:.4em 0 0">Careful: this output includes hostnames, IPs, listening
+                        ports and process names. It is a reconnaissance report. Do not paste it into a public issue
+                        tracker unredacted.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · LAMP ============ -->
+        <section class="slide" data-title="S13 · Install a LAMP stack">
+            <span class="kicker">Scenario 13</span>
+            <h2>Installing a LAMP stack — the idempotence lesson</h2>
+            <pre class="term"><span class="c">#!/usr/bin/env bash</span>
+<span class="c"># provision-lamp.sh — safe to run twice. That is the entire point.</span>
+<span class="k">set</span> -euo pipefail
+[[ <span class="v">$EUID</span> -eq 0 ]] || { <span class="k">echo</span> <span class="s">"run as root"</span> &gt;&amp;2; <span class="k">exit</span> 1; }
+
+<span class="k">export</span> DEBIAN_FRONTEND=noninteractive     <span class="c"># never block on a dialogue box</span>
+
+apt-get update -qq
+apt-get install -y --no-install-recommends \
+        apache2 mariadb-server php libapache2-mod-php php-mysql
+
+<span class="c"># Idempotent config: only act if the desired state is not already true</span>
+a2enmod rewrite &gt;/dev/null                   <span class="c"># a2enmod is itself idempotent</span>
+
+<span class="k">if</span> ! grep -q <span class="s">'^ServerTokens Prod'</span> /etc/apache2/conf-available/security.conf; <span class="k">then</span>
+    sed -i <span class="s">'s/^ServerTokens.*/ServerTokens Prod/'</span> /etc/apache2/conf-available/security.conf
+    <span class="k">touch</span> /run/apache-needs-reload
+<span class="k">fi</span>
+
+<span class="c"># Idempotent database bootstrap — CREATE ... IF NOT EXISTS does the work</span>
+mysql --protocol=socket &lt;&lt;<span class="s">'SQL'</span>
+CREATE DATABASE IF NOT EXISTS appdb CHARACTER SET utf8mb4;
+CREATE USER IF NOT EXISTS 'app'@'localhost' IDENTIFIED BY '__FROM_SECRET_STORE__';
+GRANT SELECT, INSERT, UPDATE, DELETE ON appdb.* TO 'app'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+
+systemctl enable --now apache2 mariadb
+[[ -e /run/apache-needs-reload ]] &amp;&amp; { systemctl reload apache2; rm -f /run/apache-needs-reload; }
+
+<span class="c"># Verify — provisioning is not finished until the stack answers</span>
+curl -fsS http://127.0.0.1/ &gt;/dev/null &amp;&amp; <span class="k">echo</span> <span class="s">"LAMP up on $(hostname -f)"</span></pre>
+            <div class="grid g3">
+                <div class="card flat tint-good">
+                    <h3>Idempotence, concretely</h3>
+                    <p style="margin:0">Every statement above expresses <b>desired state</b>, not an action:
+                        <code>install -y</code> is a no-op if installed, <code>IF NOT EXISTS</code> is a no-op if
+                        present, <code>enable --now</code> is a no-op if running, and the <code>sed</code> is guarded by
+                        a <code>grep</code>. So a run that dies halfway can simply be re-run — which is the property
+                        that makes unattended provisioning survivable.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>What is still wrong with it</h3>
+                    <ul class="stack-tight">
+                        <li><b>The password.</b> It must come from a secret store or an environment injected at run
+                            time — never a literal, and never in Git.</li>
+                        <li><b>No versions pinned.</b> The same script gives you different software next month.</li>
+                        <li><b>No <code>mysql_secure_installation</code> equivalent</b>, no firewall, no TLS. This is a
+                            lab stack, not a production one.</li>
+                        <li><b>Only <code>reload</code> when something changed</b> — the flag file above is the
+                            hand-rolled version of a configuration-management "handler".</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-brand">
+                    <h3>Where this goes next</h3>
+                    <p style="margin:0">Ansible, Puppet, Chef and Salt exist because everyone writes this script and
+                        then discovers they need ordering, handlers, dry-run, host inventories and reporting. An Ansible
+                        playbook is this file with the idempotence guaranteed by the tool instead of by your
+                        <code>grep</code>. <b>Write it by hand once</b> — then you will understand what
+                        <code>state: present</code> is actually doing, and why a container image is usually a better
+                        answer than provisioning a mutable server at all.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 7 · NIC IP ============ -->
+        <section class="slide" data-title="S14 · Get the NIC's IP">
+            <span class="kicker">Scenario 14</span>
+            <h2>Get the NIC's IP address — a small task with sharp edges</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <h3>The fragile answers</h3>
+                    <pre class="term">ifconfig | grep <span class="s">'inet '</span> | awk <span class="s">'{print $2}'</span>
+<span class="c"># ifconfig is deprecated and absent on modern minimal installs;</span>
+<span class="c"># its output format differs across distributions and locales.</span>
+
+hostname -I
+<span class="c"># Returns ALL addresses, space separated, in NO defined order:</span>
+<span class="c">#   "10.0.2.15 172.17.0.1 192.168.49.1 fd00::1"</span>
+<span class="c"># Fine interactively. In a script it silently picks docker0 one day.</span>
+
+ip addr | grep inet | head -1
+<span class="c"># Returns 127.0.0.1. Congratulations, you have found the loopback.</span></pre>
+                    <p class="footnote" style="margin:0">All three appear in student scripts, and all three work
+                        perfectly on the laptop where they were written.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>The answers that hold up</h3>
+                    <pre class="term"><span class="c"># 1. The IP on the interface used to reach a given destination —</span>
+<span class="c">#    usually the question you actually meant. No packets are sent.</span>
+ip -4 route get 8.8.8.8 | awk <span class="s">'{print $7; exit}'</span>
+
+<span class="c"># 2. A named interface, parsed as JSON instead of as text</span>
+ip -j -4 addr show dev eth0 |
+    jq -r <span class="s">'.[0].addr_info[0].local'</span>
+
+<span class="c"># 3. The default-route interface, then its address</span>
+IFACE=<span class="v">$(</span>ip -j route show default | jq -r <span class="s">'.[0].dev'</span><span class="v">)</span>
+ip -j -4 addr show dev <span class="s">"$IFACE"</span> | jq -r <span class="s">'.[0].addr_info[0].local'</span>
+
+<span class="c"># 4. The PUBLIC address, when behind NAT — a different question entirely</span>
+curl -fsS --max-time 5 https://api.ipify.org</pre>
+                </div>
+            </div>
+            <div class="card flat tint-warn" style="margin-top:.5em">
+                <p style="margin:0"><b>Ask which IP you actually want</b> before writing the command: the private
+                    address on a specific NIC? whichever address reaches the internet? the public address after NAT? the
+                    address other services should connect to? These are four different values, and on a cloud host with
+                    Docker, a VPN and IPv6 they are four different answers. <b>The general lesson beyond IP addresses:
+                        prefer machine-readable output (<code>ip -j</code>, <code>lsblk -J</code>) over parsing text
+                        formatted for humans</b> — human formats change between versions and locales, and your
+                    <code>awk '{print $2}'</code> silently starts returning the wrong column.</p>
+            </div>
+        </section>
+
+        <!-- ============ 8 · WHERE AUTOMATION PREVENTS ERRORS ============ -->
+        <section class="slide" data-title="Scenarios where automation prevents errors">
+            <span class="kicker">The point of Unit 2</span>
+            <h2>Scenarios where automation prevents errors</h2>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>Errors it genuinely removes</h3>
+                    <ul class="stack-tight">
+                        <li><b>Omission.</b> Multi-step procedures where step 7 of 12 is skipped under pressure — the
+                            single largest category. A script cannot forget.</li>
+                        <li><b>Transcription.</b> Mistyped hostnames, IPs, table names; the right command on the wrong
+                            server. This is where the famous outages come from.</li>
+                        <li><b>Drift.</b> Servers that were configured identically in March and are not identical now,
+                            because three people made small manual fixes.</li>
+                        <li><b>Fatigue errors.</b> Anything performed at 3 a.m., during an incident, or for the
+                            fortieth time in a row.</li>
+                        <li><b>Rare-procedure errors.</b> Failover, restore, certificate renewal — done twice a year,
+                            therefore done badly. Automation makes rehearsal cheap, and rehearsal is what makes it work
+                            on the day.</li>
+                        <li><b>Ordering and timing errors.</b> Migrate before deploy, drain before restart, backup
+                            before upgrade.</li>
+                        <li><b>Cleanup omissions.</b> The temp file, the debug flag, the firewall rule "opened for five
+                            minutes" in 2024.</li>
+                    </ul>
+                </div>
+                <div class="card tint-bad">
+                    <h3>Errors it creates, and how to contain them</h3>
+                    <ul class="stack-tight">
+                        <li><b>Scaled mistakes.</b> A wrong manual command breaks one server; a wrong script breaks
+                            five hundred, in nine seconds. <em>Contain with:</em> staged rollout, canary hosts, a
+                            <code>--limit</code> flag.</li>
+                        <li><b>Silent failure.</b> The job has failed nightly for a month and nobody knows. <em>Contain
+                                with:</em> alert on absence of success, non-zero exit codes, dead-man's switches.</li>
+                        <li><b>Stale assumptions.</b> The script encodes a truth from two years ago. <em>Contain
+                                with:</em> assertions that check preconditions and abort loudly.</li>
+                        <li><b>Automation complacency.</b> Nobody remembers how to do it by hand, and nobody reads the
+                            output any more. <em>Contain with:</em> game days, manual drills, rotating ownership.</li>
+                        <li><b>Unreviewed power.</b> A script with production credentials that anyone can edit.
+                            <em>Contain with:</em> code review, version control, least privilege.</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="big center" style="margin-top:.6em">Automation does not remove errors. It <em class="hl">moves
+                    them from execution time to authoring time</em> — where they are cheap, reviewable, and testable
+                <b>before</b> they touch a server.</p>
+        </section>
+
+        <!-- ============ 9 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO · Drill">
+            <span class="kicker do">Your turn · 7 questions</span>
+            <h2>Files, secrets, downloads and provisioning</h2>
+            <div class="card">
+                <p class="big" style="margin:.1em 0 .5em"><span id="fx-stmt"></span></p>
+                <div class="grid g2" id="fx-opts" style="gap:.4em"></div>
+                <div class="verdict hidden" id="fx-fb"></div>
+                <div style="display:flex; gap:.6em; align-items:center; margin-top:.7em">
+                    <button class="nav" id="fx-next">Next →</button>
+                    <button class="tbtn" id="fx-restart">Restart</button>
+                    <span class="spacer" style="flex:1"></span>
+                    <span class="footnote">Question <b id="fx-n">1</b> of <b id="fx-total">7</b> · score
+                        <b class="score" id="fx-score">0</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 10 · CLOSE ============ -->
+        <section class="slide" data-title="Close · Unit 2 done">
+            <span class="kicker">Close</span>
+            <h2>Unit 2 gave you fourteen scenarios and about six ideas</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <ol class="stack-tight">
+                        <li><b>Verify, do not assume.</b> <code>gzip -t</code>, <code>curl --fail</code>,
+                            <code>sha256sum -c</code>, a health check after deploy.</li>
+                        <li><b>Be idempotent.</b> Express desired state so a re-run is always safe.</li>
+                        <li><b>Validate at the boundary.</b> Allow-list input, quote every expansion, canonicalise
+                            paths.</li>
+                        <li><b>Be reversible.</b> Trash, do not delete; refuse to overwrite; keep a way back.</li>
+                        <li><b>Alert on the absence of success</b>, and alert on <em>changes</em> of state, not on
+                            state.</li>
+                        <li><b>Never let a secret touch a command line, a repository or a log.</b></li>
+                    </ol>
+                </div>
+                <div class="card tint-do">
+                    <h3>Unit 2 assignment — due at the start of Unit 4</h3>
+                    <p>Pick <b>one</b> scenario from this unit and take it to production quality:</p>
+                    <ul class="stack-tight">
+                        <li><code>set -euo pipefail</code>, a usage message, argument validation.</li>
+                        <li><code>--dry-run</code> as the <em>default</em> for anything destructive.</li>
+                        <li>Logging via <code>logger</code>, meaningful exit codes, cleanup <code>trap</code>.</li>
+                        <li>A short README stating what it does, what it assumes, and how it fails.</li>
+                        <li>Evidence it survives four hostile inputs of your own devising.</li>
+                    </ul>
+                    <p class="footnote" style="margin:0">You will schedule this script in Unit 3 and harden it in Unit
+                        5, so choose one you are willing to live with.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:.6em"><b>Next lecture — Unit 3:</b> cron and crontab. Everything you
+                have written so far has to run at 02:30 without you.</p>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 10</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script src="../assets/deck.js"></script>
+    <script>
+        makeDrill('fx', [
+            {
+                q: 'A shell script edited in Notepad on Windows fails on the server with <code>bad interpreter: /bin/bash^M: no such file or directory</code>. What is wrong?',
+                o: ['Bash is not installed at /bin/bash',
+                    'The file has CRLF line endings, so the shebang ends in a carriage return',
+                    'The file is not executable',
+                    'The shebang must be #!/usr/bin/env bash'],
+                a: 1,
+                w: '<b>CRLF line endings.</b> The kernel reads the interpreter path as <code>/bin/bash\\r</code>, which does not exist — hence the odd <code>^M</code> in the message. Fix with <code>dos2unix</code> or <code>sed -i \'s/\\r$//\'</code>, and prevent it with a <code>.gitattributes</code> entry. It is the single most common cross-platform scripting failure.'
+            },
+            {
+                q: 'A nightly job decrypts a vendor file with <code>gpg --passphrase "$PASS" -d feed.gpg</code>, where PASS is exported in the script. What is the most serious exposure?',
+                o: ['The passphrase appears in the process list, visible to every user on the host',
+                    'GPG cannot accept a passphrase this way',
+                    'The decryption will be slower',
+                    'The output file will have the wrong permissions'],
+                a: 0,
+                w: '<b><code>ps aux</code> shows full command lines to all users</b>, so any local account can read the passphrase during the run. Use <code>--passphrase-file</code> with a 0600 file, or better a gpg-agent or secret manager. The permissions point is real too — <code>umask 077</code> — but it exposes the plaintext, not the key to every future file.'
+            },
+            {
+                q: 'A download script uses <code>curl -sL -o pkg.tar.gz https://host/pkg.tar.gz</code>. The URL returns 404. What happens?',
+                o: ['curl exits non-zero and set -e stops the script',
+                    'curl exits 0 and saves the HTML error page as pkg.tar.gz',
+                    'curl retries automatically',
+                    'curl deletes the output file'],
+                a: 1,
+                w: '<b>curl exits 0 and writes the error page.</b> Without <code>--fail</code>, an HTTP error is still a successful <em>transfer</em> as far as curl is concerned, so the pipeline proceeds and fails later with a baffling "not in gzip format". Always pass <code>--fail</code>, and verify with a checksum — the two together make an undetected bad download nearly impossible.'
+            },
+            {
+                q: 'A provisioning script runs <code>echo "ServerTokens Prod" >> /etc/apache2/conf-available/security.conf</code>. It is run three times. What is the result?',
+                o: ['The file is unchanged after the first run',
+                    'The directive appears three times, and the config may be rejected or behave unpredictably',
+                    'Apache automatically de-duplicates directives',
+                    'The script fails on the second run'],
+                a: 1,
+                w: '<b>Three copies — the script is not idempotent.</b> Append is an <em>action</em>; provisioning needs <em>desired state</em>. Guard it (<code>grep -q ... || ...</code>), use <code>sed</code> to replace in place, or render the whole file from a template. This is exactly the class of bug configuration-management tools were built to eliminate.'
+            },
+            {
+                q: 'A script uses <code>hostname -I | awk \'{print $1}\'</code> to find the server\'s IP. It works for months, then starts returning 172.17.0.1. What changed?',
+                o: ['The server was renamed',
+                    'Docker was installed, adding a docker0 interface that now sorts first',
+                    'The DNS server changed',
+                    'IPv6 was enabled'],
+                a: 1,
+                w: '<b>A new interface appeared.</b> <code>hostname -I</code> lists every address in no guaranteed order, so "the first one" is not a stable concept — Docker, a VPN or a second NIC silently changes the answer. Ask a precise question instead: <code>ip -4 route get 8.8.8.8 | awk \'{print $7; exit}\'</code> gives the address actually used to reach that destination.'
+            },
+            {
+                q: 'Which of these is the strongest reason to run a code formatter in CI in <em>check</em> mode rather than having it rewrite and commit?',
+                o: ['Check mode runs faster',
+                    'A pipeline that pushes commits back to a branch surprises developers and can race with their own pushes',
+                    'Formatters cannot write files in CI',
+                    'Check mode catches more issues'],
+                a: 1,
+                w: '<b>A pipeline that writes to your branch is a pipeline that fights you.</b> It races with local pushes, re-triggers itself, and confuses review. Fail the build instead and let the developer format locally — ideally via a pre-commit hook so it never reaches CI. Keep CI a <em>judge</em>, not an author.'
+            },
+            {
+                q: 'Which statement best describes what automation does to human error?',
+                o: ['It eliminates errors, since machines do not make mistakes',
+                    'It moves errors from execution time to authoring time, where they are reviewable and testable',
+                    'It has no effect on error rates, only on speed',
+                    'It increases errors because scripts are hard to write'],
+                a: 1,
+                w: '<b>It relocates them.</b> The mistake still gets made — by the person writing the script — but now it exists in a reviewable, testable, version-controlled artifact <em>before</em> it touches anything, instead of being improvised on a live server at 3 a.m. That relocation is the entire value proposition, and it is also why an unreviewed script is barely better than a manual procedure.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 6
+            ? 'Unit 2 is done and you are catching the failure modes that only appear in production. Pick your assignment scenario before Unit 3.'
+            : 'Six sentences worth memorising: verify rather than assume; be idempotent; validate at the boundary; be reversible; alert on absence; and never let a secret reach a command line.'));
+    </script>
+</body>
+
+</html>

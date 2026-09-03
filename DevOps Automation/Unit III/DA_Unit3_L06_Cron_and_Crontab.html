@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Automation · L06 — Automating Linux Tasks with cron and crontab</title>
+    <meta name="description"
+        content="Lecture 6 of DevOps Automation (Unit 3): introduction to cron and crontab, the scope of crontab, use cases, crontab syntax, writing your own cron tasks, editing and updating crontab entries, and seeing and debugging cron tasks.">
+    <link rel="stylesheet" href="../assets/deck.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <b>DevOps Automation</b><span>Unit 3 · Automating the Linux Tasks</span>
+        <span>·</span><span>Lecture 6</span>
+        <span class="spacer"></span>
+        <button class="chip" onclick="toggleOverview()">Slides (O)</button>
+        <button class="chip" onclick="toggleTheme()">Theme (D)</button>
+        <button class="chip" onclick="goFull()">Full screen (F)</button>
+    </div>
+    <div class="progress" id="bar" style="width:0"></div>
+
+    <div class="deck" id="deck">
+
+        <!-- ============ 1 · TITLE ============ -->
+        <section class="slide" data-title="Title">
+            <span class="kicker">Unit 3 · Lecture 6 · Automating the Linux Tasks</span>
+            <h1>cron and<br><span style="color:var(--brand)">crontab</span></h1>
+            <p class="lead big" style="max-width:36em">You have written scripts. They only become <em>automation</em>
+                when they run <em class="hl">without you</em> — at 02:30, on a machine you are not logged into, on a
+                night you are asleep.</p>
+            <div class="grid g4" style="margin-top:1.4em">
+                <div class="card flat tint-brand">
+                    <h3>A · What cron is</h3>
+                    <p style="margin:0">The daemon, the scope of crontab, and when not to use it.</p>
+                </div>
+                <div class="card flat tint-good">
+                    <h3>B · Syntax</h3>
+                    <p style="margin:0">Five fields, ranges, steps, lists and the @ shortcuts.</p>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>C · Writing tasks</h3>
+                    <p style="margin:0">The four rules that stop "it works in my shell but not in cron".</p>
+                </div>
+                <div class="card flat tint-do">
+                    <h3>D · Editing &amp; seeing</h3>
+                    <p style="margin:0">Managing crontabs, and finding out what cron actually did.</p>
+                </div>
+            </div>
+            <p class="footnote" style="margin-top:1.5em">Dr. Mohsin Furkh Dar · School of Computer Science · UPES ·
+                55 minutes · <b style="color:var(--do)">terminals open — you will schedule a real job today</b><br>
+                Navigate: <code>→</code> / <code>Space</code> next · <code>←</code> back · <code>O</code> slide list ·
+                <code>D</code> dark mode · <code>F</code> full screen
+            </p>
+        </section>
+
+        <!-- ============ 2 · COLD OPEN ============ -->
+        <section class="slide" data-mode="do" data-title="DO 1 · Why did this job never run?">
+            <span class="kicker do">Do first · 5 minutes · no theory yet</span>
+            <h2>This crontab line was tested by hand and works perfectly. In cron it does nothing.</h2>
+            <pre class="term"><span class="c"># The script runs beautifully when the author types ./backup.sh in their shell.</span>
+30 2 * * * cd ~/scripts &amp;&amp; ./backup.sh --db appdb &gt; backup.log</pre>
+            <div class="runbar">
+                <span class="step">1 · Alone, 3 min — list every reason this could silently fail</span>
+                <span class="step">2 · Pairs, 2 min — compare lists</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="300">5:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Prompts</h3>
+                    <ul class="stack-tight">
+                        <li>Which shell runs this line? Which user? With what <code>PATH</code>?</li>
+                        <li>Where does <code>backup.log</code> get written?</li>
+                        <li>What happens to anything the script prints to <em>stderr</em>?</li>
+                        <li>What if the script takes 40 minutes and it is now 02:30 tomorrow?</li>
+                        <li>The author's <code>.bashrc</code> sets up their environment. Does cron read it?</li>
+                    </ul>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Keep your list</h3>
+                    <p style="margin:0">There are at least <b>seven</b> distinct defects in that one line. We will fix
+                        them one at a time, and by slide 7 you will have a version that is genuinely safe to leave
+                        running. Score yourself then.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 3 · WHAT IS CRON ============ -->
+        <section class="slide" data-title="A1 · Introduction to cron/crontab">
+            <span class="kicker">Part A · what cron is</span>
+            <h2>Introduction to cron and crontab</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <p class="lead"><b>cron</b> is the time-based job scheduler daemon — <code>crond</code> — that has
+                        been part of Unix since the 1970s. It wakes every minute, compares the time against every
+                        scheduled entry, and runs the ones that match.</p>
+                    <p><b>crontab</b> is two things, which is a permanent source of confusion:</p>
+                    <ul class="stack-tight">
+                        <li><b>The file</b> — the table of "cron tab"le entries belonging to a user.</li>
+                        <li><b>The command</b> — <code>crontab(1)</code>, which you use to install, list and edit that
+                            file. <em>You do not edit the file directly</em>; the command validates your entry and tells
+                            the daemon to reload.</li>
+                    </ul>
+                    <h3>Its defining properties</h3>
+                    <ul class="stack-tight">
+                        <li><b>Minute granularity.</b> Nothing finer, ever.</li>
+                        <li><b>Fire and forget.</b> cron starts the job; it does not track, retry or supervise it.</li>
+                        <li><b>No catch-up.</b> If the machine was off at 02:30, that run simply did not happen.
+                            (<code>anacron</code> exists for exactly this, on laptops and desktops.)</li>
+                        <li><b>No dependencies.</b> "Run B after A succeeds" is not something cron can express.</li>
+                    </ul>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Scope — where cron entries live</h3>
+                    <table>
+                        <thead><tr><th>Location</th><th>Owner</th><th>Has user field?</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>crontab -e</code> → <code>/var/spool/cron/…</code></td><td>One user, their own jobs</td><td><b>No</b></td></tr>
+                            <tr><td><code>/etc/crontab</code></td><td>System-wide, root-managed</td><td><b>Yes</b></td></tr>
+                            <tr><td><code>/etc/cron.d/*</code></td><td>System-wide, one file per package or service</td><td><b>Yes</b></td></tr>
+                            <tr><td><code>/etc/cron.{hourly,daily,weekly,monthly}/</code></td><td>Drop an executable script in; no schedule line at all</td><td>n/a</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="margin:.4em 0 0"><b>The user field is the trap.</b> A line copied from your personal
+                        crontab into <code>/etc/cron.d/</code> is now missing a field, so cron reads your <em>command</em>
+                        as the username, and the job never runs. Copying the other way silently runs your job as the
+                        wrong user.</p>
+                    <p class="footnote" style="margin:.4em 0 0"><b>For deployment, prefer <code>/etc/cron.d/</code>:</b>
+                        it is a plain file, so it can live in Git, be reviewed, and be installed by your configuration
+                        management. A personal crontab is invisible to everyone else and disappears with the account.
+                        Access is controlled by <code>/etc/cron.allow</code> and <code>/etc/cron.deny</code>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 4 · USE CASES ============ -->
+        <section class="slide" data-title="A2 · Use cases — and when not to use cron">
+            <span class="kicker">Part A · what cron is</span>
+            <h2>Use-cases of crontab, and its limits</h2>
+            <div class="grid g3">
+                <div class="card flat tint-good">
+                    <h3>What cron is good at</h3>
+                    <ul class="stack-tight">
+                        <li><b>Maintenance</b> — log rotation, retention purges, cache clearing, trash expiry.</li>
+                        <li><b>Backups</b> — nightly dumps, weekly full copies, off-site sync.</li>
+                        <li><b>Reporting</b> — the daily summary email from Lecture 3.</li>
+                        <li><b>Monitoring</b> — disk alarms, health checks, certificate expiry warnings.</li>
+                        <li><b>Batch processing</b> — nightly imports, invoice generation, reindexing.</li>
+                        <li><b>Synchronisation</b> — pulling a vendor feed, pushing metrics, renewing certificates.</li>
+                    </ul>
+                    <p class="footnote" style="margin:0">The common shape: <b>periodic, independent, idempotent, and
+                            tolerant of being a few minutes late.</b></p>
+                </div>
+                <div class="card flat tint-bad">
+                    <h3>Where cron is the wrong tool</h3>
+                    <ul class="stack-tight">
+                        <li><b>Sub-minute work.</b> Use a systemd timer, or a daemon with a sleep loop.</li>
+                        <li><b>Event-driven work.</b> "When a file arrives" is <code>inotify</code> or a queue, not a
+                            poll every minute.</li>
+                        <li><b>Workflows with dependencies or retries.</b> Use Airflow, Argo, Jenkins — cron has no
+                            concept of "after", "on failure" or "retry".</li>
+                        <li><b>Long-running services.</b> That is systemd's job, not cron's.</li>
+                        <li><b>Clustered jobs.</b> Put the same cron entry on three servers and it runs three times.
+                            You need a distributed lock or a leader.</li>
+                    </ul>
+                </div>
+                <div class="card flat tint-warn">
+                    <h3>cron vs systemd timers</h3>
+                    <p>Modern distributions increasingly prefer <b>systemd timers</b>. They cost more configuration —
+                        two unit files instead of one line — and buy real advantages:</p>
+                    <ul class="stack-tight">
+                        <li><code>Persistent=true</code> catches up missed runs after downtime.</li>
+                        <li><code>RandomizedDelaySec</code> spreads load across a fleet.</li>
+                        <li>Resource limits, sandboxing, dependencies, and proper journal integration.</li>
+                        <li><code>systemctl list-timers</code> shows the next run of everything.</li>
+                    </ul>
+                    <p style="margin:0"><b>Learn cron anyway.</b> It is on every Unix machine you will ever touch, it is
+                        in every legacy system you will inherit, and its syntax appears in Kubernetes CronJobs, cloud
+                        schedulers and CI tools everywhere.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 5 · SYNTAX ============ -->
+        <section class="slide" data-title="B1 · Understanding crontab syntax">
+            <span class="kicker">Part B · syntax</span>
+            <h2>Understanding crontab syntax</h2>
+            <div class="cronfield" style="margin:.5em 0">
+                <div><b>*</b>minute<br><span class="footnote">0–59</span></div>
+                <div><b>*</b>hour<br><span class="footnote">0–23</span></div>
+                <div><b>*</b>day of month<br><span class="footnote">1–31</span></div>
+                <div><b>*</b>month<br><span class="footnote">1–12 or JAN–DEC</span></div>
+                <div><b>*</b>day of week<br><span class="footnote">0–7 (0 and 7 = Sunday)</span></div>
+                <div><b>command</b>everything to end of line<br><span class="footnote">run by /bin/sh</span></div>
+            </div>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Operators</h3>
+                    <table>
+                        <thead><tr><th>Form</th><th>Means</th><th>Example</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>*</code></td><td>every value</td><td><code>* * * * *</code> every minute</td></tr>
+                            <tr><td><code>n</code></td><td>exactly n</td><td><code>0 3 * * *</code> at 03:00</td></tr>
+                            <tr><td><code>a-b</code></td><td>range</td><td><code>0 9-17 * * *</code> hourly, 9am–5pm</td></tr>
+                            <tr><td><code>a,b,c</code></td><td>list</td><td><code>0 0,12 * * *</code> midnight and noon</td></tr>
+                            <tr><td><code>*/n</code></td><td>step</td><td><code>*/15 * * * *</code> every 15 minutes</td></tr>
+                            <tr><td><code>a-b/n</code></td><td>stepped range</td><td><code>0 8-18/2 * * *</code> every 2 h in work hours</td></tr>
+                        </tbody>
+                    </table>
+                    <h3>Shortcuts</h3>
+                    <p class="kv" style="margin:0"><b>@reboot</b> once at start-up · <b>@hourly</b> = <code>0 * * * *</code>
+                        · <b>@daily</b>/<b>@midnight</b> = <code>0 0 * * *</code> · <b>@weekly</b> =
+                        <code>0 0 * * 0</code> · <b>@monthly</b> = <code>0 0 1 * *</code> · <b>@yearly</b> =
+                        <code>0 0 1 1 *</code></p>
+                </div>
+                <div class="card tint-bad">
+                    <h3>The three things that catch everyone</h3>
+                    <p><b>1 · Day-of-month and day-of-week are OR, not AND.</b> This is the great cron trap:</p>
+                    <pre class="term">0 0 13 * 5     <span class="c"># NOT "Friday the 13th"</span>
+               <span class="c"># It runs on the 13th of EVERY month,</span>
+               <span class="c"># AND on EVERY Friday.</span></pre>
+                    <p style="margin:.3em 0">When <em>both</em> fields are restricted, cron takes the union. If one of
+                        them is <code>*</code>, the other simply applies. To get a real Friday-the-13th, test inside the
+                        script: <code>[[ $(date +\%u) == 5 ]] || exit 0</code>.</p>
+                    <p><b>2 · <code>%</code> is special.</b> In a crontab, an unescaped <code>%</code> becomes a newline
+                        and everything after the first one is fed to the command as <em>standard input</em>. So
+                        <code>date +%F</code> breaks. Write <code>date +\%F</code>, or — far better — put the command in
+                        a script and keep the crontab line trivial.</p>
+                    <p style="margin:0"><b>3 · Fields are AND-ed otherwise.</b> <code>30 2 * * 1</code> is 02:30 <em>and</em>
+                        Monday, not 02:30 <em>or</em> Monday.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 6 · WRITING TASKS ============ -->
+        <section class="slide" data-title="C1 · Writing your own cron tasks">
+            <span class="kicker">Part C · writing tasks</span>
+            <h2>Why it works in your shell and not in cron</h2>
+            <div class="grid g2">
+                <div class="card tint-bad">
+                    <h3>cron's environment is almost empty</h3>
+                    <p>Your interactive shell has read <code>/etc/profile</code>, <code>~/.bash_profile</code> and
+                        <code>~/.bashrc</code>, and has a rich <code>PATH</code>, your aliases, your virtualenv, your
+                        <code>JAVA_HOME</code>, your locale. <b>cron reads none of it.</b> A cron job typically starts
+                        with roughly:</p>
+                    <pre class="term">SHELL=/bin/sh
+PATH=/usr/bin:/bin
+HOME=/home/user
+LOGNAME=user
+<span class="c"># and essentially nothing else.</span>
+<span class="c"># No DISPLAY, no LANG, no virtualenv, no aliases,</span>
+<span class="c"># no tty — so anything that prompts will hang.</span></pre>
+                    <p style="margin:.3em 0 0"><b>Consequences:</b> <code>python</code> is not found because it lives in
+                        <code>/usr/local/bin</code>; <code>SHELL=/bin/sh</code> means bash-only syntax such as
+                        <code>[[ ]]</code> or arrays fails; a relative path resolves against <code>$HOME</code>, not
+                        where you thought; and a job that asks a question waits for an answer that never comes.</p>
+                </div>
+                <div class="card tint-good">
+                    <h3>Four rules that eliminate the whole class</h3>
+                    <ol class="stack-tight">
+                        <li><b>Absolute paths everywhere</b> — for the script, its inputs, its outputs and the binaries
+                            it calls. Or set <code>PATH</code> explicitly at the top of the crontab.</li>
+                        <li><b>Put the logic in a script</b>, not in the crontab line. The crontab should contain a
+                            schedule and one absolute path. This also solves the <code>%</code> problem and makes the
+                            job testable.</li>
+                        <li><b>Declare your environment inside the script</b> — the shebang fixes the interpreter, and
+                            anything you need (<code>PATH</code>, <code>LANG</code>, a virtualenv activation) is set
+                            explicitly. Never rely on inheritance.</li>
+                        <li><b>Test it the way cron will run it:</b>
+                            <code>env -i /bin/sh -c '/opt/scripts/backup.sh'</code> — an empty environment. If it
+                            survives that, cron will not surprise you.</li>
+                    </ol>
+                </div>
+            </div>
+            <p class="footnote" style="margin:.4em 0 0"><b>Also worth setting at the top of a crontab:</b>
+                <code>SHELL=/bin/bash</code>, <code>PATH=...</code>, <code>MAILTO=ops@example.com</code> (cron emails
+                any output to this address; <code>MAILTO=""</code> disables it), and <code>CRON_TZ</code> if the entry
+                must not follow the system time zone.</p>
+        </section>
+
+        <!-- ============ 7 · THE FIXED LINE ============ -->
+        <section class="slide" data-title="C2 · The repaired crontab entry">
+            <span class="kicker">Part C · writing tasks</span>
+            <h2>Slide 2, repaired — count how many you found</h2>
+            <pre class="term"><span class="c"># /etc/cron.d/appdb-backup    (root-owned, mode 0644, in Git)</span>
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=ops@example.com
+
+<span class="c">#  m  h dom mon dow  user     command</span>
+  30  2  *   *   *   backup   /usr/bin/flock -n /var/lock/appdb-backup.lock \
+                              /opt/scripts/backup.sh --db appdb \
+                              &gt;&gt; /var/log/appdb-backup.log 2&gt;&amp;1</pre>
+            <div class="grid g2">
+                <div class="card tint-good">
+                    <h3>The seven defects, and their fixes</h3>
+                    <ol class="stack-tight">
+                        <li><b><code>cd ~/scripts &amp;&amp; ./backup.sh</code></b> — relative path, and if the
+                            <code>cd</code> fails the <code>&amp;&amp;</code> silently skips the job. → absolute path.
+                        </li>
+                        <li><b>No <code>PATH</code></b> — the script's own commands may not be found. → set it.</li>
+                        <li><b><code>SHELL=/bin/sh</code> by default</b> — bash syntax breaks. → set it.</li>
+                        <li><b><code>&gt; backup.log</code></b> — writes to <code>$HOME</code>, and
+                            <em>overwrites</em> yesterday's log. → <code>&gt;&gt;</code> to an absolute path.</li>
+                        <li><b><code>2&gt;&amp;1</code> missing</b> — stderr is not redirected, so cron emails it, and
+                            if mail is not configured the error message is destroyed. <em>This is the reason most
+                                failing cron jobs fail silently.</em></li>
+                        <li><b>No overlap protection</b> — a run that takes 40 minutes eventually collides with the
+                            next. → <code>flock -n</code> exits immediately if the lock is held.</li>
+                        <li><b>Runs as a human user</b>, whose account will one day be disabled. → a dedicated service
+                            account, in <code>/etc/cron.d</code>, under version control.</li>
+                    </ol>
+                </div>
+                <div class="card tint-warn">
+                    <h3>Two more you should add</h3>
+                    <p><b>Log rotation for your own log.</b> <code>&gt;&gt;</code> grows forever — this is the log file
+                        that fills the disk at 4 a.m. and takes the database with it. Add a
+                        <code>/etc/logrotate.d/</code> entry.</p>
+                    <p><b>Alert on the absence of success.</b> <code>MAILTO</code> only tells you when the job
+                        <em>produces output</em>. If cron itself is stopped, or the entry is deleted, or the machine is
+                        off, you get nothing at all. Have the script touch a heartbeat file or ping a monitoring
+                        endpoint, and alert when it goes stale.</p>
+                    <p style="margin:0" class="footnote"><b>Spread the load.</b> Everyone writes <code>0 0 * * *</code>,
+                        so every job on every server starts at midnight together. Offset your schedules
+                        (<code>17 2 * * *</code>), or add a random sleep of up to a few minutes at the top of the
+                        script.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 8 · EDITING ============ -->
+        <section class="slide" data-title="D1 · Editing and updating crontab tasks">
+            <span class="kicker">Part D · managing</span>
+            <h2>Editing and updating the crontab</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <pre class="term">crontab -e                <span class="c"># edit your crontab (validated on save)</span>
+crontab -l                <span class="c"># list it</span>
+crontab -l &gt; ~/cron.bak    <span class="c"># BACK IT UP — do this first, always</span>
+crontab -r                <span class="c"># DELETE it entirely. No confirmation. None.</span>
+crontab ~/cron.txt        <span class="c"># install from a file (replaces everything)</span>
+
+sudo crontab -l -u backup <span class="c"># another user's crontab</span>
+sudo crontab -e -u backup
+
+EDITOR=nano crontab -e    <span class="c"># if vi is not your friend today</span></pre>
+                    <div class="card flat tint-bad" style="padding:.5em .8em; margin-top:.4em">
+                        <p style="margin:0"><b><code>crontab -r</code> is one keystroke from <code>crontab -e</code>
+                                on a US keyboard</b>, deletes everything instantly and asks nothing. Countless
+                            schedules have died this way. Defend yourself: keep the authoritative copy in Git, and
+                            <code>crontab -l &gt; backup</code> before every edit. Some people alias
+                            <code>crontab</code> to <code>crontab -i</code>.</p>
+                    </div>
+                </div>
+                <div class="card tint-good">
+                    <h3>The professional workflow</h3>
+                    <p><b>Do not hand-edit crontabs on servers.</b> Treat the schedule as code:</p>
+                    <ol class="stack-tight">
+                        <li>The entry lives in a file in the repository —
+                            <code>deploy/cron.d/appdb-backup</code>.</li>
+                        <li>Code review changes to it like any other change.</li>
+                        <li>Deployment installs it to <code>/etc/cron.d/</code> with the right owner and mode
+                            (<b>0644, root-owned</b> — cron refuses group- or world-writable files, silently).</li>
+                        <li>The file ends with a <b>newline</b>. A crontab file whose last line has no newline is
+                            ignored by some cron implementations — a genuinely maddening bug.</li>
+                    </ol>
+                    <p><b>Test before you wait.</b> Never verify a nightly job by waiting until tonight:</p>
+                    <pre class="term"><span class="c"># 1. run it exactly as cron would</span>
+sudo -u backup env -i /bin/sh -c <span class="s">'/opt/scripts/backup.sh'</span>
+
+<span class="c"># 2. schedule it two minutes out, watch, then set the real time</span>
+*/2 * * * * backup /opt/scripts/backup.sh &gt;&gt;/tmp/t.log 2&gt;&amp;1</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 9 · SEEING CRON ============ -->
+        <section class="slide" data-title="D2 · Seeing the cron tasks">
+            <span class="kicker">Part D · managing</span>
+            <h2>Seeing what cron actually did</h2>
+            <div class="grid g2">
+                <div class="card">
+                    <h3>Finding every scheduled job on a host</h3>
+                    <pre class="term"><span class="c"># Every user's crontab, not just yours</span>
+<span class="k">for</span> u <span class="k">in</span> <span class="v">$(</span>cut -f1 -d: /etc/passwd<span class="v">)</span>; <span class="k">do</span>
+    <span class="k">echo</span> <span class="s">"### $u"</span>; crontab -l -u <span class="s">"$u"</span> 2&gt;/dev/null
+<span class="k">done</span>
+
+<span class="c"># The system locations — people forget these exist</span>
+cat /etc/crontab
+ls -l /etc/cron.d/ /etc/cron.{hourly,daily,weekly,monthly}/
+
+<span class="c"># And the other scheduler, which is where new jobs increasingly live</span>
+systemctl list-timers --all</pre>
+                    <p class="footnote" style="margin:0">"Something runs at 3 a.m. and nobody knows what" is a real
+                        support ticket. These four commands are the answer, and the last one is the one people forget.
+                    </p>
+                </div>
+                <div class="card tint-brand">
+                    <h3>Reading cron's own log</h3>
+                    <pre class="term"><span class="c"># systemd distributions</span>
+journalctl -u cron --since <span class="s">"today"</span>       <span class="c"># Debian/Ubuntu</span>
+journalctl -u crond --since <span class="s">"today"</span>      <span class="c"># RHEL/Fedora</span>
+
+<span class="c"># older systems</span>
+grep CRON /var/log/syslog
+tail -f /var/log/cron
+
+<span class="c"># is the daemon even running?</span>
+systemctl status cron</pre>
+                    <p><b>Read the log carefully — it tells you less than you expect.</b> cron logs that it
+                        <em>started</em> a command. It does <b>not</b> log the exit status, and it does <b>not</b> log
+                        the output. So a line saying <code>CMD (/opt/scripts/backup.sh)</code> proves only that cron
+                        tried; the script may have died on its first line.</p>
+                    <p style="margin:0"><b>Therefore your job must log for itself:</b> redirect
+                        <code>&gt;&gt; logfile 2&gt;&amp;1</code>, print a start and an end line with timestamps, exit
+                        with a meaningful status, and <code>logger</code> anything important into the journal.</p>
+                </div>
+            </div>
+            <div class="card flat tint-warn" style="margin-top:.5em">
+                <p style="margin:0"><b>The debugging checklist, in order.</b> ① Is the daemon running? ② Is the entry
+                    actually installed (<code>crontab -l</code>, <code>/etc/cron.d</code>)? ③ Does the log show cron
+                    <em>starting</em> it? If not, the schedule or the file permissions are wrong. If yes, the script
+                    itself failed → ④ run it under <code>env -i</code>; ⑤ check absolute paths and
+                    <code>SHELL</code>/<code>PATH</code>; ⑥ check the user's permissions on every file it touches;
+                    ⑦ check <code>2&gt;&amp;1</code> is present, because you are probably throwing away the error
+                    message that would have told you all this.</p>
+            </div>
+        </section>
+
+        <!-- ============ 10 · LAB ============ -->
+        <section class="slide" data-mode="do" data-title="DO 2 · Lab — schedule your Unit 2 script">
+            <span class="kicker do">Terminals open · 10 minutes</span>
+            <h2>Put your own script on a schedule, properly</h2>
+            <div class="runbar">
+                <span class="step">1 · Back up</span>
+                <span class="step">2 · Schedule 2 minutes out</span>
+                <span class="step">3 · Prove it ran</span>
+                <span class="step">4 · Break it deliberately</span>
+                <span class="timer" style="margin-left:auto"><span class="t" data-sec="600">10:00</span>
+                    <button class="tbtn" data-timer="start">Start</button>
+                    <button class="tbtn" data-timer="reset">Reset</button></span>
+            </div>
+            <div class="grid g2">
+                <div class="card tint-do">
+                    <h3>Tasks</h3>
+                    <ol class="stack-tight">
+                        <li><code>crontab -l &gt; ~/cron.bak</code> — before anything else.</li>
+                        <li>Schedule your Unit 2 assignment script every two minutes, with an absolute path,
+                            <code>&gt;&gt; /tmp/mine.log 2&gt;&amp;1</code>, and <code>flock -n</code>.</li>
+                        <li>Watch it: <code>tail -f /tmp/mine.log</code> and
+                            <code>journalctl -u cron -f</code> in a second terminal.</li>
+                        <li>Now <b>break it on purpose</b>: remove the <code>PATH</code> line and use a bare command
+                            name. Observe the failure, then find the error message. Where did it go, and why?</li>
+                        <li>Fix it, change the schedule to <code>@daily</code>, and confirm with
+                            <code>crontab -l</code>.</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h3>Write the schedule for each of these</h3>
+                    <ol class="stack-tight">
+                        <li>Every 10 minutes, all day.</li>
+                        <li>At 04:15 every day.</li>
+                        <li>Twice an hour, at :00 and :30, only between 09:00 and 18:00.</li>
+                        <li>Every Monday at 06:00.</li>
+                        <li>On the first day of every quarter at midnight.</li>
+                        <li>Every 5 minutes on weekdays only.</li>
+                        <li>Once, at boot.</li>
+                    </ol>
+                    <button class="reveal-btn" data-reveal="#cron-ans">Show the answers</button>
+                    <div id="cron-ans" class="hidden">
+                        <pre class="term">1.  */10 *    *   *   *
+2.  15   4    *   *   *
+3.  0,30 9-18 *   *   *
+4.  0    6    *   *   1
+5.  0    0    1   1,4,7,10 *
+6.  */5  *    *   *   1-5
+7.  @reboot</pre>
+                        <p class="footnote" style="margin:0">Check yours against <code>crontab.guru</code> — but be able
+                            to read a schedule without it, because that is what an exam and a 3 a.m. incident both
+                            require.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 11 · DRILL ============ -->
+        <section class="slide" data-mode="do" data-title="DO 3 · Drill">
+            <span class="kicker do">Your turn · 8 questions</span>
+            <h2>cron, read carefully</h2>
+            <div class="card">
+                <p class="big" style="margin:.1em 0 .5em"><span id="cr-stmt"></span></p>
+                <div class="grid g2" id="cr-opts" style="gap:.4em"></div>
+                <div class="verdict hidden" id="cr-fb"></div>
+                <div style="display:flex; gap:.6em; align-items:center; margin-top:.7em">
+                    <button class="nav" id="cr-next">Next →</button>
+                    <button class="tbtn" id="cr-restart">Restart</button>
+                    <span class="spacer" style="flex:1"></span>
+                    <span class="footnote">Question <b id="cr-n">1</b> of <b id="cr-total">8</b> · score
+                        <b class="score" id="cr-score">0</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 12 · CLOSE ============ -->
+        <section class="slide" data-title="Close · Unit 3">
+            <span class="kicker">Close</span>
+            <h2>Unit 3 in six sentences</h2>
+            <div class="grid g2">
+                <div class="card tint-brand">
+                    <ol class="stack-tight">
+                        <li>cron runs commands on a minute-granularity schedule, fire-and-forget, with no retries, no
+                            dependencies and no catch-up.</li>
+                        <li>Entries live in a user crontab, in <code>/etc/crontab</code>, in <code>/etc/cron.d</code>
+                            or in the <code>cron.daily</code>-style directories — and only the system ones carry a user
+                            field.</li>
+                        <li>Five fields, and day-of-month with day-of-week is an <b>OR</b>.</li>
+                        <li>cron's environment is nearly empty, so absolute paths and an explicit
+                            <code>PATH</code>/<code>SHELL</code> are mandatory.</li>
+                        <li>Redirect both streams, lock against overlap, run as a service account, and keep the entry in
+                            version control.</li>
+                        <li>cron logs that it <em>started</em> your job and nothing else — so your job must log for
+                            itself, and something must alert when it stops succeeding.</li>
+                    </ol>
+                </div>
+                <div class="card tint-do">
+                    <h3>Homework</h3>
+                    <ol class="stack-tight">
+                        <li>Write the <code>/etc/cron.d/</code> file for your Unit 2 script: correct owner, mode,
+                            <code>MAILTO</code>, locking, logging and a logrotate entry for its log.</li>
+                        <li>Add a heartbeat: the script touches
+                            <code>/var/lib/&lt;job&gt;/last-success</code> on success. Write a second, independent cron
+                            job that alerts if that file is more than 26 hours old.</li>
+                        <li>In three sentences: would a systemd timer have been a better choice for your job? Say why or
+                            why not, using the criteria from slide 4.</li>
+                    </ol>
+                    <p class="footnote" style="margin:.4em 0 0"><b>Next — Unit 4:</b> the Linux environment itself. The
+                        file system, partitions, the standard directories, users, groups and permissions — everything
+                        your scheduled job depends on and is currently taking on faith.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <div class="navbar">
+        <button class="nav" onclick="go(-1)">← Back</button>
+        <button class="nav" onclick="go(1)">Next →</button>
+        <span class="count" id="count">1 / 12</span>
+        <span class="title-now" id="title-now"></span>
+        <span class="timer"><span class="t" id="lect-t" data-sec="3300">55:00</span>
+            <button class="tbtn" data-timer="start">Lecture timer</button>
+            <button class="tbtn" data-timer="reset">Reset</button>
+        </span>
+    </div>
+
+    <div class="overview hidden" id="overview">
+        <h2>Slides — click to jump <button class="chip" style="float:right" onclick="toggleOverview()">Close
+                (Esc)</button></h2>
+        <div id="ov-list"></div>
+    </div>
+
+    <script src="../assets/deck.js"></script>
+    <script>
+        makeDrill('cr', [
+            {
+                q: 'What does <code>0 0 13 * 5</code> actually schedule?',
+                o: ['Friday the 13th of each month',
+                    'Every 13th of the month AND every Friday',
+                    'Every Friday in the 13th week',
+                    'It is invalid syntax'],
+                a: 1,
+                w: '<b>The union of both.</b> When day-of-month and day-of-week are <em>both</em> restricted, cron ORs them — so this fires roughly 17 times a month, not once or twice a year. It is the most famous cron gotcha. For a true Friday-the-13th, schedule <code>0 0 13 * *</code> and test the weekday inside the script.'
+            },
+            {
+                q: 'A crontab contains <code>0 3 * * * /opt/report.sh --date $(date +%F)</code>. The job runs but behaves strangely. Why?',
+                o: ['Command substitution is not allowed in crontab',
+                    'The unescaped % is turned into a newline; the rest of the line becomes stdin',
+                    'date is not in cron\'s PATH',
+                    '$(...) must be written with backticks in cron'],
+                a: 1,
+                w: '<b>The <code>%</code> character.</b> In a crontab, an unescaped <code>%</code> is a newline, and everything past the first one is fed to the command as standard input — so the command silently loses its argument. Escape it as <code>\\%</code>, or better, move the logic into the script and keep the crontab line free of shell cleverness.'
+            },
+            {
+                q: 'A backup job scheduled <code>0 * * * *</code> normally takes 20 minutes. One night the database is slow and it takes 90 minutes. What happens?',
+                o: ['cron waits for the previous run to finish',
+                    'cron skips the overlapping runs automatically',
+                    'A second and third copy start while the first is still running',
+                    'cron kills the long-running job at the hour'],
+                a: 2,
+                w: '<b>They pile up.</b> cron is fire-and-forget: it has no idea a previous run exists. Three concurrent <code>mysqldump</code>s compete for I/O, each one slower than the last, and the pile-up grows until the machine falls over. <code>flock -n /var/lock/job.lock</code> makes the later runs exit immediately — one line, and it prevents a whole class of outage.'
+            },
+            {
+                q: 'A cron job fails every night. <code>journalctl -u cron</code> shows the command starting each time. Where is the error message?',
+                o: ['In /var/log/cron-errors',
+                    'cron logs the exit status but not the message',
+                    'Nowhere — stderr was not redirected, and cron mailed it to a mailbox nobody reads or that does not exist',
+                    'It is stored in the crontab file'],
+                a: 2,
+                w: '<b>It was mailed and lost.</b> cron sends any output to <code>MAILTO</code> (default: the job\'s user), and on a server with no MTA configured that mail is silently discarded. cron logs only that it <em>started</em> the command — never the exit status, never the output. Always append <code>&gt;&gt; /var/log/job.log 2&gt;&amp;1</code>; the <code>2&gt;&amp;1</code> is the part people omit and it is the part that carries the error.'
+            },
+            {
+                q: 'A line copied from a personal crontab into <code>/etc/cron.d/mine</code> never runs. What is the most likely cause?',
+                o: ['Files in /etc/cron.d must be executable',
+                    'System crontab files need a user field between the schedule and the command',
+                    '/etc/cron.d only accepts @ shortcuts',
+                    'The file must be named with a .cron extension'],
+                a: 1,
+                w: '<b>The missing user field.</b> System-wide files take six fields plus the command; cron parses your first command word as the username, finds no such user, and gives up. Two adjacent causes worth checking at the same time: the file must be root-owned and <b>not</b> group- or world-writable, and it must end with a newline.'
+            },
+            {
+                q: 'Which is the best way to verify a nightly job before tonight?',
+                o: ['Read the script carefully once more',
+                    'Run it in your interactive shell — if it works there it will work in cron',
+                    'Run it as the target user with an emptied environment: sudo -u svc env -i /bin/sh -c /path/script',
+                    'Change the schedule to @reboot and reboot the server'],
+                a: 2,
+                w: '<b>Reproduce cron\'s conditions.</b> <code>env -i</code> strips the environment and <code>sudo -u</code> gives the right identity, which together reproduce the two things that actually differ — environment and permissions. Option 2 is precisely the false confidence that causes the problem: your interactive shell has a rich PATH, your aliases and your virtualenv, and cron has none of them.'
+            },
+            {
+                q: 'The same cron entry is deployed to three application servers behind a load balancer. It sends a daily invoice email to every customer. What is the defect?',
+                o: ['Cron cannot run on more than one server',
+                    'Every customer receives three invoices, because each host runs the job independently',
+                    'The load balancer will choose one server automatically',
+                    'The emails will be rate-limited and only one will arrive'],
+                a: 1,
+                w: '<b>Triple execution.</b> cron has no notion of a cluster — each host simply runs what it was told. Fixes: designate a single scheduler host; take a distributed lock (in the database, Redis, or a leader election); or make the job idempotent so a second run is a no-op. This bug reaches customers before anyone notices it internally.'
+            },
+            {
+                q: 'A job with a valid entry stops running after a server is rebuilt. <code>crontab -l</code> shows nothing for the user, and the deployment succeeded. What is the most likely explanation?',
+                o: ['cron entries expire after a fixed period',
+                    'The schedule lived only in a personal crontab, which was never in version control and did not survive the rebuild',
+                    'The reboot cleared /etc/cron.d',
+                    'The cron daemon must be re-enabled after every reboot'],
+                a: 1,
+                w: '<b>Undeployable state.</b> A personal crontab lives in <code>/var/spool/cron</code>, is invisible to code review, is not part of any deployment, and vanishes with the machine or the account. This is the practical argument for keeping every schedule as a file in <code>/etc/cron.d</code> under version control — it makes the schedule a reproducible part of the system rather than a fact about one server.'
+            }
+        ], (s, n) => '<b>' + s + ' / ' + n + '.</b> ' + (s >= 7
+            ? 'You can now schedule work that will still be running correctly in a year. Do the heartbeat homework — it is the piece that separates a scheduled job from a monitored one.'
+            : 'Five to burn in: dom/dow is OR; escape %; lock against overlap; redirect BOTH streams; and keep the schedule in version control, not in someone\'s personal crontab.'));
+    </script>
+</body>
+
+</html>
