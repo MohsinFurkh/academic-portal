@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG8003 · Unit III Notes — Converting to Parallel and Distributed Simulations</title>
+    <meta name="description"
+        content="Student lecture notes for Unit III of Modelling and Simulation (CSEG8003): partitioning data and algorithms, inter-partition dependencies, dynamic partitioning and load balancing, communication patterns, scalability challenges, graph partitioning, hybrid partitioning, fault tolerance and emerging architectures.">
+    <link rel="stylesheet" href="../assets/notes.css">
+</head>
+
+<body>
+    <div class="readbar"></div>
+
+    <div class="topbar">
+        <span class="code">CSEG8003</span>
+        <a href="../index.html">Course home</a>
+        <a href="../../index.html">Portal</a>
+        <span class="spacer"></span>
+        <button type="button" data-action="theme">Dark / Light</button>
+        <button type="button" data-action="print">Print / PDF</button>
+    </div>
+
+    <div class="wrap">
+        <aside class="toc" id="toc">
+            <h2>Contents</h2>
+        </aside>
+
+        <main class="page">
+
+            <div class="titleblock">
+                <div class="school">UPES &middot; School of Computer Science</div>
+                <div class="course">CSEG8003 &mdash; Modelling and Simulation &middot; L-T-P-C 2-0-1-3</div>
+                <div class="unitno">Unit III</div>
+                <div class="unit">Converting to Parallel and Distributed Simulations</div>
+                <div class="sub">7 lecture hours &middot; Theory notes &middot; Dr. Mohsin Furkh Dar</div>
+                <div class="badges">
+                    <span>CO2</span><span>CO3</span>
+                    <span>Partitioning</span>
+                    <span>Dependencies</span>
+                    <span>Load balancing</span>
+                    <span>Scalability</span>
+                    <span>Fault tolerance</span>
+                </div>
+            </div>
+
+            <div class="box exam">
+                <div class="bt">The one idea behind this unit</div>
+                <div class="bb">
+                    <p>Parallelising a simulation is <em>not</em> a coding problem; it is a <span class="kw">decomposition
+                            problem</span>. You are choosing where to cut the model so that the pieces are equal in
+                        work and the cuts are cheap in communication. Every topic in this unit &mdash; data
+                        partitioning, algorithm partitioning, dependency handling, dynamic repartitioning, graph
+                        partitioning, fault tolerance &mdash; is a consequence of that one trade-off:</p>
+                    <div class="eq">minimise &nbsp; max<sub><var>p</var></sub>(work<sub><var>p</var></sub>) &nbsp;
+                        subject to &nbsp; minimal edge cut (communication)</div>
+                    <p>Say this sentence in the first line of any long answer in this unit.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s0"><span class="n">0.</span> Why Parallelise a Simulation?</h2>
+
+            <ol>
+                <li><span class="kw">Capability</span> &mdash; the model does not fit in one machine's memory (a
+                    10<sup>10</sup>-cell mesh, a 10<sup>8</sup>-agent population).</li>
+                <li><span class="kw">Capacity / turnaround</span> &mdash; the run must finish before the decision is
+                    needed (a weather forecast for tomorrow is useless if it takes 30 hours).</li>
+                <li><span class="kw">Statistical demand</span> &mdash; the 1/&radic;<var>n</var> law of Unit I means
+                    accurate stochastic results need thousands of replications.</li>
+                <li><span class="kw">Geographic distribution</span> &mdash; federated simulations (HLA) join
+                    simulators owned by different organisations that cannot be co-located.</li>
+                <li><span class="kw">Hardware reality</span> &mdash; single-core clock speed stopped increasing around
+                    2005; all further performance is parallel.</li>
+            </ol>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Parallel vs. distributed simulation</div>
+                <div class="bb">
+                    <p><span class="kw">Parallel simulation</span> executes one model on multiple tightly coupled
+                        processors (shared memory or a fast interconnect) with the goal of reducing execution time.</p>
+                    <p><span class="kw">Distributed simulation</span> executes interacting simulators on
+                        geographically separated, loosely coupled machines, usually for interoperability and resource
+                        sharing as much as for speed.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s0-1">0.1 The limits: Amdahl and Gustafson</h3>
+            <p>Let <var>f</var> be the serial fraction of the work and <var>p</var> the number of processors.</p>
+            <div class="eq">
+                Amdahl (fixed problem size): &nbsp; <var>S</var>(<var>p</var>) = 1 / (<var>f</var> + (1&minus;<var>f
+                </var>)/<var>p</var>) &nbsp;&rarr;&nbsp; 1/<var>f</var> as <var>p</var>&rarr;&infin;
+            </div>
+            <div class="eq">
+                Gustafson (fixed time, scaled problem): &nbsp; <var>S</var>(<var>p</var>) = <var>p</var> &minus;
+                <var>f</var>(<var>p</var> &minus; 1)
+            </div>
+            <p>With only 5% serial code, no machine on earth can exceed a 20&times; speedup on a fixed problem &mdash;
+                that is Amdahl's warning. Gustafson's answer is that in practice we do not keep the problem fixed: given
+                more processors we simulate a finer mesh or a bigger population, and the serial fraction shrinks
+                relative to the growing parallel work. Hence the two notions of scaling in Section&nbsp;6.</p>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s1"><span class="n">1.</span> Partitioning the Data</h2>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Data (domain) decomposition</div>
+                <div class="bb">
+                    <p><span class="kw">Data partitioning</span> divides the model's state &mdash; the mesh, the grid,
+                        the particle set, the agent population, the graph &mdash; among processors, each of which
+                        applies the <em>same</em> algorithm to its own share (SPMD: single program, multiple data).</p>
+                </div>
+            </div>
+
+            <p>This is the dominant strategy in scientific simulation because it scales with problem size, whereas the
+                number of distinct algorithmic stages is fixed.</p>
+
+            <h3 class="sub" id="s1-1">1.1 Geometric decompositions of a mesh</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 3.1 &mdash; Decomposing a structured <var>N</var>&times;<var>N</var> grid over
+                        <var>p</var> processors.
+                    </caption>
+                    <thead>
+                        <tr>
+                            <th style="width:22%">Scheme</th>
+                            <th style="width:30%">Shape of each partition</th>
+                            <th>Communication volume per processor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1-D (slab / stripe)</td>
+                            <td><var>N</var> &times; <var>N</var>/<var>p</var></td>
+                            <td>2<var>N</var> &mdash; independent of <var>p</var>; simple, but surface-to-volume ratio
+                                worsens quickly</td>
+                        </tr>
+                        <tr>
+                            <td>2-D (block / checkerboard)</td>
+                            <td><var>N</var>/&radic;<var>p</var> &times; <var>N</var>/&radic;<var>p</var></td>
+                            <td>4<var>N</var>/&radic;<var>p</var> &mdash; falls as <var>p</var> grows; the standard
+                                choice</td>
+                        </tr>
+                        <tr>
+                            <td>3-D (cubic blocks)</td>
+                            <td>(<var>N</var>/<var>p</var><sup>1/3</sup>)<sup>3</sup></td>
+                            <td>6<var>N</var><sup>2</sup>/<var>p</var><sup>2/3</sup> &mdash; best surface-to-volume for
+                                3-D problems</td>
+                        </tr>
+                        <tr>
+                            <td>Recursive coordinate bisection</td>
+                            <td>Irregular boxes of equal work</td>
+                            <td>Good for non-uniform particle densities; cheap to compute</td>
+                        </tr>
+                        <tr>
+                            <td>Space-filling curve (Morton/Hilbert)</td>
+                            <td>Contiguous runs of a linearised curve</td>
+                            <td>Preserves locality, extremely cheap to recompute &mdash; the standard for adaptive and
+                                particle codes</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <p><span class="kw">The surface-to-volume principle.</span> Computation is proportional to the
+                    <em>volume</em> of a partition; communication is proportional to its <em>surface</em>. Always cut so
+                    that partitions are compact (low surface per unit volume). This single principle explains why 2-D
+                    beats 1-D and 3-D beats 2-D, and it is worth a diagram in the exam.
+                </p>
+            </div>
+
+            <h3 class="sub" id="s1-2">1.2 Halo (ghost) regions</h3>
+            <p>A stencil computation needs the values of neighbouring cells that live on another processor. Each
+                partition therefore keeps a <span class="kw">halo</span> &mdash; a read-only copy of the boundary layer
+                of its neighbours &mdash; that is refreshed by a <span class="kw">halo exchange</span> once per step.
+                Halo width equals the stencil radius; a wider stencil or a higher-order method costs proportionally
+                more communication.</p>
+
+            <pre><code>for each time step:
+    start_halo_exchange()          # non-blocking Isend/Irecv
+    compute_interior()             # overlap communication with computation
+    wait_for_halo()
+    compute_boundary()
+    swap(old, new)</code></pre>
+
+            <h3 class="sub" id="s1-3">1.3 Partitioning other data structures</h3>
+            <ul>
+                <li><span class="kw">Particles</span> &mdash; partition by spatial region (particles migrate between
+                    processors as they move, so ownership changes) or by index (simple but destroys locality).</li>
+                <li><span class="kw">Agents</span> &mdash; partition the environment; agents crossing a boundary are
+                    serialised and sent to the new owner.</li>
+                <li><span class="kw">Graphs</span> &mdash; partition vertices to minimise edge cut (Section 7).</li>
+                <li><span class="kw">Replications</span> &mdash; the embarrassingly parallel case: each processor runs a
+                    complete, independent replication with its own random substream. Near-linear speedup, no
+                    communication. <em>Always do this first</em> if the goal is statistical accuracy rather than a
+                    single big run.</li>
+            </ul>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Splitting a random number stream badly. If every processor seeds its generator with, say, the
+                        rank, the streams may overlap and the replications are then <em>not independent</em>, silently
+                        invalidating every confidence interval. Use a generator with guaranteed independent substreams
+                        (e.g. counter-based generators, or MRG32k3a's stream/substream facility).</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s2"><span class="n">2.</span> Partitioning the Algorithms</h2>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Functional (task) decomposition</div>
+                <div class="bb">
+                    <p><span class="kw">Algorithm partitioning</span> divides the <em>work to be done</em> rather than
+                        the data: different processors execute different functions, stages or model components, possibly
+                        on the same data.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s2-1">2.1 Forms of algorithmic parallelism</h3>
+            <ol>
+                <li><span class="kw">Pipelining.</span> Stages arranged in sequence, each working on a different time
+                    step or dataset. Throughput rises by the number of stages; latency does not. Efficiency requires
+                    balanced stage times, and there is a fill/drain overhead.</li>
+                <li><span class="kw">Component (model) parallelism.</span> In a coupled climate model, the atmosphere,
+                    ocean, land and ice components run on separate processor groups and exchange fluxes at coupling
+                    intervals.</li>
+                <li><span class="kw">Task parallelism with a task graph.</span> Work is expressed as a DAG of tasks with
+                    dependencies; a runtime (Charm++, StarPU, Dask, Ray) schedules ready tasks onto free workers. This
+                    handles irregular workloads far better than static partitioning.</li>
+                <li><span class="kw">Parameter sweep / replication parallelism.</span> Independent runs across the
+                    scenario space &mdash; a task-parallel pattern with zero communication.</li>
+                <li><span class="kw">Solver-internal parallelism.</span> Parallel linear algebra, parallel FFT, parallel
+                    sorting inside a single time step.</li>
+                <li><span class="kw">Speculative execution.</span> Compute a branch before knowing whether it is needed;
+                    the basis of optimistic PDES (Section 3.4).</li>
+            </ol>
+
+            <h3 class="sub" id="s2-2">2.2 Data vs. algorithm partitioning</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 3.2 &mdash; Comparing the two decomposition strategies.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:22%">Criterion</th>
+                            <th style="width:38%">Data partitioning</th>
+                            <th>Algorithm partitioning</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>What is split</td>
+                            <td>The state (mesh, particles, agents)</td>
+                            <td>The functions / stages / components</td>
+                        </tr>
+                        <tr>
+                            <td>Code on each processor</td>
+                            <td>Same program (SPMD)</td>
+                            <td>Different programs (MPMD)</td>
+                        </tr>
+                        <tr>
+                            <td>Scalability</td>
+                            <td>Scales with problem size &mdash; can use thousands of ranks</td>
+                            <td>Limited by the number of distinct stages/components</td>
+                        </tr>
+                        <tr>
+                            <td>Load balance</td>
+                            <td>Good if the data is homogeneous; needs repartitioning otherwise</td>
+                            <td>Hard &mdash; stages rarely take equal time</td>
+                        </tr>
+                        <tr>
+                            <td>Communication</td>
+                            <td>Boundary/halo exchange, mostly nearest-neighbour</td>
+                            <td>Stage-to-stage transfer of whole datasets</td>
+                        </tr>
+                        <tr>
+                            <td>Typical use</td>
+                            <td>CFD, weather, MD, large ABMs</td>
+                            <td>Coupled multiphysics, real-time pipelines, workflow systems</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>Real large-scale codes use <span class="kw">both</span>: components are assigned to processor groups
+                (algorithmic), and each group decomposes its own domain (data). That is the hybrid partitioning of
+                Section&nbsp;8.</p>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s3"><span class="n">3.</span> Handling Inter-Partition Dependencies</h2>
+
+            <p>Cutting a model creates dependencies across the cut. Managing them correctly &mdash; without destroying
+                performance &mdash; is the central technical content of parallel simulation.</p>
+
+            <h3 class="sub" id="s3-1">3.1 Kinds of dependency</h3>
+            <ul>
+                <li><span class="kw">Spatial (boundary) dependency</span> &mdash; a cell needs neighbour values. Handled
+                    by halo exchange.</li>
+                <li><span class="kw">Temporal (causal) dependency</span> &mdash; an event on partition A at time
+                    <var>t</var> may cause an event on B at <var>t</var>+&delta;. Handled by synchronisation protocols.
+                </li>
+                <li><span class="kw">Global (reduction) dependency</span> &mdash; a shared quantity (total energy, a
+                    global time step, a convergence test) needs all partitions. Handled by collective operations, and it
+                    is the main source of the serial fraction in Amdahl's law.</li>
+                <li><span class="kw">Resource dependency</span> &mdash; entities on different partitions compete for one
+                    shared resource; needs a distributed protocol or resource ownership.</li>
+            </ul>
+
+            <h3 class="sub" id="s3-2">3.2 Synchronous (time-stepped) execution</h3>
+            <p>The easy case. All partitions execute step <var>n</var>, exchange haloes, hit a <span class="kw">barrier
+                </span>, and proceed to step <var>n</var>+1. Correctness is automatic; the cost is that every barrier
+                runs at the speed of the <em>slowest</em> processor, so load imbalance and OS jitter accumulate.</p>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; The causality constraint</div>
+                <div class="bb">
+                    <p>In parallel discrete-event simulation, each <span class="kw">logical process</span> (LP) must
+                        process the events it receives in non-decreasing timestamp order. Violating this constraint
+                        &mdash; processing an event at <var>t</var> = 20 and then receiving one at <var>t</var> = 15
+                        (a <span class="kw">straggler</span>) &mdash; produces results the sequential simulation would
+                        never produce.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s3-3">3.3 Conservative synchronisation</h3>
+            <p>An LP processes an event only when it can <em>prove</em> that no earlier event can still arrive.</p>
+            <ol>
+                <li>Each incoming link carries a clock: the timestamp of the last message received on it.</li>
+                <li>The LP may safely process any event with timestamp less than the minimum over all input links.</li>
+                <li>If a link is silent the LP blocks &rarr; potential <span class="kw">deadlock</span>.</li>
+                <li><span class="kw">Chandy&ndash;Misra&ndash;Bryant null messages</span> break the deadlock: an LP that
+                    will send nothing before time <var>t</var> sends a null message with timestamp <var>t</var>
+                    ("nothing from me until <var>t</var>").</li>
+                <li>Performance depends critically on <span class="kw">lookahead</span> &mdash; the guaranteed minimum
+                    delay before an LP can affect another. Zero lookahead means no parallelism at all.</li>
+            </ol>
+
+            <h3 class="sub" id="s3-4">3.4 Optimistic synchronisation (Time Warp)</h3>
+            <ol>
+                <li>Each LP processes events as fast as it can, assuming no straggler will arrive.</li>
+                <li>State is saved (checkpointed) periodically so that it can be restored.</li>
+                <li>When a straggler with timestamp <var>t</var><sub>s</sub> arrives, the LP <span class="kw">rolls
+                        back</span> to the last state before <var>t</var><sub>s</sub>.</li>
+                <li>Messages sent in error are cancelled by <span class="kw">anti-messages</span>, which may cause
+                    cascading rollbacks in other LPs.</li>
+                <li><span class="kw">Global Virtual Time (GVT)</span> &mdash; the minimum timestamp of any unprocessed
+                    event or message in flight &mdash; is computed periodically. Nothing before GVT can ever be rolled
+                    back, so memory for older checkpoints is reclaimed (<em>fossil collection</em>) and irrevocable
+                    actions such as I/O are committed only up to GVT.</li>
+            </ol>
+
+            <div class="tw">
+                <table>
+                    <caption>Table 3.3 &mdash; Conservative versus optimistic PDES.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:22%">Aspect</th>
+                            <th style="width:38%">Conservative (CMB)</th>
+                            <th>Optimistic (Time Warp)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Principle</td>
+                            <td>Never violate causality</td>
+                            <td>Violate, detect, and repair</td>
+                        </tr>
+                        <tr>
+                            <td>Needs</td>
+                            <td>Good lookahead and known topology</td>
+                            <td>State saving and message cancellation</td>
+                        </tr>
+                        <tr>
+                            <td>Overheads</td>
+                            <td>Blocking, null-message traffic</td>
+                            <td>Memory for checkpoints, rollback cost, anti-messages</td>
+                        </tr>
+                        <tr>
+                            <td>Risk</td>
+                            <td>Deadlock; low parallelism when lookahead is poor</td>
+                            <td>Rollback thrashing / cascading rollbacks</td>
+                        </tr>
+                        <tr>
+                            <td>Good for</td>
+                            <td>Models with real physical delays (networks with link latency, logistics)</td>
+                            <td>Irregular models with little exploitable lookahead</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box exam">
+                <div class="bt">Exam tip</div>
+                <div class="bb">
+                    <p>&ldquo;Explain the causality problem in parallel simulation and its solutions&rdquo; is the most
+                        predictable 10-mark question of this unit. Structure: definition of LP and causality constraint
+                        &rarr; the straggler example with numbers &rarr; conservative approach with lookahead and null
+                        messages &rarr; optimistic approach with rollback, anti-messages and GVT &rarr; comparison table
+                        &rarr; one sentence on when each is chosen.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s3-5">3.5 Reducing dependency cost</h3>
+            <ul>
+                <li><span class="kw">Overlap</span> communication with computation using non-blocking calls.</li>
+                <li><span class="kw">Aggregate</span> many small messages into one large one &mdash; latency, not
+                    bandwidth, usually dominates.</li>
+                <li><span class="kw">Replicate</span> cheap read-only data instead of fetching it.</li>
+                <li><span class="kw">Relax</span> where the model permits: an asynchronous or slightly stale value may
+                    be acceptable, and the error should then be quantified.</li>
+                <li><span class="kw">Increase lookahead</span> by exploiting known minimum delays in the physical
+                    system.</li>
+            </ul>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s4"><span class="n">4.</span> Dynamic Partitioning and Load Balancing</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p><span class="kw">Dynamic partitioning</span> (dynamic load balancing) changes the assignment of
+                        data or tasks to processors <em>during</em> execution, in response to a workload that shifts
+                        over simulated time.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s4-1">4.1 Why the load moves</h3>
+            <ul>
+                <li>Adaptive mesh refinement adds cells where a shock or flame front travels.</li>
+                <li>Particles or agents cluster: a crowd gathers, galaxies collapse, traffic congests.</li>
+                <li>Physics changes cost per cell: chemistry activates only in the reacting region.</li>
+                <li>Heterogeneous or shared hardware: some nodes are slower, or shared with other jobs.</li>
+                <li>Faults reduce the resource pool mid-run.</li>
+            </ul>
+
+            <h3 class="sub" id="s4-2">4.2 The four questions of any load-balancing scheme</h3>
+            <ol>
+                <li><span class="kw">Measure</span> &mdash; what is the load metric? Cells, particles, events processed,
+                    or measured wall-clock time per rank (usually the most honest).</li>
+                <li><span class="kw">Decide when</span> &mdash; every <var>k</var> steps, or when imbalance
+                    &lambda; = max/mean exceeds a threshold. Balance the <em>benefit</em> of rebalancing against its
+                    <em>cost</em>.
+                </li>
+                <li><span class="kw">Decide how</span> &mdash; diffusive (shift work to lighter neighbours; small data
+                    movement, slow convergence) or global repartitioning (recompute the whole partition; better quality,
+                    more movement).</li>
+                <li><span class="kw">Migrate</span> &mdash; serialise the state, transfer, rebuild indices and
+                    neighbour lists, resume. Migration must preserve correctness of in-flight messages.</li>
+            </ol>
+
+            <h3 class="sub" id="s4-3">4.3 Techniques</h3>
+            <ul>
+                <li><span class="kw">Over-decomposition + work stealing.</span> Create many more partitions than
+                    processors and let idle workers steal. Used by Charm++, Cilk, task runtimes; adapts automatically
+                    and tolerates heterogeneous hardware.</li>
+                <li><span class="kw">Master&ndash;worker (bag of tasks).</span> Excellent for parameter sweeps and
+                    replications; the master becomes a bottleneck at very large scale, fixed by hierarchical masters.
+                </li>
+                <li><span class="kw">Space-filling curve repartitioning.</span> Reorder entities along a Hilbert curve
+                    and cut into equal-work segments &mdash; cheap, incremental, locality-preserving; the standard in
+                    AMR and N-body codes.</li>
+                <li><span class="kw">Repartitioning graph tools</span> &mdash; ParMETIS, Zoltan, Scotch; these
+                    explicitly optimise the sum of edge cut <em>and</em> migration cost.</li>
+                <li><span class="kw">Predictive balancing</span> &mdash; use the previous steps' measurements to
+                    forecast the next; effective because simulation workloads evolve smoothly.</li>
+            </ul>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Rebalancing too often. Each rebalance costs measurement, decision, data movement and index
+                        rebuilding. If the imbalance costs 3% and rebalancing costs 8%, you have made the code slower.
+                        The correct rule is to rebalance when the <em>accumulated</em> projected imbalance since the
+                        last rebalance exceeds the migration cost.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s5"><span class="n">5.</span> Communication Patterns in Partitioned Systems</h2>
+
+            <div class="eq">
+                Simple cost model: &nbsp; <var>T</var><sub>comm</sub> = &alpha; + <var>n</var>&beta; &nbsp;&nbsp;
+                (&alpha; = latency per message, &beta; = time per byte, <var>n</var> = bytes)
+            </div>
+            <p>On a modern cluster &alpha; &asymp; 1&ndash;5&nbsp;&micro;s while 1/&beta; is tens of GB/s. Sending 1000
+                messages of 8 bytes costs a thousand latencies; sending one message of 8000 bytes costs one. This is why
+                <span class="kw">message aggregation</span> is the first optimisation to try.
+            </p>
+
+            <h3 class="sub" id="s5-1">5.1 The standard patterns</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 3.4 &mdash; Communication patterns, their cost and where they occur.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:26%">Pattern</th>
+                            <th style="width:30%">Cost with <var>p</var> processors</th>
+                            <th>Occurs in</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Point-to-point / nearest neighbour (halo)</td>
+                            <td>O(1) messages per rank; scales well</td>
+                            <td>Stencil codes, mesh simulations, spatial ABMs</td>
+                        </tr>
+                        <tr>
+                            <td>Broadcast / scatter</td>
+                            <td>O(log <var>p</var>) with a tree</td>
+                            <td>Distributing parameters, initial conditions</td>
+                        </tr>
+                        <tr>
+                            <td>Reduction / allreduce</td>
+                            <td>O(log <var>p</var>); a synchronisation point</td>
+                            <td>Global sums, convergence tests, adaptive &Delta;<var>t</var>, GVT computation</td>
+                        </tr>
+                        <tr>
+                            <td>Gather / allgather</td>
+                            <td>O(<var>p</var>) data volume per rank</td>
+                            <td>Collecting output, global agent lists (avoid at scale)</td>
+                        </tr>
+                        <tr>
+                            <td>All-to-all (transpose)</td>
+                            <td>O(<var>p</var>) messages per rank &mdash; the most expensive pattern</td>
+                            <td>Parallel FFT, spectral methods, redistribution during rebalancing</td>
+                        </tr>
+                        <tr>
+                            <td>Publish/subscribe, interest management</td>
+                            <td>Depends on the interest graph, not on <var>p</var></td>
+                            <td>HLA/DDS distributed simulation, large multi-agent worlds</td>
+                        </tr>
+                        <tr>
+                            <td>Asynchronous one-sided (RMA)</td>
+                            <td>No matching receive; overlaps well</td>
+                            <td>Irregular access, dynamic work stealing, PGAS models</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s5-2">5.2 Interest management</h3>
+            <p>In distributed simulation with many entities, sending every update to everyone is O(<var>n</var><sup>2
+                </sup>) and impossible beyond a few thousand entities. <span class="kw">Interest management</span> (HLA
+                Data Distribution Management) filters updates so that a federate receives only what it cares about,
+                using <em>routing spaces</em>: the world is divided into regions or grid cells, each entity publishes to
+                the cells it occupies and subscribes to the cells it can perceive. This turns a global broadcast into
+                localised multicast.</p>
+
+            <h3 class="sub" id="s5-3">5.3 Practical rules</h3>
+            <ol>
+                <li>Prefer non-blocking communication and overlap it with interior computation.</li>
+                <li>Aggregate small messages; pack contiguous buffers rather than sending strided data.</li>
+                <li>Remove unnecessary collectives &mdash; a global reduction every step is often needed only every
+                    tenth step.</li>
+                <li>Keep the communication topology matched to the network topology where possible (rank reordering).
+                </li>
+                <li>Measure with a profiler (Score-P, TAU, mpiP, Nsight) before optimising; intuition about where the
+                    time goes is usually wrong.</li>
+            </ol>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s6"><span class="n">6.</span> Scalability Challenges in Partitioned Systems</h2>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Strong and weak scaling</div>
+                <div class="bb">
+                    <p><span class="kw">Strong scaling</span>: fixed total problem size, increasing <var>p</var>; ideal
+                        behaviour is runtime &prop; 1/<var>p</var>. Limited by Amdahl's law and by the shrinking
+                        computation-to-communication ratio.</p>
+                    <p><span class="kw">Weak scaling</span>: fixed problem size <em>per processor</em>, so the total
+                        problem grows with <var>p</var>; ideal behaviour is constant runtime. This is how large
+                        simulations are actually used.</p>
+                </div>
+            </div>
+
+            <div class="eq">
+                Speedup <var>S</var>(<var>p</var>) = <var>T</var><sub>1</sub>/<var>T</var><sub><var>p</var></sub>,
+                &nbsp;&nbsp; Efficiency <var>E</var>(<var>p</var>) = <var>S</var>(<var>p</var>)/<var>p</var>
+            </div>
+
+            <h3 class="sub" id="s6-1">6.1 The eight barriers to scalability</h3>
+            <ol>
+                <li><span class="kw">Serial fraction</span> &mdash; initialisation, I/O, global decisions
+                    (Amdahl).</li>
+                <li><span class="kw">Load imbalance</span> &mdash; the barrier runs at the slowest rank; even 5%
+                    imbalance caps efficiency near 95% and it compounds every step.</li>
+                <li><span class="kw">Communication growth</span> &mdash; in strong scaling the partition shrinks, so the
+                    surface-to-volume ratio worsens and communication eventually dominates.</li>
+                <li><span class="kw">Synchronisation and jitter</span> &mdash; the barrier amplifies rare OS or network
+                    hiccups across all ranks.</li>
+                <li><span class="kw">Collective operations</span> &mdash; O(log <var>p</var>) at best, and allreduce
+                    latency becomes the floor of the time step at very large <var>p</var>.</li>
+                <li><span class="kw">Memory per node</span> &mdash; replicated global structures (a full agent
+                    directory, a full mesh copy) do not shrink with <var>p</var> and eventually exhaust memory.</li>
+                <li><span class="kw">I/O bottleneck</span> &mdash; thousands of ranks writing checkpoints to one file
+                    system; solved by parallel I/O (MPI-IO, HDF5, ADIOS) and in-situ analysis (Unit V).</li>
+                <li><span class="kw">Fault probability</span> &mdash; with more components, mean time between failures
+                    falls; at extreme scale the run <em>will</em> be interrupted (Section 9).</li>
+            </ol>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; why strong scaling stops</div>
+                <div class="bb">
+                    <p>A 2-D 4096&times;4096 grid on <var>p</var> ranks gives blocks of side
+                        4096/&radic;<var>p</var>. Computation per rank &prop; 4096<sup>2</sup>/<var>p</var>;
+                        communication &prop; 4&times;4096/&radic;<var>p</var>. Their ratio is
+                        &asymp; 1024/&radic;<var>p</var>. At <var>p</var> = 1024 the ratio is 32 (fine); at
+                        <var>p</var> = 10<sup>6</sup> it is 1 &mdash; the rank now spends as long communicating as
+                        computing, and adding processors stops helping. The cure is to grow the problem (weak scaling),
+                        not the machine.
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s6-2">6.2 Diagnosing scalability</h3>
+            <ul>
+                <li>Plot speedup and efficiency against <var>p</var> on log axes; the departure point identifies the
+                    limit.</li>
+                <li>Instrument the phases: computation, communication, idle/barrier wait, I/O. Growing <em>idle</em>
+                    time means imbalance; growing <em>communication</em> means the partition is too small or too badly
+                    shaped.</li>
+                <li>Use a roofline or a simple <var>T</var>(<var>p</var>) = <var>T</var><sub>comp</sub>/<var>p</var> +
+                    <var>T</var><sub>comm</sub>(<var>p</var>) + <var>T</var><sub>serial</sub> model to predict where
+                    the curve will bend, before buying time on a larger machine.
+                </li>
+            </ul>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s7"><span class="n">7.</span> Partitioning in Graph-Based Systems</h2>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; The graph partitioning problem</div>
+                <div class="bb">
+                    <p>Given <var>G</var> = (<var>V</var>, <var>E</var>) with vertex weights (computation) and edge
+                        weights (communication), divide <var>V</var> into <var>p</var> disjoint parts such that the
+                        parts have approximately equal total vertex weight (<span class="kw">balance constraint</span>)
+                        and the total weight of edges between different parts (<span class="kw">edge cut</span>) is
+                        minimised. The problem is NP-hard, so heuristics are used.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s7-1">7.1 Why graphs are the hard case</h3>
+            <p>A mesh has geometry, so a coordinate cut works. A social, citation or web graph has no useful geometry,
+                has a power-law degree distribution, and has a small diameter &mdash; so <em>every</em> balanced cut
+                separates many edges. This is why distributed graph processing is dominated by communication.</p>
+
+            <h3 class="sub" id="s7-2">7.2 Methods</h3>
+            <ul>
+                <li><span class="kw">Multilevel partitioning</span> (METIS/ParMETIS, Scotch, KaHIP) &mdash; the standard
+                    and the one to name in an exam: <em>coarsen</em> the graph by matching and merging vertices,
+                    <em>partition</em> the tiny coarse graph well, then <em>uncoarsen</em> and refine at each level with
+                    Kernighan&ndash;Lin / Fiduccia&ndash;Mattheyses local swaps.
+                </li>
+                <li><span class="kw">Spectral partitioning</span> &mdash; use the Fiedler vector (eigenvector of the
+                    second smallest eigenvalue of the Laplacian) to order and split vertices. High quality, expensive.
+                </li>
+                <li><span class="kw">Geometric</span> &mdash; recursive coordinate bisection, space-filling curves;
+                    applicable only when vertices have coordinates.</li>
+                <li><span class="kw">Streaming / one-pass heuristics</span> (LDG, FENNEL) &mdash; assign each vertex as
+                    it arrives; necessary when the graph does not fit in memory.</li>
+                <li><span class="kw">Label propagation and community detection</span> &mdash; exploit natural cluster
+                    structure; effective on social graphs.</li>
+            </ul>
+
+            <h3 class="sub" id="s7-3">7.3 Vertex-cut versus edge-cut</h3>
+            <p>For power-law graphs, cutting <em>vertices</em> beats cutting edges. In the <span class="kw">vertex-cut
+                </span> model (PowerGraph/GraphX) a high-degree hub is <em>replicated</em> across the machines that hold
+                its edges, and its state is reconciled by a small gather&ndash;apply&ndash;scatter step. Because a
+                hub with a million edges cannot live on one machine without wrecking the balance, this reformulation was
+                the key advance for real-world graph systems.</p>
+
+            <h3 class="sub" id="s7-4">7.4 Programming models for graph simulation</h3>
+            <ul>
+                <li><span class="kw">BSP / Pregel</span> &mdash; "think like a vertex": supersteps of local computation,
+                    message exchange, then a global barrier. Simple and deterministic; barrier-bound.</li>
+                <li><span class="kw">GAS (gather&ndash;apply&ndash;scatter)</span> &mdash; PowerGraph's model, designed
+                    around vertex cuts.</li>
+                <li><span class="kw">Asynchronous</span> &mdash; no barrier; faster convergence for iterative algorithms
+                    but non-deterministic, which conflicts with simulation reproducibility.</li>
+            </ul>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; partitioning a contact network for a parallel epidemic model</div>
+                <div class="bb">
+                    <p>Vertices = people (weight = simulation cost), edges = daily contacts (weight = interaction
+                        frequency). ParMETIS produces <var>p</var> balanced parts with minimal cut; the cut edges become
+                        the cross-partition infection messages exchanged each day. Because households and workplaces
+                        form dense clusters, a good partitioner keeps them intact and the message volume falls by an
+                        order of magnitude compared with random assignment &mdash; which is precisely the experiment
+                        worth reporting in a lab record.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s8"><span class="n">8.</span> Hybrid Partitioning Approaches</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p><span class="kw">Hybrid partitioning</span> combines more than one decomposition strategy, or
+                        more than one level of parallelism, in the same simulation &mdash; typically because the
+                        hardware itself is hierarchical (cluster &rarr; node &rarr; socket &rarr; core &rarr;
+                        accelerator).</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s8-1">8.1 Forms of hybridisation</h3>
+            <ol>
+                <li><span class="kw">MPI + OpenMP + CUDA.</span> MPI between nodes (distributed memory), threads within
+                    a node (shared memory), and GPU kernels for the inner loops. Fewer, larger MPI partitions means less
+                    surface area and fewer messages.</li>
+                <li><span class="kw">Data + task hybrid.</span> Domain decomposition for the mesh, plus a task runtime
+                    for the irregular parts (chemistry, particle physics, adaptivity).</li>
+                <li><span class="kw">Component + domain hybrid.</span> Coupled multiphysics: each component owns a
+                    processor group (algorithmic partitioning) and decomposes its own domain (data partitioning).</li>
+                <li><span class="kw">Multi-constraint / multi-objective partitioning.</span> Balance <em>two</em> loads
+                    at once &mdash; e.g. cell count and particle count in a particle-in-cell code &mdash; which single
+                    weighted partitioning cannot do.</li>
+                <li><span class="kw">Static + dynamic hybrid.</span> A good static partition at start-up, with cheap
+                    diffusive corrections during the run.</li>
+                <li><span class="kw">Mixed synchronisation.</span> Conservative synchronisation between well-separated
+                    clusters with good lookahead, optimistic within a tightly coupled cluster.</li>
+            </ol>
+
+            <h3 class="sub" id="s8-2">8.2 Why hybrid usually wins</h3>
+            <ul>
+                <li>It matches the memory hierarchy: intra-node communication through shared memory is far cheaper than
+                    through the network.</li>
+                <li>It reduces the number of partitions, which improves the surface-to-volume ratio and shrinks halo
+                    volume.</li>
+                <li>It lets each part of a heterogeneous model use the decomposition that suits it.</li>
+                <li>It exploits accelerators for the regular inner kernels while leaving irregular control flow on the
+                    CPU.</li>
+            </ul>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Assuming MPI+OpenMP is automatically faster than pure MPI. It is not: thread synchronisation,
+                        NUMA effects and a serial master thread during communication can eat the gain. Hybrid pays off
+                        when the halo volume is significant, when memory per rank is tight, or when the node count is
+                        very large. Always justify a hybrid design with a measurement.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s9"><span class="n">9.</span> Fault Tolerance in Partitioned Systems</h2>
+
+            <p>At 10<sup>5</sup> nodes, even a per-node MTBF of ten years gives a system failure roughly every hour. A
+                simulation that runs for a day <em>must</em> therefore be able to survive failures.</p>
+
+            <h3 class="sub" id="s9-1">9.1 Failure model</h3>
+            <ul>
+                <li><span class="kw">Fail-stop</span> &mdash; a node dies and stops. The common assumption.</li>
+                <li><span class="kw">Silent data corruption</span> &mdash; a bit flips and the run continues with wrong
+                    numbers. The dangerous case, detected by residual checks, invariants or replication.</li>
+                <li><span class="kw">Network partition</span> &mdash; groups can no longer communicate; relevant to
+                    distributed (rather than tightly coupled) simulation.</li>
+                <li><span class="kw">Straggler / slow node</span> &mdash; not a failure but has the same effect at a
+                    barrier.</li>
+            </ul>
+
+            <h3 class="sub" id="s9-2">9.2 Checkpoint and restart</h3>
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p><span class="kw">Checkpoint/restart</span> periodically saves a globally consistent snapshot of
+                        the simulation state to stable storage; after a failure the run resumes from the last
+                        checkpoint, losing at most one interval of work.</p>
+                </div>
+            </div>
+
+            <div class="eq">
+                Young/Daly optimal interval: &nbsp; <var>T</var><sub>opt</sub> &asymp; &radic;(2 <var>C</var>
+                <var>M</var>) <span class="tag"><var>C</var> = checkpoint cost, <var>M</var> = MTBF</span>
+            </div>
+
+            <p>Techniques that reduce <var>C</var>: <span class="kw">incremental</span> checkpoints (save only changed
+                pages), <span class="kw">multilevel</span> checkpointing (node-local SSD &rarr; partner node &rarr;
+                parallel file system, as in SCR/FTI), <span class="kw">asynchronous</span> checkpointing (write in the
+                background), and <span class="kw">compression</span>. In an <em>application-level</em> checkpoint the
+                model writes only the physical state it actually needs, which is usually far smaller than a
+                system-level memory image &mdash; and it is portable across machines.</p>
+
+            <h3 class="sub" id="s9-3">9.3 Beyond checkpointing</h3>
+            <ul>
+                <li><span class="kw">Replication</span> &mdash; run duplicate partitions; expensive (2&times; or more)
+                    but detects silent corruption by comparison and eliminates restart delay.</li>
+                <li><span class="kw">Algorithm-based fault tolerance (ABFT)</span> &mdash; encode checksums into the
+                    data structures (rows/columns of a matrix) so that a lost or corrupted block can be reconstructed
+                    arithmetically.</li>
+                <li><span class="kw">Natural fault tolerance</span> &mdash; iterative and stochastic simulations can
+                    sometimes absorb the loss of a partition with a quantified error, rather than restarting.</li>
+                <li><span class="kw">Message logging</span> &mdash; log messages and replay them so that only the failed
+                    process rolls back, not the whole job; the natural fit for PDES, where rollback machinery (Time
+                    Warp) already exists.</li>
+                <li><span class="kw">Resilient runtimes</span> &mdash; ULFM MPI, Charm++ and workflow engines that
+                    detect failure, shrink or replace the process set and rebalance.</li>
+                <li><span class="kw">Task-level retry</span> &mdash; in a replication or parameter sweep, a failed run
+                    is simply re-queued. This is why embarrassingly parallel work is also the most robust.</li>
+            </ul>
+
+            <div class="box exam">
+                <div class="bt">Exam tip</div>
+                <div class="bb">
+                    <p>A frequent 5-mark question: &ldquo;derive/state the optimal checkpoint interval and explain the
+                        trade-off&rdquo;. Say: too frequent &rarr; checkpoint overhead dominates; too rare &rarr; lost
+                        work after failure dominates; the total is minimised near &radic;(2<var>CM</var>). Add one line
+                        on multilevel checkpointing as the practical improvement.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s10"><span class="n">10.</span> Partitioning for Emerging Architectures</h2>
+
+            <p>The right partition depends on the machine. As hardware diversifies, partitioning must become
+                architecture-aware.</p>
+
+            <div class="tw">
+                <table>
+                    <caption>Table 3.5 &mdash; Architectures and what they demand of the partitioning strategy.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:24%">Architecture</th>
+                            <th style="width:34%">Characteristics</th>
+                            <th>Partitioning implication</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Many-core CPU / NUMA node</td>
+                            <td>Dozens of cores, non-uniform memory access</td>
+                            <td>Partition to respect NUMA domains; pin threads; first-touch allocation</td>
+                        </tr>
+                        <tr>
+                            <td>GPU</td>
+                            <td>Thousands of SIMT lanes, high bandwidth, limited memory, costly host transfers</td>
+                            <td>Large, regular, coalesced partitions; avoid divergent branches; keep data resident on
+                                the device</td>
+                        </tr>
+                        <tr>
+                            <td>Heterogeneous CPU+GPU nodes</td>
+                            <td>Very different per-device throughput</td>
+                            <td>Unequal (weighted) partitions; give the regular kernel to the GPU and irregular work to
+                                the CPU</td>
+                        </tr>
+                        <tr>
+                            <td>FPGA / dataflow accelerators</td>
+                            <td>Custom pipelines, deterministic latency</td>
+                            <td>Pipeline (algorithmic) partitioning; stream-oriented data layout</td>
+                        </tr>
+                        <tr>
+                            <td>Cloud / elastic clusters</td>
+                            <td>Variable node count, noisy neighbours, preemptible instances</td>
+                            <td>Elastic, migratable over-decomposition; failure treated as normal; cost-aware scheduling
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Edge / fog</td>
+                            <td>Low bandwidth to the centre, limited local power</td>
+                            <td>Partition by <em>data locality and privacy</em>; keep raw data local, send summaries
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Near-memory / processing-in-memory</td>
+                            <td>Compute placed next to memory banks</td>
+                            <td>Partition by memory locality rather than by compute load</td>
+                        </tr>
+                        <tr>
+                            <td>Quantum / neuromorphic (early)</td>
+                            <td>Special-purpose co-processors within a classical workflow</td>
+                            <td>Offload a well-defined sub-problem; the classical partition surrounds it</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s10-1">10.1 Cross-cutting trends</h3>
+            <ol>
+                <li><span class="kw">Data movement, not arithmetic, is the cost.</span> Moving a double across a node
+                    can cost more energy than a hundred floating-point operations, so partitioning is increasingly an
+                    energy-optimisation problem.</li>
+                <li><span class="kw">Asynchrony over barriers.</span> Task-based, dependency-driven runtimes tolerate
+                    heterogeneity and jitter better than bulk-synchronous code.</li>
+                <li><span class="kw">Performance portability.</span> Kokkos, RAJA, SYCL and OpenMP target-offload let one
+                    partitioned code run on CPU and multiple GPU vendors.</li>
+                <li><span class="kw">In-situ analysis.</span> Because I/O does not scale, analysis and visualisation move
+                    into the simulation itself &mdash; the bridge to Unit V.</li>
+                <li><span class="kw">Surrogates and ML acceleration.</span> Learned models replace expensive kernels, and
+                    the partitioning must then balance a mix of physics and inference work.</li>
+            </ol>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s11"><span class="n">11.</span> A Practical Conversion Recipe</h2>
+            <p>If an examiner (or a project) asks &ldquo;how would you convert this sequential simulation to a parallel
+                one?&rdquo;, answer with this sequence:</p>
+            <ol>
+                <li><span class="kw">Profile first.</span> Find the hot loops and the memory footprint; do not
+                    parallelise what does not matter.</li>
+                <li><span class="kw">Try replication parallelism first.</span> If the goal is statistical accuracy, run
+                    independent replications &mdash; near-linear speedup for almost no work.</li>
+                <li><span class="kw">Choose the decomposition.</span> Data if the state is large and homogeneous;
+                    algorithmic if the model is a pipeline of distinct components; hybrid at scale.</li>
+                <li><span class="kw">Identify dependencies.</span> Spatial (halo), temporal (causality), global
+                    (reductions), resource contention.</li>
+                <li><span class="kw">Choose a synchronisation scheme.</span> Barrier per step for time-stepped models;
+                    conservative or optimistic for event-driven ones, chosen by available lookahead.</li>
+                <li><span class="kw">Design the communication.</span> Non-blocking, aggregated, overlapped; remove
+                    unnecessary collectives.</li>
+                <li><span class="kw">Handle randomness.</span> Independent substreams per partition, and ensure the
+                    result is independent of the processor count.</li>
+                <li><span class="kw">Verify against the sequential run.</span> Same seed, same answer (or the same
+                    statistics with a documented reason for bitwise differences).</li>
+                <li><span class="kw">Measure strong and weak scaling</span>, and attribute lost efficiency to imbalance,
+                    communication or serial work.</li>
+                <li><span class="kw">Add resilience</span> &mdash; checkpoints at the Young/Daly interval, and a restart
+                    path that has actually been tested.</li>
+            </ol>
+
+            <div class="box caution">
+                <div class="bt">Common mistake &mdash; the reproducibility trap</div>
+                <div class="bb">
+                    <p>Floating-point addition is not associative, so a parallel reduction over <var>p</var> ranks gives
+                        a slightly different sum for different <var>p</var>. In a chaotic model that difference grows
+                        exponentially and the trajectories diverge. Either use deterministic (fixed-order or
+                        compensated) reductions when bitwise reproducibility is required, or state clearly that only
+                        statistical reproducibility is claimed.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s12"><span class="n">12.</span> Unit Summary</h2>
+
+            <ul>
+                <li>Parallelisation is a decomposition problem: balance the work, minimise the cut.</li>
+                <li>Amdahl bounds strong scaling by 1/<var>f</var>; Gustafson explains why weak scaling still works.
+                </li>
+                <li>Data (domain) partitioning splits the state and runs the same code everywhere; compactness matters
+                    because computation scales with volume and communication with surface.</li>
+                <li>Algorithm (functional) partitioning splits stages or components; limited scalability, but essential
+                    for coupled multiphysics and pipelines.</li>
+                <li>Dependencies are spatial (halo exchange), temporal (causality constraint), global (collectives) and
+                    resource-based. PDES resolves temporal dependencies conservatively (lookahead, null messages) or
+                    optimistically (rollback, anti-messages, GVT).</li>
+                <li>Dynamic partitioning answers four questions: measure, when, how, migrate. Over-decomposition with
+                    work stealing and space-filling-curve repartitioning are the practical techniques.</li>
+                <li>Communication cost is &alpha; + <var>n</var>&beta;; aggregate messages, overlap with computation,
+                    avoid all-to-all and unnecessary reductions, and use interest management in distributed simulation.
+                </li>
+                <li>Scalability is limited by serial fraction, imbalance, communication growth, jitter, collectives,
+                    memory, I/O and faults.</li>
+                <li>Graph partitioning is NP-hard; multilevel methods (METIS/ParMETIS) are standard, and vertex cuts
+                    handle power-law graphs better than edge cuts.</li>
+                <li>Hybrid partitioning matches the hardware hierarchy (MPI+OpenMP+GPU) and mixes strategies and
+                    synchronisation schemes.</li>
+                <li>Fault tolerance at scale: checkpoint/restart at the &radic;(2<var>CM</var>) interval, multilevel and
+                    incremental checkpoints, ABFT, replication, message logging and resilient runtimes.</li>
+                <li>Emerging architectures shift the objective from balancing FLOPs to minimising data movement and
+                    energy.</li>
+            </ul>
+
+            <h3 class="sub" id="s12-1">12.1 Key terms</h3>
+            <p>SPMD/MPMD &middot; domain decomposition &middot; halo/ghost cells &middot; surface-to-volume ratio
+                &middot; Amdahl and Gustafson &middot; strong and weak scaling &middot; logical process &middot;
+                causality constraint &middot; straggler &middot; lookahead &middot; null message &middot; Time Warp
+                &middot; anti-message &middot; GVT &middot; fossil collection &middot; work stealing &middot;
+                over-decomposition &middot; space-filling curve &middot; edge cut &middot; vertex cut &middot;
+                multilevel partitioning &middot; BSP superstep &middot; interest management &middot; allreduce
+                &middot; checkpoint interval &middot; ABFT &middot; ULFM.</p>
+
+            <h3 class="sub" id="s12-2">12.2 Practice questions</h3>
+
+            <h4 class="subsub">Short answer <span class="marks">(2&ndash;3 marks each)</span></h4>
+            <ol class="qlist">
+                <li>State Amdahl's law and give the maximum speedup when the serial fraction is 10%.</li>
+                <li>Differentiate strong scaling from weak scaling.</li>
+                <li>What is a halo region and why is it needed?</li>
+                <li>Define lookahead and explain its role in conservative synchronisation.</li>
+                <li>What are anti-messages in Time Warp?</li>
+                <li>Why is a vertex cut preferred to an edge cut for power-law graphs?</li>
+                <li>Write the optimal checkpoint-interval formula and define its symbols.</li>
+            </ol>
+
+            <h4 class="subsub">Medium answer <span class="marks">(5 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Compare data partitioning and algorithm partitioning under at least five criteria.</li>
+                <li>Explain the surface-to-volume principle and use it to compare 1-D, 2-D and 3-D decompositions of a
+                    grid.</li>
+                <li>Describe the four decisions involved in dynamic load balancing and two techniques used in practice.
+                </li>
+                <li>List the standard communication patterns with their cost in <var>p</var> and one simulation use for
+                    each.</li>
+                <li>Explain multilevel graph partitioning (coarsen &ndash; partition &ndash; uncoarsen/refine).</li>
+                <li>Describe three fault-tolerance techniques for large parallel simulations other than plain
+                    checkpointing.</li>
+            </ol>
+
+            <h4 class="subsub">Long answer <span class="marks">(10 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Explain the causality problem in parallel discrete-event simulation and compare conservative and
+                    optimistic synchronisation in detail, with examples of when each is preferred.</li>
+                <li>Discuss the scalability challenges of partitioned simulations, with an analytical example showing
+                    why strong scaling saturates, and describe how each challenge is mitigated.</li>
+                <li>Given a large agent-based epidemic simulation on a contact network, describe in full how you would
+                    convert it to a parallel and distributed implementation: partitioning, dependencies,
+                    synchronisation, communication, load balancing, randomness, verification and resilience.</li>
+                <li>Discuss partitioning strategies for emerging architectures (GPU, heterogeneous nodes, cloud, edge),
+                    explaining how the objective changes from balancing computation to minimising data movement.</li>
+                <li>Explain hybrid partitioning approaches and justify, with reasons and counter-arguments, when
+                    MPI+OpenMP+GPU is preferable to a flat MPI decomposition.</li>
+            </ol>
+
+            <h3 class="sub" id="s12-3">12.3 Further reading</h3>
+            <ul>
+                <li>R. M. Fujimoto, <em>Parallel and Distributed Simulation Systems</em>, Wiley &mdash; the standard
+                    text for Sections 3 and 9.</li>
+                <li>G. Karypis and V. Kumar, <em>METIS / ParMETIS</em> technical reports &mdash; for Section 7.</li>
+                <li>A. Grama, A. Gupta, G. Karypis and V. Kumar, <em>Introduction to Parallel Computing</em> &mdash; for
+                    Sections 1, 2, 5 and 6.</li>
+                <li>J. Banks (ed.), <em>Handbook of Simulation</em> &mdash; chapter on parallel and distributed
+                    simulation.</li>
+                <li>J. Daly, &ldquo;A higher order estimate of the optimum checkpoint interval&rdquo;, <em>Future
+                        Generation Computer Systems</em>, 2006.</li>
+            </ul>
+
+            <div class="pager">
+                <a href="../Unit II/MS_Unit2_Notes.html">&larr; Unit II: Complex Model Simulations</a>
+                <a href="../Unit IV/MS_Unit4_Notes.html">Unit IV: Probability and Statistics &rarr;</a>
+            </div>
+
+            <div class="docfoot">
+                CSEG8003 Modelling and Simulation &middot; Unit III student notes &middot; Dr. Mohsin Furkh Dar &middot;
+                UPES
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../assets/notes.js"></script>
+</body>
+
+</html>

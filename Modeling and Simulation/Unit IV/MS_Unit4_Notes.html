@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG8003 · Unit IV Notes — Probability and Statistics for Simulations and Analysis</title>
+    <meta name="description"
+        content="Student lecture notes for Unit IV of Modelling and Simulation (CSEG8003): queueing theory and random noise, pseudo-random number generation, random variate generation by inverse transform and acceptance-rejection, output analysis, confidence intervals, and sensitivity analysis.">
+    <link rel="stylesheet" href="../assets/notes.css">
+</head>
+
+<body>
+    <div class="readbar"></div>
+
+    <div class="topbar">
+        <span class="code">CSEG8003</span>
+        <a href="../index.html">Course home</a>
+        <a href="../../index.html">Portal</a>
+        <span class="spacer"></span>
+        <button type="button" data-action="theme">Dark / Light</button>
+        <button type="button" data-action="print">Print / PDF</button>
+    </div>
+
+    <div class="wrap">
+        <aside class="toc" id="toc">
+            <h2>Contents</h2>
+        </aside>
+
+        <main class="page">
+
+            <div class="titleblock">
+                <div class="school">UPES &middot; School of Computer Science</div>
+                <div class="course">CSEG8003 &mdash; Modelling and Simulation &middot; L-T-P-C 2-0-1-3</div>
+                <div class="unitno">Unit IV</div>
+                <div class="unit">Probability and Statistics for Simulations and Analysis</div>
+                <div class="sub">5 lecture hours &middot; Theory notes &middot; Dr. Mohsin Furkh Dar</div>
+                <div class="badges">
+                    <span>CO1</span><span>CO4</span>
+                    <span>Queues</span>
+                    <span>Random noise</span>
+                    <span>Variate generation</span>
+                    <span>Sensitivity analysis</span>
+                </div>
+            </div>
+
+            <div class="box exam">
+                <div class="bt">What this unit gives you</div>
+                <div class="bb">
+                    <p>Three practical abilities, in this order:</p>
+                    <ol>
+                        <li><span class="kw">Analytical benchmarks</span> (queueing formulae) &mdash; the known answers
+                            against which you verify a simulator.</li>
+                        <li><span class="kw">Input generation</span> &mdash; how to manufacture randomness of a
+                            required distribution from uniform numbers.</li>
+                        <li><span class="kw">Output interpretation</span> &mdash; how much of the result to believe, and
+                            which inputs the result actually depends on.</li>
+                    </ol>
+                    <p>Sections 1&ndash;3 are heavily numerical: expect derivations and small calculations in the
+                        examination, so practise the worked examples with a calculator.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s1"><span class="n">1.</span> Probability Refresher for Simulation</h2>
+
+            <h3 class="sub" id="s1-1">1.1 Random variables and their descriptors</h3>
+            <p>A random variable <var>X</var> is described by its cumulative distribution function <var>F</var>(<var>x
+                </var>) = P(<var>X</var> &le; <var>x</var>), and by its pmf <var>p</var>(<var>x</var>) (discrete) or pdf
+                <var>f</var>(<var>x</var>) (continuous). The descriptors you will use constantly:
+            </p>
+            <div class="eq">
+                E[<var>X</var>] = &int; <var>x</var><var>f</var>(<var>x</var>)d<var>x</var>, &nbsp;&nbsp;
+                Var(<var>X</var>) = E[<var>X</var><sup>2</sup>] &minus; (E[<var>X</var>])<sup>2</sup>, &nbsp;&nbsp;
+                CV = &sigma;/&mu;
+            </div>
+            <p>The <span class="kw">coefficient of variation</span> CV is the key number in queueing: it measures
+                variability on a scale that is independent of units, and it is CV, not the mean, that determines how bad
+                a queue becomes.</p>
+
+            <h3 class="sub" id="s1-2">1.2 Distributions you must know by name and shape</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 4.1 &mdash; Distributions used in simulation input modelling.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:20%">Distribution</th>
+                            <th style="width:26%">Mean / variance</th>
+                            <th>Typical simulation use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Uniform(<var>a</var>,<var>b</var>)</td>
+                            <td>(<var>a</var>+<var>b</var>)/2 &nbsp;;&nbsp; (<var>b</var>&minus;<var>a</var>)<sup>2
+                                </sup>/12</td>
+                            <td>Complete ignorance between bounds; the source of all other variates</td>
+                        </tr>
+                        <tr>
+                            <td>Exponential(&lambda;)</td>
+                            <td>1/&lambda; &nbsp;;&nbsp; 1/&lambda;<sup>2</sup> (CV = 1)</td>
+                            <td>Inter-arrival times of a Poisson process; memoryless service; time to failure</td>
+                        </tr>
+                        <tr>
+                            <td>Poisson(&lambda;<var>t</var>)</td>
+                            <td>&lambda;<var>t</var> &nbsp;;&nbsp; &lambda;<var>t</var></td>
+                            <td>Number of arrivals in an interval</td>
+                        </tr>
+                        <tr>
+                            <td>Erlang(<var>k</var>,&lambda;) / Gamma</td>
+                            <td><var>k</var>/&lambda; &nbsp;;&nbsp; <var>k</var>/&lambda;<sup>2</sup> (CV =
+                                1/&radic;<var>k</var>)</td>
+                            <td>Service made of <var>k</var> sequential phases; less variable than exponential</td>
+                        </tr>
+                        <tr>
+                            <td>Normal(&mu;,&sigma;<sup>2</sup>)</td>
+                            <td>&mu; &nbsp;;&nbsp; &sigma;<sup>2</sup></td>
+                            <td>Measurement error, sums of many effects; <em>never</em> for a non-negative duration
+                                without truncation</td>
+                        </tr>
+                        <tr>
+                            <td>Lognormal</td>
+                            <td>e<sup>&mu;+&sigma;<sup>2</sup>/2</sup></td>
+                            <td>Task durations, file sizes, repair times &mdash; right-skewed and positive</td>
+                        </tr>
+                        <tr>
+                            <td>Weibull(<var>k</var>,&lambda;)</td>
+                            <td>&lambda;&Gamma;(1+1/<var>k</var>)</td>
+                            <td>Reliability and lifetimes with increasing or decreasing hazard rate</td>
+                        </tr>
+                        <tr>
+                            <td>Triangular(<var>a</var>,<var>m</var>,<var>b</var>)</td>
+                            <td>(<var>a</var>+<var>m</var>+<var>b</var>)/3</td>
+                            <td>Expert opinion when only min, mode and max are known</td>
+                        </tr>
+                        <tr>
+                            <td>Empirical</td>
+                            <td>From the data itself</td>
+                            <td>When you have plenty of measurements and no theoretical form</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Using Normal for a service time or an inter-arrival time. The Normal distribution extends to
+                        &minus;&infin;, so it will eventually generate a negative duration, and your simulation will
+                        either crash or silently schedule an event in the past. Use lognormal, gamma or a truncated
+                        distribution instead.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s1-3">1.3 Input modelling: fitting a distribution to data</h3>
+            <ol>
+                <li>Plot the data &mdash; histogram, box plot, time series (to check for trends and non-stationarity).
+                </li>
+                <li>Choose candidate families from the shape and from physical reasoning.</li>
+                <li>Estimate parameters (maximum likelihood, or method of moments).</li>
+                <li>Assess the fit: Q&ndash;Q plot, P&ndash;P plot, and a goodness-of-fit test &mdash;
+                    chi-square, Kolmogorov&ndash;Smirnov, or Anderson&ndash;Darling (which weights the tails, usually
+                    the part that matters).</li>
+                <li>If nothing fits, use the empirical distribution &mdash; but then you can never generate a value
+                    outside the observed range, which matters for rare events.</li>
+            </ol>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s2"><span class="n">2.</span> Introduction to Queues</h2>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Queueing system</div>
+                <div class="bb">
+                    <p>A <span class="kw">queueing system</span> consists of an arrival process, one or more servers
+                        with a service-time distribution, a waiting room of finite or infinite capacity, and a queue
+                        discipline that decides which waiting customer is served next.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s2-1">2.1 Kendall's notation</h3>
+            <p>A queue is described as <span class="kw">A/S/c/K/N/D</span>:</p>
+            <ul>
+                <li><span class="kw">A</span> &mdash; inter-arrival distribution: M (Markovian/exponential), D
+                    (deterministic), E<sub><var>k</var></sub> (Erlang), G (general).</li>
+                <li><span class="kw">S</span> &mdash; service distribution, same codes.</li>
+                <li><span class="kw">c</span> &mdash; number of parallel servers.</li>
+                <li><span class="kw">K</span> &mdash; system capacity (default &infin;), <span class="kw">N</span>
+                    &mdash; population size (default &infin;), <span class="kw">D</span> &mdash; discipline (FCFS by
+                    default; also LCFS, SIRO, priority, processor sharing).</li>
+            </ul>
+            <p>So M/M/1 is Poisson arrivals, exponential service, one server, infinite queue, FCFS; M/D/3/10 is Poisson
+                arrivals, constant service, three servers and a waiting room of ten.</p>
+
+            <h3 class="sub" id="s2-2">2.2 Performance measures and Little's law</h3>
+            <p>Standard notation: &lambda; = arrival rate, &mu; = service rate per server, &rho; = &lambda;/(<var>c
+                </var>&mu;) = utilisation, <var>L</var> = mean number in system, <var>L</var><sub><var>q</var></sub> =
+                mean number in queue, <var>W</var> = mean time in system, <var>W</var><sub><var>q</var></sub> = mean
+                waiting time.</p>
+
+            <div class="box def">
+                <div class="bt">Little's law</div>
+                <div class="bb">
+                    <div class="eq"><var>L</var> = &lambda;<var>W</var> &nbsp;&nbsp;and&nbsp;&nbsp;
+                        <var>L</var><sub><var>q</var></sub> = &lambda;<var>W</var><sub><var>q</var></sub>
+                    </div>
+                    <p>It holds for <em>any</em> stable queueing system in steady state &mdash; any arrival process, any
+                        service distribution, any number of servers, any discipline. That generality is what makes it so
+                        useful: it converts a measured count into a measured time, and it is the first sanity check to
+                        run on simulation output.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s2-3">2.3 The M/M/1 queue</h3>
+            <p>For &rho; = &lambda;/&mu; &lt; 1 (the stability condition), the steady-state probability of <var>n</var>
+                customers is <var>P</var><sub><var>n</var></sub> = (1&minus;&rho;)&rho;<sup><var>n</var></sup>, and:</p>
+
+            <div class="eq">
+                <var>L</var> = &rho;/(1&minus;&rho;), &nbsp;&nbsp; <var>L</var><sub><var>q</var></sub> = &rho;<sup>2
+                </sup>/(1&minus;&rho;), &nbsp;&nbsp; <var>W</var> = 1/(&mu;&minus;&lambda;), &nbsp;&nbsp;
+                <var>W</var><sub><var>q</var></sub> = &rho;/(&mu;&minus;&lambda;)
+            </div>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; a print server</div>
+                <div class="bb">
+                    <p>Jobs arrive at &lambda; = 12/hour; mean printing time is 4 minutes, so &mu; = 15/hour.</p>
+                    <ul>
+                        <li>&rho; = 12/15 = 0.8 &rarr; the printer is busy 80% of the time.</li>
+                        <li><var>L</var> = 0.8/0.2 = 4 jobs in the system on average.</li>
+                        <li><var>W</var> = 1/(15&minus;12) = 1/3 hour = 20 minutes total.</li>
+                        <li><var>W</var><sub><var>q</var></sub> = 20 &minus; 4 = 16 minutes waiting.</li>
+                        <li>Check with Little: <var>L</var> = &lambda;<var>W</var> = 12 &times; 1/3 = 4. &#10003;</li>
+                    </ul>
+                    <p>Now raise the load to &lambda; = 14: &rho; = 0.933, <var>L</var> = 14, <var>W</var> = 60 minutes.
+                        A 17% increase in load tripled the queue. That non-linearity is the single most important
+                        practical lesson of queueing theory.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s2-4">2.4 Other standard results</h3>
+            <ul>
+                <li><span class="kw">M/M/c</span> &mdash; multi-server; the waiting probability is given by the
+                    Erlang-C formula. Pooling servers is always better than separate queues: one queue with <var>c</var>
+                    servers beats <var>c</var> queues with one server each.</li>
+                <li><span class="kw">M/M/c/c</span> &mdash; no waiting room; blocking probability from the
+                    Erlang-B formula. The classical telephone-trunk model.</li>
+                <li><span class="kw">M/G/1</span> &mdash; general service, given by the Pollaczek&ndash;Khinchine
+                    formula:</li>
+            </ul>
+            <div class="eq">
+                <var>L</var><sub><var>q</var></sub> = (&lambda;<sup>2</sup>&sigma;<sup>2</sup> + &rho;<sup>2</sup>) /
+                (2(1&minus;&rho;)) &nbsp;&nbsp; = &nbsp; (&rho;<sup>2</sup>/(1&minus;&rho;)) &middot;
+                (1+CV<sup>2</sup>)/2
+            </div>
+            <p>Read the second form carefully: with the same mean service time, halving the <em>variability</em>
+                (CV from 1 to 0) halves the queue. Deterministic service (M/D/1) has exactly half the waiting of M/M/1.
+                <span class="kw">Variability, not just load, causes congestion</span> &mdash; and this is precisely
+                what a simulation captures and a spreadsheet of averages does not.
+            </p>
+
+            <h3 class="sub" id="s2-5">2.5 Queueing networks and why we simulate</h3>
+            <p>Jackson networks (open, Poisson arrivals, exponential service, probabilistic routing) decompose into
+                independent M/M/c nodes, which is elegant but demands assumptions that real systems violate: finite
+                buffers with blocking, priorities, batch arrivals, correlated inter-arrivals, time-varying rates,
+                balking and reneging, server breakdowns. Once any of these is present the closed form disappears and
+                simulation is the only option. Use the analytical results as <span class="kw">verification
+                    benchmarks</span>: simulate M/M/1, confirm that the measured <var>L</var> and <var>W</var> match the
+                formulae within the confidence interval, and only then trust the simulator on the harder model.</p>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s3"><span class="n">3.</span> Random Noise</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p><span class="kw">Noise</span> is the random component of a signal or of a system's behaviour
+                        &mdash; the part not explained by the deterministic model. In simulation, noise is both
+                        something we <em>inject</em> (to model real disturbance) and something we <em>suffer</em> (as
+                        sampling error in the output).</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s3-1">3.1 Types of noise by spectrum</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 4.2 &mdash; Noise colours and their character.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:22%">Noise</th>
+                            <th style="width:26%">Power spectral density</th>
+                            <th>Where it appears</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>White</td>
+                            <td>Flat, <var>S</var>(<var>f</var>) &prop; <var>f</var><sup>0</sup></td>
+                            <td>Thermal/Johnson noise, independent measurement error; samples uncorrelated</td>
+                        </tr>
+                        <tr>
+                            <td>Pink (1/<var>f</var>)</td>
+                            <td><var>S</var>(<var>f</var>) &prop; 1/<var>f</var></td>
+                            <td>Flicker noise in electronics, network traffic, human-generated processes</td>
+                        </tr>
+                        <tr>
+                            <td>Brown/red (random walk)</td>
+                            <td><var>S</var>(<var>f</var>) &prop; 1/<var>f</var><sup>2</sup></td>
+                            <td>Integrated white noise; drift in sensors, Brownian motion, asset prices</td>
+                        </tr>
+                        <tr>
+                            <td>Shot</td>
+                            <td>Poisson arrivals of discrete quanta</td>
+                            <td>Photon or electron counting; packet arrivals</td>
+                        </tr>
+                        <tr>
+                            <td>Impulse / burst</td>
+                            <td>Rare, large deviations</td>
+                            <td>Equipment faults, outliers, switching transients</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s3-2">3.2 Modelling noise in a simulation</h3>
+            <ul>
+                <li><span class="kw">Additive vs multiplicative:</span> <var>y</var> = <var>x</var> + &epsilon; models
+                    a fixed-magnitude disturbance; <var>y</var> = <var>x</var>(1+&epsilon;) models a proportional one.
+                    Choosing wrongly distorts the tails badly.</li>
+                <li><span class="kw">White Gaussian noise</span> in a continuous model turns the ODE into the stochastic
+                    differential equation d<var>X</var> = <var>a</var>(<var>X</var>,<var>t</var>)d<var>t</var> +
+                    <var>b</var>(<var>X</var>,<var>t</var>)d<var>W</var>, integrated by Euler&ndash;Maruyama:
+                </li>
+            </ul>
+            <div class="eq">
+                <var>X</var><sub><var>n</var>+1</sub> = <var>X</var><sub><var>n</var></sub> +
+                <var>a</var>&Delta;<var>t</var> + <var>b</var>&radic;(&Delta;<var>t</var>)&nbsp;<var>Z</var>,
+                &nbsp;&nbsp; <var>Z</var> ~ N(0,1)
+            </div>
+            <p>Note the &radic;&Delta;<var>t</var>: the noise term scales with the square root of the step, not with the
+                step. Getting this wrong makes the noise magnitude depend on your step size &mdash; a classic bug.</p>
+            <ul>
+                <li><span class="kw">Coloured noise</span> is generated by filtering white noise, most simply with an
+                    autoregressive process <var>x</var><sub><var>t</var></sub> = &phi;<var>x</var><sub><var>t</var>
+                        &minus;1</sub> + &epsilon;<sub><var>t</var></sub>, which introduces the temporal correlation
+                    real disturbances have.</li>
+                <li><span class="kw">Signal-to-noise ratio</span> SNR = 10&nbsp;log<sub>10</sub>(<var>P</var><sub>signal
+                        </sub>/<var>P</var><sub>noise</sub>) dB is the standard way to specify how much noise to inject.
+                </li>
+            </ul>
+
+            <h3 class="sub" id="s3-3">3.3 Pseudo-random number generation</h3>
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p>A <span class="kw">pseudo-random number generator (PRNG)</span> is a deterministic algorithm
+                        <var>x</var><sub><var>n</var>+1</sub> = <var>g</var>(<var>x</var><sub><var>n</var></sub>) which,
+                        from a seed, produces a sequence <var>u</var><sub><var>n</var></sub> &isin; (0,1) that is
+                        statistically indistinguishable from independent uniform draws for the purposes of the
+                        simulation.
+                    </p>
+                </div>
+            </div>
+
+            <p>Required properties: long <span class="kw">period</span> (at least the square of the numbers you will
+                consume), good <span class="kw">uniformity and independence</span>, high-dimensional
+                <span class="kw">equidistribution</span>, speed, small state, <span class="kw">reproducibility</span>,
+                and <span class="kw">independent substreams</span> for parallel runs (Unit III).
+            </p>
+
+            <p>The classical <span class="kw">linear congruential generator</span> is
+                <var>x</var><sub><var>n</var>+1</sub> = (<var>a</var><var>x</var><sub><var>n</var></sub> +
+                <var>c</var>) mod <var>m</var>, with <var>u</var><sub><var>n</var></sub> =
+                <var>x</var><sub><var>n</var></sub>/<var>m</var>. It is easy to analyse and easy to get wrong: LCG
+                points fall on a limited number of hyperplanes in <var>d</var> dimensions (Marsaglia's theorem), and the
+                notorious RANDU generator produced only 15 planes in three dimensions, invalidating a generation of
+                published results. Modern practice uses Mersenne Twister (period 2<sup>19937</sup>&minus;1), MRG32k3a
+                (designed for streams), PCG or xoshiro. Testing is done with the TestU01, Dieharder or NIST batteries.
+            </p>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Never use a cryptographic-strength requirement or a language's default `rand()` for serious
+                        stochastic simulation without checking its period and quality; and never seed with the clock
+                        when you need reproducibility. Every reported result should be accompanied by the generator
+                        name, the seed and the substream assignment.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s4"><span class="n">4.</span> Random Variates Generation</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p><span class="kw">Random variate generation</span> is the process of transforming uniform (0,1)
+                        pseudo-random numbers into observations from a specified probability distribution.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s4-1">4.1 Inverse transform method</h3>
+            <p>If <var>U</var> ~ Uniform(0,1) and <var>F</var> is a cdf, then <var>X</var> =
+                <var>F</var><sup>&minus;1</sup>(<var>U</var>) has cdf <var>F</var>.
+            </p>
+            <p><em>Proof:</em> P(<var>X</var> &le; <var>x</var>) = P(<var>F</var><sup>&minus;1</sup>(<var>U</var>) &le;
+                <var>x</var>) = P(<var>U</var> &le; <var>F</var>(<var>x</var>)) = <var>F</var>(<var>x</var>), because
+                <var>F</var> is non-decreasing and <var>U</var> is uniform. &#9632;
+            </p>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; exponential variates</div>
+                <div class="bb">
+                    <p><var>F</var>(<var>x</var>) = 1 &minus; e<sup>&minus;&lambda;<var>x</var></sup>. Set
+                        <var>u</var> = 1 &minus; e<sup>&minus;&lambda;<var>x</var></sup> and solve:
+                    </p>
+                    <div class="eq">
+                        <var>X</var> = &minus;(1/&lambda;) ln(1&minus;<var>U</var>) &nbsp;&equiv;&nbsp;
+                        &minus;(1/&lambda;) ln(<var>U</var>)
+                    </div>
+                    <p>(The second form is valid because 1&minus;<var>U</var> is also Uniform(0,1); guard against
+                        <var>U</var> = 0.) With &lambda; = 0.5 and <var>u</var> = 0.23,
+                        <var>x</var> = &minus;2 ln(0.77) = 0.523.
+                    </p>
+                </div>
+            </div>
+
+            <p>Other inverse-transform cases you should be able to derive on demand:</p>
+            <ul>
+                <li><span class="kw">Uniform(<var>a</var>,<var>b</var>):</span> <var>X</var> = <var>a</var> +
+                    (<var>b</var>&minus;<var>a</var>)<var>U</var>.</li>
+                <li><span class="kw">Weibull(<var>k</var>,&lambda;):</span> <var>X</var> = &lambda;(&minus;ln
+                    <var>U</var>)<sup>1/<var>k</var></sup>.</li>
+                <li><span class="kw">Triangular, Pareto, logistic</span> &mdash; all have closed-form inverses.</li>
+                <li><span class="kw">Discrete distributions:</span> build the cumulative table and return the first
+                    <var>x</var><sub><var>i</var></sub> with <var>F</var>(<var>x</var><sub><var>i</var></sub>) &ge;
+                    <var>u</var>; use a binary search or the alias method for large supports.
+                </li>
+                <li><span class="kw">Empirical continuous:</span> linear interpolation of the empirical cdf.</li>
+            </ul>
+
+            <h3 class="sub" id="s4-2">4.2 Acceptance&ndash;rejection method</h3>
+            <p>Used when <var>F</var><sup>&minus;1</sup> has no closed form. Choose a majorising function
+                <var>c</var><var>g</var>(<var>x</var>) &ge; <var>f</var>(<var>x</var>) where <var>g</var> is easy to
+                sample:</p>
+            <ol>
+                <li>Generate <var>Y</var> ~ <var>g</var>.</li>
+                <li>Generate <var>U</var> ~ Uniform(0,1).</li>
+                <li>If <var>U</var> &le; <var>f</var>(<var>Y</var>)/(<var>c</var><var>g</var>(<var>Y</var>)) accept
+                    <var>X</var> = <var>Y</var>; otherwise reject and repeat.
+                </li>
+            </ol>
+            <p>The expected number of trials per accepted variate is exactly <var>c</var>, so the method is efficient
+                only when the envelope hugs the density.</p>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; sampling <var>f</var>(<var>x</var>) = 3<var>x</var><sup>2</sup> on
+                    [0,1]
+                </div>
+                <div class="bb">
+                    <p>Take <var>g</var> = Uniform(0,1) so <var>g</var>(<var>x</var>) = 1, and <var>c</var> = 3 since
+                        max <var>f</var> = 3. Accept <var>Y</var> when <var>U</var> &le; <var>Y</var><sup>2</sup>. On
+                        average three pairs are drawn per accepted value. (Here the inverse transform
+                        <var>X</var> = <var>U</var><sup>1/3</sup> is obviously better &mdash; which is the point: use
+                        rejection only when inversion is unavailable.)
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s4-3">4.3 Special-purpose methods</h3>
+            <ul>
+                <li><span class="kw">Convolution</span> &mdash; a sum of variates: Erlang(<var>k</var>,&lambda;) =
+                    &minus;(1/&lambda;)ln(<var>U</var><sub>1</sub>&hellip;<var>U</var><sub><var>k</var></sub>);
+                    Binomial as a sum of Bernoullis.</li>
+                <li><span class="kw">Composition</span> &mdash; for a mixture distribution, first pick the component,
+                    then sample from it.</li>
+                <li><span class="kw">Box&ndash;Muller</span> for the Normal:
+                    <var>Z</var><sub>1</sub> = &radic;(&minus;2 ln <var>U</var><sub>1</sub>) cos(2&pi;<var>U</var><sub>2
+                    </sub>), <var>Z</var><sub>2</sub> = &radic;(&minus;2 ln <var>U</var><sub>1</sub>)
+                    sin(2&pi;<var>U</var><sub>2</sub>) &mdash; two independent standard normals per pair of uniforms;
+                    the polar (Marsaglia) variant avoids the trigonometric functions. Then
+                    <var>X</var> = &mu; + &sigma;<var>Z</var>.
+                </li>
+                <li><span class="kw">Poisson process</span> &mdash; generate exponential gaps; for a
+                    <em>non-homogeneous</em> process with rate &lambda;(<var>t</var>), use
+                    <span class="kw">thinning</span>: generate at the maximum rate &lambda;* and accept each point with
+                    probability &lambda;(<var>t</var>)/&lambda;*.
+                </li>
+                <li><span class="kw">Correlated variates</span> &mdash; use the Cholesky factor of the covariance
+                    matrix: <var>X</var> = &mu; + <var>L</var><var>Z</var>, or copulas for non-Normal dependence.</li>
+            </ul>
+
+            <h3 class="sub" id="s4-4">4.4 Output analysis: making the numbers mean something</h3>
+            <p>Generating the input is half of the statistics; interpreting the output is the other half.</p>
+            <ol>
+                <li><span class="kw">Terminating vs steady-state simulation.</span> A terminating simulation has a
+                    natural end (a bank day, one mission); a steady-state simulation studies long-run behaviour and
+                    needs a <span class="kw">warm-up (transient) period</span> to be discarded &mdash; identified with
+                    Welch's graphical procedure.</li>
+                <li><span class="kw">Independent replications.</span> Run <var>n</var> replications with different
+                    substreams; the replication means are i.i.d., so the classical confidence interval applies:</li>
+            </ol>
+            <div class="eq">
+                <var>X&#772;</var> &plusmn; <var>t</var><sub><var>n</var>&minus;1, 1&minus;&alpha;/2</sub>
+                &middot; <var>s</var>/&radic;<var>n</var>
+            </div>
+            <ol start="3">
+                <li><span class="kw">Batch means.</span> For one long steady-state run, split the series into
+                    <var>k</var> large batches, treat the batch means as approximately independent, and apply the same
+                    formula. Batches must be long enough for the autocorrelation to decay &mdash; otherwise the interval
+                    is too narrow and you will be over-confident.
+                </li>
+                <li><span class="kw">Comparing two systems.</span> Build a confidence interval on the
+                    <em>difference</em>. If it excludes zero, the difference is significant. Use
+                    <span class="kw">common random numbers</span> to induce positive correlation and shrink the interval.
+                </li>
+                <li><span class="kw">Choosing the run length.</span> To reach a target half-width <var>h</var>*
+                    from a pilot run of <var>n</var><sub>0</sub> replications with half-width <var>h</var><sub>0</sub>,
+                    use <var>n</var> &asymp; <var>n</var><sub>0</sub>(<var>h</var><sub>0</sub>/<var>h</var>*)<sup>2
+                    </sup>.</li>
+            </ol>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Computing a confidence interval from the individual observations <em>within</em> one run (e.g.
+                        the 10&nbsp;000 customer waiting times). Those are strongly autocorrelated &mdash; a long wait is
+                        followed by long waits &mdash; so the usual formula badly underestimates the variance. Use
+                        replications or batch means. This error is common enough that examiners ask about it directly.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s5"><span class="n">5.</span> Sensitivity Analysis</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p><span class="kw">Sensitivity analysis (SA)</span> is the study of how the variation in a model's
+                        output can be apportioned to variation in its inputs &mdash; parameters, initial conditions,
+                        distributional assumptions and structural choices.</p>
+                    <p>It is distinct from <span class="kw">uncertainty analysis</span>, which quantifies <em>how
+                            much</em> uncertainty the output has; SA asks <em>where that uncertainty comes from</em>.
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s5-1">5.1 Why it is done</h3>
+            <ol>
+                <li><span class="kw">Factor prioritisation</span> &mdash; which parameters deserve better measurement?
+                </li>
+                <li><span class="kw">Factor fixing</span> &mdash; which parameters can be frozen at a nominal value,
+                    simplifying the model?</li>
+                <li><span class="kw">Model verification</span> &mdash; a parameter that <em>should</em> matter but does
+                    not (or vice versa) usually indicates a bug.</li>
+                <li><span class="kw">Robustness of the recommendation</span> &mdash; does the preferred policy remain
+                    the best across the plausible parameter range?</li>
+                <li><span class="kw">Credibility</span> &mdash; SA is part of validation and of any serious VV&amp;A
+                    report (Units I and V).</li>
+            </ol>
+
+            <h3 class="sub" id="s5-2">5.2 Local (one-factor-at-a-time) sensitivity</h3>
+            <p>Perturb one input around its nominal value and measure the response:</p>
+            <div class="eq">
+                <var>S</var><sub><var>i</var></sub> = &part;<var>y</var>/&part;<var>x</var><sub><var>i</var></sub>
+                &asymp; (<var>y</var>(<var>x</var><sub><var>i</var></sub>+&Delta;) &minus;
+                <var>y</var>(<var>x</var><sub><var>i</var></sub>&minus;&Delta;)) / (2&Delta;), &nbsp;&nbsp;
+                <var>S</var><sub><var>i</var></sub><sup>rel</sup> = (&part;<var>y</var>/&part;<var>x</var><sub><var>i
+                        </var></sub>)(<var>x</var><sub><var>i</var></sub>/<var>y</var>)
+            </div>
+            <p>The <em>relative</em> (elasticity) form is what you should report, because it is dimensionless and
+                comparable across parameters: &ldquo;a 1% increase in service rate reduces mean wait by 4.6%&rdquo;.</p>
+            <p><span class="kw">Limitations:</span> local SA explores a single point of the input space, assumes
+                linearity, and completely misses interactions between factors. For a stochastic simulation, &Delta; must
+                also be large enough that the response rises above the noise &mdash; use common random numbers so that
+                the difference is not swamped by sampling variation.</p>
+
+            <h3 class="sub" id="s5-3">5.3 Global sensitivity analysis</h3>
+            <p>Global methods vary all inputs simultaneously over their full ranges.</p>
+            <ul>
+                <li><span class="kw">Scatter plots and regression.</span> Sample the inputs (Latin hypercube), run the
+                    model, and regress the output on standardised inputs. The
+                    <span class="kw">standardised regression coefficients</span> and the
+                    <span class="kw">partial rank correlation coefficients (PRCC)</span> rank the factors; valid when
+                    the model is monotonic and the regression <var>R</var><sup>2</sup> is high.
+                </li>
+                <li><span class="kw">Morris elementary effects (screening).</span> A cheap one-step-at-a-time design
+                    over a grid, repeated from many random starting points. Reports &mu;* (mean absolute effect,
+                    = importance) and &sigma; (spread, = non-linearity or interaction). Ideal as a first pass when the
+                    model has 20&ndash;100 inputs.</li>
+                <li><span class="kw">Variance-based (Sobol) indices.</span> The gold standard. Decompose the output
+                    variance into contributions from each factor and each interaction:</li>
+            </ul>
+            <div class="eq">
+                <var>S</var><sub><var>i</var></sub> = Var<sub><var>x</var><sub><var>i</var></sub></sub>(E[<var>Y</var>
+                |<var>x</var><sub><var>i</var></sub>]) / Var(<var>Y</var>), &nbsp;&nbsp;
+                <var>S</var><sub>T<var>i</var></sub> = 1 &minus; Var<sub><var>x</var><sub>&#8722;<var>i</var></sub></sub>
+                (E[<var>Y</var>|<var>x</var><sub>&#8722;<var>i</var></sub>]) / Var(<var>Y</var>)
+            </div>
+            <p><var>S</var><sub><var>i</var></sub> is the <span class="kw">first-order index</span> (the effect of
+                <var>x</var><sub><var>i</var></sub> alone); <var>S</var><sub>T<var>i</var></sub> is the
+                <span class="kw">total index</span> (its effect including all interactions). Interpretation rules worth
+                memorising:
+            </p>
+            <ul>
+                <li>&sum;<var>S</var><sub><var>i</var></sub> = 1 means the model is additive; a shortfall measures the
+                    strength of interactions.</li>
+                <li><var>S</var><sub>T<var>i</var></sub> &asymp; 0 means factor <var>i</var> can be safely fixed.</li>
+                <li><var>S</var><sub>T<var>i</var></sub> &raquo; <var>S</var><sub><var>i</var></sub> means factor
+                    <var>i</var> acts mainly through interactions.
+                </li>
+            </ul>
+            <ul>
+                <li><span class="kw">Metamodel-assisted SA.</span> When each run is expensive, fit a surrogate (kriging,
+                    polynomial chaos, random forest) to a designed set of runs and compute the indices on the surrogate,
+                    reporting the surrogate's own validation error.</li>
+                <li><span class="kw">Derivative-based measures and automatic differentiation</span> for models where a
+                    gradient can be obtained cheaply.</li>
+            </ul>
+
+            <div class="tw">
+                <table>
+                    <caption>Table 4.3 &mdash; Choosing a sensitivity method.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:22%">Method</th>
+                            <th style="width:22%">Cost (model runs)</th>
+                            <th>Use when</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Local OAT</td>
+                            <td>2<var>k</var> for <var>k</var> factors</td>
+                            <td>Quick check near a nominal design; nearly linear model</td>
+                        </tr>
+                        <tr>
+                            <td>Regression / PRCC on LHS</td>
+                            <td>Hundreds</td>
+                            <td>Monotonic model; want a ranked list quickly</td>
+                        </tr>
+                        <tr>
+                            <td>Morris screening</td>
+                            <td><var>r</var>(<var>k</var>+1), <var>r</var> &asymp; 10&ndash;50</td>
+                            <td>Many factors, need to eliminate the unimportant ones cheaply</td>
+                        </tr>
+                        <tr>
+                            <td>Sobol indices</td>
+                            <td><var>N</var>(<var>k</var>+2), <var>N</var> &asymp; 10<sup>3</sup>&ndash;10<sup>4</sup>
+                            </td>
+                            <td>Non-linear model with interactions; a defensible, quantitative attribution is needed
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Metamodel-based</td>
+                            <td>10<sup>2</sup> runs + surrogate</td>
+                            <td>Each run costs hours; accept surrogate error in exchange</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; sensitivity of a queueing model</div>
+                <div class="bb">
+                    <p>For M/M/1, <var>W</var> = 1/(&mu;&minus;&lambda;), so &part;<var>W</var>/&part;&lambda; =
+                        1/(&mu;&minus;&lambda;)<sup>2</sup>. At &lambda; = 12, &mu; = 15 the elasticity is
+                        (&lambda;/<var>W</var>)&part;<var>W</var>/&part;&lambda; = &lambda;/(&mu;&minus;&lambda;) = 4:
+                        a 1% rise in arrival rate lengthens the mean sojourn time by 4%. At &lambda; = 14.5 the
+                        elasticity is 29. The sensitivity itself depends violently on the operating point &mdash; which
+                        is exactly why a single local sensitivity number, quoted without its nominal point, is
+                        meaningless.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s5-4">5.4 Reporting sensitivity results</h3>
+            <ol>
+                <li>State the nominal values and the assumed range or distribution of every input.</li>
+                <li>State the output measure and the sampling design used.</li>
+                <li>Give a tornado diagram (local) or a bar chart of <var>S</var><sub><var>i</var></sub> and
+                    <var>S</var><sub>T<var>i</var></sub> (global).
+                </li>
+                <li>Separate <em>parametric</em> from <em>structural</em> uncertainty &mdash; changing a distributional
+                    assumption or a model mechanism is not a parameter sweep, and should be reported as an alternative
+                    scenario.</li>
+                <li>Conclude with the decision-relevant statement: which factors must be measured better, which can be
+                    ignored, and whether the recommendation is robust.</li>
+            </ol>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s6"><span class="n">6.</span> Unit Summary</h2>
+
+            <ul>
+                <li>Distribution choice is a modelling decision, not a formality; never use an unbounded symmetric
+                    distribution for a duration.</li>
+                <li>Kendall's notation names a queue; Little's law <var>L</var> = &lambda;<var>W</var> holds for
+                    essentially every stable system and is the first check on simulator output.</li>
+                <li>M/M/1: &rho; = &lambda;/&mu;, <var>L</var> = &rho;/(1&minus;&rho;), <var>W</var> =
+                    1/(&mu;&minus;&lambda;). Queues explode non-linearly as &rho; &rarr; 1.</li>
+                <li>Pollaczek&ndash;Khinchine shows congestion depends on service <em>variability</em> (CV), not on load
+                    alone.</li>
+                <li>Noise is characterised by its spectrum (white, pink, brown, shot); SDE noise scales with
+                    &radic;&Delta;<var>t</var>, and coloured noise comes from filtering white noise.</li>
+                <li>PRNGs must have long period, good equidistribution, reproducibility and independent substreams; test
+                    with TestU01, and always record the seed.</li>
+                <li>Variate generation: inverse transform (derive it!), acceptance&ndash;rejection with expected cost
+                    <var>c</var>, convolution, composition, Box&ndash;Muller, thinning for non-homogeneous Poisson,
+                    Cholesky for correlation.
+                </li>
+                <li>Output analysis: discard the warm-up, use independent replications or batch means, report confidence
+                    intervals, and compare systems using the interval on the difference with common random numbers.</li>
+                <li>Sensitivity analysis: local elasticities are cheap but blind to interactions; Morris screens, Sobol
+                    indices attribute variance (<var>S</var><sub><var>i</var></sub> vs <var>S</var><sub>T<var>i</var>
+                    </sub>), metamodels make it affordable.</li>
+            </ul>
+
+            <h3 class="sub" id="s6-1">6.1 Formula sheet</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 4.4 &mdash; Formulae to memorise for the examination.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:34%">Quantity</th>
+                            <th>Formula</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Little's law</td>
+                            <td><var>L</var> = &lambda;<var>W</var>; <var>L</var><sub><var>q</var></sub> =
+                                &lambda;<var>W</var><sub><var>q</var></sub></td>
+                        </tr>
+                        <tr>
+                            <td>M/M/1 utilisation, queue, time</td>
+                            <td>&rho; = &lambda;/&mu;; <var>L</var> = &rho;/(1&minus;&rho;);
+                                <var>L</var><sub><var>q</var></sub> = &rho;<sup>2</sup>/(1&minus;&rho;);
+                                <var>W</var> = 1/(&mu;&minus;&lambda;); <var>W</var><sub><var>q</var></sub> =
+                                &rho;/(&mu;&minus;&lambda;)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Pollaczek&ndash;Khinchine (M/G/1)</td>
+                            <td><var>L</var><sub><var>q</var></sub> = &rho;<sup>2</sup>(1+CV<sup>2</sup>) /
+                                (2(1&minus;&rho;))</td>
+                        </tr>
+                        <tr>
+                            <td>Inverse transform</td>
+                            <td><var>X</var> = <var>F</var><sup>&minus;1</sup>(<var>U</var>); exponential:
+                                <var>X</var> = &minus;(1/&lambda;)ln <var>U</var>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Acceptance&ndash;rejection</td>
+                            <td>accept if <var>U</var> &le; <var>f</var>(<var>Y</var>)/(<var>c</var><var>g</var>(<var>Y
+                                    </var>)); expected trials = <var>c</var></td>
+                        </tr>
+                        <tr>
+                            <td>Box&ndash;Muller</td>
+                            <td><var>Z</var> = &radic;(&minus;2 ln <var>U</var><sub>1</sub>)
+                                cos(2&pi;<var>U</var><sub>2</sub>)</td>
+                        </tr>
+                        <tr>
+                            <td>Confidence interval</td>
+                            <td><var>X&#772;</var> &plusmn; <var>t</var><sub><var>n</var>&minus;1,1&minus;&alpha;/2</sub>
+                                <var>s</var>/&radic;<var>n</var>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Replications for target half-width</td>
+                            <td><var>n</var> &asymp; <var>n</var><sub>0</sub>(<var>h</var><sub>0</sub>/<var>h</var>*)
+                                <sup>2</sup>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Elasticity</td>
+                            <td>(&part;<var>y</var>/&part;<var>x</var>)(<var>x</var>/<var>y</var>)</td>
+                        </tr>
+                        <tr>
+                            <td>Sobol indices</td>
+                            <td><var>S</var><sub><var>i</var></sub> = Var(E[<var>Y</var>|<var>x</var><sub><var>i</var>
+                                    </sub>])/Var(<var>Y</var>); <var>S</var><sub>T<var>i</var></sub> includes
+                                interactions</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s6-2">6.2 Practice questions</h3>
+
+            <h4 class="subsub">Short answer <span class="marks">(2&ndash;3 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Explain Kendall's notation with the example M/D/2/10.</li>
+                <li>State Little's law and one condition under which it holds.</li>
+                <li>Derive the inverse-transform generator for the exponential distribution.</li>
+                <li>What is the expected number of trials per variate in acceptance&ndash;rejection, and why?</li>
+                <li>Why must a Normal distribution not be used for service times?</li>
+                <li>Distinguish local and global sensitivity analysis in one sentence each.</li>
+                <li>What does a total Sobol index much larger than the first-order index indicate?</li>
+            </ol>
+
+            <h4 class="subsub">Medium answer <span class="marks">(5 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Jobs arrive at a server at 20/hour with exponential inter-arrival times; mean service time is 2.5
+                    minutes, exponentially distributed. Find &rho;, <var>L</var>, <var>L</var><sub><var>q</var></sub>,
+                    <var>W</var> and <var>W</var><sub><var>q</var></sub>, and verify Little's law.
+                </li>
+                <li>Explain the properties required of a pseudo-random number generator and describe one test used to
+                    validate one.</li>
+                <li>Describe the acceptance&ndash;rejection method and apply it to <var>f</var>(<var>x</var>) =
+                    2<var>x</var> on [0,1].</li>
+                <li>Explain warm-up removal and the batch-means method for steady-state output analysis.</li>
+                <li>Describe the Morris screening method and state what &mu;* and &sigma; tell you.</li>
+            </ol>
+
+            <h4 class="subsub">Long answer <span class="marks">(10 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Discuss random variate generation in full: inverse transform (with proof), acceptance&ndash;rejection
+                    (with efficiency), convolution, composition and special methods, giving one derived example each.
+                </li>
+                <li>Explain queueing systems, Kendall's notation, Little's law and the M/M/1 results; then explain, using
+                    the Pollaczek&ndash;Khinchine formula, why variability rather than load alone drives congestion, and
+                    why simulation is needed beyond these models.</li>
+                <li>Explain sensitivity analysis: purposes, local versus global methods, Sobol variance decomposition,
+                    metamodel-assisted analysis, and how results should be reported to a decision maker.</li>
+                <li>Describe the complete statistical procedure for a stochastic simulation study, from input
+                    distribution fitting to reporting a defensible comparison of two system designs.</li>
+            </ol>
+
+            <h3 class="sub" id="s6-3">6.3 Further reading</h3>
+            <ul>
+                <li>A. M. Law, <em>Simulation Modeling and Analysis</em> &mdash; chapters on input modelling, random
+                    number generation and output analysis.</li>
+                <li>S. Asmussen and P. W. Glynn, <em>Stochastic Simulation: Algorithms and Analysis</em>, Springer.</li>
+                <li>L. Devroye, <em>Non-Uniform Random Variate Generation</em> (freely available) &mdash; the reference
+                    for Section 4.</li>
+                <li>A. Saltelli <em>et al.</em>, <em>Global Sensitivity Analysis: The Primer</em> &mdash; for
+                    Section 5.</li>
+                <li>D. Gross and C. M. Harris, <em>Fundamentals of Queueing Theory</em> &mdash; for Section 2.</li>
+            </ul>
+
+            <div class="pager">
+                <a href="../Unit III/MS_Unit3_Notes.html">&larr; Unit III: Parallel and Distributed Simulations</a>
+                <a href="../Unit V/MS_Unit5_Notes.html">Unit V: Results Analysis and Viewing Tools &rarr;</a>
+            </div>
+
+            <div class="docfoot">
+                CSEG8003 Modelling and Simulation &middot; Unit IV student notes &middot; Dr. Mohsin Furkh Dar &middot;
+                UPES
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../assets/notes.js"></script>
+</body>
+
+</html>

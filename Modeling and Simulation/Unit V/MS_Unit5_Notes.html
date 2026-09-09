@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG8003 · Unit V Notes — Simulation Results Analysis and Viewing Tools</title>
+    <meta name="description"
+        content="Student lecture notes for Unit V of Modelling and Simulation (CSEG8003): display forms including tables, graphs and multidimensional visualization; terminal, X Window, MS Windows and web interfaces for simulation tools; and validation of model results.">
+    <link rel="stylesheet" href="../assets/notes.css">
+</head>
+
+<body>
+    <div class="readbar"></div>
+
+    <div class="topbar">
+        <span class="code">CSEG8003</span>
+        <a href="../index.html">Course home</a>
+        <a href="../../index.html">Portal</a>
+        <span class="spacer"></span>
+        <button type="button" data-action="theme">Dark / Light</button>
+        <button type="button" data-action="print">Print / PDF</button>
+    </div>
+
+    <div class="wrap">
+        <aside class="toc" id="toc">
+            <h2>Contents</h2>
+        </aside>
+
+        <main class="page">
+
+            <div class="titleblock">
+                <div class="school">UPES &middot; School of Computer Science</div>
+                <div class="course">CSEG8003 &mdash; Modelling and Simulation &middot; L-T-P-C 2-0-1-3</div>
+                <div class="unitno">Unit V</div>
+                <div class="unit">Simulation Results Analysis and Viewing Tools</div>
+                <div class="sub">4 lecture hours &middot; Theory notes &middot; Dr. Mohsin Furkh Dar</div>
+                <div class="badges">
+                    <span>CO4</span>
+                    <span>Tables &amp; graphs</span>
+                    <span>Multidimensional visualization</span>
+                    <span>Interfaces</span>
+                    <span>Validation</span>
+                </div>
+            </div>
+
+            <div class="box exam">
+                <div class="bt">Where this unit sits</div>
+                <div class="bb">
+                    <p>A simulation produces a file of numbers. Nobody makes a decision from a file of numbers. This
+                        unit is about the two steps that turn output into a defensible conclusion:</p>
+                    <ol>
+                        <li><span class="kw">Presentation</span> &mdash; tables, graphs and multidimensional
+                            visualization (Sections 1&ndash;3), delivered through some interface (Section 4).</li>
+                        <li><span class="kw">Validation</span> &mdash; the evidence that the results deserve to be
+                            believed at all (Section 5).</li>
+                    </ol>
+                    <p>Section&nbsp;5 is the most heavily examined topic in this unit, and the one your laboratory
+                        Experiment&nbsp;9 assesses directly.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s1"><span class="n">1.</span> From Raw Output to Reportable Results</h2>
+
+            <h3 class="sub" id="s1-1">1.1 What a simulation actually produces</h3>
+            <ul>
+                <li><span class="kw">Time series</span> &mdash; state sampled every step or every event (queue length,
+                    temperature, population).</li>
+                <li><span class="kw">Event traces / logs</span> &mdash; one record per event; the raw material for
+                    verification and for post-hoc statistics.</li>
+                <li><span class="kw">Summary statistics per replication</span> &mdash; the mean waiting time of run 7.
+                </li>
+                <li><span class="kw">Fields / snapshots</span> &mdash; the whole mesh or grid at selected times; large.
+                </li>
+                <li><span class="kw">Scenario matrices</span> &mdash; one row per parameter combination in a sweep.
+                </li>
+            </ul>
+
+            <h3 class="sub" id="s1-2">1.2 The processing pipeline</h3>
+            <ol>
+                <li><span class="kw">Collect</span> in a machine-readable format &mdash; CSV or Parquet for tables,
+                    HDF5/NetCDF for fields, JSON for metadata. Never in a format that only your GUI can read.</li>
+                <li><span class="kw">Clean and truncate</span> &mdash; discard the warm-up period (Unit IV), handle
+                    incomplete runs explicitly rather than silently.</li>
+                <li><span class="kw">Aggregate</span> &mdash; means, quantiles, time-weighted averages, and confidence
+                    intervals across replications.</li>
+                <li><span class="kw">Compare</span> &mdash; differences between scenarios with intervals, not bare
+                    numbers.</li>
+                <li><span class="kw">Present</span> &mdash; the subject of Sections 2&ndash;4.</li>
+                <li><span class="kw">Archive</span> &mdash; results with the model version, parameters, seeds and
+                    software versions, so the figure can be regenerated a year later.</li>
+            </ol>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Provenance</div>
+                <div class="bb">
+                    <p><span class="kw">Provenance</span> is the recorded lineage of a result: which model version,
+                        which input data, which parameters, which random seeds, which software and hardware produced
+                        this exact figure. A result without provenance cannot be reproduced and, in a professional
+                        setting, cannot be defended.</p>
+                </div>
+            </div>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Producing charts by manual clicking in a spreadsheet. Every figure should be regenerated by a
+                        script from the archived result file. If a reviewer asks for the same plot with a different
+                        confidence level, this should cost one command, not one afternoon &mdash; and manual steps are
+                        exactly where transcription errors enter.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s2"><span class="n">2.</span> Display Forms I: Tables and Graphs</h2>
+
+            <h3 class="sub" id="s2-1">2.1 Tables</h3>
+            <p>A table is the right display when the reader needs <em>exact values</em>, when there are few numbers,
+                when the quantities have different units, or when the result must be looked up rather than compared
+                visually.</p>
+            <ol>
+                <li>One row per scenario, one column per measure; keep the ordering meaningful (by performance, not
+                    alphabetical).</li>
+                <li>Report <span class="kw">estimate &plusmn; half-width</span>, or the interval, with the confidence
+                    level and the number of replications stated in the caption.</li>
+                <li>Round to the precision the confidence interval justifies. Writing 4.283719 minutes when the interval
+                    is &plusmn;0.4 is false precision and loses marks in a report.</li>
+                <li>Right-align numbers, use a consistent number of decimals, and state units in the header.</li>
+                <li>Highlight the best value per column, but never colour a table so heavily that it becomes a bad
+                    graph.</li>
+            </ol>
+
+            <div class="tw">
+                <table>
+                    <caption>Table 5.1 &mdash; Example of a correctly reported comparison. Mean waiting time, 30
+                        replications, 95% confidence intervals, common random numbers used across designs.</caption>
+                    <thead>
+                        <tr>
+                            <th>Design</th>
+                            <th>Servers</th>
+                            <th>Mean wait (min)</th>
+                            <th>95% CI</th>
+                            <th>Utilisation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Baseline</td>
+                            <td>2</td>
+                            <td>8.4</td>
+                            <td>[7.9, 8.9]</td>
+                            <td>0.88</td>
+                        </tr>
+                        <tr>
+                            <td>Add one server</td>
+                            <td>3</td>
+                            <td>2.1</td>
+                            <td>[1.9, 2.3]</td>
+                            <td>0.59</td>
+                        </tr>
+                        <tr>
+                            <td>Faster service (&minus;15%)</td>
+                            <td>2</td>
+                            <td>4.6</td>
+                            <td>[4.2, 5.0]</td>
+                            <td>0.75</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s2-2">2.2 Graphs: choosing the right chart</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 5.2 &mdash; Chart types and the question each answers.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:24%">Chart</th>
+                            <th style="width:34%">Answers the question</th>
+                            <th>Simulation use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Line / time series</td>
+                            <td>How does it evolve?</td>
+                            <td>Queue length over time; convergence of a running mean; warm-up identification</td>
+                        </tr>
+                        <tr>
+                            <td>Bar chart with error bars</td>
+                            <td>Which category is larger, and is the difference real?</td>
+                            <td>Comparing scenario means with confidence intervals</td>
+                        </tr>
+                        <tr>
+                            <td>Histogram / density</td>
+                            <td>What is the shape of the distribution?</td>
+                            <td>Waiting-time distribution; showing that the mean hides a long tail</td>
+                        </tr>
+                        <tr>
+                            <td>Box plot / violin</td>
+                            <td>How do several distributions compare?</td>
+                            <td>Spread across replications or scenarios</td>
+                        </tr>
+                        <tr>
+                            <td>Scatter plot</td>
+                            <td>Are two variables related?</td>
+                            <td>Input vs output in sensitivity analysis; simulated vs observed in validation</td>
+                        </tr>
+                        <tr>
+                            <td>Q&ndash;Q plot</td>
+                            <td>Do two distributions match?</td>
+                            <td>Distribution fitting; comparing model output with field data</td>
+                        </tr>
+                        <tr>
+                            <td>Heatmap</td>
+                            <td>How does an output vary over two parameters?</td>
+                            <td>Two-factor parameter sweeps; spatial fields on a grid</td>
+                        </tr>
+                        <tr>
+                            <td>Tornado diagram</td>
+                            <td>Which input matters most?</td>
+                            <td>Local sensitivity results (Unit IV)</td>
+                        </tr>
+                        <tr>
+                            <td>Contour / surface</td>
+                            <td>What does the response surface look like?</td>
+                            <td>Optimisation landscapes, field solutions</td>
+                        </tr>
+                        <tr>
+                            <td>Gantt / timeline</td>
+                            <td>When was each resource busy?</td>
+                            <td>Verification of schedules and resource contention</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s2-3">2.3 Principles of honest graphics</h3>
+            <ol>
+                <li><span class="kw">Show the uncertainty.</span> A mean without an interval is an opinion. Error bars,
+                    bands, or all replication traces in light grey behind the mean.</li>
+                <li><span class="kw">Do not truncate a bar-chart axis at a non-zero value</span> &mdash; it exaggerates
+                    differences. Line charts of a narrow range may be zoomed, but say so.</li>
+                <li><span class="kw">Maximise the data-ink ratio</span> (Tufte): delete gridlines, 3-D effects,
+                    shadows, and decorative fills. A 3-D pie chart of simulation results is indefensible.</li>
+                <li><span class="kw">Label directly</span> where possible instead of forcing the reader into a legend.
+                </li>
+                <li><span class="kw">Use colour meaningfully</span> &mdash; sequential palettes for magnitude, diverging
+                    for deviation about a reference, categorical for unordered classes. Avoid rainbow scales: they
+                    create false boundaries and are not perceptually uniform. Prefer viridis or cividis.</li>
+                <li><span class="kw">Design for accessibility</span> &mdash; about 8% of male readers have a colour
+                    vision deficiency; encode with shape or line style as well as colour, and check the figure in
+                    greyscale.</li>
+                <li><span class="kw">Keep the same axes when comparing panels</span>, otherwise the comparison is
+                    visual nonsense.</li>
+                <li><span class="kw">Caption completely</span>: what is plotted, how many replications, what the band
+                    means, and which model version produced it.</li>
+            </ol>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Plotting a single replication of a stochastic simulation and drawing a conclusion from its
+                        wiggles. Every feature of that curve may be noise. Plot the mean across replications with a
+                        confidence band, or overlay all replications so the reader can see the spread.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s3"><span class="n">3.</span> Display Forms II: Multidimensional Visualization</h2>
+
+            <p>Simulation output is rarely two-dimensional: a parameter sweep may have six inputs and four outputs, and
+                a mesh simulation has three space dimensions plus time plus several fields. Multidimensional
+                visualization is the set of techniques for showing more variables than a plane naturally allows.</p>
+
+            <h3 class="sub" id="s3-1">3.1 Visual channels for extra dimensions</h3>
+            <p>Beyond <var>x</var> and <var>y</var>, a plot can encode variables in <span class="kw">colour</span>,
+                <span class="kw">size</span>, <span class="kw">shape</span>, <span class="kw">orientation</span>,
+                <span class="kw">texture</span>, <span class="kw">opacity</span>, <span class="kw">animation over
+                    time</span>, and <span class="kw">position in small multiples</span>. Ranked by accuracy of human
+                perception (Cleveland &amp; McGill): position &gt; length &gt; angle &gt; area &gt; colour saturation.
+                Put your most important variable on position, never on colour intensity.
+            </p>
+
+            <h3 class="sub" id="s3-2">3.2 Techniques for many variables</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 5.3 &mdash; Multidimensional visualization techniques.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:26%">Technique</th>
+                            <th style="width:34%">Idea</th>
+                            <th>Good for / limits</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Scatterplot matrix (SPLOM)</td>
+                            <td>All pairwise scatter plots in a grid</td>
+                            <td>Up to ~8 variables; shows pairwise structure only</td>
+                        </tr>
+                        <tr>
+                            <td>Small multiples (trellis)</td>
+                            <td>Repeat the same plot per level of another factor</td>
+                            <td>Excellent and honest; limited by page area</td>
+                        </tr>
+                        <tr>
+                            <td>Parallel coordinates</td>
+                            <td>Each variable an axis; each run a polyline crossing them</td>
+                            <td>Many variables and many runs; clutters without brushing and axis reordering</td>
+                        </tr>
+                        <tr>
+                            <td>Bubble chart</td>
+                            <td><var>x</var>, <var>y</var>, size, colour = 4 variables</td>
+                            <td>Compact; area is judged poorly, so keep it for secondary variables</td>
+                        </tr>
+                        <tr>
+                            <td>Heatmap / matrix</td>
+                            <td>Two factors on the axes, output as colour</td>
+                            <td>Parameter sweeps and correlation matrices; needs a good colour map</td>
+                        </tr>
+                        <tr>
+                            <td>Dimensionality reduction (PCA, t-SNE, UMAP)</td>
+                            <td>Project high-dimensional runs into 2-D</td>
+                            <td>Finding clusters of similar behaviour; axes are not interpretable, distances can mislead
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Glyphs (star plots, Chernoff faces)</td>
+                            <td>Each observation drawn as a small multi-attribute icon</td>
+                            <td>Small datasets; largely superseded, mention for completeness</td>
+                        </tr>
+                        <tr>
+                            <td>Linked views with brushing</td>
+                            <td>Selecting in one view highlights the same records in all views</td>
+                            <td>The single most effective interactive technique for exploring simulation output</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s3-3">3.3 Scientific (field) visualization</h3>
+            <p>For mesh-based and particle simulations the data is a field over space and time, and a different toolkit
+                applies:</p>
+            <ul>
+                <li><span class="kw">Slices and cutting planes</span> &mdash; reduce 3-D to 2-D at a chosen location.
+                </li>
+                <li><span class="kw">Iso-surfaces and contours</span> &mdash; the surface where a field equals a chosen
+                    value (e.g. a temperature front).</li>
+                <li><span class="kw">Volume rendering</span> &mdash; map scalar value to colour and opacity through a
+                    transfer function; shows interior structure but is sensitive to that function.</li>
+                <li><span class="kw">Vector-field methods</span> &mdash; arrow glyphs, streamlines, pathlines,
+                    streaklines, line integral convolution.</li>
+                <li><span class="kw">Feature extraction</span> &mdash; detect and track vortices, shocks, cracks or
+                    clusters, then visualise only those; essential when the raw field is too large to store.</li>
+                <li><span class="kw">Animation</span> &mdash; time as time. Powerful for communicating dynamics, but
+                    useless for precise comparison, so always pair an animation with static summary charts.</li>
+            </ul>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; In-situ visualization</div>
+                <div class="bb">
+                    <p><span class="kw">In-situ (co-processing) visualization</span> performs the analysis and rendering
+                        <em>inside</em> the running simulation, on the same nodes, so that only images and extracted
+                        features are written to disk instead of the full field data. It exists because I/O bandwidth has
+                        not kept pace with computation (Unit III): a large run can generate petabytes that could never
+                        be stored, let alone re-read.
+                    </p>
+                </div>
+            </div>
+
+            <p>Tools: ParaView/Catalyst, VisIt/Libsim, Ascent for in-situ and large-field visualization; Matplotlib,
+                Seaborn, Plotly, Bokeh, Altair and D3.js for statistical and web graphics; Tableau and Power BI for
+                dashboards.</p>
+
+            <div class="box exam">
+                <div class="bt">Exam tip</div>
+                <div class="bb">
+                    <p>For &ldquo;discuss display forms for simulation results&rdquo;, organise the answer as
+                        <em>tables &rarr; standard 2-D charts &rarr; multidimensional techniques &rarr; scientific
+                            field visualization &rarr; principles of honest presentation</em>. Give the selection
+                        criterion for each (exact values, evolution, distribution, comparison, spatial structure) and
+                        name two tools. Adding the data-ink and rainbow-colour-map points shows judgement, not just
+                        recall.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s4"><span class="n">4.</span> Interfaces: Terminals, X and MS Windows, and the Web</h2>
+
+            <p>The syllabus lists these three interface generations because each is still in use, and each is the right
+                answer in different circumstances.</p>
+
+            <h3 class="sub" id="s4-1">4.1 Terminal / command-line interfaces</h3>
+            <ul>
+                <li><span class="kw">What it is:</span> the simulation is run as a program with arguments or a
+                    configuration file, writing text and result files; possibly with a curses/TUI progress display.</li>
+                <li><span class="kw">Why it still dominates HPC:</span> it is scriptable, remote-friendly over SSH,
+                    works under batch schedulers (Slurm, PBS) where no display exists, composes with shell pipelines,
+                    and is trivially reproducible &mdash; the command line <em>is</em> the provenance record.</li>
+                <li><span class="kw">Design rules:</span> every parameter settable from a config file; a
+                    <code>--seed</code> option; deterministic output paths; progress and errors to stderr, data to
+                    stdout or a file; a non-zero exit code on failure so a workflow can detect it.
+                </li>
+                <li><span class="kw">Limits:</span> no interactive exploration, steep learning curve for domain experts
+                    who are not programmers.</li>
+            </ul>
+
+            <h3 class="sub" id="s4-2">4.2 X Window System and native desktop GUIs</h3>
+            <ul>
+                <li><span class="kw">X11</span> is the classical UNIX windowing system, built on a
+                    <span class="kw">client&ndash;server, network-transparent</span> model: the X <em>server</em> owns
+                    the display and input devices on the user's machine, while the application (the X <em>client</em>)
+                    may run on a remote compute server and draw across the network. This is why
+                    <code>ssh -X</code> can display a simulation's window from a cluster on your laptop &mdash; the
+                    property that made X the standard for scientific workstations. Toolkits: Motif and Xt historically;
+                    Qt and GTK today; Wayland is the modern replacement for X on Linux desktops.
+                </li>
+                <li><span class="kw">MS Windows</span> GUIs use an event-driven message-loop model (WinAPI, MFC, .NET
+                    WinForms/WPF), and commercial simulation packages (Arena, Simul8, FlexSim, MATLAB) established the
+                    familiar pattern: a model canvas, a properties panel, run controls, animation, and a report window.
+                </li>
+                <li><span class="kw">Strengths:</span> rich interactivity, animation of the running model (which is a
+                    superb <em>verification</em> tool &mdash; you literally watch entities move and immediately see
+                    logic errors), direct manipulation of the model, immediate feedback.</li>
+                <li><span class="kw">Limits:</span> platform-bound, installation and licensing overhead, click-driven
+                    workflows that are hard to reproduce or to batch, and poor performance over a slow network link.
+                </li>
+            </ul>
+
+            <h3 class="sub" id="s4-3">4.3 Web interfaces</h3>
+            <p>The modern default for delivering simulation to users, and the target of your laboratory
+                Experiment&nbsp;10.</p>
+            <ol>
+                <li><span class="kw">Architecture:</span> a browser front end (HTML/CSS/JavaScript, or a framework such
+                    as React) talks over HTTP/REST or WebSocket to a back end (Flask/FastAPI/Django, Node) that owns the
+                    simulation engine and a job queue; results are stored and returned as JSON or files.</li>
+                <li><span class="kw">Patterns:</span> submit-and-poll for long runs; WebSocket streaming for live
+                    progress and animation; server-side rendering of large images (the in-situ idea again) versus
+                    client-side rendering with Plotly, D3 or WebGL/three.js for interactive small data.</li>
+                <li><span class="kw">Dashboard frameworks</span> that avoid writing JavaScript: Dash, Streamlit, Panel,
+                    Bokeh server, Shiny, Voil&agrave; &mdash; the pragmatic choice for research tools.</li>
+                <li><span class="kw">Strengths:</span> zero installation, cross-platform, shareable by URL, naturally
+                    multi-user and collaborative, easy to place in front of a cluster, and the same interface serves a
+                    laptop and a phone.</li>
+                <li><span class="kw">Challenges:</span> long-running jobs do not fit the request/response model (needs a
+                    queue and job IDs); large result transfers; authentication, authorisation and quota control;
+                    reproducibility of user-driven sessions; and browser resource limits for very large geometry.</li>
+                <li><span class="kw">Security duties</span> when a web page can launch computation: validate and bound
+                    every parameter server-side, never pass user input to a shell, rate-limit and quota jobs, run the
+                    engine in a sandbox or container with resource limits, and authenticate before allowing expensive
+                    runs.</li>
+            </ol>
+
+            <div class="tw">
+                <table>
+                    <caption>Table 5.4 &mdash; Choosing an interface for a simulation tool.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:20%">Interface</th>
+                            <th style="width:26%">Best for</th>
+                            <th>Weakness</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Terminal / CLI</td>
+                            <td>Batch runs, HPC, parameter sweeps, reproducible pipelines</td>
+                            <td>No exploration; unfriendly to non-programmers</td>
+                        </tr>
+                        <tr>
+                            <td>X / native GUI</td>
+                            <td>Model building, animation-based verification, heavy 3-D interaction</td>
+                            <td>Installation, licensing, platform lock-in, poor reproducibility</td>
+                        </tr>
+                        <tr>
+                            <td>Web</td>
+                            <td>Sharing with stakeholders, dashboards, multi-user access, teaching</td>
+                            <td>Long-job handling, data transfer, security surface</td>
+                        </tr>
+                        <tr>
+                            <td>Notebook (Jupyter)</td>
+                            <td>Analysis, teaching, reproducible exploration with narrative</td>
+                            <td>Hidden execution order; not a production interface</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="callout">The mature answer is that these are <em>layers</em>, not rivals: a scriptable engine at
+                the bottom, a documented API in the middle, and any number of interfaces (CLI, notebook, desktop, web)
+                on top. Never bury the simulation logic inside the GUI &mdash; that is the design error that makes a
+                tool impossible to batch, to test or to reuse.</p>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s5"><span class="n">5.</span> Validation of Model Results</h2>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Verification, Validation, Accreditation</div>
+                <div class="bb">
+                    <p><span class="kw">Verification</span>: determining that the model is implemented correctly
+                        &mdash; that the computer program is a faithful representation of the conceptual model.
+                        <em>Did we build the model right?</em>
+                    </p>
+                    <p><span class="kw">Validation</span>: determining that the model is an accurate representation of
+                        the real system <em>for the intended purpose</em>. <em>Did we build the right model?</em></p>
+                    <p><span class="kw">Accreditation</span>: the official certification by a responsible authority
+                        that a model is acceptable for a specific application.</p>
+                </div>
+            </div>
+
+            <div class="callout">
+                <p>Validity is never absolute. A model is valid <em>for a purpose</em>, <em>within a domain</em>, to a
+                    <em>stated accuracy</em>. Any answer that claims a model is simply &ldquo;validated&rdquo; without
+                    those three qualifiers is incomplete.
+                </p>
+            </div>
+
+            <h3 class="sub" id="s5-1">5.1 Verification techniques</h3>
+            <ol>
+                <li><span class="kw">Structured walkthrough</span> of the code and the event logic with a colleague.
+                </li>
+                <li><span class="kw">Trace analysis</span> &mdash; follow a few entities event by event and check by
+                    hand that state changes are correct.</li>
+                <li><span class="kw">Degeneracy and extreme-condition tests</span> &mdash; zero arrivals, one entity,
+                    infinite service rate, zero capacity. The output must be obviously right (or the model must
+                    correctly refuse).</li>
+                <li><span class="kw">Comparison with analytical results</span> &mdash; simulate M/M/1 and check
+                    <var>L</var> and <var>W</var> against the Unit IV formulae; this is the single most valuable
+                    verification test for a queueing simulator.
+                </li>
+                <li><span class="kw">Consistency checks and invariants</span> &mdash; conservation of entities, mass or
+                    energy; Little's law on the measured output; non-negative queues.</li>
+                <li><span class="kw">Continuity and monotonicity tests</span> &mdash; a small change of input should
+                    give a small change of output unless a threshold is crossed; more servers must not increase waiting.
+                </li>
+                <li><span class="kw">Seed and independence checks</span> &mdash; the same seed reproduces the run
+                    exactly; different seeds give different but statistically consistent runs.</li>
+                <li><span class="kw">Convergence / mesh refinement</span> for continuous models (Unit I).</li>
+                <li><span class="kw">Unit and regression tests</span> in the software-engineering sense, run
+                    automatically.</li>
+            </ol>
+
+            <h3 class="sub" id="s5-2">5.2 Validation techniques</h3>
+            <p>Naylor and Finger's three-step approach is the classical framing, and Sargent's catalogue is the standard
+                list of techniques; both are worth citing.</p>
+
+            <h4 class="subsub">(a) Face validity and conceptual validation</h4>
+            <ul>
+                <li><span class="kw">Face validity</span> &mdash; do domain experts, shown the model's behaviour, judge
+                    it reasonable? Subjective but the cheapest way to catch a structurally wrong model.</li>
+                <li><span class="kw">Assumption review</span> &mdash; every simplification listed and justified against
+                    the intended purpose.</li>
+                <li><span class="kw">Theoretical validity</span> &mdash; the mechanisms agree with accepted theory in
+                    the domain.</li>
+            </ul>
+
+            <h4 class="subsub">(b) Input data validation</h4>
+            <p>Garbage in, garbage out: distributions must be fitted and tested (Unit IV), data sources documented, and
+                the period covered stated. A model can be perfectly implemented and still wrong because the arrival rate
+                came from an unrepresentative week.</p>
+
+            <h4 class="subsub">(c) Output (operational) validation &mdash; the core</h4>
+            <ol>
+                <li><span class="kw">Comparison with historical/field data.</span> Run the model under the historical
+                    conditions and compare output distributions with observed ones.</li>
+                <li><span class="kw">Statistical comparison.</span> Use a confidence interval on the
+                    <em>difference</em> between simulated and observed means; two-sample <var>t</var>-tests;
+                    Kolmogorov&ndash;Smirnov or Anderson&ndash;Darling to compare whole distributions; time-series
+                    comparison via spectral or autocorrelation analysis. Report error metrics:
+                </li>
+            </ol>
+            <div class="eq">
+                RMSE = &radic;((1/<var>n</var>)&sum;(<var>y</var><sub><var>i</var></sub>&minus;<var>&#375;</var><sub>
+                    <var>i</var></sub>)<sup>2</sup>), &nbsp;&nbsp; MAPE = (100/<var>n</var>)&sum;|(<var>y</var><sub>
+                    <var>i</var></sub>&minus;<var>&#375;</var><sub><var>i</var></sub>)/<var>y</var><sub><var>i</var>
+                </sub>|, &nbsp;&nbsp; Theil's <var>U</var>
+            </div>
+            <ol start="3">
+                <li><span class="kw">Data splitting.</span> Calibrate on one part of the data, validate on a
+                    <em>held-out</em> part. Fitting and validating on the same data proves nothing.
+                </li>
+                <li><span class="kw">Predictive validation.</span> The strongest evidence: the model predicts an outcome
+                    that is then observed.</li>
+                <li><span class="kw">Event validity.</span> Compare the number and timing of characteristic events
+                    (failures, peaks, blockages), not only the means.</li>
+                <li><span class="kw">Turing test.</span> Show experts mixed real and simulated output records and ask
+                    them to identify which is which. If they cannot do better than chance, that is meaningful evidence.
+                </li>
+                <li><span class="kw">Extreme condition and stress validation.</span> The model must behave plausibly
+                    under conditions outside normal operation.</li>
+                <li><span class="kw">Sensitivity analysis as validation</span> (Unit IV) &mdash; the model's response to
+                    each factor should agree with the direction and rough magnitude that domain experts expect.</li>
+                <li><span class="kw">Docking / cross-model validation.</span> Compare against an independent model of
+                    the same system, ideally built by a different team or in a different paradigm.</li>
+            </ol>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; validating a traffic-flow simulation (Experiment 9)</div>
+                <div class="bb">
+                    <ol>
+                        <li><em>Verification:</em> conservation of vehicles (in &minus; out = change in occupancy); a
+                            single vehicle on an empty road travels at free-flow speed; the same seed reproduces the run
+                            exactly.</li>
+                        <li><em>Analytical check:</em> at low density the flow&ndash;density relation must follow
+                            <var>q</var> = <var>k</var><var>v</var><sub>free</sub>, matching the fundamental diagram.
+                        </li>
+                        <li><em>Data comparison:</em> simulated hourly flows against loop-detector counts for the same
+                            day; report RMSE and MAPE, and plot simulated vs observed with the 45&deg; line.</li>
+                        <li><em>Distributional check:</em> K&ndash;S test on travel-time distributions, not just means.
+                        </li>
+                        <li><em>Held-out validation:</em> calibrate on Monday&ndash;Thursday, validate on Friday.</li>
+                        <li><em>Event validity:</em> does congestion begin at the observed time and location?</li>
+                        <li><em>Extreme conditions:</em> close a lane &mdash; queues must form upstream, not downstream.
+                        </li>
+                        <li><em>Report:</em> intervals, error metrics, the domain of validity (peak-hour weekday urban
+                            arterial), and the assumptions that limit it.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s5-3">5.3 When you cannot validate</h3>
+            <p>Some models have no data to validate against: a system not yet built, a pandemic that has not happened, a
+                far-future scenario. Then you must be explicit about what you <em>can</em> establish:</p>
+            <ul>
+                <li>Verification of the implementation, in full.</li>
+                <li>Validation of the <em>components</em> and sub-models against data where it exists.</li>
+                <li>Structural/theoretical validity of the mechanisms.</li>
+                <li>Behavioural validity: the model reproduces qualitative patterns known to occur (pattern-oriented
+                    modelling).</li>
+                <li>Thorough sensitivity and uncertainty analysis, reported as ranges rather than point predictions.</li>
+                <li>An explicit statement that the results are <em>conditional projections under stated assumptions</em>,
+                    not predictions. This is an ethical requirement (Unit I, Section 11), not merely a stylistic one.
+                </li>
+            </ul>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Treating a good fit to historical data as proof of validity. A model with enough free parameters
+                        can fit anything (over-fitting), and a fit to aggregate output does not validate the
+                        <em>mechanism</em>: two different mechanisms can produce the same curve. Always validate on
+                        held-out data, and validate intermediate quantities as well as the headline output.
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s5-4">5.4 Reporting: the credibility checklist</h3>
+            <ol>
+                <li>Purpose and the questions the model was built to answer.</li>
+                <li>Conceptual model, assumptions and their justification.</li>
+                <li>Input data sources, fitted distributions and goodness-of-fit evidence.</li>
+                <li>Verification evidence (tests performed and passed).</li>
+                <li>Validation evidence with error metrics and the comparison data.</li>
+                <li>Experimental design: warm-up, run length, replications, seeds.</li>
+                <li>Results with confidence intervals and the appropriate display forms.</li>
+                <li>Sensitivity and uncertainty analysis.</li>
+                <li>Stated domain of validity and known limitations.</li>
+                <li>Provenance: model version, code repository, parameters and software environment.</li>
+            </ol>
+
+            <div class="box exam">
+                <div class="bt">Exam tip</div>
+                <div class="bb">
+                    <p>&ldquo;Explain validation of simulation results&rdquo; is the flagship 10-mark question of this
+                        unit. Structure: the three definitions (V, V&amp;A) &rarr; the &ldquo;valid for a purpose,
+                        within a domain, to an accuracy&rdquo; caveat &rarr; verification techniques (list six) &rarr;
+                        validation in three layers: conceptual, input data, operational &rarr; the statistical
+                        comparison methods with RMSE/MAPE and held-out data &rarr; what to do when no data exists &rarr;
+                        the reporting checklist. A worked example makes it a full-mark answer.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s6"><span class="n">6.</span> Unit Summary</h2>
+
+            <ul>
+                <li>Raw output becomes a result through a pipeline: collect in open formats, truncate the warm-up,
+                    aggregate with intervals, compare, present, archive with provenance.</li>
+                <li>Tables give exact values with intervals and honest precision; charts answer specific questions
+                    &mdash; evolution, distribution, comparison, relationship, spatial structure.</li>
+                <li>Honest graphics: show uncertainty, do not truncate bar axes, maximise data-ink, label directly, use
+                    perceptually uniform colour maps, design for colour-vision deficiency, caption completely.</li>
+                <li>Multidimensional visualization adds channels (colour, size, shape, animation, small multiples) and
+                    techniques (SPLOM, parallel coordinates, heatmaps, dimensionality reduction, linked brushing).</li>
+                <li>Field data uses slices, iso-surfaces, volume rendering, streamlines and feature extraction; in-situ
+                    visualization avoids the I/O wall.</li>
+                <li>Interfaces are layers: a scriptable engine (CLI, reproducible, batch), native GUIs (X11's
+                    network-transparent client&ndash;server model; Windows message loops; animation for verification),
+                    and web front ends (zero install, shareable, but needing job queues and security).</li>
+                <li>Verification asks whether the model was built right; validation asks whether the right model was
+                    built; accreditation is the formal acceptance for a stated use.</li>
+                <li>Validation combines conceptual, input-data and operational layers, uses held-out data and error
+                    metrics, and must state the domain of validity.</li>
+                <li>Where validation data does not exist, report conditional projections with explicit assumptions and
+                    uncertainty &mdash; never predictions.</li>
+            </ul>
+
+            <h3 class="sub" id="s6-1">6.1 Key terms</h3>
+            <p>Provenance &middot; warm-up truncation &middot; data-ink ratio &middot; small multiples &middot; parallel
+                coordinates &middot; SPLOM &middot; linked brushing &middot; perceptually uniform colour map &middot;
+                iso-surface &middot; volume rendering &middot; streamline &middot; in-situ visualization &middot; X
+                client&ndash;server model &middot; network transparency &middot; message loop &middot; REST /
+                WebSocket &middot; submit-and-poll &middot; verification &middot; validation &middot; accreditation
+                &middot; face validity &middot; event validity &middot; docking &middot; Turing test &middot; RMSE
+                &middot; MAPE &middot; held-out data &middot; domain of validity.</p>
+
+            <h3 class="sub" id="s6-2">6.2 Practice questions</h3>
+
+            <h4 class="subsub">Short answer <span class="marks">(2&ndash;3 marks each)</span></h4>
+            <ol class="qlist">
+                <li>When should a table be used instead of a graph?</li>
+                <li>Why should a bar-chart axis not be truncated?</li>
+                <li>What is the data-ink ratio?</li>
+                <li>What is in-situ visualization and why is it needed?</li>
+                <li>Explain the client&ndash;server model of the X Window System.</li>
+                <li>Distinguish verification, validation and accreditation.</li>
+                <li>Define face validity and event validity.</li>
+            </ol>
+
+            <h4 class="subsub">Medium answer <span class="marks">(5 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Describe five chart types and the question each answers, with a simulation example for each.</li>
+                <li>Describe three techniques for visualising more than three dimensions, with their limitations.</li>
+                <li>Compare terminal, desktop GUI and web interfaces for a simulation tool under at least four criteria.
+                </li>
+                <li>List and explain six verification techniques for a discrete-event simulation.</li>
+                <li>How would you validate a model when no historical data exists?</li>
+            </ol>
+
+            <h4 class="subsub">Long answer <span class="marks">(10 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Discuss display forms for simulation results &mdash; tables, graphs and multidimensional
+                    visualization &mdash; including selection criteria, principles of honest presentation and tools.
+                </li>
+                <li>Explain the validation of simulation results in full: verification versus validation, conceptual,
+                    input and operational validation, statistical comparison techniques, error metrics, and the
+                    credibility checklist. Illustrate with one worked example.</li>
+                <li>Design the complete result-viewing subsystem for a simulation tool: data formats, analysis pipeline,
+                    display forms, and a web interface architecture with its security and reproducibility requirements.
+                </li>
+                <li>&ldquo;A simulation result without uncertainty and provenance is not a result.&rdquo; Discuss, with
+                    reference to output analysis, presentation practice and professional ethics.</li>
+            </ol>
+
+            <h3 class="sub" id="s6-3">6.3 Further reading</h3>
+            <ul>
+                <li>R. G. Sargent, &ldquo;Verification and validation of simulation models&rdquo;, <em>Winter
+                        Simulation Conference</em> &mdash; the standard reference for Section 5, updated most years.
+                </li>
+                <li>A. M. Law, <em>Simulation Modeling and Analysis</em> &mdash; chapters on verification, validation
+                    and output presentation.</li>
+                <li>E. R. Tufte, <em>The Visual Display of Quantitative Information</em> &mdash; for Sections 2 and 3.
+                </li>
+                <li>C. Ware, <em>Information Visualization: Perception for Design</em>.</li>
+                <li>J. Banks (ed.), <em>Handbook of Simulation</em> &mdash; chapters on output analysis and model
+                    credibility.</li>
+            </ul>
+
+            <div class="pager">
+                <a href="../Unit IV/MS_Unit4_Notes.html">&larr; Unit IV: Probability and Statistics</a>
+                <a href="../index.html">Course home &rarr;</a>
+            </div>
+
+            <div class="docfoot">
+                CSEG8003 Modelling and Simulation &middot; Unit V student notes &middot; Dr. Mohsin Furkh Dar &middot;
+                UPES
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../assets/notes.js"></script>
+</body>
+
+</html>

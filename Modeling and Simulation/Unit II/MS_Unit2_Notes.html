@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG8003 · Unit II Notes — Dynamical, Finite State and Complex Model Simulations</title>
+    <meta name="description"
+        content="Student lecture notes for Unit II of Modelling and Simulation (CSEG8003): graph and network transition simulations, actor-based and mesh-based simulations, hybrid simulations, agent-based and multi-agent systems, cellular automata, Monte Carlo methods, event-driven architectures, complex adaptive systems and domain-specific applications.">
+    <link rel="stylesheet" href="../assets/notes.css">
+</head>
+
+<body>
+    <div class="readbar"></div>
+
+    <div class="topbar">
+        <span class="code">CSEG8003</span>
+        <a href="../index.html">Course home</a>
+        <a href="../../index.html">Portal</a>
+        <span class="spacer"></span>
+        <button type="button" data-action="theme">Dark / Light</button>
+        <button type="button" data-action="print">Print / PDF</button>
+    </div>
+
+    <div class="wrap">
+        <aside class="toc" id="toc">
+            <h2>Contents</h2>
+        </aside>
+
+        <main class="page">
+
+            <div class="titleblock">
+                <div class="school">UPES &middot; School of Computer Science</div>
+                <div class="course">CSEG8003 &mdash; Modelling and Simulation &middot; L-T-P-C 2-0-1-3</div>
+                <div class="unitno">Unit II</div>
+                <div class="unit">Dynamical, Finite State and Complex Model Simulations</div>
+                <div class="sub">7 lecture hours &middot; Theory notes &middot; Dr. Mohsin Furkh Dar</div>
+                <div class="badges">
+                    <span>CO1</span><span>CO3</span>
+                    <span>Networks</span>
+                    <span>Actors &amp; meshes</span>
+                    <span>Agents &amp; CA</span>
+                    <span>Monte Carlo</span>
+                    <span>Complex adaptive systems</span>
+                </div>
+            </div>
+
+            <div class="box exam">
+                <div class="bt">How this unit fits</div>
+                <div class="bb">
+                    <p>Unit I asked <em>how does the clock advance</em>. This unit asks <em>what shape does the state
+                            have</em>. Each modelling paradigm below is essentially a different answer to one question:
+                        <span class="kw">what is an entity, and who is it coupled to?</span>
+                    </p>
+                    <ul>
+                        <li>Coupled through <span class="kw">edges</span> &rarr; graph/network simulations
+                            (Section&nbsp;1).</li>
+                        <li>Coupled through <span class="kw">messages</span> &rarr; actor-based (Section&nbsp;2).</li>
+                        <li>Coupled through <span class="kw">shared geometry</span> &rarr; mesh-based (Section&nbsp;3).
+                        </li>
+                        <li>Coupled through <span class="kw">local neighbourhoods on a lattice</span> &rarr; cellular
+                            automata (Section&nbsp;6).</li>
+                        <li>Coupled through <span class="kw">perception, decision and environment</span> &rarr;
+                            agent-based (Section&nbsp;5).</li>
+                        <li>Not coupled at all &mdash; independent samples &rarr; Monte Carlo (Section&nbsp;7).</li>
+                    </ul>
+                    <p>Learn that mapping and every comparison question in this unit becomes answerable.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s1"><span class="n">1.</span> Graph or Network Transition Based Simulations</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p>A <span class="kw">graph-based (network transition) simulation</span> represents the system as a
+                        graph <var>G</var> = (<var>V</var>, <var>E</var>) in which nodes carry state and edges define
+                        who may influence whom; the simulation repeatedly applies transition rules that update node (or
+                        edge) states as a function of the states of their neighbours.</p>
+                </div>
+            </div>
+
+            <p>The structure of the graph is not a detail of the implementation &mdash; it is a first-class part of the
+                model. Two populations with identical infection probabilities but different contact-network topologies
+                produce completely different epidemics, and that is exactly the insight this paradigm exists to capture.
+            </p>
+
+            <h3 class="sub" id="s1-1">1.1 Ingredients of a network model</h3>
+            <ol>
+                <li><span class="kw">Topology</span> &mdash; who is connected to whom; static or evolving; directed or
+                    undirected; weighted or unweighted.</li>
+                <li><span class="kw">Node state</span> &mdash; from a finite set (S, I, R; on/off; opinion in
+                    {0,1}) or continuous (voltage, load, temperature).</li>
+                <li><span class="kw">Transition rule</span> &mdash; deterministic or probabilistic function of the
+                    node's state and its neighbours' states.</li>
+                <li><span class="kw">Update scheme</span> &mdash; synchronous (all nodes at once) or asynchronous (one
+                    random node at a time). This choice changes the results, not merely the speed.</li>
+                <li><span class="kw">Observables</span> &mdash; epidemic size, time to consensus, fraction of nodes
+                    failed, size of the largest connected component.</li>
+            </ol>
+
+            <h3 class="sub" id="s1-2">1.2 Standard network topologies</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 2.1 &mdash; Network families used in simulation studies.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:24%">Family</th>
+                            <th style="width:34%">Construction</th>
+                            <th>Characteristic properties</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Regular lattice</td>
+                            <td>Each node joined to its <var>k</var> nearest neighbours on a grid or ring</td>
+                            <td>High clustering, long average path length; slow spreading.</td>
+                        </tr>
+                        <tr>
+                            <td>Erd&#337;s&ndash;R&eacute;nyi random</td>
+                            <td>Each of the possible edges present with probability <var>p</var></td>
+                            <td>Poisson degree distribution, short paths, low clustering; a giant component appears at
+                                <var>p</var> = 1/<var>n</var>.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Watts&ndash;Strogatz small world</td>
+                            <td>Lattice with a fraction of edges randomly rewired</td>
+                            <td>High clustering <em>and</em> short paths &mdash; the &ldquo;six degrees&rdquo; regime;
+                                a few long-range links dramatically accelerate spreading.</td>
+                        </tr>
+                        <tr>
+                            <td>Barab&aacute;si&ndash;Albert scale free</td>
+                            <td>Growth with preferential attachment</td>
+                            <td>Power-law degrees <var>P</var>(<var>k</var>) &prop; <var>k</var><sup>&minus;&gamma;
+                                </sup>; hubs; robust to random failure but fragile to targeted attack.</td>
+                        </tr>
+                        <tr>
+                            <td>Spatial / geometric</td>
+                            <td>Nodes placed in space, joined within a radius</td>
+                            <td>Realistic for wireless, power and road networks.</td>
+                        </tr>
+                        <tr>
+                            <td>Empirical</td>
+                            <td>Measured from data (call records, autonomous systems, citations)</td>
+                            <td>Most realistic but sampled, incomplete and privacy-sensitive.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s1-3">1.3 The canonical example: epidemic spreading (SIR on a network)</h3>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; network SIR</div>
+                <div class="bb">
+                    <p>Each node is Susceptible, Infected or Recovered. In each discrete step:</p>
+                    <ul>
+                        <li>every infected node <var>i</var> infects each susceptible neighbour independently with
+                            probability &beta;;</li>
+                        <li>every infected node recovers with probability &gamma;.</li>
+                    </ul>
+                    <p>The mean-field (well-mixed) version of this model has the epidemic threshold
+                        <var>R</var><sub>0</sub> = &beta;/&gamma; = 1. On a network with degree distribution of mean
+                        &lang;<var>k</var>&rang; and second moment &lang;<var>k</var><sup>2</sup>&rang;, the threshold
+                        becomes
+                    </p>
+                    <div class="eq">
+                        &beta;<sub>c</sub>/&gamma; = &lang;<var>k</var>&rang; / (&lang;<var>k</var><sup>2</sup>&rang;
+                        &minus; &lang;<var>k</var>&rang;)
+                    </div>
+                    <p>For a scale-free network with &gamma; &le; 3 the second moment diverges as the network grows, so
+                        the threshold tends to zero: <em>on a hub-dominated network, even a weakly infectious disease
+                            spreads</em>. This single result is why network structure is modelled at all, and it makes
+                        an excellent 10-mark answer.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s1-4">1.4 Other applications and implementation notes</h3>
+            <ul>
+                <li>Information/rumour diffusion, opinion dynamics (voter model), influence maximisation in social
+                    networks.</li>
+                <li>Cascading failure in power grids and financial contagion between banks.</li>
+                <li>Routing, congestion and worm propagation in communication networks.</li>
+                <li>Chemical reaction networks and gene regulatory networks (Boolean networks).</li>
+            </ul>
+            <p><span class="kw">Implementation:</span> adjacency lists for sparse graphs; keep an <em>active set</em> of
+                infected/changed nodes so that the cost per step is O(edges incident to active nodes) rather than
+                O(|<var>E</var>|); use the Gillespie algorithm for a continuous-time formulation; and average over many
+                random graph realisations <em>and</em> many stochastic runs, since both the topology and the dynamics
+                are random.</p>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Reporting results from a single generated random graph. Two sources of randomness exist &mdash;
+                        the graph and the dynamics &mdash; and both must be replicated, otherwise the confidence
+                        interval is meaningless.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s2"><span class="n">2.</span> Actor-Based Simulations</h2>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Actor model</div>
+                <div class="bb">
+                    <p>An <span class="kw">actor</span> is a computational entity that has private state, a mailbox,
+                        and a behaviour; in response to a message an actor may (i) send finitely many messages to
+                        actors it knows, (ii) create finitely many new actors, and (iii) designate the behaviour to be
+                        used for the next message. Actors share <em>nothing</em>; all interaction is by asynchronous
+                        message passing.</p>
+                </div>
+            </div>
+
+            <p>Actor-based simulation takes this concurrency model (Hewitt, 1973) as its modelling formalism. It is the
+                natural bridge between a discrete-event model and a parallel implementation, because &ldquo;no shared
+                state&rdquo; removes the data races that otherwise dominate parallel simulation (Unit III).</p>
+
+            <h3 class="sub" id="s2-1">2.1 Properties that matter for simulation</h3>
+            <ol>
+                <li><span class="kw">Encapsulation.</span> An actor's state can be changed only by the actor itself,
+                    which makes the model's causality explicit and auditable.</li>
+                <li><span class="kw">Asynchrony.</span> Sending is non-blocking; the sender continues immediately. This
+                    naturally models systems in which communication takes time.</li>
+                <li><span class="kw">Location transparency.</span> An actor addresses another by identity, not by
+                    memory address, so actors can be migrated between cores or machines for load balance.</li>
+                <li><span class="kw">Fair, unbounded delivery.</span> Messages are eventually delivered but order
+                    between different senders is not guaranteed &mdash; in simulation this must be tightened by
+                    <em>timestamps</em>, or results become irreproducible.
+                </li>
+                <li><span class="kw">Supervision.</span> Actor frameworks (Erlang/OTP, Akka) provide
+                    &ldquo;let-it-crash&rdquo; supervision trees, which map neatly onto fault-tolerance experiments.
+                </li>
+            </ol>
+
+            <h3 class="sub" id="s2-2">2.2 Actor simulation versus plain discrete-event simulation</h3>
+            <p>A DES has one global event list; an actor simulation has many local queues. That is precisely what makes
+                actors parallelisable and DES hard to parallelise. The price is that global ordering must be
+                reconstructed: each message carries a timestamp, each actor keeps its own logical clock, and a
+                synchronisation protocol (conservative null-messages or optimistic Time Warp, Unit III) guarantees that
+                no actor processes a message out of timestamp order.</p>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; actor model of a call centre</div>
+                <div class="bb">
+                    <p>Actors: <code>Caller</code>, <code>Router</code>, <code>Agent</code>, <code>Supervisor</code>.
+                        A <code>Caller</code> sends <code>Request(t)</code> to <code>Router</code>; the router forwards
+                        to a free <code>Agent</code> or enqueues; the agent replies <code>Done(t')</code> and asks the
+                        router for the next call. Adding a second call centre is simply adding actors &mdash; no shared
+                        queue data structure has to be redesigned, and the same code runs on one core or on a cluster.
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s2-3">2.3 Strengths, weaknesses, tools</h3>
+            <ul>
+                <li><span class="kw">Strengths:</span> scalability to millions of entities; natural fit for distributed
+                    systems, telecoms, robotics and IoT models; fault isolation; clean semantics.</li>
+                <li><span class="kw">Weaknesses:</span> global state (a system-wide statistic) is expensive to observe;
+                    debugging non-deterministic interleavings is hard; deadlock/livelock through mutual waiting;
+                    message-passing overhead for very fine-grained interactions.</li>
+                <li><span class="kw">Tools:</span> Erlang/Elixir, Akka (Scala/Java), Orleans (.NET), Ray and Pykka
+                    (Python), CAF (C++), Charm++ chares (HPC).</li>
+            </ul>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s3"><span class="n">3.</span> Mesh-Based Simulations</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p>A <span class="kw">mesh-based simulation</span> discretises a continuous spatial domain into a
+                        finite set of cells, elements or grid points (the <span class="kw">mesh</span>), approximates
+                        the governing partial differential equations on that mesh, and advances the resulting system of
+                        algebraic or ordinary differential equations in time.</p>
+                </div>
+            </div>
+
+            <p>This is the workhorse of computational science: fluid dynamics, structural mechanics, heat transfer,
+                electromagnetics, weather and climate. It is also the paradigm that consumes the world's largest
+                supercomputers, which is why Unit III's partitioning material is written mainly with meshes in mind.</p>
+
+            <h3 class="sub" id="s3-1">3.1 Mesh types</h3>
+            <ul>
+                <li><span class="kw">Structured</span> &mdash; regular <var>i</var>,<var>j</var>,<var>k</var> indexing;
+                    neighbours found by arithmetic, memory access is contiguous, code is fast and simple; poor at
+                    complicated geometry.</li>
+                <li><span class="kw">Unstructured</span> &mdash; triangles/tetrahedra with explicit connectivity;
+                    handles arbitrary geometry and local refinement; needs indirect addressing, which costs performance
+                    and complicates partitioning.</li>
+                <li><span class="kw">Block-structured and adaptive mesh refinement (AMR)</span> &mdash; nested patches
+                    refined where the solution has steep gradients (a shock, a flame front); huge savings, but dynamic
+                    load imbalance (Unit III, Section on dynamic partitioning).</li>
+                <li><span class="kw">Meshless / particle methods</span> &mdash; SPH, molecular dynamics; no fixed
+                    connectivity, neighbours found by spatial hashing.</li>
+            </ul>
+
+            <h3 class="sub" id="s3-2">3.2 Discretisation methods</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 2.2 &mdash; The three classical discretisation families.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:24%">Method</th>
+                            <th style="width:38%">Idea</th>
+                            <th>Typical use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Finite difference (FDM)</td>
+                            <td>Replace derivatives by difference quotients on a structured grid</td>
+                            <td>Simple geometry; heat equation, wave equation, teaching examples</td>
+                        </tr>
+                        <tr>
+                            <td>Finite volume (FVM)</td>
+                            <td>Integrate the conservation law over each control volume; fluxes across faces</td>
+                            <td>CFD; conserves mass/momentum/energy exactly by construction</td>
+                        </tr>
+                        <tr>
+                            <td>Finite element (FEM)</td>
+                            <td>Expand the solution in basis functions over elements; minimise a weighted residual</td>
+                            <td>Structural mechanics, complex geometry, higher-order accuracy</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; explicit FDM for the 2-D heat equation</div>
+                <div class="bb">
+                    <p>&part;<var>T</var>/&part;<var>t</var> = &alpha;&nabla;<sup>2</sup><var>T</var> on a uniform grid
+                        of spacing <var>h</var> becomes the five-point stencil</p>
+                    <div class="eq">
+                        <var>T</var><sub><var>i</var>,<var>j</var></sub><sup><var>n</var>+1</sup> =
+                        <var>T</var><sub><var>i</var>,<var>j</var></sub><sup><var>n</var></sup> + (&alpha;&Delta;<var>t
+                        </var>/<var>h</var><sup>2</sup>)(<var>T</var><sub><var>i</var>+1,<var>j</var></sub> +
+                        <var>T</var><sub><var>i</var>&minus;1,<var>j</var></sub> + <var>T</var><sub><var>i</var>,
+                            <var>j</var>+1</sub> + <var>T</var><sub><var>i</var>,<var>j</var>&minus;1</sub> &minus;
+                        4<var>T</var><sub><var>i</var>,<var>j</var></sub>)
+                    </div>
+                    <p>which is stable only for &alpha;&Delta;<var>t</var>/<var>h</var><sup>2</sup> &le; 1/4 in two
+                        dimensions. Note the consequence: halving <var>h</var> forces &Delta;<var>t</var> down by four,
+                        so total work rises by a factor of 16 &mdash; the reason mesh simulations need supercomputers.
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s3-3">3.3 Practical concerns</h3>
+            <ol>
+                <li><span class="kw">Mesh quality</span> (aspect ratio, skewness) governs accuracy and solver
+                    convergence far more than the number of cells does.</li>
+                <li><span class="kw">Boundary conditions</span> &mdash; Dirichlet (value), Neumann (flux), periodic;
+                    wrong boundary treatment is the most common source of nonsense results.</li>
+                <li><span class="kw">Stability conditions</span> &mdash; CFL condition for explicit advection:
+                    <var>u</var>&Delta;<var>t</var>/&Delta;<var>x</var> &le; 1.
+                </li>
+                <li><span class="kw">Convergence study</span> &mdash; the result must be shown to be mesh-independent by
+                    refining until the answer stops changing.</li>
+                <li><span class="kw">Halo / ghost cells</span> &mdash; when the mesh is split across processors, each
+                    partition keeps a copy of its neighbours' boundary layer; exchanging haloes is the dominant
+                    communication cost (Unit III).</li>
+            </ol>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s4"><span class="n">4.</span> Hybrid Simulations</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p>A <span class="kw">hybrid simulation</span> combines two or more simulation paradigms &mdash;
+                        typically system dynamics (continuous), discrete-event, and agent-based &mdash; inside one model
+                        so that each subsystem is represented in the formalism that fits it, with defined interfaces
+                        translating state between them.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s4-1">4.1 The three-paradigm view</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 2.3 &mdash; The three paradigms usually combined in hybrid models.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:22%">Paradigm</th>
+                            <th style="width:26%">Level of abstraction</th>
+                            <th>Represents</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>System dynamics</td>
+                            <td>Strategic / aggregate</td>
+                            <td>Stocks, flows, feedback loops, delays; no individuals at all</td>
+                        </tr>
+                        <tr>
+                            <td>Discrete event</td>
+                            <td>Tactical / operational</td>
+                            <td>Passive entities flowing through a process of queues and resources</td>
+                        </tr>
+                        <tr>
+                            <td>Agent based</td>
+                            <td>Any, usually operational</td>
+                            <td>Active, decision-making individuals with behaviour and interaction</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s4-2">4.2 Interface patterns and their pitfalls</h3>
+            <ol>
+                <li><span class="kw">Continuous &rarr; discrete:</span> a threshold crossing fires an event. Requires
+                    zero-crossing detection with root finding (Unit I, Section 3.3).</li>
+                <li><span class="kw">Discrete &rarr; continuous:</span> an event changes a rate or a coefficient of the
+                    ODE, so the integrator must be restarted at that instant rather than stepping across it.</li>
+                <li><span class="kw">Aggregate &harr; individual:</span> converting a stock of 12.6 patients into
+                    agents forces rounding; do it stochastically to avoid systematic bias.</li>
+                <li><span class="kw">Clock reconciliation:</span> one sub-model steps at fixed &Delta;<var>t</var>, the
+                    other jumps between events; the coupling interval must be defined explicitly and both models must
+                    be synchronised at those instants.</li>
+            </ol>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; hybrid model of a hospital during an outbreak</div>
+                <div class="bb">
+                    <ul>
+                        <li><em>System dynamics:</em> community infection prevalence (stocks S, I, R with flows).</li>
+                        <li><em>Agent based:</em> patients with individual severity, comorbidity and behaviour, who
+                            decide when to seek care.</li>
+                        <li><em>Discrete event:</em> the hospital itself &mdash; triage, beds, ICU, staff shifts as
+                            resources and queues.</li>
+                    </ul>
+                    <p>Prevalence drives the arrival rate of agents; the hospital's admission decisions feed back into
+                        the community model as isolation. No one paradigm could represent all three layers honestly.
+                    </p>
+                </div>
+            </div>
+
+            <div class="box exam">
+                <div class="bt">Exam tip</div>
+                <div class="bb">
+                    <p>When asked to justify a hybrid model, always argue from the <em>question</em>, not from the
+                        technology: state which sub-question needs individual detail, which needs aggregate feedback,
+                        and which needs resource contention. Then map each to its paradigm.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s5"><span class="n">5.</span> Agent-Based and Multi-Agent Simulations</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p>An <span class="kw">agent-based model (ABM)</span> represents a system as a population of
+                        autonomous agents, each with internal state and behavioural rules, situated in an environment,
+                        and studies the <span class="kw">emergent</span> system-level behaviour that arises from their
+                        local interactions.</p>
+                    <p>A <span class="kw">multi-agent system (MAS)</span> emphasises agents that are additionally
+                        goal-directed and often cognitive &mdash; they reason, negotiate, cooperate or compete to
+                        achieve objectives.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s5-1">5.1 Properties of an agent</h3>
+            <ol>
+                <li><span class="kw">Autonomy</span> &mdash; controls its own state and actions; nobody schedules it
+                    centrally.</li>
+                <li><span class="kw">Situatedness</span> &mdash; lives in an environment (grid, network, continuous
+                    space, GIS map) that it perceives and modifies.</li>
+                <li><span class="kw">Local perception</span> &mdash; sees only a neighbourhood, never the global state.
+                </li>
+                <li><span class="kw">Heterogeneity</span> &mdash; agents may differ in attributes, rules and goals; this
+                    is the key advantage over compartment models.</li>
+                <li><span class="kw">Interaction</span> &mdash; with other agents (directly, or indirectly through the
+                    environment, as in ant pheromone trails &mdash; <em>stigmergy</em>).</li>
+                <li><span class="kw">Adaptivity</span> (optional) &mdash; learning, memory, or evolution of rules.</li>
+            </ol>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Emergence</div>
+                <div class="bb">
+                    <p><span class="kw">Emergence</span> is the appearance of system-level structure or behaviour that
+                        is not programmed into any individual agent and cannot be read off from the individual rules:
+                        traffic jams from car-following rules, flocks from three steering rules, segregation from a mild
+                        neighbour preference.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s5-2">5.2 Classical models worth naming in an answer</h3>
+            <ul>
+                <li><span class="kw">Schelling segregation (1971)</span> &mdash; agents relocate if fewer than 30% of
+                    neighbours are similar; the population nevertheless segregates almost completely. Demonstrates that
+                    macro-outcomes need not reflect micro-preferences.</li>
+                <li><span class="kw">Reynolds' Boids (1987)</span> &mdash; separation, alignment, cohesion produce
+                    flocking; used in graphics and robotics.</li>
+                <li><span class="kw">Sugarscape (Epstein &amp; Axtell)</span> &mdash; artificial society reproducing
+                    wealth distributions, migration and trade.</li>
+                <li><span class="kw">Axelrod's iterated Prisoner's Dilemma tournaments</span> &mdash; emergence of
+                    cooperation; TIT-FOR-TAT.</li>
+                <li><span class="kw">Ant colony foraging</span> &mdash; stigmergic optimisation, later the ACO
+                    metaheuristic.</li>
+            </ul>
+
+            <h3 class="sub" id="s5-3">5.3 Agent architectures</h3>
+            <ul>
+                <li><span class="kw">Reactive</span> &mdash; condition&ndash;action rules, no internal model; cheap and
+                    scalable (boids, CA-like agents).</li>
+                <li><span class="kw">Deliberative / BDI</span> &mdash; Beliefs, Desires, Intentions; agents plan
+                    towards goals. Expensive, used when the decision process itself is the object of study.</li>
+                <li><span class="kw">Hybrid (layered)</span> &mdash; a reactive layer for immediate safety, a
+                    deliberative layer for goals.</li>
+                <li><span class="kw">Learning</span> &mdash; reinforcement learning agents; the simulation becomes both
+                    the training environment and the object of study.</li>
+            </ul>
+
+            <h3 class="sub" id="s5-4">5.4 Multi-agent coordination mechanisms</h3>
+            <p>When agents must act together, MAS supplies the mechanisms: <span class="kw">contract net</span>
+                protocol for task allocation, <span class="kw">auctions</span> for resource allocation,
+                <span class="kw">voting</span> and <span class="kw">argumentation</span> for group decisions,
+                <span class="kw">game-theoretic equilibria</span> for competition, and <span class="kw">norms and
+                    institutions</span> for constraining behaviour. FIPA-ACL standardises the message semantics.
+            </p>
+
+            <h3 class="sub" id="s5-5">5.5 Strengths, limitations and reporting</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 2.4 &mdash; Agent-based modelling: what you gain and what it costs.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:48%">Strengths</th>
+                            <th>Limitations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Captures heterogeneity and individual history</td>
+                            <td>Many parameters, often unmeasurable, so calibration is hard</td>
+                        </tr>
+                        <tr>
+                            <td>Represents space, networks and local interaction naturally</td>
+                            <td>Computationally heavy; population size limits realism</td>
+                        </tr>
+                        <tr>
+                            <td>Generates emergent phenomena the modeller did not encode</td>
+                            <td>Emergence can also be an artefact of update order or grid geometry</td>
+                        </tr>
+                        <tr>
+                            <td>Rules are expressed in the domain expert's own language</td>
+                            <td>Validation is difficult: matching one aggregate curve does not validate the mechanism
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Ideal for policy &ldquo;what-if&rdquo; experiments</td>
+                            <td>Stochastic and path dependent &mdash; needs many replications and sensitivity analysis
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Publishing a single, visually appealing run of an ABM as evidence. An ABM result is a
+                        <em>distribution</em> over runs, and the accepted reporting standard is the
+                        <span class="kw">ODD protocol</span> (Overview, Design concepts, Details) plus a sensitivity
+                        analysis. Mention ODD whenever an examiner asks how ABM results should be reported.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s6"><span class="n">6.</span> Cellular Automata Based Simulations</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p>A <span class="kw">cellular automaton (CA)</span> is a discrete dynamical system defined by a
+                        regular lattice of cells, a finite set of states, a neighbourhood template, and a local
+                        transition rule applied <em>uniformly and synchronously</em> to every cell; the global behaviour
+                        emerges purely from repeated local updates.</p>
+                </div>
+            </div>
+
+            <p>Formally a CA is the quadruple (<var>L</var>, <var>S</var>, <var>N</var>, <var>f</var>) &mdash; lattice,
+                state set, neighbourhood, rule &mdash; plus a boundary condition (periodic, fixed or reflecting).</p>
+
+            <h3 class="sub" id="s6-1">6.1 Neighbourhoods and rules</h3>
+            <ul>
+                <li><span class="kw">von Neumann</span> neighbourhood: 4 orthogonal neighbours (range 1).</li>
+                <li><span class="kw">Moore</span> neighbourhood: all 8 surrounding cells.</li>
+                <li>1-D <span class="kw">elementary CA</span>: 2 states, 3-cell neighbourhood &rarr; 2<sup>8</sup> = 256
+                    rules, indexed by Wolfram numbers. Rule&nbsp;30 is chaotic (used as a random generator);
+                    Rule&nbsp;110 is Turing complete.</li>
+                <li><span class="kw">Conway's Game of Life</span> (2-D, Moore, B3/S23): a live cell survives with 2 or 3
+                    live neighbours, a dead cell is born with exactly 3. Produces gliders, oscillators and universal
+                    computation from two lines of rules.</li>
+            </ul>
+
+            <h3 class="sub" id="s6-2">6.2 Wolfram's four classes</h3>
+            <ol>
+                <li><span class="kw">Class I</span> &mdash; evolves to a homogeneous fixed state.</li>
+                <li><span class="kw">Class II</span> &mdash; settles into simple periodic or stable local structures.
+                </li>
+                <li><span class="kw">Class III</span> &mdash; chaotic, aperiodic, random-looking patterns.</li>
+                <li><span class="kw">Class IV</span> &mdash; complex localised structures that interact; the
+                    &ldquo;edge of chaos&rdquo;, capable of universal computation.</li>
+            </ol>
+
+            <h3 class="sub" id="s6-3">6.3 Applying CA to physical systems</h3>
+            <div class="box eg">
+                <div class="bt">Example &mdash; forest-fire propagation (your Experiment 5)</div>
+                <div class="bb">
+                    <p>States: EMPTY, TREE, BURNING, BURNT. Rules applied synchronously each step:</p>
+                    <ol>
+                        <li>BURNING &rarr; BURNT.</li>
+                        <li>TREE with at least one BURNING neighbour &rarr; BURNING with probability
+                            <var>p</var><sub>spread</sub>, weighted by wind direction and slope.
+                        </li>
+                        <li>TREE &rarr; BURNING with small probability <var>f</var> (lightning).</li>
+                        <li>EMPTY &rarr; TREE with probability <var>p</var><sub>growth</sub>.</li>
+                    </ol>
+                    <p>Sweeping the tree density reveals a <span class="kw">percolation threshold</span> near 0.59 for a
+                        square lattice: below it fires die out, above it they cross the whole grid. Firebreak spacing
+                        policies are then evaluated as a shift of that threshold.</p>
+                </div>
+            </div>
+
+            <p>Other established uses: traffic flow (Nagel&ndash;Schreckenberg model reproduces phantom jams),
+                lattice-gas and lattice-Boltzmann fluid models, urban growth (SLEUTH), crystal growth, tumour growth,
+                and image processing.</p>
+
+            <h3 class="sub" id="s6-4">6.4 CA versus ABM</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 2.5 &mdash; Cellular automata compared with agent-based models.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:24%">Aspect</th>
+                            <th style="width:36%">Cellular automaton</th>
+                            <th>Agent-based model</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Entity</td>
+                            <td>A fixed cell of space</td>
+                            <td>A mobile individual</td>
+                        </tr>
+                        <tr>
+                            <td>Mobility</td>
+                            <td>Cells never move; only states change</td>
+                            <td>Agents move through the environment</td>
+                        </tr>
+                        <tr>
+                            <td>Rules</td>
+                            <td>Identical for all cells</td>
+                            <td>May differ per agent (heterogeneous)</td>
+                        </tr>
+                        <tr>
+                            <td>State</td>
+                            <td>Finite, usually very small</td>
+                            <td>Arbitrarily rich, with memory and goals</td>
+                        </tr>
+                        <tr>
+                            <td>Update</td>
+                            <td>Synchronous by definition</td>
+                            <td>Often asynchronous or event-driven</td>
+                        </tr>
+                        <tr>
+                            <td>Cost</td>
+                            <td>Very cheap; trivially parallel</td>
+                            <td>Expensive; parallelism needs care</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box caution">
+                <div class="bt">Common mistake</div>
+                <div class="bb">
+                    <p>Updating a CA in place. Because the rule is defined on the <em>previous</em> configuration, you
+                        must write into a second array and swap. In-place updating silently produces a different
+                        (asynchronous) model &mdash; Game of Life, for instance, stops producing gliders.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s7"><span class="n">7.</span> Monte Carlo and Probabilistic Simulations</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p>A <span class="kw">Monte Carlo method</span> estimates a numerical quantity by drawing repeated
+                        random samples and averaging a function of them; by the law of large numbers the sample mean
+                        converges to the expectation, and by the central limit theorem the error decreases as
+                        &sigma;/&radic;<var>n</var>.</p>
+                </div>
+            </div>
+
+            <div class="eq">
+                <var>I</var> = &int; <var>g</var>(<var>x</var>)<var>p</var>(<var>x</var>) d<var>x</var> = E[<var>g</var>
+                (<var>X</var>)] &nbsp;&asymp;&nbsp; <var>&Icirc;</var><sub><var>n</var></sub> = (1/<var>n</var>)
+                &sum;<sub><var>i</var>=1</sub><sup><var>n</var></sup> <var>g</var>(<var>X</var><sub><var>i</var></sub>),
+                &nbsp;&nbsp; <var>X</var><sub><var>i</var></sub> ~ <var>p</var>
+            </div>
+
+            <h3 class="sub" id="s7-1">7.1 The canonical illustration</h3>
+            <div class="box eg">
+                <div class="bt">Example &mdash; estimating &pi; (your Experiment 6)</div>
+                <div class="bb">
+                    <p>Sample <var>n</var> points uniformly in the unit square, count the fraction <var>m</var>/<var>n
+                        </var> falling inside the quarter circle <var>x</var><sup>2</sup>+<var>y</var><sup>2</sup> &le;
+                        1; then &pi; &asymp; 4<var>m</var>/<var>n</var>. Since the indicator is Bernoulli with
+                        <var>p</var> = &pi;/4, the standard error of the estimate is
+                        4&radic;(<var>p</var>(1&minus;<var>p</var>)/<var>n</var>) &asymp; 1.64/&radic;<var>n</var>.
+                        To get two correct decimal places (error 0.005) you need roughly 10<sup>5</sup> samples; for
+                        four decimals, 10<sup>9</sup>. This is the practical meaning of &ldquo;slow but dimension-free
+                        convergence&rdquo;.
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s7-2">7.2 Why Monte Carlo wins in high dimensions</h3>
+            <p>A deterministic quadrature rule on a grid needs O(<var>N</var><sup><var>d</var></sup>) points in
+                <var>d</var> dimensions &mdash; the curse of dimensionality. The Monte Carlo error
+                &sigma;/&radic;<var>n</var> does <em>not</em> depend on <var>d</var> at all. Above roughly four
+                dimensions Monte Carlo is the only practical choice, which is why it dominates finance, particle
+                physics, Bayesian statistics and rendering.
+            </p>
+
+            <h3 class="sub" id="s7-3">7.3 Variance reduction</h3>
+            <ol>
+                <li><span class="kw">Antithetic variates</span> &mdash; pair each <var>u</var> with 1&minus;<var>u</var>
+                    so that errors cancel through negative correlation.</li>
+                <li><span class="kw">Control variates</span> &mdash; subtract a correlated quantity whose expectation is
+                    known.</li>
+                <li><span class="kw">Importance sampling</span> &mdash; sample from a distribution that emphasises the
+                    important region and reweight; the essential technique for <em>rare-event</em> estimation.</li>
+                <li><span class="kw">Stratified sampling / Latin hypercube</span> &mdash; force coverage of every
+                    region of the input space.</li>
+                <li><span class="kw">Common random numbers</span> &mdash; when <em>comparing</em> two systems, drive
+                    both with the same random stream so the difference has lower variance.</li>
+                <li><span class="kw">Quasi-Monte Carlo</span> &mdash; low-discrepancy sequences (Sobol, Halton) giving
+                    O((log <var>n</var>)<sup><var>d</var></sup>/<var>n</var>) for smooth integrands.</li>
+            </ol>
+
+            <h3 class="sub" id="s7-4">7.4 Markov chain Monte Carlo and related methods</h3>
+            <p>When direct sampling from the target distribution is impossible, construct a Markov chain whose
+                stationary distribution <em>is</em> the target: <span class="kw">Metropolis&ndash;Hastings</span>,
+                <span class="kw">Gibbs sampling</span>, <span class="kw">Hamiltonian Monte Carlo</span>. Related
+                stochastic-simulation algorithms include <span class="kw">Gillespie's SSA</span> for exact
+                chemical-reaction trajectories and <span class="kw">simulated annealing</span> for optimisation.
+                Diagnostics (burn-in, autocorrelation time, effective sample size, multiple chains) are compulsory
+                &mdash; MCMC samples are <em>not</em> independent, so the naive confidence interval is wrong.
+            </p>
+
+            <div class="box exam">
+                <div class="bt">Exam tip</div>
+                <div class="bb">
+                    <p>Monte Carlo questions almost always want four things: the estimator formula, the
+                        &sigma;/&radic;<var>n</var> error law, the dimension-independence argument, and two variance
+                        reduction techniques described properly. Add the &pi; example with its numbers and the answer is
+                        complete.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s8"><span class="n">8.</span> Event-Driven Simulation Architectures</h2>
+
+            <p>Section&nbsp;2 of Unit&nbsp;I introduced the event mechanism. Here we look at how a simulator is
+                <em>architected</em> around it.</p>
+
+            <h3 class="sub" id="s8-1">8.1 The three classical world views</h3>
+            <div class="tw">
+                <table>
+                    <caption>Table 2.6 &mdash; World views for organising a discrete-event model.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:24%">World view</th>
+                            <th style="width:38%">Modeller writes</th>
+                            <th>Engine does</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Event scheduling</td>
+                            <td>An event routine per event type, each scheduling future events</td>
+                            <td>Pops the earliest event and calls its routine</td>
+                        </tr>
+                        <tr>
+                            <td>Process interaction</td>
+                            <td>The life cycle of an entity as a sequential process with waits (SimPy's
+                                <code>yield</code>)
+                            </td>
+                            <td>Suspends and resumes coroutines at the right simulated times</td>
+                        </tr>
+                        <tr>
+                            <td>Activity scanning</td>
+                            <td>Activities with start conditions</td>
+                            <td>Advances time, then rescans all conditions for activities that can now start</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub" id="s8-2">8.2 Components of an event-driven engine</h3>
+            <ol>
+                <li><span class="kw">Future event list.</span> The performance-critical structure. A binary heap gives
+                    O(log&nbsp;<var>n</var>) insert and extract-min; <span class="kw">calendar queues</span> and
+                    <span class="kw">ladder queues</span> achieve amortised O(1) for typical simulation workloads.
+                </li>
+                <li><span class="kw">Event dispatcher.</span> Pops the minimum timestamp, updates the clock, invokes the
+                    handler; enforces a deterministic tie-break rule.</li>
+                <li><span class="kw">State manager.</span> Entities, resources, queues; optionally with checkpointing
+                    for rollback (Time Warp, Unit III).</li>
+                <li><span class="kw">Random number service.</span> Independent, reproducible substreams per entity, so
+                    that adding one entity does not perturb every other entity's random draws.</li>
+                <li><span class="kw">Statistics collector.</span> Time-weighted averages (queue length) and
+                    observation-based averages (waiting time), with warm-up truncation and batch means.</li>
+                <li><span class="kw">Trace / logging subsystem.</span> The main verification tool: an event trace that
+                    a human can read line by line.</li>
+            </ol>
+
+            <div class="box def">
+                <div class="bt">Definition &mdash; Zero-delay (simultaneous) events</div>
+                <div class="bb">
+                    <p>Events scheduled at the <em>same</em> simulated time form a <span class="kw">delta cycle</span>.
+                        Their relative order can change the result, so the engine must define a deterministic priority.
+                        A cycle of zero-delay events that keeps rescheduling itself is a <span class="kw">zero-time
+                            loop</span> and hangs the simulation while the clock never advances.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s8-3">8.3 Architectural variants</h3>
+            <ul>
+                <li><span class="kw">Monolithic sequential</span> &mdash; one FEL, one thread. Simple, exactly
+                    reproducible, and the baseline against which everything else is validated.</li>
+                <li><span class="kw">Modular / DEVS-structured</span> &mdash; atomic models with internal, external and
+                    confluent transition functions, composed into coupled models; the formal foundation for reusable
+                    component libraries.</li>
+                <li><span class="kw">Federated (HLA)</span> &mdash; independent simulators joined by an RTI that
+                    provides timestamp-ordered delivery.</li>
+                <li><span class="kw">Parallel discrete-event (PDES)</span> &mdash; logical processes with local clocks
+                    plus a synchronisation protocol; conservative (Chandy&ndash;Misra&ndash;Bryant null messages) or
+                    optimistic (Time Warp with rollback and anti-messages). Detailed in Unit&nbsp;III.</li>
+                <li><span class="kw">Real-time / hardware-in-the-loop</span> &mdash; simulated time is forced to track
+                    wall-clock time so that real devices or human operators can participate.</li>
+            </ul>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s9"><span class="n">9.</span> Simulations of Complex Adaptive Systems</h2>
+
+            <div class="box def">
+                <div class="bt">Definition</div>
+                <div class="bb">
+                    <p>A <span class="kw">complex adaptive system (CAS)</span> is a system of many interacting
+                        components that adapt or learn from experience, in which the system-level behaviour emerges from
+                        local interactions, is not predictable by analysing the components in isolation, and feeds back
+                        to shape the components themselves.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s9-1">9.1 Hallmarks of a CAS</h3>
+            <ol>
+                <li><span class="kw">Emergence</span> &mdash; macro patterns from micro rules.</li>
+                <li><span class="kw">Adaptation and learning</span> &mdash; agents change their rules in response to
+                    outcomes.</li>
+                <li><span class="kw">Nonlinearity</span> &mdash; effects are not proportional to causes; small changes
+                    may produce large consequences.</li>
+                <li><span class="kw">Feedback loops</span> &mdash; reinforcing (positive) and balancing (negative).</li>
+                <li><span class="kw">Self-organisation</span> &mdash; order without a central controller.</li>
+                <li><span class="kw">Path dependence and history</span> &mdash; the outcome depends on the sequence of
+                    events, not only on the parameters.</li>
+                <li><span class="kw">Tipping points and phase transitions</span> &mdash; qualitative change at a
+                    critical parameter value.</li>
+                <li><span class="kw">Robustness with fragility</span> &mdash; tolerant of random damage, vulnerable to
+                    targeted damage (scale-free networks again).</li>
+            </ol>
+
+            <h3 class="sub" id="s9-2">9.2 Why simulation is the method of choice</h3>
+            <p>CAS are analytically intractable by construction: heterogeneity, nonlinearity, adaptation and network
+                structure all break the assumptions behind closed-form solutions. Simulation is used as
+                <em>generative</em> science: &ldquo;if you did not grow it, you did not explain it&rdquo; (Epstein). A
+                mechanism is accepted when a model built only from plausible local rules reproduces the observed macro
+                pattern.
+            </p>
+
+            <h3 class="sub" id="s9-3">9.3 Examples and modelling of critical infrastructure</h3>
+            <ul>
+                <li>Ecosystems and epidemics; immune systems; brains and neural dynamics.</li>
+                <li>Markets and economies (Santa Fe artificial stock market), supply chains, traffic.</li>
+                <li>Cities and land-use change; social movements and opinion dynamics.</li>
+                <li><span class="kw">Critical infrastructure networks</span> &mdash; power, water, transport, telecoms,
+                    finance &mdash; which are the CO3 focus of this course. These are <em>interdependent</em>: a power
+                    failure disables pumping stations and mobile base stations, which disables the control systems that
+                    would restore power. Modelling layers means representing each sector as a network, then coupling the
+                    layers so that failures cascade across them.</li>
+            </ul>
+
+            <div class="box eg">
+                <div class="bt">Example &mdash; cascading failure in an interdependent network</div>
+                <div class="bb">
+                    <p>Two coupled networks: a power grid and a communication network, with each power node depending on
+                        a comms node and vice versa. Remove a small fraction 1&minus;<var>p</var> of power nodes at
+                        random. Nodes whose support in the other layer is gone also fail, which removes further support,
+                        and so on. Unlike a single network, whose giant component shrinks continuously, coupled networks
+                        show a <span class="kw">first-order (abrupt) collapse</span> at a critical <var>p</var><sub>c
+                        </sub>. This is the standard demonstration that interdependence itself creates fragility.</p>
+                </div>
+            </div>
+
+            <h3 class="sub" id="s9-4">9.4 Analysing CAS output</h3>
+            <ul>
+                <li>Look for <span class="kw">distributions</span> (often heavy-tailed) rather than means; plot on
+                    log&ndash;log axes to detect power laws.</li>
+                <li>Look for <span class="kw">regimes and transitions</span> by sweeping a control parameter.</li>
+                <li>Use <span class="kw">order parameters</span> (e.g. fraction in the largest cluster) to summarise the
+                    macro state.</li>
+                <li>Test <span class="kw">robustness</span> of every conclusion to rule details, update order,
+                    randomness and grid geometry &mdash; if the finding disappears when the update order changes, it was
+                    an artefact.</li>
+            </ul>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s10"><span class="n">10.</span> Domain-Specific Simulation Applications</h2>
+
+            <p>The final syllabus item asks you to connect paradigms to domains. Learn the table below as a mapping
+                exercise; examiners frequently ask &ldquo;which paradigm would you use for X, and why?&rdquo;</p>
+
+            <div class="tw">
+                <table>
+                    <caption>Table 2.7 &mdash; Domains, dominant paradigm and representative tools.</caption>
+                    <thead>
+                        <tr>
+                            <th style="width:22%">Domain</th>
+                            <th style="width:26%">Typical paradigm</th>
+                            <th>Questions answered / tools</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Computer networks</td>
+                            <td>Discrete event + packet-level queues</td>
+                            <td>Throughput, latency, loss under protocols; ns-3, OMNeT++, Mininet</td>
+                        </tr>
+                        <tr>
+                            <td>Computer architecture</td>
+                            <td>Cycle-accurate event-driven</td>
+                            <td>IPC, cache miss rate, energy; gem5, Sniper</td>
+                        </tr>
+                        <tr>
+                            <td>Manufacturing &amp; logistics</td>
+                            <td>Discrete event (process interaction)</td>
+                            <td>Throughput, WIP, bottlenecks, buffer sizing; Arena, FlexSim, Simul8</td>
+                        </tr>
+                        <tr>
+                            <td>Transport &amp; traffic</td>
+                            <td>CA or agent based (micro), fluid (macro)</td>
+                            <td>Congestion, signal timing, evacuation; SUMO, VISSIM, MATSim</td>
+                        </tr>
+                        <tr>
+                            <td>Epidemiology &amp; public health</td>
+                            <td>Compartmental ODE, network, agent based</td>
+                            <td>Peak load, intervention timing, contact tracing; EpiModel, FRED, Covasim</td>
+                        </tr>
+                        <tr>
+                            <td>Power systems</td>
+                            <td>Continuous (DAE) + event (protection relays)</td>
+                            <td>Stability, cascading outage, FACTS device placement; PSS&reg;E, PowerFactory, PSCAD</td>
+                        </tr>
+                        <tr>
+                            <td>Fluids, structures, climate</td>
+                            <td>Mesh based (FVM/FEM), parallel</td>
+                            <td>Drag, stress, forecast fields; OpenFOAM, ANSYS, WRF</td>
+                        </tr>
+                        <tr>
+                            <td>Finance &amp; risk</td>
+                            <td>Monte Carlo, SDEs, agent based</td>
+                            <td>Option pricing, VaR, flash-crash mechanisms</td>
+                        </tr>
+                        <tr>
+                            <td>Molecular &amp; systems biology</td>
+                            <td>Particle MD, Gillespie SSA, ODE</td>
+                            <td>Binding, kinetics, pathway dynamics; GROMACS, LAMMPS, COPASI</td>
+                        </tr>
+                        <tr>
+                            <td>Robotics &amp; autonomy</td>
+                            <td>Continuous physics + multi-agent</td>
+                            <td>Control validation, sim-to-real transfer; Gazebo, CARLA, Isaac Sim</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box exam">
+                <div class="bt">Exam tip &mdash; how to justify a paradigm choice</div>
+                <div class="bb">
+                    <p>Answer in four moves: (1) what is the entity and does its <em>identity</em> matter?
+                        (2) what is the coupling &mdash; edges, messages, geometry, or none? (3) is activity dense
+                        (time-step) or sparse (events)? (4) what does the decision-maker need &mdash; a mean, a
+                        distribution, or a mechanism? Then name the paradigm and one tool.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <h2 class="sec" id="s11"><span class="n">11.</span> Unit Summary</h2>
+
+            <ul>
+                <li>Graph-based simulations put the coupling structure in the model; the epidemic threshold formula
+                    shows why topology, not just rates, decides outcomes.</li>
+                <li>Actor-based simulation uses share-nothing message passing; it scales and distributes naturally but
+                    needs timestamps to stay reproducible.</li>
+                <li>Mesh-based simulation discretises space (FDM, FVM, FEM); accuracy is bounded by mesh quality and
+                    stability conditions such as CFL, and cost drives the parallelism of Unit III.</li>
+                <li>Hybrid simulation combines system dynamics, discrete-event and agent-based components; the
+                    difficulty lies in the interfaces and in clock reconciliation.</li>
+                <li>Agent-based models generate emergence from local rules; their strength is heterogeneity, their
+                    weakness is calibration and validation. Report with the ODD protocol.</li>
+                <li>Cellular automata are the minimal spatial model: lattice, states, neighbourhood, uniform synchronous
+                    rule; Wolfram's four classes; percolation thresholds in forest-fire models.</li>
+                <li>Monte Carlo estimates expectations by sampling, with dimension-independent
+                    &sigma;/&radic;<var>n</var> error; variance reduction and MCMC extend its reach.</li>
+                <li>Event-driven architectures rest on the future event list, deterministic tie-breaking, substreamed
+                    randomness and traceability; DEVS, HLA and PDES are the structured variants.</li>
+                <li>Complex adaptive systems &mdash; emergence, adaptation, nonlinearity, tipping points &mdash; are
+                    studied generatively, and interdependent critical infrastructure is the CO3 case study.</li>
+                <li>Domains map to paradigms through the identity/coupling/activity/decision questions.</li>
+            </ul>
+
+            <h3 class="sub" id="s11-1">11.1 Key terms</h3>
+            <p>Node transition rule &middot; degree distribution &middot; epidemic threshold &middot; small world
+                &middot; scale free &middot; actor &middot; mailbox &middot; location transparency &middot; structured
+                and unstructured mesh &middot; FDM/FVM/FEM &middot; CFL condition &middot; halo exchange &middot;
+                hybrid simulation &middot; system dynamics &middot; emergence &middot; stigmergy &middot; BDI &middot;
+                ODD protocol &middot; von Neumann and Moore neighbourhoods &middot; Wolfram classes &middot;
+                percolation threshold &middot; importance sampling &middot; MCMC &middot; calendar queue &middot; delta
+                cycle &middot; DEVS &middot; complex adaptive system &middot; cascading failure.</p>
+
+            <h3 class="sub" id="s11-2">11.2 Practice questions</h3>
+
+            <h4 class="subsub">Short answer <span class="marks">(2&ndash;3 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Define a cellular automaton by its four components.</li>
+                <li>State the three actions an actor may take on receiving a message.</li>
+                <li>What is emergence? Give one example.</li>
+                <li>Why is Monte Carlo error independent of dimension?</li>
+                <li>Differentiate structured and unstructured meshes.</li>
+                <li>What is a delta cycle, and why must simultaneous events be ordered deterministically?</li>
+                <li>Name two properties that make a system a complex adaptive system.</li>
+            </ol>
+
+            <h4 class="subsub">Medium answer <span class="marks">(5 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Describe a network-based SIR simulation and explain how network topology affects the epidemic
+                    threshold.</li>
+                <li>Compare cellular automata with agent-based models under at least five criteria.</li>
+                <li>Explain the three world views of discrete-event simulation with one example each.</li>
+                <li>Describe two variance reduction techniques and state when each is appropriate.</li>
+                <li>Explain, with an example, why a hybrid simulation may be preferred to a single-paradigm model, and
+                    list the interface problems it introduces.</li>
+            </ol>
+
+            <h4 class="subsub">Long answer <span class="marks">(10 marks each)</span></h4>
+            <ol class="qlist">
+                <li>Explain agent-based and multi-agent simulation in detail: agent properties, architectures,
+                    coordination mechanisms, emergence, strengths, limitations and reporting standards.</li>
+                <li>Explain mesh-based simulation from mesh generation to solution: mesh types, discretisation methods,
+                    boundary conditions, stability conditions and convergence studies.</li>
+                <li>Design a cellular-automaton simulation of forest-fire spread. Give states, neighbourhood, rules,
+                    parameters, boundary conditions, observables, and describe the percolation behaviour observed as
+                    density varies.</li>
+                <li>Discuss simulation of complex adaptive systems, using interdependent critical infrastructure as the
+                    case study; include emergence, cascading failure and how such results should be analysed.</li>
+                <li>Survey domain-specific simulation applications, and justify the dominant paradigm in each of five
+                    domains.</li>
+            </ol>
+
+            <h3 class="sub" id="s11-3">11.3 Further reading</h3>
+            <ul>
+                <li>R. M. Axelrod, <em>The Complexity of Cooperation: Agent-Based Models of Competition and
+                        Collaboration</em>, Princeton University Press.</li>
+                <li>S. N. Arifin, G. R. Madey and F. H. Collins, <em>Spatial Agent-Based Simulation Modeling in Public
+                        Health</em>, Wiley.</li>
+                <li>M. E. J. Newman, <em>Networks: An Introduction</em> &mdash; for Section 1.</li>
+                <li>S. Wolfram, <em>A New Kind of Science</em> &mdash; for Section 6 (read selectively).</li>
+                <li>S. Asmussen and P. W. Glynn, <em>Stochastic Simulation: Algorithms and Analysis</em> &mdash; for
+                    Section 7.</li>
+                <li>B. P. Zeigler, A. Muzy and E. Kofman, <em>Theory of Modeling and Simulation</em> &mdash; for
+                    Section 8 (DEVS).</li>
+            </ul>
+
+            <div class="pager">
+                <a href="../Unit I/MS_Unit1_Notes.html">&larr; Unit I: Simulation Basics</a>
+                <a href="../Unit III/MS_Unit3_Notes.html">Unit III: Parallel and Distributed Simulations &rarr;</a>
+            </div>
+
+            <div class="docfoot">
+                CSEG8003 Modelling and Simulation &middot; Unit II student notes &middot; Dr. Mohsin Furkh Dar &middot;
+                UPES
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../assets/notes.js"></script>
+</body>
+
+</html>
