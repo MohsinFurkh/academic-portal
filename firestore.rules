@@ -1,0 +1,210 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+             && request.auth.token.email in ['mohsin.dar@ddn.upes.ac.in'];
+    }
+
+    // =====================================================================
+    // MCQ quizzes  —  quiz/
+    // =====================================================================
+
+    // Roster check, read server-side. Students never see this document.
+    function onRoster(quizId, sapId) {
+      return exists(/databases/$(database)/documents/quizKeys/$(quizId))
+             && get(/databases/$(database)/documents/quizKeys/$(quizId))
+                  .data.roster.hasAny([sapId]);
+    }
+
+    // Public quiz: questions WITHOUT correct answers.
+    match /quizzes/{quizId} {
+      allow read:  if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Answer key + roster. Faculty only — never readable by a student.
+    match /quizKeys/{quizId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /attempts/{attemptId} {
+      // Faculty pressed "Allow resume" for a student who dropped off the
+      // network. While this flag is set — and only while it is set — a browser
+      // other than the one that started the attempt may open it.
+      function resumeOpen() {
+        return resource.data.get('resumeAllowed', false) == true;
+      }
+
+      // A student may read only their own attempt; faculty read everything.
+      // `resource == null` must come first: a student starting a fresh attempt
+      // reads a document that does not exist yet, and without this clause that
+      // read is denied — which looks like "someone else already started".
+      allow get: if isAdmin()
+                 || resource == null
+                 || (request.auth != null && resource.data.uid == request.auth.uid)
+                 || (request.auth != null && resumeOpen());
+
+      // Only faculty may list/query the collection. Students never need to.
+      allow list: if isAdmin();
+
+      // Starting an attempt: must be on the roster, must be tied to this browser,
+      // must start unscored and in progress.
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'in-progress'
+                    && request.resource.data.score == null
+                    && request.resource.data.graded == false
+                    && request.resource.data.violations == 0
+                    && onRoster(request.resource.data.quizId,
+                                request.resource.data.sapId);
+
+      // Taking over a granted resume: the ONLY way a different browser can
+      // claim an attempt. It works exactly once — the same write spends the
+      // grant — and it can change nothing except who owns the attempt.
+      function claimResume() {
+        return request.auth != null
+               && resumeOpen()
+               && resource.data.status == 'in-progress'
+               && request.resource.data.uid == request.auth.uid
+               && request.resource.data.resumeAllowed == false
+               && request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['uid', 'resumeAllowed', 'lastSeenAt']);
+      }
+
+      // During/at the end of an attempt the student may only touch these fields,
+      // may never score themselves, and may never reopen a submitted attempt.
+      allow update: if isAdmin()
+                    || claimResume()
+                    || (request.auth != null
+                        && resource.data.uid == request.auth.uid
+                        && resource.data.status == 'in-progress'
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.sapId == resource.data.sapId
+                        && request.resource.data.startedAt == resource.data.startedAt
+                        && request.resource.data.score == null
+                        && request.resource.data.graded == false
+                        && request.resource.data.violations >= resource.data.violations
+                        && request.resource.data.status in ['in-progress', 'submitted']
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['answers', 'order', 'violations', 'violationLog',
+                                       'lastSeenAt', 'status', 'submittedAt',
+                                       'autoSubmitted', 'submitReason']));
+
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // Descriptive class tests  —  exam/
+    // =====================================================================
+    // Separate collections from the quiz, so the two systems cannot affect
+    // each other. Same faculty account, same isAdmin() above.
+
+    // Roster check, read server-side. `rosterOpen` is the deliberate escape
+    // hatch for an invigilated room where no roster was prepared; it is set
+    // from the dashboard and defaults to false.
+    function examRosterOk(examId, sapId) {
+      return exists(/databases/$(database)/documents/examKeys/$(examId))
+             && (get(/databases/$(database)/documents/examKeys/$(examId))
+                   .data.get('rosterOpen', false) == true
+                 || get(/databases/$(database)/documents/examKeys/$(examId))
+                      .data.get('roster', []).hasAny([sapId]));
+    }
+
+    // Public: the question paper. No model answers, no marking scheme.
+    match /exams/{examId} {
+      allow read:  if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Marking scheme + roster. Faculty only — never readable by a student.
+    match /examKeys/{examId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /examAttempts/{attemptId} {
+      function resumeOpen() {
+        return resource.data.get('resumeAllowed', false) == true;
+      }
+
+      allow get: if isAdmin()
+                 || resource == null
+                 || (request.auth != null && resource.data.uid == request.auth.uid)
+                 || (request.auth != null && resumeOpen());
+
+      allow list: if isAdmin();
+
+      // Starting a paper: on the roster, tied to this browser, unmarked.
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'in-progress'
+                    && request.resource.data.score == null
+                    && request.resource.data.graded == false
+                    && request.resource.data.violations == 0
+                    && examRosterOk(request.resource.data.examId,
+                                    request.resource.data.sapId);
+
+      function claimResume() {
+        return request.auth != null
+               && resumeOpen()
+               && resource.data.status == 'in-progress'
+               && request.resource.data.uid == request.auth.uid
+               && request.resource.data.resumeAllowed == false
+               && request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['uid', 'resumeAllowed', 'lastSeenAt']);
+      }
+
+      // While writing, a student may only touch these fields. Note what is
+      // absent: `marks`, `feedback`, `score` and `graded` are outside the list,
+      // so evaluation can only ever come from the dashboard.
+      allow update: if isAdmin()
+                    || claimResume()
+                    || (request.auth != null
+                        && resource.data.uid == request.auth.uid
+                        && resource.data.status == 'in-progress'
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.sapId == resource.data.sapId
+                        && request.resource.data.startedAt == resource.data.startedAt
+                        && request.resource.data.score == null
+                        && request.resource.data.graded == false
+                        && request.resource.data.violations >= resource.data.violations
+                        && request.resource.data.status in ['in-progress', 'submitted']
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['answers', 'wordCounts', 'order', 'typedChars',
+                                       'pasteAttempts', 'imageCount', 'violations',
+                                       'violationLog', 'eventLog', 'lastSeenAt',
+                                       'status', 'submittedAt', 'autoSubmitted',
+                                       'submitReason']));
+
+      allow delete: if isAdmin();
+
+      // Uploaded diagrams: one document per picture, so the paper itself stays
+      // small however much the student draws. Ownership is read from the parent
+      // attempt rather than stored twice — which is also what carries the
+      // pictures across when a granted resume moves the paper to a new device.
+      match /images/{imageId} {
+        function paper() {
+          return get(/databases/$(database)/documents/examAttempts/$(attemptId)).data;
+        }
+
+        allow read: if isAdmin()
+                    || (request.auth != null && paper().uid == request.auth.uid);
+
+        // A picture can only be added to your own paper, only while it is still
+        // open, and only if it fits: the 640 000-character ceiling keeps the
+        // document under Firestore's 1 MiB limit even at the client's maximum
+        // compressed size.
+        allow create: if request.auth != null
+                      && request.resource.data.uid == request.auth.uid
+                      && paper().uid == request.auth.uid
+                      && paper().status == 'in-progress'
+                      && request.resource.data.dataUrl is string
+                      && request.resource.data.dataUrl.size() < 640000;
+
+        // A submitted diagram is evidence: the student cannot swap or delete it.
+        allow update, delete: if isAdmin();
+      }
+    }
+  }
+}

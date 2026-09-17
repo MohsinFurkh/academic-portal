@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class Test — Descriptive</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="no-select">
+  <div class="topbar">
+    <h1>Descriptive Class Test &mdash; UPES</h1>
+    <span class="right" id="whoami"></span>
+  </div>
+
+  <!-- shown only while a write to the server is outstanding -->
+  <div id="netChip" class="net-chip hidden">Reconnecting…</div>
+  <!-- short-lived messages from the editor (copied, diagram attached, …) -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- proctor overlay: covers the paper the moment the student leaves it -->
+  <div id="proctorOverlay" class="proctor-overlay hidden">
+    <div class="proctor-box">
+      <div class="proctor-icon">⚠</div>
+      <h2 id="proctorTitle">Test paused</h2>
+      <p id="proctorBody" class="proctor-body"></p>
+      <div class="proctor-count">
+        Violations: <b id="proctorCount">0</b> of <b id="proctorMax">3</b>
+      </div>
+      <p class="proctor-timer">Time remaining: <b id="proctorTimer">--:--</b> — the clock is still running.</p>
+      <button class="btn block" id="resumeBtn">Return to the test</button>
+      <p class="proctor-foot">This event has been recorded and is visible to your instructor.</p>
+    </div>
+  </div>
+
+  <div class="wrap" id="mainWrap">
+
+    <!-- Modules do not run from file://, but this plain script does. -->
+    <script>
+      if (location.protocol === "file:") {
+        document.write(
+          '<div class="notice err"><b>This page must be opened over http, not as a file.</b><br>' +
+          'Please use the link your instructor gave you — ' +
+          '<code>https://mohsinfurkh.github.io/academic-portal/exam/</code></div>'
+        );
+      }
+    </script>
+
+    <!-- STEP 1: Sign in -->
+    <section id="loginView" class="card">
+      <h2>Student Sign-in</h2>
+      <p class="sub">All four details are recorded with your answer paper. Enter them
+        exactly as they appear on your university record.</p>
+      <div id="loginMsg"></div>
+
+      <label for="name">Full name</label>
+      <input type="text" id="name" placeholder="e.g. Aisha Khan" autocomplete="off" />
+
+      <div class="row">
+        <div class="col">
+          <label for="sapId">SAP ID</label>
+          <input type="text" id="sapId" placeholder="e.g. 500098765" autocomplete="off"
+            inputmode="numeric" />
+        </div>
+        <div class="col">
+          <label for="mobile">Mobile number</label>
+          <input type="text" id="mobile" placeholder="10-digit number" autocomplete="off"
+            inputmode="tel" />
+        </div>
+      </div>
+
+      <label for="email">College email ID</label>
+      <input type="text" id="email" placeholder="you@stu.upes.ac.in" autocomplete="off"
+        inputmode="email" />
+      <div class="sub" id="domainHint"></div>
+
+      <label for="examSelect">Test</label>
+      <select id="examSelect">
+        <option value="">Loading tests…</option>
+      </select>
+
+      <div style="margin-top:18px">
+        <button class="btn block" id="startBtn">Continue</button>
+      </div>
+      <p class="sub" style="margin-top:16px">
+        This is a proctored written test. It runs in full screen, everything you type is
+        saved as you write, and leaving the window is recorded. Use a laptop or desktop
+        with a stable connection.
+      </p>
+    </section>
+
+    <!-- STEP 2: Rules -->
+    <section id="readyView" class="card hidden">
+      <h2 id="readyTitle">Class Test</h2>
+      <p class="sub" id="readyMeta"></p>
+      <div id="readyInstructions" class="notice warn"></div>
+
+      <div class="rules-box">
+        <h3>Examination rules — read before you start</h3>
+        <ol>
+          <li>The test opens in <b>full screen</b>. Leaving full screen, switching tabs,
+            switching apps or minimising the window counts as a <b>violation</b>.</li>
+          <li>You are allowed <b id="ruleMax">3</b> violations. On the
+            <b>last one your paper is submitted automatically</b> with whatever you have
+            written.</li>
+          <li><b>Answers must be typed by you.</b> Pasting or dragging text in from anywhere
+            outside this page is blocked and every attempt is reported to your instructor.</li>
+          <li>Cut, copy and paste still work <b>inside</b> the test, so you can move your own
+            paragraphs around — use the <b>✂ ⧉ 📋</b> buttons or Ctrl+X / Ctrl+C / Ctrl+V.</li>
+          <li>Use the toolbar for headings, <b>bold</b>, <i>italic</i>, lists and tables;
+            the <b>Ω</b> button for symbols, <b>√x</b> for equations, and <b>🖼</b> to
+            photograph and upload a diagram you drew on paper.</li>
+          <li>Every keystroke is saved to the server as you write. If you refresh or lose
+            connection briefly, reopen this page on the <b>same browser</b> to carry on
+            with the remaining time. If that device will not come back, tell your
+            instructor — they can let you resume on another one.</li>
+          <li>The timer starts when you press <b>Start Test</b> and <b>never pauses</b>.</li>
+          <li>Right-click, printing and developer shortcuts are disabled.</li>
+          <li>Marks are <b>not</b> shown here. Your instructor releases them after evaluation.</li>
+          <li>The <b>Start</b> button unlocks only after the reading time below has elapsed.
+            That time is separate from your test duration.</li>
+        </ol>
+      </div>
+
+      <div class="read-gate" id="readGate">
+        <div class="read-gate-label">Reading time remaining</div>
+        <div class="read-gate-time" id="readTimer">02:00</div>
+        <p class="read-gate-note" id="readGateNote">
+          Read the rules above carefully. The Start button unlocks when this reaches zero —
+          this time is <b>not</b> taken from your test duration.
+        </p>
+      </div>
+
+      <label class="agree">
+        <input type="checkbox" id="agree" disabled />
+        <span>I have read the rules, and the answers I write will be my own work.</span>
+      </label>
+
+      <button class="btn block" id="beginBtn" disabled>Start Test in Full Screen</button>
+      <p class="sub" id="fsWarn" style="margin-top:12px"></p>
+    </section>
+
+    <!-- STEP 3: The paper -->
+    <section id="examView" class="hidden">
+      <div class="quiz-header">
+        <div>
+          <div style="font-weight:600" id="examViewTitle"></div>
+          <div class="switch-badge">
+            Violations: <b id="switchCount">0</b> / <span id="switchMax">3</span>
+            <span class="saved-chip" id="savedChip">saved</span>
+            <span class="pill warnpill hidden" id="extraChip"></span>
+            <span class="pill flag hidden" id="pasteChip"></span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="timer" id="timer">--:--</div>
+          <button class="btn danger sm" id="submitBtn">Submit</button>
+        </div>
+      </div>
+      <div id="questions"></div>
+      <div class="card">
+        <div class="progress-dots" id="dots"></div>
+        <button class="btn block" id="submitBtn2" style="margin-top:16px">Submit Answer Paper</button>
+      </div>
+    </section>
+
+    <!-- STEP 4: Done -->
+    <section id="resultView" class="card hidden">
+      <h2 id="resultTitle">Submitted ✅</h2>
+      <p class="sub" id="resultMeta"></p>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="n" id="rAnswered">–</div>
+          <div class="l">Questions attempted</div>
+        </div>
+        <div class="stat">
+          <div class="n" id="rWords">–</div>
+          <div class="l">Words written</div>
+        </div>
+        <div class="stat">
+          <div class="n" id="rImages">–</div>
+          <div class="l">Diagrams attached</div>
+        </div>
+        <div class="stat">
+          <div class="n" id="rSwitches">–</div>
+          <div class="l">Violations recorded</div>
+        </div>
+        <div class="stat">
+          <div class="n mono" id="rReceipt">–</div>
+          <div class="l">Receipt</div>
+        </div>
+      </div>
+      <div id="resultNotice" class="notice ok" style="margin-top:16px">
+        Your answer paper is recorded. Marks will be released by your instructor after evaluation.
+      </div>
+      <p class="sub">You may now close this window.</p>
+    </section>
+
+    <!-- Submission failure rescue -->
+    <section id="rescueView" class="card hidden">
+      <h2 style="color:var(--bad)">Submission not confirmed</h2>
+      <div class="notice err">
+        Your paper could not be sent to the server. <b>Do not close this window.</b>
+        Raise your hand and tell your instructor.
+      </div>
+      <p class="sub">Everything you wrote is safe in this browser. Try again when the
+        network returns:</p>
+      <button class="btn block" id="retryBtn">Retry submission</button>
+      <button class="btn secondary block" id="downloadBtn" style="margin-top:10px">
+        Download answer paper (backup)
+      </button>
+      <p class="sub" style="margin-top:12px">
+        If retrying keeps failing, send the downloaded file to your instructor from your
+        own college email — it is a timestamped copy of your answers.
+      </p>
+    </section>
+
+  </div>
+
+  <script type="module" src="exam.js"></script>
+</body>
+
+</html>

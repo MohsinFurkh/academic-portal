@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class Test Admin — Faculty Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="topbar">
+    <h1>Descriptive Test — Faculty Dashboard</h1>
+    <span class="right">
+      <span id="whoAdmin" class="muted" style="color:#dfe6ec;margin-right:12px"></span>
+      <a href="index.html" style="color:#fff">Student view →</a>
+    </span>
+  </div>
+
+  <div class="wrap wide">
+
+    <script>
+      if (location.protocol === "file:") {
+        document.write(
+          '<div class="notice err" style="max-width:640px;margin:40px auto">' +
+          '<b>Open this page over http, not as a file.</b><br>' +
+          'Browsers block JavaScript modules on <code>file://</code>, so every button on ' +
+          'this page is dead. Use the published address ' +
+          '<code>https://mohsinfurkh.github.io/academic-portal/exam/admin.html</code>, ' +
+          'or run <code>python3 -m http.server 8123</code> in the project folder and open ' +
+          '<code>http://localhost:8123/exam/admin.html</code>.</div>'
+        );
+      }
+    </script>
+
+    <!-- Sign in -->
+    <section id="gateView" class="card" style="max-width:440px;margin:40px auto">
+      <h2>Faculty Sign-in</h2>
+      <p class="sub">Same faculty account as the quiz dashboard. Access is enforced by
+        Firestore rules, not by this page.</p>
+      <div id="gateMsg"></div>
+      <label for="email">Email</label>
+      <input type="text" id="email" placeholder="you@example.com" autocomplete="username" />
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
+      <button class="btn block" id="gateBtn" style="margin-top:16px">Sign in</button>
+    </section>
+
+    <div id="app" class="hidden">
+
+      <!-- Create / update -->
+      <section class="card">
+        <h2>Create / Update a Descriptive Test</h2>
+        <p class="sub">
+          Write the questions here, or upload a JSON file with them. Model answers are kept
+          in a separate faculty-only document — students never receive them.
+        </p>
+        <div id="createMsg"></div>
+
+        <label for="jsonFile">Questions JSON (optional — fills the form below)</label>
+        <input type="file" id="jsonFile" accept="application/json,.json" />
+        <div id="jsonInfo" class="sub">
+          Format: <code>{ "title": "...", "instructions": "...", "questions":
+            [ { "question": "...", "marks": 5, "minWords": 100, "maxWords": 400,
+            "allowImages": true, "guidance": "...", "modelAnswer": "..." } ] }</code>
+        </div>
+
+        <label for="title">Test title</label>
+        <input type="text" id="title" placeholder="e.g. CSEG3060 Class Test 1 — Unit II" />
+
+        <label for="instructions">Instructions shown before the test starts</label>
+        <textarea id="instructions" rows="2"
+          placeholder="e.g. Answer all questions. Draw diagrams where asked and upload a clear photo."></textarea>
+
+        <div class="row">
+          <div class="col">
+            <label for="duration">Duration (minutes)</label>
+            <input type="number" id="duration" value="45" min="1" />
+          </div>
+          <div class="col">
+            <label for="maxViolations">Violations allowed</label>
+            <input type="number" id="maxViolations" value="3" min="1" max="10" />
+          </div>
+          <div class="col">
+            <label for="readingMinutes">Reading time (min)</label>
+            <input type="number" id="readingMinutes" value="2" min="0" max="30" />
+          </div>
+          <div class="col">
+            <label for="active">Status</label>
+            <select id="active">
+              <option value="false">Draft / closed</option>
+              <option value="true">Active (students can take it)</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="domains">Allowed college email domains</label>
+        <input type="text" id="domains" value="stu.upes.ac.in, ddn.upes.ac.in"
+          placeholder="stu.upes.ac.in, ddn.upes.ac.in — leave blank to accept any address" />
+        <div class="sub">A student whose email does not end in one of these is refused at
+          sign-in. Sub-domains are accepted automatically.</div>
+
+        <h3 style="margin:22px 0 6px;font-size:1rem;color:var(--primary)">Questions</h3>
+        <div id="qbuild"></div>
+        <button class="btn secondary sm" id="addQBtn">+ Add question</button>
+        <span class="sub" id="qTotals" style="margin-left:12px"></span>
+
+        <label for="roster" style="margin-top:20px">Allowed SAP IDs (roster)</label>
+        <textarea id="roster" rows="4"
+          placeholder="Paste SAP IDs — separated by spaces, commas or new lines.&#10;500098765  500098766  500098767"></textarea>
+        <div class="sub" id="rosterInfo">No roster loaded.</div>
+        <input type="file" id="rosterFile" accept=".txt,.csv,text/plain,text/csv" />
+        <label class="agree" style="margin-top:10px">
+          <input type="checkbox" id="rosterOpen" />
+          <span>Allow <b>any</b> signed-in student to take this test (no roster check).
+            Only use this when you are invigilating in person — it removes the ID
+            restriction entirely.</span>
+        </label>
+
+        <button class="btn block" id="saveExamBtn" style="margin-top:12px" disabled>Save Test</button>
+      </section>
+
+      <!-- Monitor -->
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <h2 style="margin:0">Live Monitor &amp; Evaluation</h2>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <select id="monitorExam" style="width:auto"></select>
+            <button class="btn secondary sm" id="reportBtn">Download all papers</button>
+            <button class="btn secondary sm" id="exportBtn">Export CSV</button>
+            <button class="btn secondary sm" id="closeExamBtn">Close test</button>
+          </div>
+        </div>
+        <p class="sub">
+          Live while students write. <b>Words</b> and <b>keys</b> are updated every few
+          seconds — a paper whose word count is far ahead of its keystroke count did not
+          come from the keyboard. <b>Blocked</b> counts attempts to paste text in from
+          outside. Press <b>Evaluate</b> on a submitted paper to read it, mark it
+          question by question and save the score.
+        </p>
+        <div id="monitorMsg"></div>
+
+        <div class="stat-grid" style="margin:14px 0">
+          <div class="stat">
+            <div class="n" id="sTotal">0</div>
+            <div class="l">Students</div>
+          </div>
+          <div class="stat">
+            <div class="n" id="sLive">0</div>
+            <div class="l">Writing now</div>
+          </div>
+          <div class="stat">
+            <div class="n" id="sDone">0</div>
+            <div class="l">Submitted</div>
+          </div>
+          <div class="stat">
+            <div class="n" id="sGraded">0</div>
+            <div class="l">Evaluated</div>
+          </div>
+          <div class="stat">
+            <div class="n" id="sAvg">–</div>
+            <div class="l">Avg score</div>
+          </div>
+          <div class="stat">
+            <div class="n" id="sFlag">0</div>
+            <div class="l">Flagged</div>
+          </div>
+          <div class="stat">
+            <div class="n" id="sStale">0</div>
+            <div class="l">Not responding</div>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>SAP ID</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th class="right-align">Viol.</th>
+                <th class="right-align">Blocked</th>
+                <th class="right-align">Words</th>
+                <th class="right-align">Keys</th>
+                <th class="right-align">Diag.</th>
+                <th class="right-align">Score</th>
+                <th>Started</th>
+                <th>Live</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr>
+                <td colspan="13" class="muted">Select a test to monitor.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Evaluation window -->
+  <div id="evalModal" class="modal hidden">
+    <div class="modal-box wide">
+      <h3 id="evalTitle">Evaluate</h3>
+      <p class="sub" id="evalMeta"></p>
+      <div id="evalFlags"></div>
+      <div id="evalBody"></div>
+      <div class="score-bar">
+        <div class="tot">Total: <span id="evalTotal">0</span> / <span id="evalMax">0</span></div>
+        <div style="display:flex;gap:10px">
+          <button type="button" class="btn secondary" id="evalCancel">Close</button>
+          <button type="button" class="btn" id="evalSave">Save marks</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+
+</html>

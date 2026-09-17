@@ -47,15 +47,22 @@ cheating — laptops raise notifications, and a legitimate student can lose focu
    Then *Users* → **Add user** → create your own faculty account.
 3. Put that faculty email in **`ADMIN_EMAILS`** in [`firebase-config.js`](firebase-config.js)
    **and** in the rules below (both places, identical).
-4. **Rules** — Firestore → *Rules* → paste the block below → **Publish**.
+4. **Rules** — Firestore → *Rules* → replace everything with [`../firestore.rules`](../firestore.rules) → **Publish**. That file holds the rules for the quiz *and* the descriptive tests.
 
 ### Firestore security rules
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+> **The rules live in [`../firestore.rules`](../firestore.rules).** That one file covers
+> **both** this quiz system and the descriptive class tests in [`../exam/`](../exam/README.md).
+> Firestore replaces the entire ruleset on every publish, so pasting a quiz-only block
+> would silently delete the rules the class tests depend on — always publish the whole
+> file.
 
+Firestore → **Rules** → replace everything with the contents of
+[`../firestore.rules`](../firestore.rules) → **Publish**.
+
+The quiz half of that file is reproduced below for reference.
+
+```
     function isAdmin() {
       return request.auth != null
              && request.auth.token.email in ['mohsin.dar@ddn.upes.ac.in'];
@@ -68,84 +75,18 @@ service cloud.firestore {
                   .data.roster.hasAny([sapId]);
     }
 
-    // Public quiz: questions WITHOUT correct answers.
     match /quizzes/{quizId} {
       allow read:  if request.auth != null;
       allow write: if isAdmin();
     }
 
-    // Answer key + roster. Faculty only — never readable by a student.
     match /quizKeys/{quizId} {
       allow read, write: if isAdmin();
     }
 
     match /attempts/{attemptId} {
-      // Faculty pressed "Allow resume" for a student who dropped off the
-      // network. While this flag is set — and only while it is set — a browser
-      // other than the one that started the attempt may open it.
-      function resumeOpen() {
-        return resource.data.get('resumeAllowed', false) == true;
-      }
-
-      // A student may read only their own attempt; faculty read everything.
-      // `resource == null` must come first: a student starting a fresh attempt
-      // reads a document that does not exist yet, and without this clause that
-      // read is denied — which looks like "someone else already started".
-      allow get: if isAdmin()
-                 || resource == null
-                 || (request.auth != null && resource.data.uid == request.auth.uid)
-                 || (request.auth != null && resumeOpen());
-
-      // Only faculty may list/query the collection. Students never need to.
-      allow list: if isAdmin();
-
-      // Starting an attempt: must be on the roster, must be tied to this browser,
-      // must start unscored and in progress.
-      allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.status == 'in-progress'
-                    && request.resource.data.score == null
-                    && request.resource.data.graded == false
-                    && request.resource.data.violations == 0
-                    && onRoster(request.resource.data.quizId,
-                                request.resource.data.sapId);
-
-      // Taking over a granted resume: the ONLY way a different browser can
-      // claim an attempt. It works exactly once — the same write spends the
-      // grant — and it can change nothing except who owns the attempt.
-      function claimResume() {
-        return request.auth != null
-               && resumeOpen()
-               && resource.data.status == 'in-progress'
-               && request.resource.data.uid == request.auth.uid
-               && request.resource.data.resumeAllowed == false
-               && request.resource.data.diff(resource.data).affectedKeys()
-                    .hasOnly(['uid', 'resumeAllowed', 'lastSeenAt']);
-      }
-
-      // During/at the end of an attempt the student may only touch these fields,
-      // may never score themselves, and may never reopen a submitted attempt.
-      allow update: if isAdmin()
-                    || claimResume()
-                    || (request.auth != null
-                        && resource.data.uid == request.auth.uid
-                        && resource.data.status == 'in-progress'
-                        && request.resource.data.uid == resource.data.uid
-                        && request.resource.data.sapId == resource.data.sapId
-                        && request.resource.data.startedAt == resource.data.startedAt
-                        && request.resource.data.score == null
-                        && request.resource.data.graded == false
-                        && request.resource.data.violations >= resource.data.violations
-                        && request.resource.data.status in ['in-progress', 'submitted']
-                        && request.resource.data.diff(resource.data).affectedKeys()
-                             .hasOnly(['answers', 'order', 'violations', 'violationLog',
-                                       'lastSeenAt', 'status', 'submittedAt',
-                                       'autoSubmitted', 'submitReason']));
-
-      allow delete: if isAdmin();
+      ...  // see ../firestore.rules for the full block
     }
-  }
-}
 ```
 
 The email in `isAdmin()` **must be identical** to the one in `ADMIN_EMAILS` in
