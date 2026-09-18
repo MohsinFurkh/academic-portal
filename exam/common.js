@@ -32,6 +32,10 @@ export function normalizeExam(raw) {
     course: String(src.course || ""),
     title: String(src.assessment || src.title || ""),
     instructions: String(src.instructions || ""),
+    // Optional: a paper that states its own duration fills the form, so the
+    // one number nobody can guess from the questions is not typed by hand.
+    durationMinutes: Number(src.durationMinutes) > 0 ? Math.round(Number(src.durationMinutes)) : 0,
+    readingMinutes: Number(src.readingMinutes) >= 0 ? Math.round(Number(src.readingMinutes)) : -1,
     questions,
   };
 }

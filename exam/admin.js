@@ -213,6 +213,8 @@ function onFile(ev) {
       if (norm.instructions && !$("instructions").value.trim()) {
         $("instructions").value = norm.instructions;
       }
+      if (norm.durationMinutes) $("duration").value = norm.durationMinutes;
+      if (norm.readingMinutes >= 0) $("readingMinutes").value = norm.readingMinutes;
       msg($("createMsg"),
         `Loaded <b>${norm.questions.length}</b> question(s) worth <b>${totalMarks(norm.questions)}</b> marks. ` +
         `Edit anything below, then save.`, "ok");

@@ -30,6 +30,7 @@ the rules and the proctor are separate, so the two never interfere.
 | **Internal clipboard** | Cut/copy/paste still work **inside** the exam, served from a JavaScript variable. The system clipboard is never read or written, so text cannot travel in or out. Students can still restructure their own answers. |
 | **Keystroke telemetry** | Printable keystrokes are counted and stored next to the word count. A paper with 600 words and 200 keystrokes did not come from that keyboard; the dashboard flags it with ⚑. |
 | **Selection fenced** | Text can only be selected inside an answer box, so the question paper itself cannot be swept up and dragged elsewhere. |
+| **Dialogs the page opens** | The table sizer, symbol palette, equation box and drawing pad are drawn inside the page, so they cost no focus and can never be a violation. The one unavoidable exception — the operating system's file chooser — opens a *grace window*: the focus loss is excused, but it is logged with its reason, it is time-boxed, and it ends the instant focus returns. |
 | **Input blocking** | Right-click, printing, F12, Ctrl+Shift+I/J/C/K, Ctrl+U/S/P/F, Ctrl+T/N/W/O/H. Ctrl+B/I/U/Z/Y stay with the editor, because the student needs them. |
 | **Marks cannot be self-written** | Firestore rules forbid a student's browser from writing `score`, `marks`, `graded` or another student's document. |
 | **Model answers never leave the server** | The marking scheme lives in `examKeys/{id}`, which students cannot read. |
@@ -47,6 +48,10 @@ Read this before you rely on it:
   student can read an answer off it and type it in by hand — the keystroke counter will
   look completely normal, because they really did type it.
 - **Another person in the room**, or a screen-share to a friend on a different machine.
+- **Distinguishing a genuine upload from a pretext.** While the file chooser is open
+  the proctor is not counting, so a student could alt-tab during it. The window is
+  short, it closes the moment focus returns, the paper stays blurred throughout, and
+  every grace is written to the event log with its reason — but it is not zero.
 - **Truly preventing** the student from leaving full screen. The browser will not let a
   page trap the user — we can only *detect* the exit and react, which is what we do.
 - **An on-screen keyboard or a macro pad** that types the text for them. Blocked pastes
@@ -229,9 +234,18 @@ derivatives, logarithms, big-O, binomials, matrices, cases, vectors and Bayes' r
 the LaTeX is stored; it is re-rendered from that source everywhere it is shown, so no
 student-authored HTML is ever trusted.
 
-**Diagrams (🖼)** — the student draws on paper, photographs it, and uploads. The picture
-is resized to 1500 px and re-encoded until it is small enough to store, then appears in
-the answer as a figure with an editable caption. Up to 4 per question and 15 per paper.
+**Diagrams — two routes.** **✏ Draw** opens a pad inside the page: mouse, trackpad,
+finger or stylus, four pen colours, three widths, an eraser, and an Undo that also undoes
+a Clear. It exports at twice the on-screen resolution; a line drawing typically lands
+around 20 KB. **🖼 Upload** takes a photograph of something drawn on paper and resizes it
+to 1500 px, re-encoding until it is small enough to store. Both routes produce the same
+figure with an editable caption, and both are capped at 4 per question and 15 per paper.
+
+Tell students to prefer **Draw**: it is the only one of the two that opens no
+operating-system window, so it cannot interrupt their paper at all.
+
+**Tables (▦)** — a size dialog with a live preview, inside the page. Up to 20 rows by 10
+columns, with an optional heading row.
 
 **Word counts** — live per answer, against the min/max you suggested, and shown to you in
 the dashboard and on every dot in the question navigator.

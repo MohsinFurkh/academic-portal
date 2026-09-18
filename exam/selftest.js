@@ -283,6 +283,83 @@ check("two blocked pastes do not cost a violation", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Grace windows — the page may excuse a focus loss it caused, but only just
+// ---------------------------------------------------------------------------
+function graceProctor() {
+  const fired = { violations: [], limit: null, graced: [] };
+  let clock = 0;
+  const fake = {
+    listeners: {},
+    addEventListener(k, fn) { (this.listeners[k] = this.listeners[k] || []).push(fn); },
+    removeEventListener() { }, hidden: false,
+  };
+  const p = createProctor({
+    maxViolations: 3, doc: fake, win: fake, now: () => clock,
+    onViolation: (c, k) => fired.violations.push([c, k]),
+    onLimit: (c, k) => { fired.limit = [c, k]; },
+    onGrace: (k, r) => fired.graced.push([k, r]),
+  }).attach();
+  return { p, fired, fake, tick: (ms) => { clock += ms; } };
+}
+
+check("a graced focus loss costs no violation", () => {
+  const { p, fired } = graceProctor();
+  p.grace("diagram file chooser");
+  p.report("window focus lost");
+  return fired.violations.length === 0 && p.count === 0
+    ? true : `count=${p.count} violations=${fired.violations.length}`;
+});
+
+check("a graced focus loss is still reported to the instructor", () => {
+  const { p, fired } = graceProctor();
+  p.grace("diagram file chooser");
+  p.report("left full screen");
+  return fired.graced.length === 1 && fired.graced[0][1] === "diagram file chooser"
+    ? true : JSON.stringify(fired.graced);
+});
+
+check("grace expires on its own", () => {
+  const { p, fired, tick } = graceProctor();
+  p.grace("diagram file chooser", 25000);
+  tick(25001);
+  p.report("window focus lost");
+  return eq(fired.violations.length, 1);
+});
+
+check("grace ends the moment focus comes back", () => {
+  const { p, fired, fake, tick } = graceProctor();
+  p.grace("diagram file chooser", 25000);
+  fake.listeners.focus.forEach((fn) => fn());     // the chooser closed
+  tick(100);
+  p.report("window focus lost");                  // a genuine departure, later
+  return fired.violations.length === 1 && !p.inGrace
+    ? true : `violations=${fired.violations.length} inGrace=${p.inGrace}`;
+});
+
+check("clearGrace is immediate", () => {
+  const { p, fired } = graceProctor();
+  p.grace("submit confirmation", 60000);
+  p.clearGrace();
+  p.report("tab/minimise");
+  return eq(fired.violations.length, 1);
+});
+
+check("grace does not excuse a blocked paste", () => {
+  const { p, fake } = graceProctor();
+  p.grace("diagram file chooser");
+  fake.listeners.paste.forEach((fn) => fn({ preventDefault() { } }));
+  return eq(p.blockedCount, 1);
+});
+
+check("grace cannot resurrect an attempt already at the limit", () => {
+  const { p, fired, tick } = graceProctor();
+  for (let i = 0; i < 3; i++) { p.report("tab/minimise"); tick(VIOLATION_DEBOUNCE_MS + 10); }
+  p.grace("diagram file chooser");
+  p.report("window focus lost");
+  return fired.limit && p.count === 3 ? true : `count=${p.count}`;
+});
+
+// ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
 const passed = results.filter((r) => r.pass).length;
@@ -307,7 +384,7 @@ const ed = createEditor(document.getElementById("sandbox"), {
   // The real page writes this to Firestore; here it just stays in memory.
   onImageUpload: async (file, meta) => { localImages[meta.id] = meta.dataUrl; return meta.id; },
 });
-ed.setHTML("<h2>Try me</h2><p>Type here, then press <b>Show what would be saved</b>.</p>", {});
+ed.setHTML("<h2>Try me</h2><p>Type here, then press <b>Show what would be saved</b>. The \u270F button draws a diagram in the page; \u25a6 inserts a table. Neither opens a native dialog, so neither can cost a violation.</p>", {});
 
 document.getElementById("dumpBtn").addEventListener("click", () => {
   const st = ed.stats();

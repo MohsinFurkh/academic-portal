@@ -54,7 +54,8 @@ const TOOLS = [
   { group: "sep" },
   { act: "symbol", label: "Ω", title: "Insert a special symbol" },
   { act: "math", label: "√x", title: "Insert a maths equation" },
-  { act: "image", label: "🖼", title: "Upload a diagram you drew on paper", key: "image" },
+  { act: "draw", label: "✏", title: "Draw a diagram here with the mouse or a stylus", key: "image" },
+  { act: "image", label: "🖼", title: "Upload a photo of a diagram you drew on paper", key: "image" },
   { group: "sep" },
   { act: "cut", label: "✂", title: "Cut (Ctrl+X) — within this exam only" },
   { act: "copy", label: "⧉", title: "Copy (Ctrl+C) — within this exam only" },
@@ -83,6 +84,11 @@ export function createEditor(mount, opts) {
     onTyped = () => { },
     onSuspicious = () => { },
     onNotice = () => { },
+    // Called just before the operating system's file chooser opens, and again
+    // once it has closed. exam.js uses this to tell the proctor that the focus
+    // loss it is about to see was caused by the page, not by the student.
+    onPickerOpen = () => { },
+    onPickerClose = () => { },
     // (file, {qid, dataUrl, bytes, w, h}) -> Promise<imageId>. Rejecting
     // cancels the insertion, so a diagram is only ever shown once it is safely
     // on the server.
@@ -155,7 +161,14 @@ export function createEditor(mount, opts) {
     else if (act === "rule") insertHTML("<hr>");
     else if (act === "symbol") openSymbols(insertHTML);
     else if (act === "math") openMath(insertMath);
-    else if (act === "image") fileInput.click();
+    else if (act === "draw") {
+      if (imageCount >= maxImages) {
+        onNotice(`You can attach at most ${maxImages} diagrams to this answer.`, "warn");
+      } else {
+        openDraw(insertDrawing);
+      }
+    }
+    else if (act === "image") openPicker();
     else if (act === "cut") clipCut();
     else if (act === "copy") clipCopy();
     else if (act === "paste") clipPaste();
@@ -291,9 +304,23 @@ export function createEditor(mount, opts) {
   body.addEventListener("blur", save);
 
   // ---- Diagrams --------------------------------------------------------
+  // Opening the chooser is the one moment this editor genuinely hands control
+  // to the operating system. Announce it, so the proctor can expect the blur.
+  function openPicker() {
+    if (imageCount >= maxImages) {
+      return onNotice(`You can attach at most ${maxImages} diagrams to this answer.`, "warn");
+    }
+    onPickerOpen();
+    fileInput.click();
+    // The chooser gives no event when it is cancelled, so close the window on
+    // the next focus instead of waiting for the grace period to time out.
+    window.addEventListener("focus", () => onPickerClose(), { once: true });
+  }
+
   fileInput.addEventListener("change", async () => {
     const file = fileInput.files && fileInput.files[0];
     fileInput.value = "";
+    onPickerClose();
     if (!file) return;
     if (!/^image\//i.test(file.type)) {
       return onNotice("Please choose an image file (JPG, PNG or HEIC photo).", "err");
@@ -316,6 +343,24 @@ export function createEditor(mount, opts) {
     }
   });
 
+  // A drawing made in the canvas takes exactly the same route as an uploaded
+  // photo: same compression contract, same upload callback, same figure markup,
+  // so the Firestore rules, the faculty view and the offline report need to
+  // know nothing about where the picture came from.
+  async function insertDrawing(shot) {
+    if (!onImageUpload) return onNotice("Diagram upload is not available.", "err");
+    onNotice("Saving your drawing…", "ok");
+    try {
+      const id = await onImageUpload(null, { qid, ...shot });
+      if (!id) return;
+      insertFigure(id, shot.dataUrl);
+      onNotice("Drawing attached.", "ok");
+    } catch (err) {
+      console.error(err);
+      onNotice("That drawing could not be saved. Check your connection.", "err");
+    }
+  }
+
   function insertFigure(id, dataUrl) {
     const n = imageCount + 1;
     insertHTML(
@@ -332,23 +377,28 @@ export function createEditor(mount, opts) {
   }
 
   // ---- Tables ----------------------------------------------------------
+  // This used to call window.prompt(). A native dialog is drawn by the browser
+  // chrome, not by the page: it blurs the window and on some desktops drops
+  // full screen, which the proctor could only read as the student leaving. The
+  // size is now asked for inside the page, so nothing leaves the document.
   function insertTable() {
-    const spec = window.prompt("Table size as rows x columns (for example 3x4):", "3x3");
-    if (!spec) return;
-    const m = /^\s*(\d+)\s*[x×,\s]\s*(\d+)\s*$/i.exec(spec);
-    if (!m) return onNotice("Enter the size as rows x columns, e.g. 3x4.", "warn");
-    const rows = Math.min(20, Math.max(1, +m[1]));
-    const cols = Math.min(10, Math.max(1, +m[2]));
-    let html = "<table><thead><tr>";
-    for (let c = 0; c < cols; c++) html += "<th>Head</th>";
-    html += "</tr></thead><tbody>";
-    for (let r = 1; r < rows; r++) {
-      html += "<tr>";
-      for (let c = 0; c < cols; c++) html += "<td>&nbsp;</td>";
-      html += "</tr>";
-    }
-    html += "</tbody></table><p><br></p>";
-    insertHTML(html);
+    openTable((rows, cols, header) => {
+      let html = "<table>";
+      if (header) {
+        html += "<thead><tr>";
+        for (let c = 0; c < cols; c++) html += "<th>Heading</th>";
+        html += "</tr></thead>";
+        rows -= 1;
+      }
+      html += "<tbody>";
+      for (let r = 0; r < rows; r++) {
+        html += "<tr>";
+        for (let c = 0; c < cols; c++) html += "<td>&nbsp;</td>";
+        html += "</tr>";
+      }
+      html += "</tbody></table><p><br></p>";
+      insertHTML(html);
+    });
   }
 
   // ---- Equations -------------------------------------------------------
@@ -633,6 +683,303 @@ function buildSymbolModal() {
 
   return {
     open(onInsert) { cb = onInsert; el.classList.remove("hidden"); },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Table dialog
+// ---------------------------------------------------------------------------
+let tableModal = null;
+function openTable(onInsert) {
+  if (!tableModal) tableModal = buildTableModal();
+  tableModal.open(onInsert);
+}
+
+function buildTableModal() {
+  const el = document.createElement("div");
+  el.className = "modal hidden";
+  el.innerHTML = `
+    <div class="modal-box">
+      <h3>Insert a table</h3>
+      <p class="sub">Choose the size. You can type in the cells afterwards, and pressing
+        Tab in the last cell does <b>not</b> add a row — pick the size you need now.</p>
+      <div class="tbl-row">
+        <div>
+          <label for="tblRows">Rows</label>
+          <input type="number" id="tblRows" class="small" value="3" min="1" max="20" />
+        </div>
+        <div>
+          <label for="tblCols">Columns</label>
+          <input type="number" id="tblCols" class="small" value="3" min="1" max="10" />
+        </div>
+        <label class="tbl-head">
+          <input type="checkbox" id="tblHead" checked />
+          <span>First row is a heading row</span>
+        </label>
+      </div>
+      <div class="tbl-preview" aria-hidden="true"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary t-cancel">Cancel</button>
+        <button type="button" class="btn t-ok">Insert table</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+
+  const rowsEl = el.querySelector("#tblRows");
+  const colsEl = el.querySelector("#tblCols");
+  const headEl = el.querySelector("#tblHead");
+  const preview = el.querySelector(".tbl-preview");
+  let cb = null;
+
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, parseInt(v, 10) || lo));
+
+  function paint() {
+    const rows = clamp(rowsEl.value, 1, 20);
+    const cols = clamp(colsEl.value, 1, 10);
+    const header = headEl.checked;
+    let html = "<table>";
+    for (let r = 0; r < rows; r++) {
+      html += "<tr>";
+      for (let c = 0; c < cols; c++) {
+        html += (header && r === 0) ? "<th>Heading</th>" : "<td>&nbsp;</td>";
+      }
+      html += "</tr>";
+    }
+    preview.innerHTML = html + "</table>";
+  }
+
+  [rowsEl, colsEl, headEl].forEach((n) => n.addEventListener("input", paint));
+  const close = () => { el.classList.add("hidden"); cb = null; };
+  el.querySelector(".t-cancel").addEventListener("click", close);
+  el.addEventListener("mousedown", (e) => { if (e.target === el) close(); });
+  el.querySelector(".t-ok").addEventListener("click", () => {
+    const rows = clamp(rowsEl.value, 1, 20);
+    const cols = clamp(colsEl.value, 1, 10);
+    const header = headEl.checked;
+    const fn = cb;
+    close();
+    if (fn) fn(rows, cols, header);
+  });
+
+  return {
+    open(onInsert) {
+      cb = onInsert;
+      paint();
+      el.classList.remove("hidden");
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Drawing pad
+// ---------------------------------------------------------------------------
+// Lets a student draw the diagram here instead of drawing it on paper,
+// photographing it and uploading the photo. It works with a mouse, a trackpad,
+// a touchscreen or a stylus, and — because it never leaves the page — it costs
+// no focus, no full-screen exit and therefore no violation.
+//
+// Strokes are kept as points rather than painted straight onto the canvas, so
+// undo is exact and the export can be redrawn at a higher resolution than the
+// on-screen pad.
+const PEN_COLOURS = [["#111827", "black"], ["#1d4ed8", "blue"], ["#b91c1c", "red"],
+                     ["#047857", "green"]];
+const PEN_SIZES = [[2, "fine"], [4, "medium"], [8, "thick"]];
+const DRAW_EXPORT_SCALE = 2;        // export at twice the on-screen size
+
+let drawModal = null;
+function openDraw(onInsert, remaining) {
+  if (!drawModal) drawModal = buildDrawModal();
+  drawModal.open(onInsert, remaining);
+}
+
+function buildDrawModal() {
+  const el = document.createElement("div");
+  el.className = "modal hidden";
+  el.innerHTML = `
+    <div class="modal-box wide">
+      <h3>Draw a diagram</h3>
+      <p class="sub">Draw with the mouse, your trackpad, a finger or a stylus. This stays
+        inside the exam — nothing is downloaded and no file chooser opens, so it will not
+        interrupt your paper.</p>
+      <div class="draw-tools">
+        <span class="draw-group" data-role="colours"></span>
+        <span class="ed-sep"></span>
+        <span class="draw-group" data-role="sizes"></span>
+        <span class="ed-sep"></span>
+        <button type="button" class="draw-btn d-erase" title="Eraser">⌫ Eraser</button>
+        <button type="button" class="draw-btn d-undo" title="Undo the last stroke">↶ Undo</button>
+        <button type="button" class="draw-btn d-clear" title="Clear the whole drawing">Clear</button>
+        <span class="draw-hint">Tip: hold and drag to draw.</span>
+      </div>
+      <div class="draw-wrap"><canvas class="draw-canvas" width="1000" height="560"></canvas></div>
+      <div class="modal-actions">
+        <span class="draw-count muted"></span>
+        <button type="button" class="btn secondary d-cancel">Cancel</button>
+        <button type="button" class="btn d-ok">Insert drawing</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+
+  const canvas = el.querySelector(".draw-canvas");
+  const ctx = canvas.getContext("2d");
+  const countEl = el.querySelector(".draw-count");
+  let strokes = [];
+  let current = null;
+  let colour = PEN_COLOURS[0][0];
+  let size = PEN_SIZES[1][0];
+  let erasing = false;
+  let cb = null;
+
+  el.querySelector('[data-role="colours"]').innerHTML = PEN_COLOURS
+    .map(([hex, name], i) => `<button type="button" class="draw-swatch${i === 0 ? " on" : ""}"
+       data-colour="${hex}" title="${name}" style="background:${hex}"></button>`).join("");
+  el.querySelector('[data-role="sizes"]').innerHTML = PEN_SIZES
+    .map(([px, name], i) => `<button type="button" class="draw-btn${i === 1 ? " on" : ""}"
+       data-size="${px}" title="${name} line">${"•".repeat(i + 1)}</button>`).join("");
+
+  function setActive(group, el2) {
+    el.querySelectorAll(group).forEach((b) => b.classList.remove("on"));
+    el2.classList.add("on");
+  }
+
+  el.querySelector('[data-role="colours"]').addEventListener("click", (e) => {
+    const b = e.target.closest(".draw-swatch");
+    if (!b) return;
+    colour = b.dataset.colour;
+    erasing = false;
+    el.querySelector(".d-erase").classList.remove("on");
+    setActive(".draw-swatch", b);
+  });
+  el.querySelector('[data-role="sizes"]').addEventListener("click", (e) => {
+    const b = e.target.closest(".draw-btn[data-size]");
+    if (!b) return;
+    size = Number(b.dataset.size);
+    setActive(".draw-btn[data-size]", b);
+  });
+  el.querySelector(".d-erase").addEventListener("click", (e) => {
+    erasing = !erasing;
+    e.currentTarget.classList.toggle("on", erasing);
+  });
+  // Undo walks a stack of snapshots rather than popping strokes, so Clear is
+  // undoable too — a student who clears a nearly-finished diagram by mistake
+  // has no other way back, and there is no native dialog available to warn them.
+  let history = [];
+  function snapshot() {
+    history.push(strokes.map((st) => ({ ...st, pts: st.pts.slice() })));
+    if (history.length > 40) history.shift();
+  }
+  el.querySelector(".d-undo").addEventListener("click", () => {
+    if (!history.length) return;
+    strokes = history.pop();
+    current = null;
+    repaint();
+  });
+  el.querySelector(".d-clear").addEventListener("click", () => {
+    if (!strokes.length) return;
+    snapshot();
+    strokes = [];
+    repaint();
+  });
+
+  // ---- pointer handling ----
+  // Pointer events cover mouse, touch and stylus with one code path. The canvas
+  // is drawn at a fixed internal size and scaled by CSS, so every coordinate is
+  // mapped through the element's real box.
+  function pointAt(ev) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: (ev.clientX - r.left) * (canvas.width / r.width),
+      y: (ev.clientY - r.top) * (canvas.height / r.height),
+    };
+  }
+
+  canvas.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    canvas.setPointerCapture(ev.pointerId);
+    snapshot();
+    current = {
+      colour, erasing,
+      // An eraser stroke has to be fat enough to be usable.
+      size: erasing ? size * 4 : size,
+      pts: [pointAt(ev)],
+    };
+    strokes.push(current);
+    repaint();
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    if (!current) return;
+    ev.preventDefault();
+    current.pts.push(pointAt(ev));
+    repaint();
+  });
+  const endStroke = () => {
+    if (current && current.pts.length === 1) current.pts.push({ ...current.pts[0] });  // a dot
+    current = null;
+    repaint();
+  };
+  canvas.addEventListener("pointerup", endStroke);
+  canvas.addEventListener("pointercancel", endStroke);
+  canvas.addEventListener("pointerleave", endStroke);
+
+  function paintTo(c, scale) {
+    c.save();
+    c.scale(scale, scale);
+    c.fillStyle = "#ffffff";
+    c.fillRect(0, 0, canvas.width, canvas.height);
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    strokes.forEach((st) => {
+      c.beginPath();
+      // The eraser paints white rather than clearing, because the export needs
+      // an opaque background for JPEG anyway.
+      c.strokeStyle = st.erasing ? "#ffffff" : st.colour;
+      c.lineWidth = st.size;
+      st.pts.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
+      c.stroke();
+    });
+    c.restore();
+  }
+
+  function repaint() {
+    paintTo(ctx, 1);
+    const n = strokes.length;
+    countEl.textContent = n ? `${n} stroke${n > 1 ? "s" : ""}` : "Nothing drawn yet";
+    el.querySelector(".d-ok").disabled = n === 0;
+  }
+
+  const close = () => { el.classList.add("hidden"); cb = null; };
+  el.querySelector(".d-cancel").addEventListener("click", close);
+  el.addEventListener("mousedown", (e) => { if (e.target === el) close(); });
+
+  el.querySelector(".d-ok").addEventListener("click", () => {
+    if (!strokes.length || !cb) return;
+    const out = document.createElement("canvas");
+    out.width = canvas.width * DRAW_EXPORT_SCALE;
+    out.height = canvas.height * DRAW_EXPORT_SCALE;
+    paintTo(out.getContext("2d"), DRAW_EXPORT_SCALE);
+
+    // A line drawing is mostly flat white, so it compresses far below the
+    // photograph ceiling; step the quality down only if it somehow does not.
+    let quality = 0.92;
+    let dataUrl = out.toDataURL("image/jpeg", quality);
+    while (bytesOf(dataUrl) > IMG_MAX_BYTES && quality > 0.4) {
+      quality -= 0.12;
+      dataUrl = out.toDataURL("image/jpeg", quality);
+    }
+    const fn = cb;
+    close();
+    fn({ dataUrl, bytes: bytesOf(dataUrl), w: out.width, h: out.height, id: uid8() });
+  });
+
+  return {
+    open(onInsert) {
+      cb = onInsert;
+      strokes = [];
+      history = [];
+      current = null;
+      repaint();
+      el.classList.remove("hidden");
+    },
   };
 }
 

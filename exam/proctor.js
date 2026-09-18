@@ -30,6 +30,7 @@ export function createProctor(opts) {
     onViolation = () => { },   // (count, kind, remaining)
     onLimit = () => { },       // (count, kind) — fires once, at the limit
     onBlocked = () => { },     // (kind, totalBlocked) — did not count as a violation
+    onGrace = () => { },       // (kind, reason) — focus loss the page itself caused
     isEditor = () => false,    // (element) -> is this inside an answer box?
     doc: docRef = (typeof document !== "undefined" ? document : null),
     win = (typeof window !== "undefined" ? window : null),
@@ -38,6 +39,8 @@ export function createProctor(opts) {
 
   let count = 0;
   let blocked = 0;
+  let graceUntil = 0;
+  let graceReason = "";
   let lastTs = -Infinity;
   let stopped = false;
   let limitReached = false;
@@ -106,8 +109,46 @@ export function createProctor(opts) {
     return false;
   }
 
+  // -------------------------------------------------------------------------
+  // Grace windows
+  // -------------------------------------------------------------------------
+  // A file picker is an operating-system window. When it opens, the browser
+  // fires exactly the same blur that alt-tabbing fires, and on some desktops
+  // full screen is dropped too — so a student who did what the paper asked and
+  // uploaded their diagram was being charged a violation for it.
+  //
+  // grace() is how the page says "I am about to cause a focus loss, on purpose,
+  // because the student clicked a control I own". It is deliberately narrow:
+  //
+  //   * only the page can open one, never the student directly;
+  //   * it is time-boxed, and it ENDS the moment focus comes back, so it is one
+  //     round trip to a dialog and not a window of free absence;
+  //   * the paper stays blurred while focus is away, exactly as before;
+  //   * every suppressed event is still reported through onGrace and logged,
+  //     so the instructor sees that it happened and why.
+  function grace(reason, ms = 25000) {
+    graceUntil = now() + ms;
+    graceReason = String(reason || "page dialog");
+    return api;
+  }
+
+  function clearGrace() {
+    graceUntil = 0;
+    graceReason = "";
+    return api;
+  }
+
+  function inGrace() {
+    return now() < graceUntil;
+  }
+
   function report(kind) {
     if (stopped || limitReached) return null;
+    // Caused by the page, not by the student leaving it.
+    if (inGrace()) {
+      onGrace(kind, graceReason);
+      return null;
+    }
     const ts = now();
     if (ts - lastTs < VIOLATION_DEBOUNCE_MS) return null;   // one incident, one count
     lastTs = ts;
@@ -136,6 +177,9 @@ export function createProctor(opts) {
     on(docRef, "keydown", keyGuard, true);
     on(docRef, "visibilitychange", () => { if (docRef.hidden) report("tab/minimise"); });
     on(win, "blur", () => report("window focus lost"));
+    // Focus is back: the dialog is closed, so the grace has done its job and
+    // must not linger as unmonitored time.
+    on(win, "focus", () => { if (inGrace()) clearGrace(); });
     on(docRef, "fullscreenchange", () => {
       if (!docRef.fullscreenElement) report("left full screen");
     });
@@ -150,7 +194,8 @@ export function createProctor(opts) {
   }
 
   const api = {
-    attach, detach, report, keyGuard,
+    attach, detach, report, keyGuard, grace, clearGrace,
+    get inGrace() { return inGrace(); },
     get count() { return count; },
     get blockedCount() { return blocked; },
     get limitReached() { return limitReached; },

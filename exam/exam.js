@@ -479,6 +479,12 @@ async function renderQuestions() {
       },
       onNotice: toast,
       onImageUpload: (file, meta) => uploadImage(qid, meta),
+      // The file chooser is an operating-system window: opening it blurs this
+      // one, and on some desktops drops full screen. Tell the proctor the page
+      // caused it, so a student who uploads the diagram the paper asked for is
+      // not charged a violation for doing as they were told.
+      onPickerOpen: () => proctor?.grace("diagram file chooser"),
+      onPickerClose: () => proctor?.clearGrace(),
     });
     editors[qid] = ed;
     await ed.setHTML(answers[qid] || "", saved);
@@ -576,6 +582,10 @@ function startHeartbeat() {
 // ---------------------------------------------------------------------------
 let proctor = null;
 let focusHandlers = [];
+// Set when a grace window absorbed a full-screen exit. Full screen can only be
+// re-entered from a user gesture, so the student is asked for one click rather
+// than being silently left outside it.
+let needsFullscreen = false;
 
 function enableProctoring() {
   proctor = createProctor({
@@ -603,6 +613,13 @@ function enableProctoring() {
       confirmSubmit("proctoring", true);
     },
     onBlocked: (kind) => onPasteBlocked(kind),
+    // A focus loss the page asked for. It costs nothing, but it is still put in
+    // front of the instructor with its reason, so "no violation" never means
+    // "no record".
+    onGrace: (kind, reason) => {
+      logEvent("allowed focus loss", `${kind} during ${reason}`);
+      needsFullscreen = true;
+    },
   });
   proctor.count = violations;
   proctor.blockedCount = pasteAttempts;
@@ -611,7 +628,10 @@ function enableProctoring() {
   // Hide the paper the instant focus is lost, so a screenshot or screen share
   // taken while switching away captures nothing readable.
   addFocusHandler(window, "blur", () => document.body.classList.add("screen-hidden"));
-  addFocusHandler(window, "focus", () => { if (!paused) document.body.classList.remove("screen-hidden"); });
+  addFocusHandler(window, "focus", () => {
+    if (!paused) document.body.classList.remove("screen-hidden");
+    if (needsFullscreen) checkFullscreen();
+  });
   addFocusHandler(window, "beforeunload", beforeUnload);
 }
 
@@ -684,6 +704,20 @@ async function resumeFromViolation() {
   paused = false;
   $("proctorOverlay").classList.add("hidden");
   document.body.classList.remove("screen-hidden");
+}
+
+// After a dialog that dropped full screen, offer one click to go back in. This
+// is not a violation and is not counted as one — but the paper must not carry
+// on outside full screen either, or the protection is simply gone.
+function checkFullscreen() {
+  needsFullscreen = false;
+  if (finished || submitting || document.fullscreenElement) return;
+  showOverlay(
+    "Return to full screen",
+    "The dialog you just used closed full screen. This was <b>not</b> counted as a " +
+    "violation \u2014 click below to carry on with your paper.",
+    true);
+  paused = true;
 }
 
 function addWatermark() {
@@ -775,9 +809,18 @@ function confirmSubmit(reason, auto = false) {
   if (submitting || finished) return;
   collectAnswers();
   if (!auto) {
+    // window.confirm() is browser chrome, so it blurs the page exactly as a
+    // file chooser does. A student who opens it and then changes their mind
+    // would have paid a violation for pressing Submit and cancelling. Grace it.
+    proctor?.grace("submit confirmation", 60000);
     const blank = order.filter((qid) => (wordCounts[qid] || 0) === 0).length;
     const note = blank ? `\n\nYou have not written anything for ${blank} question(s).` : "";
-    if (!window.confirm(`Submit your answer paper now? This cannot be undone.${note}`)) return;
+    const ok = window.confirm(`Submit your answer paper now? This cannot be undone.${note}`);
+    proctor?.clearGrace();
+    if (!ok) {
+      if (!document.fullscreenElement) needsFullscreen = true;
+      return;
+    }
   }
   doSubmit(reason);
 }
