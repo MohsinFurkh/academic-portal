@@ -1,0 +1,632 @@
+/* =====================================================================
+   CSEG3060 · Unit III lecture decks
+   Projector-first slide styling: a 16:9 stage that fills the screen,
+   with every type size expressed as a fraction of the STAGE HEIGHT so
+   that text keeps the same apparent size on any projector.
+
+   Body text sits at roughly 3.1% of stage height. Projected onto a
+   2.5-3 m screen that is 8-9 cm of cap height, which stays legible at
+   the back of a 90-seat hall.  The A-/A+ control scales everything
+   further at presentation time.
+   ===================================================================== */
+
+:root {
+    --ink: #241A4C;
+    --bg-dark: #1A1535;
+    --gold: #D8A73E;
+    --gold-d: #B08C3A;
+    --blue: #3D6EA6;
+    --rust: #B4522B;
+    --rust-d: #8E3F20;
+    --tint: #F3F1FC;
+    --tint-2: #FAF9FE;
+    --body: #5C5A66;
+    --muted: #8A8894;
+    --dk-mut: #6E688F;
+    --dk-body: #CFCAE6;
+    --line: #E6E2F5;
+    --paper: #ffffff;
+    --shell: #11101c;
+
+    --serif: Cambria, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: Calibri, "Segoe UI", Inter, -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    --mono: "Courier New", Consolas, monospace;
+
+    /* presenter-controlled multiplier, persisted in localStorage */
+    --tscale: 1;
+
+    /* stage geometry: the largest 16:9 box that fits the viewport */
+    --stage-h: min(calc(100vh - var(--chrome)), calc((100vw - var(--gutter)) / 1.7778));
+    --stage-w: calc(var(--stage-h) * 1.7778);
+    --chrome: 5.6rem;
+    --gutter: 0px;
+
+    /* one "pt" of the original 13.333x7.5in deck, scaled for the room */
+    --ptu: calc(var(--stage-h) * var(--tscale) / 540);
+}
+
+html[data-theme="dark"] {
+    --paper: #14121f;
+    --ink: #EDE9FB;
+    --body: #C2BDD4;
+    --muted: #8F89A6;
+    --tint: #1E1B30;
+    --tint-2: #191728;
+    --line: #322D4A;
+    --shell: #0a0913;
+    --gold-d: #D8A73E;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: var(--shell);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* a text element's size = its (already boosted) pt value x one pt unit */
+[style*="--pt"] {
+    font-size: calc(var(--pt) * var(--ptu));
+}
+
+/* ------------------------------------------------------------ chrome -- */
+.topbar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 2.6rem;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: 0 .9rem;
+    background: #17162a;
+    color: #b9b3d4;
+    font-size: .78rem;
+    z-index: 40;
+}
+
+.topbar b {
+    color: var(--gold);
+    letter-spacing: .06em;
+}
+
+.topbar .tb-title {
+    color: #8e88ad;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.topbar .spacer,
+.navbar .spacer {
+    flex: 1;
+}
+
+.topbar button,
+.navbar button {
+    font: inherit;
+    font-weight: 600;
+    color: #cfc9e6;
+    background: #221f3b;
+    border: 1px solid #332e52;
+    border-radius: 6px;
+    padding: .28rem .66rem;
+    cursor: pointer;
+}
+
+.topbar button:hover,
+.navbar button:hover {
+    color: #fff;
+    border-color: var(--gold);
+}
+
+.tscale {
+    min-width: 3.1rem;
+    text-align: center;
+    color: var(--gold);
+    font-weight: 700;
+}
+
+.progress {
+    position: fixed;
+    top: 2.6rem;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #221f3b;
+    z-index: 41;
+}
+
+.progress span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--gold);
+    transition: width .2s ease;
+}
+
+.navbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: 0 .9rem;
+    background: #17162a;
+    color: #8e88ad;
+    font-size: .8rem;
+    z-index: 40;
+}
+
+.navbar .count b {
+    color: #fff;
+    font-size: 1.05rem;
+}
+
+.navbar .now {
+    color: #b9b3d4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 46vw;
+}
+
+.navbar .hint {
+    color: #6f6a8c;
+    font-size: .74rem;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- deck --- */
+.deck {
+    position: fixed;
+    inset: calc(2.6rem + 3px) 0 3rem 0;
+    display: grid;
+    place-items: center;
+}
+
+.slide {
+    position: absolute;
+    width: var(--stage-w);
+    height: var(--stage-h);
+    background: var(--paper);
+    color: var(--ink);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .45);
+}
+
+.slide.active {
+    display: flex;
+}
+
+/* laid out for measurement during pagination, but not painted */
+.slide.measuring {
+    display: flex;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.slide.dark {
+    background: var(--bg-dark);
+    color: #fff;
+}
+
+/* the fit layer: JS shrinks .fit-in only when a slide would overflow */
+.fit {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+}
+
+.fit-in {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: calc(var(--stage-h) * .038) calc(var(--stage-h) * .05) calc(var(--stage-h) * .008);
+    transform-origin: top left;
+}
+
+.slide.dark .fit-in {
+    justify-content: center;
+    padding-left: calc(var(--stage-h) * .085);
+    padding-right: calc(var(--stage-h) * .085);
+}
+
+/* ------------------------------------------------------------- head --- */
+.head {
+    flex: none;
+}
+
+.eyebrow {
+    margin: 0 0 calc(var(--stage-h) * .012);
+    font-size: calc(9 * 1.78 * var(--ptu));
+    font-weight: 700;
+    letter-spacing: .1em;
+    color: var(--gold-d);
+    text-transform: uppercase;
+}
+
+.s-title {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: calc(28 * 1.16 * var(--ptu));
+    font-weight: 700;
+    line-height: 1.12;
+    color: var(--ink);
+}
+
+.s-title .cont {
+    font-family: var(--sans);
+    font-size: .44em;
+    font-weight: 700;
+    font-style: italic;
+    letter-spacing: .04em;
+    color: var(--muted);
+    vertical-align: .55em;
+    margin-left: .5em;
+}
+
+.lede {
+    margin: calc(var(--stage-h) * .018) 0 0;
+    max-width: 92%;
+    line-height: 1.34;
+}
+
+/* ------------------------------------------------------------- body --- */
+.body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--stage-h) * .018);
+    padding-top: calc(var(--stage-h) * .024);
+}
+
+.body>*:first-child {
+    margin-top: 0;
+}
+
+.free {
+    margin: 0;
+    line-height: 1.32;
+}
+
+/* ------------------------------------------------------------ cards --- */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(var(--n), 1fr);
+    gap: calc(var(--stage-h) * .018);
+    align-items: stretch;
+}
+
+.cards.single {
+    grid-template-columns: 1fr;
+}
+
+.card {
+    position: relative;
+    border-radius: calc(var(--stage-h) * .009);
+    padding: calc(var(--stage-h) * .022) calc(var(--stage-h) * .026);
+    min-width: 0;
+}
+
+.card-in {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--stage-h) * .010);
+}
+
+.card p {
+    margin: 0;
+    line-height: 1.3;
+}
+
+.card.has-dot {
+    padding-left: calc(var(--stage-h) * .105);
+}
+
+.dot {
+    position: absolute;
+    left: calc(var(--stage-h) * .032);
+    top: 50%;
+    transform: translateY(-50%);
+    width: calc(var(--stage-h) * .058);
+    height: calc(var(--stage-h) * .058);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: calc(13 * 1.4 * var(--ptu));
+    flex: none;
+}
+
+/* ---------------------------------------------------------- numlist --- */
+.numlist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--stage-h) * .018);
+}
+
+.numlist li {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(var(--stage-h) * .028);
+}
+
+.numlist .dot {
+    position: static;
+    transform: none;
+    width: calc(var(--stage-h) * .062);
+    height: calc(var(--stage-h) * .062);
+    margin-top: -.1em;
+}
+
+.numlist li>div {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.34;
+}
+
+/* ----------------------------------------------------------- tables --- */
+table.mx {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 calc(var(--stage-h) * .008);
+    table-layout: fixed;
+}
+
+table.mx th {
+    background: var(--ink);
+    color: #fff;
+    text-align: left;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    padding: calc(var(--stage-h) * .016) calc(var(--stage-h) * .022);
+    border-right: 2px solid var(--paper);
+    vertical-align: middle;
+}
+
+html[data-theme="dark"] table.mx th {
+    background: #2E2952;
+}
+
+table.mx th:last-child {
+    border-right: none;
+}
+
+table.mx td {
+    background: var(--paper);
+    padding: calc(var(--stage-h) * .014) calc(var(--stage-h) * .02);
+    vertical-align: middle;
+    line-height: 1.28;
+}
+
+table.mx tbody tr:nth-child(odd) td {
+    background: var(--tint);
+}
+
+table.mx td.c0 {
+    border-left: calc(var(--stage-h) * .007) solid var(--accent, transparent);
+}
+
+table.mx td div {
+    margin: 0;
+}
+
+/* ----------------------------------------------------------- closer --- */
+.closer {
+    flex: none;
+    margin: calc(var(--stage-h) * .014) 0 0;
+    padding-top: calc(var(--stage-h) * .012);
+    border-top: 1px solid var(--line);
+    line-height: 1.3;
+}
+
+/* ------------------------------------------------------ dark slides --- */
+.dk-wrap {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--stage-h) * .022);
+}
+
+.dk-line {
+    margin: 0;
+    line-height: 1.22;
+    max-width: 82%;
+}
+
+.dk-line.has-rule::after {
+    content: "";
+    display: block;
+    width: calc(var(--stage-h) * .26);
+    height: 1px;
+    background: var(--dk-mut);
+    margin-top: calc(var(--stage-h) * .05);
+}
+
+.slide.is-title .dk-line:nth-child(2) {
+    margin-block: calc(var(--stage-h) * .01);
+}
+
+.decor {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.decor span {
+    position: absolute;
+    border-radius: 50%;
+    opacity: .55;
+}
+
+/* ------------------------------------------------------------ footer -- */
+.s-foot {
+    flex: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 calc(var(--stage-h) * .055) calc(var(--stage-h) * .022);
+    font-size: calc(8 * 1.85 * var(--ptu));
+    color: var(--muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.slide.dark .s-foot {
+    color: var(--dk-mut);
+    padding-left: calc(var(--stage-h) * .085);
+}
+
+/* ---------------------------------------------------------- overview -- */
+.overview {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(10, 9, 19, .97);
+    color: #d8d3ee;
+    display: flex;
+    flex-direction: column;
+    padding: 1.1rem 1.4rem;
+}
+
+.overview[hidden] {
+    display: none;
+}
+
+.ov-head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: .9rem;
+}
+
+.ov-head h3 {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    color: #fff;
+    flex: 1;
+}
+
+.ov-head button {
+    font: inherit;
+    color: #cfc9e6;
+    background: #221f3b;
+    border: 1px solid #332e52;
+    border-radius: 6px;
+    padding: .3rem .8rem;
+    cursor: pointer;
+}
+
+.ov-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: .3rem .9rem;
+}
+
+.ov-list a {
+    display: flex;
+    gap: .6rem;
+    padding: .34rem .5rem;
+    border-radius: 5px;
+    color: #cfc9e6;
+    text-decoration: none;
+    font-size: .86rem;
+    border-left: 3px solid transparent;
+}
+
+.ov-list a:hover {
+    background: #221f3b;
+    border-left-color: var(--gold);
+    color: #fff;
+}
+
+.ov-list b {
+    color: var(--gold);
+    min-width: 1.9rem;
+}
+
+/* ------------------------------------------------------------- print -- */
+@media print {
+    @page {
+        size: landscape;
+        margin: 8mm;
+    }
+
+    html,
+    body {
+        overflow: visible;
+        background: #fff;
+    }
+
+    .topbar,
+    .navbar,
+    .progress,
+    .overview {
+        display: none !important;
+    }
+
+    .deck {
+        position: static;
+        display: block;
+    }
+
+    .slide {
+        position: static;
+        display: flex !important;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        aspect-ratio: 16 / 9;
+        box-shadow: none;
+        break-after: page;
+        page-break-after: always;
+        border: 1px solid #ddd;
+        margin-bottom: 6mm;
+    }
+
+    :root {
+        --stage-h: 150mm;
+    }
+}
+
+/* --------------------------------------------------- small viewports -- */
+@media (max-width: 820px) {
+    .navbar .hint {
+        display: none;
+    }
+
+    .topbar .tb-title {
+        display: none;
+    }
+}
