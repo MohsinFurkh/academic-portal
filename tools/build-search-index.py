@@ -28,6 +28,13 @@ SKIP_DIRS = {".git", "node_modules", "Claude outputs", "assets", "tools", "css",
 SKIP_FILES = {
     "admin.html", "selftest.html", "test-api.html", "test-endpoints.html",
     "interactive_test.html",
+    # Superseded by the four Unit III PowerPoint decks. Kept on disk so old
+    # links still resolve, but no longer listed or searchable.
+    "CSEG3060_Unit3_L01_Literature_Study_Purpose_and_Sources.html",
+    "CSEG3060_Unit3_L02_Approaches_to_Literature_Studies.html",
+    "CSEG3060_Unit3_L03_Conducting_and_Writing_the_Review.html",
+    "CSEG3060_Unit3_L04_Attribution_Plagiarism_and_Integrity.html",
+    "CSEG3060_Unit3_L05_Research_Ethics_in_Computing.html",
 }
 
 DOC_KINDS = {
@@ -157,6 +164,8 @@ def prettify(name):
     stem = re.sub(r"^(CS[A-Z]{2}\d{4}|CSEG\d{4}|DA|MS|DevOps)[_\s]*", "", stem)
     stem = re.sub(r"^Unit\d+[_\s]*", "", stem)
     stem = re.sub(r"^L\d{2}[_\s]*", "", stem)
+    # "Part1_Literature_Search_Strategies" -> "Part 1 - Literature Search..."
+    stem = re.sub(r"^Part(\d+)[_\s]+", "Part \\1 — ", stem)
     stem = stem.replace("_", " ").replace("-", " ")
     return clean(stem) or name
 

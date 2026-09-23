@@ -30,7 +30,7 @@ Add the file, link it from the course's `index.html`, then rebuild the search
 index so it becomes findable:
 
 ```bash
-python3 tools/build-search-index.py
+./tools/build.sh
 ```
 
 That is the only command you need day to day. The index covers every course,
@@ -53,30 +53,32 @@ Every page works without it.
 Dark mode follows the system preference and remembers an explicit choice in
 `localStorage`.
 
-## Regenerating pages
+## The generators
 
-`tools/` holds the generators used for the redesign. They are **one-shot
-migration tools**: each reads the original page and writes the redesigned one
-over it, so running one twice would parse its own output. They refuse to do
-that, and `tools/build.sh` restores the originals from git first:
+`tools/` also holds the generators used for the 2026 redesign. They were
+**one-shot migration tools**: each read the original page and wrote the
+redesigned one over it. Now that the redesign is committed, the HTML files are
+the source of truth and are edited directly — re-running a generator would
+parse its own output and discard later edits, so they refuse to run. They are
+kept for reference.
+
+The one exception is the home page, which is still generated from the course
+list:
 
 ```bash
-./tools/build.sh          # restore originals, regenerate everything, rebuild index
+python3 tools/gen_home.py      # after editing tools/catalogue.py
 ```
-
-You do not need this to add material — edit the HTML directly. It is here so
-the redesign can be reproduced or adjusted.
 
 | file | what it does |
 |---|---|
-| `shell.py` | shared head, masthead, search and footer |
-| `catalogue.py` | the course list: titles, codes, sessions, status |
-| `gen_home.py` | the home page |
-| `gen_courses.py` | rebuilds the standard course pages from the originals |
-| `gen_pages.py` | research, about and the blog index |
-| `reskin.py` | re-dresses the bespoke course pages and blog posts |
-| `fix-links.py` | repairs known broken relative paths |
 | `build-search-index.py` | crawls the site and writes `assets/search-index.json` |
+| `catalogue.py` | the course list: titles, codes, sessions, status |
+| `gen_home.py` | the home page, from the catalogue |
+| `shell.py` | shared head, masthead, search and footer |
+| `gen_courses.py` | *(migration)* rebuilt the standard course pages |
+| `gen_pages.py` | *(migration)* research, about and the blog index |
+| `reskin.py` | *(migration)* re-dressed the bespoke pages and blog posts |
+| `fix-links.py` | *(migration)* repaired known broken relative paths |
 
 ## Local preview
 

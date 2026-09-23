@@ -90,7 +90,7 @@ COURSES = [
         "desc": "Formulating a research problem, research methods in computing science, "
                 "literature study and research ethics, technical writing and proposals, "
                 "and intellectual property and patents.",
-        "meta": ["6 units", "2 unit notes", "5 lecture decks"],
+        "meta": ["6 units", "2 unit notes", "4 lecture decks"],
     },
 
     # ---- Previous session -------------------------------------------------
