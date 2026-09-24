@@ -29,8 +29,9 @@ SKIP_DIRS = {".git", "node_modules", "Claude outputs", "assets", "tools", "css",
 SKIP_FILES = {
     "admin.html", "selftest.html", "test-api.html", "test-endpoints.html",
     "interactive_test.html",
-    # Superseded by the four Unit III PowerPoint decks. Kept on disk so old
-    # links still resolve, but no longer listed or searchable.
+    # The five superseded Unit III HTML decks, removed in favour of the four
+    # PowerPoint parts. Listed here so a restore from history does not
+    # silently put them back into search.
     "CSEG3060_Unit3_L01_Literature_Study_Purpose_and_Sources.html",
     "CSEG3060_Unit3_L02_Approaches_to_Literature_Studies.html",
     "CSEG3060_Unit3_L03_Conducting_and_Writing_the_Review.html",
