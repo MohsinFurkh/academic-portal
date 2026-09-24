@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>10. Naive Bayes and the Generative–Discriminative Divide — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 10 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('10-naive-bayes')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part V — Generative Models · Lecture 10</div>
+  <h1>Naive Bayes and the Generative–Discriminative Divide</h1>
+  <p class="dek">Instead of modelling p(y|x) directly, model how the data was made and invert with Bayes' theorem. The 'naive' assumption is almost always false, the classifier is often excellent anyway, and understanding why teaches you more about learning than the algorithm itself.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive the generative decision rule from Bayes' theorem, and see why the evidence term drops out</li><li>Count the parameters the full joint needs, and what conditional independence buys</li><li>Derive the MLE for the class prior and the class-conditionals, constraint included</li><li>Derive Laplace smoothing as a MAP estimate, not a hack</li><li>Prove that Bernoulli naive Bayes is a linear classifier — and explain why it is still not logistic regression</li><li>State the bias–variance trade-off between generative and discriminative fitting, and see the crossover</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase A, Lecture 14: Bayes' theorem, MLE, MAP, conjugate priors</li><li>Phase B, Lecture 4: where loss functions come from (likelihood → loss)</li><li>Phase B, Lecture 5: logistic regression and the log-odds</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Two ways to build a classifier</h2>
+<p>Every classifier we have built so far attacked \(p(y\mid\vx)\) head-on. Logistic regression
+posits \(p(y=1\mid\vx)=\sigma(\vw^\top\vx+b)\) and fits \(\vw\) to make the observed labels likely
+<em>given</em> the observed inputs. It never says anything about where \(\vx\) came from. That is the
+<strong>discriminative</strong> strategy.</p>
+<p>The <strong>generative</strong> strategy is the other one. Model the whole data-generating
+process — first how a class is chosen, then how a point is drawn given that class — and then <em>invert</em>
+it with Bayes' theorem to get the classification you actually wanted.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>A discriminative model learns <em>where the border is</em>. A generative model
+learns <em>what each country looks like</em>, and deduces the border.</p>
+<p>Learning the border is a smaller job, so with enough data you do it better. Learning what each country
+looks like is a bigger job, so you need more data — but you have committed to a structure, and structure is
+worth a great deal when data is short. That single sentence is the whole trade-off, and the rest of this
+lecture makes it precise.</p></div>
+<div class="box defn"><span class="lbl">Generative classifier</span><p>Model the joint distribution by factorising it as</p>
+\[ p(\vx, y) \;=\; \underbrace{p(y)}_{\text{class prior}}\;\underbrace{p(\vx\mid y)}_{\text{class-conditional}}, \]
+<p>estimate both factors from data, and classify by the posterior \(p(y\mid\vx)\) obtained from Bayes'
+theorem. A discriminative classifier models \(p(y\mid\vx)\) directly and never estimates \(p(\vx)\).</p></div>
+<div class="deriv" id="d72"><div class="deriv-head"><span class="t">From the joint model to the decision rule</span><span class="ct">0 / 5</span></div><div class="dstep">\[\hat y(\vx) \;=\; \argmax_{y\in\{1,\dots,K\}} \; p(y\mid\vx)\]<div class="why"><b>Start from what we actually want.</b> Phase B Lecture 1 established that under 0–1 loss the risk-minimising prediction is the most probable class. So the target is the posterior, whatever route we take to it.</div></div><div class="dstep">\[p(y\mid\vx) \;=\; \frac{p(\vx\mid y)\,p(y)}{p(\vx)}\]<div class="why"><b>Bayes' theorem</b>, exactly as in Phase A Lecture 14. The numerator is the joint \(p(\vx,y)\); the denominator is the <em>evidence</em> \(p(\vx)=\sum_{y'}p(\vx\mid y')p(y')\), which normalises the posterior so it sums to one over classes.</div></div><div class="dstep">\[\hat y(\vx) \;=\; \argmax_{y}\; \frac{p(\vx\mid y)\,p(y)}{p(\vx)} \;=\; \argmax_{y}\; p(\vx\mid y)\,p(y)\]<div class="why"><b>The evidence drops out.</b> \(p(\vx)\) does not depend on \(y\), so it is a positive constant across the classes we are comparing. Dividing every candidate by the same positive number cannot change which one is largest. This is why generative classifiers never need to compute the hardest term — but note carefully that it <em>is</em> needed if you want calibrated probabilities rather than just a label.</div></div><div class="dstep">\[\hat y(\vx) \;=\; \argmax_{y}\; \big[\,\log p(y) + \log p(\vx\mid y)\,\big]\]<div class="why"><b>Take logs.</b> By Phase A Lecture 2's argmax theorem, \(\log\) is strictly increasing so it preserves the argmax. Products of many small probabilities underflow to zero in floating point; sums of logs do not. Every real implementation works in log space, and this is not optional — with 60 features you underflow immediately.</div></div><div class="dstep">\[\text{needed: } \; \hat p(y) \;\text{ for } K-1 \text{ free numbers}, \quad \hat p(\vx\mid y) \;\text{ for each } y\]<div class="why"><b>What remains.</b> The prior is easy: \(K-1\) free parameters. The class-conditional \(p(\vx\mid y)\) is a full distribution over the input space, one per class. <em>That</em> is where all the difficulty of the generative approach lives, and where the naive assumption comes in.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d72')">Next step</button><button class="btn ghost" onclick="dall('d72')">Show all</button><button class="btn ghost" onclick="dreset('d72')">Reset</button></div></div>
+<h2 id="s2"><span class="secnum">2</span>Why the class-conditional is hard, and what 'naive' buys</h2>
+<p>Suppose each of the \(d\) features is binary. A general distribution over \(\{0,1\}^d\) assigns a
+probability to each of the \(2^d\) possible patterns, so it has \(2^d-1\) free parameters — <em>per class</em>.
+At \(d=30\) that is over a billion numbers per class, from a dataset that might have a thousand rows. There is
+no version of this that works.</p>
+<div class="box defn"><span class="lbl">The naive Bayes assumption</span><p>Conditional on the class, the features are
+independent:</p>
+\[ p(\vx\mid y) \;=\; \prod_{j=1}^{d} p(x_j \mid y). \]
+<p>Read the conditioning bar carefully. This does <em>not</em> say the features are independent. It says that
+<em>once you know the class</em>, knowing one feature tells you nothing more about another.</p></div>
+<div class="box warn"><span class="lbl">Common trap</span><p>"Height" and "vocabulary size" are strongly dependent in the general population — both
+increase with age. Conditional on <code>age = 7</code> they are nearly independent. That is the shape of the
+assumption: the class is supposed to explain away all of the dependence.</p>
+<p>In real problems it never does exactly. The words <em>New</em> and <em>York</em> co-occur far more than
+naive Bayes believes, in spam and in non-spam alike. The assumption is false. We use it anyway, and the
+interesting question — answered at the end of this lecture — is why that so often works.</p></div>
+<div class="deriv" id="d73"><div class="deriv-head"><span class="t">The parameter count collapses</span><span class="ct">0 / 4</span></div><div class="dstep">\[\text{full joint:}\quad p(\vx\mid y)\ \text{ needs } \ (m^{d}-1)\ \text{ parameters per class}\]<div class="why"><b>Count the cells.</b> With \(m\) possible values per feature there are \(m^d\) distinct patterns \(\vx\). A general distribution gives each a probability; they must sum to one, which removes one degree of freedom. Total across \(K\) classes: \(K(m^d-1)\), plus \(K-1\) for the prior.</div></div><div class="dstep">\[\text{naive:}\quad \prod_{j=1}^{d} p(x_j\mid y)\ \text{ needs } \ d(m-1)\ \text{ parameters per class}\]<div class="why"><b>Count the cells again, after factorising.</b> Each factor \(p(x_j\mid y)\) is a distribution over \(m\) values: \(m-1\) free numbers. There are \(d\) of them and they are stored separately, so the counts <em>add</em> instead of multiplying. Exponential in \(d\) becomes linear in \(d\).</div></div><div class="dstep">\[K(m^d-1) \;\longrightarrow\; Kd(m-1) \qquad\text{e.g. } d=30,\,m=2,\,K=2:\quad 2.1\times10^{9} \;\longrightarrow\; 60\]<div class="why"><b>The size of the win.</b> Two billion parameters to sixty. This is not a small efficiency gain; it is the difference between an estimator that cannot be fit at all and one that can be fit from a few hundred examples.</div></div><div class="dstep">\[\text{cost: } \ \mathcal{H}_{\text{naive}} \subsetneq \mathcal{H}_{\text{full}} \ \Longrightarrow \ \text{irreducible approximation error}\]<div class="why"><b>And the price.</b> In Lecture 7's language we have made an enormous cut to the variance by imposing an enormous bias. The naive family cannot represent the true joint unless the true joint happens to factorise. Whatever error that costs, no amount of data removes it. Keep this in mind when the learning curves appear later.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d73')">Next step</button><button class="btn ghost" onclick="dall('d73')">Show all</button><button class="btn ghost" onclick="dreset('d73')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Parameters needed: the full joint versus the naive factorisation<span class="tag">Interactive</span></div><canvas id="b10params" data-h="400"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>full joint  K(mᵈ−1)</span><span><i style="background:var(--c5)"></i>naive  Kd(m−1)</span><span><i style="background:var(--ink3)"></i>n = 1000 training rows</span></div><div class="fig-read" id="b10params-read"></div><div class="ctrls"><div class="ctrl"><label>values per feature m</label><input type="range" min="2" max="6" step="1" value="2" data-fmt="0" oninput="figSlide('b10params','m',this)"><output>2</output></div><div class="ctrl"><label>number of classes K</label><input type="range" min="2" max="10" step="1" value="2" data-fmt="0" oninput="figSlide('b10params','K',this)"><output>2</output></div><div class="ctrl"><label>read off at d =</label><input type="range" min="1" max="30" step="1" value="12" data-fmt="0" oninput="figSlide('b10params','d',this)"><output>12</output></div></div><div class="fig-cap">The vertical axis is log₁₀ of the parameter count, so a straight line means exponential growth. The full joint is a straight line; the naive model is the flat one near the bottom. The grey line marks a thousand training rows: above it you have more parameters than data points, which is Lecture 7's overfitting regime in its most extreme form.</div></div><script>makeFig("b10params",function(vp,p,F){
+vp.pads(58,18,16,34); vp.frame(1,30,0,24);
+var m=Math.round(p.m), K=Math.round(p.K), dsel=Math.round(p.d);
+vp.axes({stepx:4,stepy:4});
+vp.label(15.5,-2.6,'number of features d','--ink3',{align:'center'});
+var cc=vp.ctx; cc.save(); cc.translate(15,vp.pad.t+vp.ph/2); cc.rotate(-Math.PI/2);
+cc.fillStyle=vp.css('--ink3'); cc.font='12px -apple-system,Segoe UI,Roboto,sans-serif';
+cc.textAlign='center'; cc.fillText('log₁₀ (number of parameters)',0,0); cc.restore();
+function full(d){ return Math.log(K)/Math.LN10 + d*Math.log(m)/Math.LN10; }
+function naive(d){ return Math.log(Math.max(1e-12,K*d*(m-1)))/Math.LN10; }
+vp.seg(1,3,30,3,'--ink3',{dash:[5,4]});
+vp.label(29.4,3.35,'n = 1000','--ink3',{align:'right',size:11.5});
+vp.curve(full,'--c1',{w:2.6});
+vp.curve(naive,'--c5',{w:2.6});
+vp.seg(dsel,0,dsel,24,'--ink3',{dash:[3,3],w:1});
+vp.dot(dsel,Math.min(24,full(dsel)),'--c1',5.2);
+vp.dot(dsel,naive(dsel),'--c5',5.2);
+function fmt(v){ if(v<1e6) return Math.round(v).toLocaleString();
+  var e=Math.floor(Math.log(v)/Math.LN10); return (v/Math.pow(10,e)).toFixed(2)+' × 10^'+e; }
+var F=K*(Math.pow(m,dsel)-1), N=K*dsel*(m-1);
+figRead('b10params','At <b>d = '+dsel+'</b>, m = '+m+', K = '+K+':'
+ +'<br>full joint <b>'+fmt(F)+'</b> parameters &nbsp;·&nbsp; naive <b>'+fmt(N)+'</b> parameters'
+ +'<br>ratio <b>'+fmt(F/N)+'×</b> fewer'
+ +(F>1000?' &nbsp;<span style="color:var(--bad)">— the full joint already has more parameters than 1000 rows of data</span>':''));
+},[{"name": "m", "label": "values per feature m", "min": 2, "max": 6, "step": 1, "value": 2, "dp": 0}, {"name": "K", "label": "number of classes K", "min": 2, "max": 10, "step": 1, "value": 2, "dp": 0}, {"name": "d", "label": "read off at d =", "min": 1, "max": 30, "step": 1, "value": 12, "dp": 0}]);window["FIG_b10params"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>Fitting it: maximum likelihood, done properly</h2>
+<p>Take binary features, \(x_j\in\{0,1\}\), and write \(\theta_{jk}=p(x_j=1\mid y=k)\) and
+\(\pi_k=p(y=k)\). The parameters are \(\{\pi_k\}\) and \(\{\theta_{jk}\}\). We fit them by maximum
+likelihood — the same principle as Lecture 4, now applied to a joint rather than a conditional model.</p>
+<div class="deriv" id="d74"><div class="deriv-head"><span class="t">MLE for the prior and the class-conditionals</span><span class="ct">0 / 5</span></div><div class="dstep">\[\ell(\pi,\theta) = \sum_{i=1}^{n}\Big[\log \pi_{y_i} + \sum_{j=1}^{d}\big(x_{ij}\log\theta_{jy_i} + (1-x_{ij})\log(1-\theta_{jy_i})\big)\Big]\]<div class="why"><b>Write the joint log-likelihood.</b> Each row contributes \(\log p(\vx_i,y_i)=\log p(y_i)+\sum_j\log p(x_{ij}\mid y_i)\) — the first equality is the factorisation of the joint, the second is the naive assumption. The Bernoulli pmf \(\theta^{x}(1-\theta)^{1-x}\) becomes that bracketed sum when logged. Note this is the <em>joint</em> likelihood of \((\vx_i,y_i)\); logistic regression maximises the <em>conditional</em> likelihood of \(y_i\) alone. Remember this difference — it is the whole generative/discriminative split in one line.</div></div><div class="dstep">\[\max_{\pi} \sum_k n_k \log\pi_k \quad\text{s.t.}\quad \sum_k \pi_k = 1, \qquad n_k=\#\{i: y_i=k\}\]<div class="why"><b>The prior separates.</b> Collect the \(\log\pi_{y_i}\) terms: each class \(k\) appears \(n_k\) times. Nothing in this piece involves \(\theta\), so we can optimise it alone. But we cannot just set the derivative to zero — the \(\pi_k\) must sum to one, so this is a constrained problem and needs a multiplier.</div></div><div class="dstep">\[\mathcal{L}=\sum_k n_k\log\pi_k - \lambda\Big(\sum_k\pi_k-1\Big),\qquad \frac{\partial\mathcal{L}}{\partial\pi_k}=\frac{n_k}{\pi_k}-\lambda=0 \;\Rightarrow\; \pi_k=\frac{n_k}{\lambda}\]<div class="why"><b>Lagrange multiplier.</b> Summing the constraint over \(k\): \(1=\sum_k\pi_k=\frac{1}{\lambda}\sum_k n_k=\frac{n}{\lambda}\), so \(\lambda=n\). Hence \(\hat\pi_k=n_k/n\) — the class frequency, which is what you would have guessed, but now it is derived rather than assumed, and the same argument gives the multinomial MLE anywhere it appears.</div></div><div class="dstep">\[\frac{\partial \ell}{\partial\theta_{jk}} = \sum_{i:y_i=k}\Big(\frac{x_{ij}}{\theta_{jk}}-\frac{1-x_{ij}}{1-\theta_{jk}}\Big) = 0 \;\;\Longrightarrow\;\; \hat\theta_{jk} = \frac{n_{jk}}{n_k},\quad n_{jk}=\#\{i: y_i=k,\,x_{ij}=1\}\]<div class="why"><b>Each conditional separates too.</b> \(\theta_{jk}\) appears only in rows of class \(k\) and only in feature \(j\), so the \(Kd\) parameters decouple into \(Kd\) independent one-parameter problems. Clearing denominators: \(n_{jk}(1-\theta)=(n_k-n_{jk})\theta \Rightarrow \theta=n_{jk}/n_k\). Fitting naive Bayes is <em>counting</em>. There is no iterative optimisation anywhere, which is why it is orders of magnitude faster to fit than logistic regression.</div></div><div class="dstep">\[\frac{\partial^2\ell}{\partial\theta_{jk}^2} = -\frac{n_{jk}}{\theta_{jk}^2}-\frac{n_k-n_{jk}}{(1-\theta_{jk})^2} \;&lt;\;0\]<div class="why"><b>Confirm it is a maximum.</b> Both terms are negative for \(\theta\in(0,1)\), so \(\ell\) is strictly concave in each \(\theta_{jk}\) and the stationary point is the unique maximum. Phase A Lecture 7's second-derivative test, doing real work — a stationary point of a likelihood is not automatically the MLE.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d74')">Next step</button><button class="btn ghost" onclick="dall('d74')">Show all</button><button class="btn ghost" onclick="dreset('d74')">Reset</button></div></div>
+<h2 id="s4"><span class="secnum">4</span>The zero-count catastrophe, and the right way to fix it</h2>
+<p>Suppose the word <em>quinoa</em> never appears in any spam message in your training set. Then
+\(\hat\theta_{\text{quinoa},\text{spam}} = 0/n_{\text{spam}} = 0\), and \(\log 0 = -\infty\). Any message
+containing <em>quinoa</em> now has log-probability \(-\infty\) under the spam class, so it can never be
+classified as spam — no matter what the other five hundred words say.</p>
+<p>One unseen word vetoes all the other evidence. This is not a rounding problem; it is a
+structural failure of maximum likelihood on sparse counts, and it happens constantly in text. The standard
+fix is called Laplace smoothing, and it is usually presented as "add one to every count". It deserves
+better than that, because it is exactly the MAP estimate from Lecture 6.</p>
+<div class="deriv" id="d75"><div class="deriv-head"><span class="t">Laplace smoothing is a MAP estimate with a Beta prior</span><span class="ct">0 / 5</span></div><div class="dstep">\[\theta_{jk} \sim \mathrm{Beta}(\alpha,\beta), \qquad p(\theta) \propto \theta^{\alpha-1}(1-\theta)^{\beta-1}\]<div class="why"><b>Put a prior on the parameter.</b> Beta is the natural choice on \([0,1]\): it is the conjugate prior for the Bernoulli, meaning the posterior is again Beta, which is what makes the algebra close in one line. \(\alpha=\beta=1\) is the uniform prior — every value of \(\theta\) equally plausible before seeing data.</div></div><div class="dstep">\[p(\theta_{jk}\mid \text{data}) \;\propto\; \underbrace{\theta^{\,n_{jk}}(1-\theta)^{\,n_k-n_{jk}}}_{\text{likelihood}}\cdot\underbrace{\theta^{\alpha-1}(1-\theta)^{\beta-1}}_{\text{prior}} \;=\; \theta^{\,n_{jk}+\alpha-1}(1-\theta)^{\,n_k-n_{jk}+\beta-1}\]<div class="why"><b>Multiply and collect exponents.</b> This is Bayes' theorem for the parameter, Phase A Lecture 14. Conjugacy is visible right here: the product has the same functional form as the prior, so the posterior is \(\mathrm{Beta}(n_{jk}+\alpha,\ n_k-n_{jk}+\beta)\). No integral was needed.</div></div><div class="dstep">\[\hat\theta^{\text{MAP}}_{jk} \;=\; \argmax_\theta\ p(\theta\mid\text{data}) \;=\; \frac{n_{jk}+\alpha-1}{n_k+\alpha+\beta-2}\]<div class="why"><b>The mode of a Beta\((a,b)\) is \((a-1)/(a+b-2)\) for \(a,b>1\).</b> Derive it if you have not: set \(\frac{d}{d\theta}[(a-1)\log\theta+(b-1)\log(1-\theta)]=\frac{a-1}{\theta}-\frac{b-1}{1-\theta}=0\), which gives \(\theta(a+b-2)=a-1\).</div></div><div class="dstep">\[\alpha=\beta=1+\!\alpha_{\!s} \;\;\Longrightarrow\;\; \hat\theta_{jk}=\frac{n_{jk}+\alpha_{\!s}}{n_k+2\alpha_{\!s}}\]<div class="why"><b>And there is 'add-\(\alpha_s\)' smoothing.</b> With \(\alpha_s=1\) it is literally add-one. So the hack is a MAP estimate with a symmetric Beta prior — exactly the same relationship ridge regression has to a Gaussian prior in Lecture 6. Two different smoothers, one idea: the prior contributes pseudo-counts, and pseudo-counts keep an estimate off the boundary.</div></div><div class="dstep">\[n_k \to \infty \;\Longrightarrow\; \frac{n_{jk}+\alpha_{\!s}}{n_k+2\alpha_{\!s}} \to \frac{n_{jk}}{n_k}, \qquad n_k = 0 \;\Longrightarrow\; \hat\theta_{jk} = \tfrac12\]<div class="why"><b>Both limits are what you want.</b> With plenty of data the prior washes out and you recover the MLE; with no data you fall back to the prior mean rather than to a degenerate 0 or 1. Smoothing is a shrinkage estimator, and \(\alpha_s\) is its regularisation strength — tune it by cross-validation like any other hyperparameter.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d75')">Next step</button><button class="btn ghost" onclick="dall('d75')">Show all</button><button class="btn ghost" onclick="dreset('d75')">Reset</button></div></div>
+<div class="quiz" id="q76"><div class="qlbl">Check yourself</div><div class="qq"><p>You increase the smoothing parameter \(\alpha_s\) from 1 to 100 on a text classifier with a
+10 000-word vocabulary and 500 training documents. What happens to the fitted model?</p></div><button class="qopt" data-ok="0" onclick="pick('q76',0,false)">Nothing much — smoothing only affects words with zero counts.</button><button class="qopt" data-ok="1" onclick="pick('q76',1,true)">Every θ is pulled hard toward ½, the per-word log-odds shrink toward zero, and the classifier moves toward always predicting the majority class.</button><button class="qopt" data-ok="0" onclick="pick('q76',2,false)">The training accuracy is unchanged but the test accuracy improves, because smoothing is regularisation.</button><button class="qopt" data-ok="0" onclick="pick('q76',3,false)">The model becomes undefined because the pseudo-counts exceed the real counts.</button><div class="qwhy" data-i="0"><b>Not quite.</b> It affects <em>every</em> count. \(\frac{n_{jk}+\alpha_s}{n_k+2\alpha_s}\) differs from \(n_{jk}/n_k\) for all \(j,k\); the effect is merely largest when \(n_{jk}\) is small.</div><div class="qwhy" data-i="1"><b>Correct.</b> With \(n_k\approx250\) per class, \(\alpha_s=100\) contributes 200 pseudo-counts against 250 real ones — the prior is now comparable in weight to the data. Every \(\hat\theta_{jk}\) collapses toward \(\tfrac12\), so \(w_j=\log\frac{\theta_{j1}}{1-\theta_{j1}}-\log\frac{\theta_{j0}}{1-\theta_{j0}}\to 0\) and only the prior term \(\log(\pi_1/\pi_0)\) survives. This is underfitting by regularisation, exactly as with a huge \(\lambda\) in ridge.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Regularisation improves test error only up to a point; past the optimum it degrades both. There is a best \(\alpha_s\) and it is found by cross-validation, not by making \(\alpha_s\) large. And training accuracy certainly changes — the parameters changed.</div><div class="qwhy" data-i="3"><b>Not quite.</b> Nothing breaks: \(\frac{n_{jk}+100}{n_k+200}\) is a perfectly valid probability in \((0,1)\) for any counts. The estimate is heavily biased, not invalid.</div></div>
+<h2 id="s5"><span class="secnum">5</span>Naive Bayes is a linear classifier</h2>
+<p>This is the result that surprises people, and it is worth deriving carefully because it reframes
+everything. With binary features, the naive Bayes decision function is <em>exactly</em> a linear function of
+\(\vx\) — the same hypothesis class as logistic regression, reached by a completely different route.</p>
+<div class="deriv" id="d77"><div class="deriv-head"><span class="t">The Bernoulli naive Bayes log-odds are affine in x</span><span class="ct">0 / 5</span></div><div class="dstep">\[\log\frac{p(y=1\mid\vx)}{p(y=0\mid\vx)} \;=\; \log\frac{\pi_1}{\pi_0} \;+\; \sum_{j=1}^{d}\log\frac{p(x_j\mid y=1)}{p(x_j\mid y=0)}\]<div class="why"><b>Take the log-odds.</b> The evidence \(p(\vx)\) cancels in the ratio — the same cancellation as in the decision rule, but now it is exact rather than merely irrelevant, so we keep a genuine probability. The product over \(j\) becomes a sum of logs.</div></div><div class="dstep">\[\log\frac{p(x_j\mid y=1)}{p(x_j\mid y=0)} \;=\; x_j\log\frac{\theta_{j1}}{\theta_{j0}} \;+\; (1-x_j)\log\frac{1-\theta_{j1}}{1-\theta_{j0}}\]<div class="why"><b>Expand one term using the Bernoulli pmf.</b> \(p(x_j\mid y=k)=\theta_{jk}^{x_j}(1-\theta_{jk})^{1-x_j}\); the log of the ratio is the difference of the logs. Because \(x_j\in\{0,1\}\), exactly one of the two terms is active for any given observation — but written this way the expression is <em>algebraically</em> affine in \(x_j\), which is the point.</div></div><div class="dstep">\[= \; x_j\underbrace{\Big[\log\frac{\theta_{j1}}{1-\theta_{j1}} - \log\frac{\theta_{j0}}{1-\theta_{j0}}\Big]}_{\textstyle w_j} \;+\; \underbrace{\log\frac{1-\theta_{j1}}{1-\theta_{j0}}}_{\text{constant in } x_j}\]<div class="why"><b>Regroup: collect the \(x_j\) terms.</b> Write \(x_j\log\frac{\theta_{j1}}{\theta_{j0}}+(1-x_j)\log\frac{1-\theta_{j1}}{1-\theta_{j0}}\), expand the second product and gather the coefficient of \(x_j\): \(\log\frac{\theta_{j1}}{\theta_{j0}}-\log\frac{1-\theta_{j1}}{1-\theta_{j0}} = \log\frac{\theta_{j1}}{1-\theta_{j1}}-\log\frac{\theta_{j0}}{1-\theta_{j0}}\). Each weight is a <strong>difference of log-odds</strong>: how much more this feature favours class 1 than class 0.</div></div><div class="dstep">\[\boxed{\;\log\frac{p(y=1\mid\vx)}{p(y=0\mid\vx)} \;=\; \vw^\top\vx + b, \qquad b=\log\frac{\pi_1}{\pi_0}+\sum_{j=1}^{d}\log\frac{1-\theta_{j1}}{1-\theta_{j0}}\;}\]<div class="why"><b>Sum over \(j\).</b> Every \(x_j\)-coefficient goes into \(\vw\); every constant goes into \(b\) along with the log prior ratio. So Bernoulli naive Bayes produces \(p(y=1\mid\vx)=\sigma(\vw^\top\vx+b)\) — the identical functional form as logistic regression.</div></div><div class="dstep">\[\text{same } \mathcal{H}, \quad \text{different } \vw : \qquad \vw^{\text{NB}} \ \text{from counting}, \qquad \vw^{\text{LR}} \ \text{from maximising } \textstyle\sum_i \log p(y_i\mid\vx_i)\]<div class="why"><b>The punchline.</b> Same hypothesis class, different <em>selection rule within it</em>. Naive Bayes picks \(\vw\) by estimating each coordinate separately from counts; logistic regression picks \(\vw\) by jointly optimising the conditional likelihood, which lets correlated features negotiate their weights against each other. Naive Bayes cannot do that — by construction it never lets features talk. This single difference explains everything in the next section.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d77')">Next step</button><button class="btn ghost" onclick="dall('d77')">Show all</button><button class="btn ghost" onclick="dreset('d77')">Reset</button></div></div>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>Two practical consequences of linearity that people often miss:</p>
+<p><strong>1. Naive Bayes cannot learn XOR</strong> — or any problem whose boundary is not a hyperplane. Its
+famed "surprising accuracy" is entirely within the linear class. Nobody advertises this because the problems
+it is used on (text, high-dimensional sparse counts) are mostly linearly separable anyway.</p>
+<p><strong>2. Its probabilities are badly calibrated even when its labels are right.</strong> The
+argmax survives a lot of abuse; the numeric posterior does not. Correlated features each contribute a full
+independent log-odds term, so the evidence gets counted several times over and the posterior is driven to
+0 or 1. If you need a probability rather than a label, calibrate the output (Platt scaling, isotonic
+regression) or use a discriminative model.</p></div>
+<div class="fig"><div class="fig-head">Why naive Bayes is overconfident: duplicated evidence is counted twice<span class="tag">Interactive</span></div><canvas id="b10conf" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>naive Bayes posterior</span><span><i style="background:var(--c5)"></i>correct posterior</span><span><i style="background:var(--ink3)"></i>decision threshold ½</span></div><div class="fig-read" id="b10conf-read"></div><div class="ctrls"><div class="ctrl"><label>p(x=1 | y=1)</label><input type="range" min="0.52" max="0.95" step="0.01" value="0.75" data-fmt="2" oninput="figSlide('b10conf','p1',this)"><output>0.75</output></div><div class="ctrl"><label>p(x=1 | y=0)</label><input type="range" min="0.05" max="0.48" step="0.01" value="0.45" data-fmt="2" oninput="figSlide('b10conf','p0',this)"><output>0.45</output></div><div class="ctrl"><label>number of identical copies of the feature</label><input type="range" min="1" max="12" step="1" value="5" data-fmt="0" oninput="figSlide('b10conf','c',this)"><output>5</output></div></div><div class="fig-cap">One informative binary feature, observed to be 1, copied c times into the design matrix. The copies carry no new information, so the correct posterior is flat. Naive Bayes multiplies the same likelihood ratio c times and races to certainty. Real features are rarely exact copies — but they are routinely correlated, which is the same disease in milder form.</div></div><script>makeFig("b10conf",function(vp,p,F){
+vp.pads(52,18,16,34); vp.frame(0.4,12.6,0,1.04);
+var p1=p.p1, p0=p.p0, C=Math.round(p.c);
+vp.axes({stepx:2,stepy:0.2});
+vp.label(6.5,-0.10,'number of copies c','--ink3',{align:'center'});
+var cc=vp.ctx; cc.save(); cc.translate(14,vp.pad.t+vp.ph/2); cc.rotate(-Math.PI/2);
+cc.fillStyle=vp.css('--ink3'); cc.font='12px -apple-system,Segoe UI,Roboto,sans-serif';
+cc.textAlign='center'; cc.fillText('P(y = 1 | evidence)',0,0); cc.restore();
+var LR=Math.log(p1/p0);                       // log likelihood ratio of ONE observation x=1
+var truth=1/(1+Math.exp(-LR));                // copies add nothing
+vp.seg(0.4,0.5,12.6,0.5,'--ink3',{dash:[5,4]});
+vp.seg(0.4,truth,12.6,truth,'--c5',{w:2.6});
+vp.curve(function(c){ return 1/(1+Math.exp(-c*LR)); },'--c1',{w:2.6});
+for(var k=1;k<=12;k++) vp.dot(k, 1/(1+Math.exp(-k*LR)), '--c1', 3.4);
+vp.dot(C, 1/(1+Math.exp(-C*LR)), '--c2', 6.5);
+vp.dot(C, truth, '--c2', 6.5);
+var nb=1/(1+Math.exp(-C*LR));
+figRead('b10conf','c = <b>'+C+'</b> copies of a feature with likelihood ratio '
+ +(p1/p0).toFixed(3)+' per copy'
+ +'<br>correct posterior <b>'+truth.toFixed(4)+'</b> &nbsp;·&nbsp; naive Bayes posterior <b>'+nb.toFixed(4)+'</b>'
+ +'<br>over-statement of the odds: <b>'+Math.exp((C-1)*LR).toFixed(2)+'×</b>'
+ +(nb>0.99&&truth<0.9?' &nbsp;<span style="color:var(--bad)">— NB is 99% sure on evidence that justifies '
+   +(100*truth).toFixed(0)+'%</span>':''));
+},[{"name": "p1", "label": "p(x=1 | y=1)", "min": 0.52, "max": 0.95, "step": 0.01, "value": 0.75, "dp": 2}, {"name": "p0", "label": "p(x=1 | y=0)", "min": 0.05, "max": 0.48, "step": 0.01, "value": 0.45, "dp": 2}, {"name": "c", "label": "number of identical copies of the feature", "min": 1, "max": 12, "step": 1, "value": 5, "dp": 0}]);window["FIG_b10conf"].run();</script>
+<h2 id="s6"><span class="secnum">6</span>The real trade-off: bias against variance, once more</h2>
+<p>We now have two ways to choose \(\vw\) in the same linear family. Which is better? The honest
+answer is <em>it depends on \(n\)</em>, and the dependence is a clean instance of Lecture 7's decomposition.</p>
+<div class="box thm"><span class="lbl">Generative versus discriminative (Ng & Jordan, 2001)</span><p>For a pair of models in
+the same hypothesis class fitted generatively (naive Bayes) versus discriminatively (logistic regression):</p>
+<ul>
+<li>Logistic regression has the <strong>lower asymptotic error</strong>. As \(n\to\infty\) it converges to the
+best linear classifier for the true distribution; naive Bayes converges to something else, because it is
+optimising the wrong objective when the independence assumption is false.</li>
+<li>Naive Bayes <strong>converges faster</strong>. It approaches its (worse) limit at a rate of order
+\(\log d / n\), while logistic regression needs order \(d/n\) — that is, roughly \(O(\log d)\) versus
+\(O(d)\) training examples to get close.</li>
+</ul>
+<p>So the two learning curves <strong>cross</strong>. Naive Bayes wins on small \(n\); logistic regression
+wins once \(n\) is large enough, and how large depends on \(d\) and on how badly the independence assumption
+fails.</p></div>
+<div class="box note"><span class="lbl">Note</span><p>The convergence rates above are the paper's asymptotic result and we are quoting rather
+than deriving them — the proof is a uniform-convergence argument of the kind Phase C covers. <strong>Marked as
+deferred, not skipped.</strong> The <em>crossing itself</em> is not deferred: you will reproduce it numerically
+in the code block below, and the mechanism (fewer effective parameters, biased limit) follows from what we
+have already derived.</p></div>
+<div class="box intuition"><span class="lbl">Intuition</span><p>Why does the estimator with the false assumption ever win? Because
+\(d\) separate one-parameter counting problems is a far easier statistical task than one \(d\)-parameter joint
+optimisation. Each \(\hat\theta_{jk}\) is estimated from all \(n_k\) rows of its class, so its variance is
+\(O(1/n_k)\) regardless of \(d\). The logistic weights are coupled through the Hessian and must sort out
+\(d\) correlated directions from the same \(n\) rows.</p>
+<p>Naive Bayes is a high-bias, very-low-variance estimator. When \(n\) is small, variance dominates the error,
+and the biased estimator wins on total error even though it is aiming at the wrong target. That is Lecture 7's
+central lesson in its purest form.</p></div>
+<h2 id="s7"><span class="secnum">7</span>Continuous features: Gaussian naive Bayes, LDA, QDA</h2>
+<p>For real-valued features the natural class-conditional is a Gaussian. Three models sit on a
+spectrum defined entirely by <em>what you allow the covariance to be</em>:</p>
+<ul><li><strong>Gaussian naive Bayes</strong>: \(p(\vx\mid y=k)=\mathcal{N}(\vm_k, \mathrm{diag}(\sigma_{k1}^2,\dots,\sigma_{kd}^2))\).
+ Diagonal covariance <em>is</em> the conditional independence assumption for Gaussians — a Gaussian has independent
+ coordinates precisely when its covariance is diagonal. \(2d\) parameters per class.</li><li><strong>LDA</strong> (linear discriminant analysis): \(p(\vx\mid y=k)=\mathcal{N}(\vm_k,\mS)\) with a
+ <em>shared</em> full covariance. Correlations are modelled, but assumed the same in every class.
+ \(Kd + d(d{+}1)/2\) parameters.</li><li><strong>QDA</strong> (quadratic discriminant analysis): \(p(\vx\mid y=k)=\mathcal{N}(\vm_k,\mS_k)\), a
+ separate full covariance per class. \(K\big(d+d(d{+}1)/2\big)\) parameters — the most flexible and the
+ hungriest.</li></ul>
+<div class="deriv" id="d78"><div class="deriv-head"><span class="t">Why shared covariance makes the boundary linear</span><span class="ct">0 / 4</span></div><div class="dstep">\[\log p(\vx\mid y=k) = -\tfrac12(\vx-\vm_k)^\top\mS_k^{-1}(\vx-\vm_k) - \tfrac12\log\det\mS_k - \tfrac{d}{2}\log 2\pi\]<div class="why"><b>The multivariate Gaussian log-density</b> from Phase A Lecture 14. The last term is the same for every class and will cancel in any comparison, so drop it.</div></div><div class="dstep">\[\log\frac{p(y=1\mid\vx)}{p(y=0\mid\vx)} = -\tfrac12(\vx-\vm_1)^\top\mS_1^{-1}(\vx-\vm_1) + \tfrac12(\vx-\vm_0)^\top\mS_0^{-1}(\vx-\vm_0) - \tfrac12\log\frac{\det\mS_1}{\det\mS_0} + \log\frac{\pi_1}{\pi_0}\]<div class="why"><b>Form the log-odds.</b> In general this contains \(\vx^\top(\mS_0^{-1}-\mS_1^{-1})\vx\), a genuine quadratic form: the boundary is a conic — ellipse, hyperbola, or pair of lines. That is QDA, and where its name comes from.</div></div><div class="dstep">\[\mS_1=\mS_0=\mS \;\Longrightarrow\; -\tfrac12\vx^\top\mS^{-1}\vx + \tfrac12\vx^\top\mS^{-1}\vx = 0\]<div class="why"><b>Impose the shared covariance and the quadratic terms cancel exactly.</b> Expand both quadratics: each produces the identical \(-\tfrac12\vx^\top\mS^{-1}\vx\), with opposite signs. The \(\log\det\) term cancels too, since the determinants are now equal.</div></div><div class="dstep">\[\log\frac{p(y=1\mid\vx)}{p(y=0\mid\vx)} = \underbrace{\big[\mS^{-1}(\vm_1-\vm_0)\big]^\top}_{\vw^\top}\vx \;\underbrace{-\;\tfrac12\big(\vm_1^\top\mS^{-1}\vm_1-\vm_0^\top\mS^{-1}\vm_0\big)+\log\tfrac{\pi_1}{\pi_0}}_{b}\]<div class="why"><b>What survives is affine.</b> The cross terms \(\vx^\top\mS^{-1}\vm_k\) are linear in \(\vx\); \(\mS^{-1}\) is symmetric so \(\vx^\top\mS^{-1}\vm_k=\vm_k^\top\mS^{-1}\vx\), and they combine into a single \(\vw\). Hence <em>linear</em> discriminant analysis. Note \(\vw=\mS^{-1}(\vm_1-\vm_0)\), <strong>not</strong> \(\vm_1-\vm_0\): the inverse covariance rotates the mean-difference toward directions where the within-class noise is small. Gaussian naive Bayes, using a diagonal covariance, cannot perform that rotation at all — and the code below shows exactly how much that costs.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d78')">Next step</button><button class="btn ghost" onclick="dall('d78')">Show all</button><button class="btn ghost" onclick="dreset('d78')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Diagonal covariance versus shared full covariance: what the naive assumption throws away<span class="tag">Interactive</span></div><canvas id="b10corr" data-h="470"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>class 0</span><span><i style="background:var(--c5)"></i>class 1</span><span><i style="background:var(--c3)"></i>Gaussian NB boundary</span><span><i style="background:var(--c2)"></i>LDA boundary</span></div><div class="fig-read" id="b10corr-read"></div><div class="ctrls"><div class="ctrl"><label>within-class correlation ρ</label><input type="range" min="-0.95" max="0.95" step="0.05" value="0.85" data-fmt="2" oninput="figSlide('b10corr','rho',this)"><output>0.85</output></div><div class="ctrl"><label>direction of the mean shift (degrees)</label><input type="range" min="0" max="180" step="5" value="0" data-fmt="0" oninput="figSlide('b10corr','ang',this)"><output>0</output></div><div class="ctrl"><label>separation ‖m₁ − m₀‖</label><input type="range" min="0.5" max="4" step="0.1" value="2.0" data-fmt="1" oninput="figSlide('b10corr','sep',this)"><output>2.0</output></div></div><div class="fig-cap">Both classes share one covariance with correlation ρ. At ρ = 0 the two boundaries coincide — the naive assumption is true and costs nothing. Turn ρ up and they separate, except when the mean shift happens to lie along a principal axis of the covariance (0° or 90° at ρ ≠ 0 puts it along an eigenvector, where diagonal is accidentally right). Maximum damage is at 0° with ρ large: LDA rotates its weight vector toward the low-noise direction and Gaussian NB cannot.</div></div><script>makeFig("b10corr",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,5.2);
+var rho=p.rho, th=p.ang*Math.PI/180, sep=p.sep;
+var s=1.6, S=[[s*s, rho*s*s],[rho*s*s, s*s]];
+var m1=[ 0.5*sep*Math.cos(th),  0.5*sep*Math.sin(th)];
+var m0=[-0.5*sep*Math.cos(th), -0.5*sep*Math.sin(th)];
+// exact inverse of the 2x2 covariance
+var det=S[0][0]*S[1][1]-S[0][1]*S[1][0];
+var Si=[[S[1][1]/det, -S[0][1]/det],[-S[1][0]/det, S[0][0]/det]];
+var dm=[m1[0]-m0[0], m1[1]-m0[1]];
+// LDA:  w = Sinv (m1-m0)
+var wL=[Si[0][0]*dm[0]+Si[0][1]*dm[1], Si[1][0]*dm[0]+Si[1][1]*dm[1]];
+function q(m,M){ return M[0][0]*m[0]*m[0]+2*M[0][1]*m[0]*m[1]+M[1][1]*m[1]*m[1]; }
+var bL=-0.5*(q(m1,Si)-q(m0,Si));
+// Gaussian NB: same model but covariance forced diagonal -> Sinv = diag(1/s^2)
+var wN=[dm[0]/(s*s), dm[1]/(s*s)];
+var bN=-0.5*((m1[0]*m1[0]+m1[1]*m1[1])-(m0[0]*m0[0]+m0[1]*m0[1]))/(s*s);
+// sample points from the shared covariance (Cholesky of S)
+var L11=Math.sqrt(S[0][0]), L21=S[1][0]/L11, L22=Math.sqrt(Math.max(1e-9,S[1][1]-L21*L21));
+var seed=20250818;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+vp.axes({stepx:2,stepy:2});
+var errN=0, errL=0, tot=0;
+for(var k=0;k<2;k++){
+  var mu=k?m1:m0;
+  for(var i=0;i<170;i++){
+    var z1=gauss(), z2=gauss();
+    var x=mu[0]+L11*z1, y=mu[1]+L21*z1+L22*z2;
+    vp.dot(x,y, k?'--c5':'--c1', 2.7);
+    var pn=(wN[0]*x+wN[1]*y+bN>0)?1:0, pl=(wL[0]*x+wL[1]*y+bL>0)?1:0;
+    if(pn!==k) errN++; if(pl!==k) errL++; tot++;
+  }
+}
+function drawLine(w,b,col){
+  if(Math.abs(w[1])>Math.abs(w[0])) vp.curve(function(x){ return -(w[0]*x+b)/w[1]; }, col, {w:2.6});
+  else { var yy1=vp.ymin, yy2=vp.ymax;
+    vp.seg(-(w[1]*yy1+b)/w[0], yy1, -(w[1]*yy2+b)/w[0], yy2, col, {w:2.6}); }
+}
+drawLine(wN,bN,'--c3'); drawLine(wL,bL,'--c2');
+vp.dot(m0[0],m0[1],'--ink',5.5); vp.dot(m1[0],m1[1],'--ink',5.5);
+var ang=Math.acos(Math.max(-1,Math.min(1,(wN[0]*wL[0]+wN[1]*wL[1])/
+  (Math.hypot(wN[0],wN[1])*Math.hypot(wL[0],wL[1])))))*180/Math.PI;
+figRead('b10corr','ρ = '+rho.toFixed(2)+',  mean shift at '+Math.round(p.ang)+'°'
+ +'<br>angle between the two weight vectors: <b>'+ang.toFixed(1)+'°</b>'
+ +'<br>error on these 340 points — Gaussian NB <b>'+(100*errN/tot).toFixed(1)+'%</b>'
+ +' &nbsp;·&nbsp; LDA <b>'+(100*errL/tot).toFixed(1)+'%</b>'
+ +(ang<1?'<br><span style="color:var(--ok)">boundaries coincide — the diagonal assumption costs nothing here</span>':''));
+},[{"name": "rho", "label": "within-class correlation \u03c1", "min": -0.95, "max": 0.95, "step": 0.05, "value": 0.85, "dp": 2}, {"name": "ang", "label": "direction of the mean shift (degrees)", "min": 0, "max": 180, "step": 5, "value": 0, "dp": 0}, {"name": "sep", "label": "separation \u2016m\u2081 \u2212 m\u2080\u2016", "min": 0.5, "max": 4, "step": 0.1, "value": 2.0, "dp": 1}]);window["FIG_b10corr"].run();</script>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p><strong>When to actually reach for naive Bayes in 2026.</strong> It is not a museum
+piece, but its niche is specific:</p>
+<ul>
+<li><strong>Text and other very high-dimensional sparse counts</strong>, where \(d\gg n\) and the counting
+estimator's variance advantage is decisive. Multinomial NB on TF-IDF is still a respectable baseline.</li>
+<li><strong>As the baseline you must beat.</strong> It fits in one pass over the data with no
+hyperparameter search beyond \(\alpha_s\). If your gradient-boosted ensemble cannot beat it, something is
+wrong with your pipeline, and you have learnt that in seconds rather than hours.</li>
+<li><strong>Streaming and online settings</strong>, since the sufficient statistics are just counts: update
+them incrementally and the model is always current. No refitting.</li>
+<li><strong>Missing features are free.</strong> If \(x_j\) is unobserved, drop its factor from the product —
+the remaining terms are still a valid likelihood. Almost no other model handles missingness this cleanly.</li>
+</ul>
+<p>Do not reach for it when you need calibrated probabilities, when the boundary is not linear, or when
+\(n\) is comfortably larger than \(d\) and a discriminative model can be fitted.</p></div>
+<h2 id="s8"><span class="secnum">8</span>Implement it and watch the crossover</h2>
+<div class="pyb" id="py79" data-orig="
+import numpy as np
+np.set_printoptions(precision=3, suppress=True)
+
+# ============ PART 1: Bernoulli naive Bayes, and why smoothing is not cosmetic
+K, d = 2, 60
+rgp   = np.random.default_rng(0)
+pw    = np.stack([rgp.beta(0.4, 3.0, size=d), rgp.beta(0.4, 3.0, size=d)])
+prior = np.array([0.6, 0.4])
+
+def sample_indep(n, rg):
+    &quot;&quot;&quot;Features ARE conditionally independent here: the naive model is correct.&quot;&quot;&quot;
+    y = rg.choice(K, size=n, p=prior)
+    X = (rg.random((n, d)) &lt; pw[y]).astype(float)
+    return X, y
+
+def fit_bnb(X, y, alpha=1.0):
+    pi    = np.array([(y == k).mean() for k in range(K)])
+    theta = np.stack([(X[y == k].sum(0) + alpha) / ((y == k).sum() + 2*alpha)
+                      for k in range(K)])
+    return np.log(pi), theta          # fitting is pure counting -- no optimiser
+
+def score_bnb(X, logpi, theta):
+    with np.errstate(divide=&#x27;ignore&#x27;, invalid=&#x27;ignore&#x27;):
+        return X @ np.log(theta).T + (1 - X) @ np.log(1 - theta).T + logpi
+
+rg = np.random.default_rng(1)
+Xtr, ytr = sample_indep(200, rg)
+Xte, yte = sample_indep(4000, rg)
+
+print(&quot;--- SMOOTHING IS NOT COSMETIC ---&quot;)
+for alpha in (0.0, 1.0):
+    lp, th = fit_bnb(Xtr, ytr, alpha)
+    S    = score_bnb(Xte, lp, th)
+    bad  = int((~np.isfinite(S)).any(1).sum())
+    acc  = float((np.nan_to_num(S, neginf=-1e300).argmax(1) == yte).mean())
+    degen = int((th == 0).sum() + (th == 1).sum())
+    print(f&quot;  alpha={alpha}:  degenerate theta estimates {degen:3d}&quot;
+          f&quot;   test points with a -inf score {bad:4d}/{len(yte)}&quot;
+          f&quot;   accuracy {acc:.4f}&quot;)
+
+# ============ PART 2: the log-odds really are affine in x
+lp, th = fit_bnb(Xtr, ytr, 1.0)
+w = np.log(th[1]/(1-th[1])) - np.log(th[0]/(1-th[0]))       # the derivation, coded
+b = np.log((1-th[1])/(1-th[0])).sum() + lp[1] - lp[0]
+gap = score_bnb(Xte, lp, th)[:, 1] - score_bnb(Xte, lp, th)[:, 0]
+print()
+print(&quot;--- NAIVE BAYES IS A LINEAR CLASSIFIER ---&quot;)
+print(f&quot;  max |log-odds - (Xw + b)| over {len(yte)} points: &quot;
+      f&quot;{np.abs(gap - (Xte@w + b)).max():.2e}&quot;)
+print(&quot;  Same hypothesis class as logistic regression. Only the fitting rule differs.&quot;)
+
+# ============ PART 3: break the assumption, and race the two fitting rules
+d2, B = 40, 4                                  # 10 blocks of 4 correlated features
+rgq = np.random.default_rng(0)
+pz  = np.stack([rgq.beta(1.5, 1.5, size=d2//B), rgq.beta(1.5, 1.5, size=d2//B)])
+pf  = np.stack([rgq.beta(1.0, 1.5, size=d2),    rgq.beta(1.0, 1.5, size=d2)])
+
+def sample_dep(n, rg):
+    # Within a block, features are copies of a latent bit 88% of the time.
+    # So they are NOT conditionally independent -- naive Bayes is now misspecified.
+    y  = rg.choice(K, size=n, p=np.array([0.5, 0.5]))
+    z  = (rg.random((n, d2//B)) &lt; pz[y]).astype(float)
+    zx = np.repeat(z, B, axis=1)
+    ind = (rg.random((n, d2)) &lt; pf[y]).astype(float)
+    return np.where(rg.random((n, d2)) &lt; 0.88, zx, ind), y
+
+def fit_logistic(X, y, lam=1e-2, T=40):
+    &quot;&quot;&quot;Newton / IRLS -- Lecture 05&#x27;s update, with a small ridge for stability.&quot;&quot;&quot;
+    n, dd = X.shape
+    A = np.hstack([X, np.ones((n, 1))]); wv = np.zeros(dd+1)
+    R = lam*np.eye(dd+1); R[-1, -1] = 0.0        # never penalise the intercept
+    for _ in range(T):
+        p  = 1/(1 + np.exp(-A@wv))
+        s  = np.clip(p*(1-p), 1e-9, None)
+        g  = A.T@(p - y) + R@wv
+        H  = (A*s[:, None]).T@A + R + 1e-9*np.eye(dd+1)
+        st = np.linalg.solve(H, g); wv -= st
+        if np.abs(st).max() &lt; 1e-10: break
+    return wv
+
+XteD, yteD = sample_dep(20000, np.random.default_rng(99))
+print()
+print(&quot;--- LEARNING CURVES, ASSUMPTION VIOLATED (mean test accuracy, 25 repeats) ---&quot;)
+print(&quot;   n_train   naive Bayes   logistic   winner&quot;)
+for n in (10, 20, 40, 80, 200, 600, 2000, 8000):
+    an, al = [], []
+    for t in range(25):
+        rgt = np.random.default_rng(1000 + t)
+        Xa, ya = sample_dep(n, rgt)
+        if len(np.unique(ya)) &lt; 2: continue
+        lpn, thn = fit_bnb(Xa, ya, 1.0)
+        an.append(float((score_bnb(XteD, lpn, thn).argmax(1) == yteD).mean()))
+        wv = fit_logistic(Xa, ya.astype(float))
+        al.append(float(((XteD@wv[:-1] + wv[-1] &gt; 0).astype(int) == yteD).mean()))
+    a, l = np.mean(an), np.mean(al)
+    print(f&quot;   {n:6d}      {a:.4f}      {l:.4f}   &quot;
+          f&quot;{&#x27;naive Bayes&#x27; if a &gt; l else &#x27;logistic&#x27;}&quot;)
+print(&quot;  The curves cross. NB plateaus early at a biased limit; logistic keeps improving.&quot;)
+
+# ============ PART 4: continuous features -- diagonal vs full covariance
+mu = np.array([[-1.0, 0.0], [1.0, 0.0]])       # mean shift along x1
+C  = np.array([[3.0, 2.7], [2.7, 3.0]])        # within-class correlation 0.9
+Lc = np.linalg.cholesky(C)
+
+def sample_gauss(n, rg):
+    y = rg.integers(0, 2, n)
+    return mu[y] + rg.normal(size=(n, 2)) @ Lc.T, y
+
+Xg, yg   = sample_gauss(400,   np.random.default_rng(4))
+Xgt, ygt = sample_gauss(20000, np.random.default_rng(7))
+
+means = np.stack([Xg[yg == k].mean(0) for k in range(2)])
+varsd = np.stack([Xg[yg == k].var(0)  for k in range(2)])          # GNB: diagonal
+Sh    = sum(np.cov((Xg[yg == k] - means[k]).T, bias=True)*(yg == k).sum()
+            for k in range(2))/len(yg)                              # LDA: shared full
+Sk    = [np.cov(Xg[yg == k].T, bias=True) for k in range(2)]        # QDA: per class
+
+def acc_gnb(X, y):
+    s = np.stack([-0.5*(((X-means[k])**2)/varsd[k] + np.log(2*np.pi*varsd[k])).sum(1)
+                  for k in range(2)], 1)
+    return float((s.argmax(1) == y).mean())
+def lin_rule(m, S):
+    Si = np.linalg.inv(S)
+    return Si@(m[1]-m[0]), -0.5*(m[1]@Si@m[1] - m[0]@Si@m[0])       # the derivation
+def acc_lda(X, y):
+    wv, bb = lin_rule(means, Sh)
+    return float(((X@wv + bb &gt; 0).astype(int) == y).mean())
+def acc_qda(X, y):
+    s = []
+    for k in range(2):
+        Si = np.linalg.inv(Sk[k]); D = X - means[k]
+        s.append(-0.5*np.einsum(&#x27;ij,jk,ik-&gt;i&#x27;, D, Si, D) - 0.5*np.log(np.linalg.det(Sk[k])))
+    return float((np.stack(s, 1).argmax(1) == y).mean())
+
+wB, bB = lin_rule(mu, C)                        # the true Bayes-optimal rule
+print()
+print(&quot;--- CONTINUOUS FEATURES: what the diagonal assumption costs ---&quot;)
+print(f&quot;  within-class correlation {C[0,1]/C[0,0]:.2f}, mean shift along x1 only&quot;)
+print(f&quot;  Gaussian NB (diagonal)  {acc_gnb(Xgt, ygt):.4f}&quot;)
+print(f&quot;  LDA (shared full)       {acc_lda(Xgt, ygt):.4f}&quot;)
+print(f&quot;  QDA (per-class full)    {acc_qda(Xgt, ygt):.4f}&quot;)
+print(f&quot;  Bayes optimal           {float(((Xgt@wB + bB &gt; 0).astype(int) == ygt).mean()):.4f}&quot;)
+wN = (means[1]-means[0])/varsd.mean(0)
+wL, _ = lin_rule(means, Sh)
+cosang = wN@wL/(np.linalg.norm(wN)*np.linalg.norm(wL))
+print(f&quot;  angle between the GNB and LDA weight vectors: &quot;
+      f&quot;{np.degrees(np.arccos(np.clip(cosang,-1,1))):.1f} degrees&quot;)
+print(&quot;  Same data, same Gaussian family. Only the covariance structure differs.&quot;)
+"><div class="pyb-head"><span class="t">Naive Bayes from scratch: smoothing, linearity, and the learning-curve crossing</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py79')">Run</button><button class="btn ghost" onclick="resetPy('py79')">Reset</button></div><textarea spellcheck="false" rows="34">
+import numpy as np
+np.set_printoptions(precision=3, suppress=True)
+
+# ============ PART 1: Bernoulli naive Bayes, and why smoothing is not cosmetic
+K, d = 2, 60
+rgp   = np.random.default_rng(0)
+pw    = np.stack([rgp.beta(0.4, 3.0, size=d), rgp.beta(0.4, 3.0, size=d)])
+prior = np.array([0.6, 0.4])
+
+def sample_indep(n, rg):
+    &quot;&quot;&quot;Features ARE conditionally independent here: the naive model is correct.&quot;&quot;&quot;
+    y = rg.choice(K, size=n, p=prior)
+    X = (rg.random((n, d)) &lt; pw[y]).astype(float)
+    return X, y
+
+def fit_bnb(X, y, alpha=1.0):
+    pi    = np.array([(y == k).mean() for k in range(K)])
+    theta = np.stack([(X[y == k].sum(0) + alpha) / ((y == k).sum() + 2*alpha)
+                      for k in range(K)])
+    return np.log(pi), theta          # fitting is pure counting -- no optimiser
+
+def score_bnb(X, logpi, theta):
+    with np.errstate(divide=&#x27;ignore&#x27;, invalid=&#x27;ignore&#x27;):
+        return X @ np.log(theta).T + (1 - X) @ np.log(1 - theta).T + logpi
+
+rg = np.random.default_rng(1)
+Xtr, ytr = sample_indep(200, rg)
+Xte, yte = sample_indep(4000, rg)
+
+print(&quot;--- SMOOTHING IS NOT COSMETIC ---&quot;)
+for alpha in (0.0, 1.0):
+    lp, th = fit_bnb(Xtr, ytr, alpha)
+    S    = score_bnb(Xte, lp, th)
+    bad  = int((~np.isfinite(S)).any(1).sum())
+    acc  = float((np.nan_to_num(S, neginf=-1e300).argmax(1) == yte).mean())
+    degen = int((th == 0).sum() + (th == 1).sum())
+    print(f&quot;  alpha={alpha}:  degenerate theta estimates {degen:3d}&quot;
+          f&quot;   test points with a -inf score {bad:4d}/{len(yte)}&quot;
+          f&quot;   accuracy {acc:.4f}&quot;)
+
+# ============ PART 2: the log-odds really are affine in x
+lp, th = fit_bnb(Xtr, ytr, 1.0)
+w = np.log(th[1]/(1-th[1])) - np.log(th[0]/(1-th[0]))       # the derivation, coded
+b = np.log((1-th[1])/(1-th[0])).sum() + lp[1] - lp[0]
+gap = score_bnb(Xte, lp, th)[:, 1] - score_bnb(Xte, lp, th)[:, 0]
+print()
+print(&quot;--- NAIVE BAYES IS A LINEAR CLASSIFIER ---&quot;)
+print(f&quot;  max |log-odds - (Xw + b)| over {len(yte)} points: &quot;
+      f&quot;{np.abs(gap - (Xte@w + b)).max():.2e}&quot;)
+print(&quot;  Same hypothesis class as logistic regression. Only the fitting rule differs.&quot;)
+
+# ============ PART 3: break the assumption, and race the two fitting rules
+d2, B = 40, 4                                  # 10 blocks of 4 correlated features
+rgq = np.random.default_rng(0)
+pz  = np.stack([rgq.beta(1.5, 1.5, size=d2//B), rgq.beta(1.5, 1.5, size=d2//B)])
+pf  = np.stack([rgq.beta(1.0, 1.5, size=d2),    rgq.beta(1.0, 1.5, size=d2)])
+
+def sample_dep(n, rg):
+    # Within a block, features are copies of a latent bit 88% of the time.
+    # So they are NOT conditionally independent -- naive Bayes is now misspecified.
+    y  = rg.choice(K, size=n, p=np.array([0.5, 0.5]))
+    z  = (rg.random((n, d2//B)) &lt; pz[y]).astype(float)
+    zx = np.repeat(z, B, axis=1)
+    ind = (rg.random((n, d2)) &lt; pf[y]).astype(float)
+    return np.where(rg.random((n, d2)) &lt; 0.88, zx, ind), y
+
+def fit_logistic(X, y, lam=1e-2, T=40):
+    &quot;&quot;&quot;Newton / IRLS -- Lecture 05&#x27;s update, with a small ridge for stability.&quot;&quot;&quot;
+    n, dd = X.shape
+    A = np.hstack([X, np.ones((n, 1))]); wv = np.zeros(dd+1)
+    R = lam*np.eye(dd+1); R[-1, -1] = 0.0        # never penalise the intercept
+    for _ in range(T):
+        p  = 1/(1 + np.exp(-A@wv))
+        s  = np.clip(p*(1-p), 1e-9, None)
+        g  = A.T@(p - y) + R@wv
+        H  = (A*s[:, None]).T@A + R + 1e-9*np.eye(dd+1)
+        st = np.linalg.solve(H, g); wv -= st
+        if np.abs(st).max() &lt; 1e-10: break
+    return wv
+
+XteD, yteD = sample_dep(20000, np.random.default_rng(99))
+print()
+print(&quot;--- LEARNING CURVES, ASSUMPTION VIOLATED (mean test accuracy, 25 repeats) ---&quot;)
+print(&quot;   n_train   naive Bayes   logistic   winner&quot;)
+for n in (10, 20, 40, 80, 200, 600, 2000, 8000):
+    an, al = [], []
+    for t in range(25):
+        rgt = np.random.default_rng(1000 + t)
+        Xa, ya = sample_dep(n, rgt)
+        if len(np.unique(ya)) &lt; 2: continue
+        lpn, thn = fit_bnb(Xa, ya, 1.0)
+        an.append(float((score_bnb(XteD, lpn, thn).argmax(1) == yteD).mean()))
+        wv = fit_logistic(Xa, ya.astype(float))
+        al.append(float(((XteD@wv[:-1] + wv[-1] &gt; 0).astype(int) == yteD).mean()))
+    a, l = np.mean(an), np.mean(al)
+    print(f&quot;   {n:6d}      {a:.4f}      {l:.4f}   &quot;
+          f&quot;{&#x27;naive Bayes&#x27; if a &gt; l else &#x27;logistic&#x27;}&quot;)
+print(&quot;  The curves cross. NB plateaus early at a biased limit; logistic keeps improving.&quot;)
+
+# ============ PART 4: continuous features -- diagonal vs full covariance
+mu = np.array([[-1.0, 0.0], [1.0, 0.0]])       # mean shift along x1
+C  = np.array([[3.0, 2.7], [2.7, 3.0]])        # within-class correlation 0.9
+Lc = np.linalg.cholesky(C)
+
+def sample_gauss(n, rg):
+    y = rg.integers(0, 2, n)
+    return mu[y] + rg.normal(size=(n, 2)) @ Lc.T, y
+
+Xg, yg   = sample_gauss(400,   np.random.default_rng(4))
+Xgt, ygt = sample_gauss(20000, np.random.default_rng(7))
+
+means = np.stack([Xg[yg == k].mean(0) for k in range(2)])
+varsd = np.stack([Xg[yg == k].var(0)  for k in range(2)])          # GNB: diagonal
+Sh    = sum(np.cov((Xg[yg == k] - means[k]).T, bias=True)*(yg == k).sum()
+            for k in range(2))/len(yg)                              # LDA: shared full
+Sk    = [np.cov(Xg[yg == k].T, bias=True) for k in range(2)]        # QDA: per class
+
+def acc_gnb(X, y):
+    s = np.stack([-0.5*(((X-means[k])**2)/varsd[k] + np.log(2*np.pi*varsd[k])).sum(1)
+                  for k in range(2)], 1)
+    return float((s.argmax(1) == y).mean())
+def lin_rule(m, S):
+    Si = np.linalg.inv(S)
+    return Si@(m[1]-m[0]), -0.5*(m[1]@Si@m[1] - m[0]@Si@m[0])       # the derivation
+def acc_lda(X, y):
+    wv, bb = lin_rule(means, Sh)
+    return float(((X@wv + bb &gt; 0).astype(int) == y).mean())
+def acc_qda(X, y):
+    s = []
+    for k in range(2):
+        Si = np.linalg.inv(Sk[k]); D = X - means[k]
+        s.append(-0.5*np.einsum(&#x27;ij,jk,ik-&gt;i&#x27;, D, Si, D) - 0.5*np.log(np.linalg.det(Sk[k])))
+    return float((np.stack(s, 1).argmax(1) == y).mean())
+
+wB, bB = lin_rule(mu, C)                        # the true Bayes-optimal rule
+print()
+print(&quot;--- CONTINUOUS FEATURES: what the diagonal assumption costs ---&quot;)
+print(f&quot;  within-class correlation {C[0,1]/C[0,0]:.2f}, mean shift along x1 only&quot;)
+print(f&quot;  Gaussian NB (diagonal)  {acc_gnb(Xgt, ygt):.4f}&quot;)
+print(f&quot;  LDA (shared full)       {acc_lda(Xgt, ygt):.4f}&quot;)
+print(f&quot;  QDA (per-class full)    {acc_qda(Xgt, ygt):.4f}&quot;)
+print(f&quot;  Bayes optimal           {float(((Xgt@wB + bB &gt; 0).astype(int) == ygt).mean()):.4f}&quot;)
+wN = (means[1]-means[0])/varsd.mean(0)
+wL, _ = lin_rule(means, Sh)
+cosang = wN@wL/(np.linalg.norm(wN)*np.linalg.norm(wL))
+print(f&quot;  angle between the GNB and LDA weight vectors: &quot;
+      f&quot;{np.degrees(np.arccos(np.clip(cosang,-1,1))):.1f} degrees&quot;)
+print(&quot;  Same data, same Gaussian family. Only the covariance structure differs.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s9"><span class="secnum">9</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>A spam filter uses two binary features: <em>contains the word "free"</em> and <em>contains the
+  word "offer"</em>. From 1000 training emails (400 spam, 600 ham):</p>
+  <ul style="font-family:var(--sans);font-size:14px">
+  <li>"free" appears in 320 spam, 60 ham</li>
+  <li>"offer" appears in 240 spam, 30 ham</li>
+  </ul>
+  <ol><li>Fit a Bernoulli naive Bayes model with Laplace smoothing \(\alpha_s=1\).</li>
+  <li>Classify an email containing both words. Give the posterior probability of spam.</li>
+  <li>Compute \(\vw\) and \(b\) from the linearity derivation and check the log-odds agree.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex80',this)">Show solution</button></div><div class="rev-body" id="ex80"><p><strong>1. Parameters.</strong> \(\hat\pi_1=0.4,\ \hat\pi_0=0.6\).</p>
+  \[\theta_{\text{free},1}=\tfrac{320+1}{400+2}=\tfrac{321}{402}=0.7985,\qquad
+    \theta_{\text{free},0}=\tfrac{60+1}{600+2}=\tfrac{61}{602}=0.1013,\]
+  \[\theta_{\text{offer},1}=\tfrac{240+1}{402}=0.5995,\qquad
+    \theta_{\text{offer},0}=\tfrac{30+1}{602}=0.0515.\]
+  <p><strong>2. Both words present</strong>, so \(\vx=(1,1)\):</p>
+  \[\log\frac{p(1\mid\vx)}{p(0\mid\vx)} = \log\tfrac{0.4}{0.6} + \log\tfrac{0.7985}{0.1013} + \log\tfrac{0.5995}{0.0515}\]
+  \[= -0.4055 + 2.0646 + 2.4545 = 4.1137.\]
+  <p>So \(p(\text{spam}\mid\vx)=\sigma(4.1137)=0.9839\).</p>
+  <p><strong>3.</strong> \(w_{\text{free}}=\log\frac{0.7985}{0.2015}-\log\frac{0.1013}{0.8987}=1.3769-(-2.1829)=3.5598\);
+  \(w_{\text{offer}}=\log\frac{0.5995}{0.4005}-\log\frac{0.0515}{0.9485}=0.4034-(-2.9133)=3.3167\).</p>
+  <p>\(b=\log\frac{0.2015}{0.8987}+\log\frac{0.4005}{0.9485}+\log\frac{0.4}{0.6}
+  =-1.4952-0.8622-0.4055=-2.7628\).</p>
+  <p>Check: \(\vw^\top(1,1)+b = 3.5598+3.3167-2.7628 = 4.1137\). Identical to part 2, as the derivation
+  guarantees. ∎</p>
+  <p><em>Notice</em> how large those weights are relative to the prior term: two words have swamped a prior
+  that favoured ham 3:2. With correlated words — and "free" and "offer" certainly are correlated — this is
+  precisely the double-counting the overconfidence figure showed.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that if the naive Bayes assumption is <em>exactly true</em> and \(n\to\infty\), then
+  Bernoulli naive Bayes and logistic regression converge to the <em>same</em> classifier. Then explain, in one
+  or two sentences, why they nonetheless differ at finite \(n\) — and which you would rather have when
+  \(n=30\) and \(d=500\).</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex81',this)">Show solution</button></div><div class="rev-body" id="ex81"><p><strong>Proof sketch.</strong> If the assumption holds, the true conditional is</p>
+  \[p(y=1\mid\vx)=\sigma\Big(\log\tfrac{\pi_1}{\pi_0}+\textstyle\sum_j\log\tfrac{p(x_j\mid1)}{p(x_j\mid0)}\Big)
+  =\sigma(\vw^{*\top}\vx+b^*)\]
+  <p>by the linearity derivation, with \(\vw^*,b^*\) built from the <em>true</em> \(\theta_{jk},\pi_k\). So the
+  true conditional lies inside the logistic family — the model is correctly specified for both estimators.</p>
+  <p>By the law of large numbers \(\hat\theta_{jk}\to\theta_{jk}\) and \(\hat\pi_k\to\pi_k\) almost surely, so
+  naive Bayes' \((\hat\vw,\hat b)\to(\vw^*,b^*)\). Logistic regression maximises the conditional
+  log-likelihood, whose population maximiser is the true conditional whenever that conditional is in the
+  family (the expected log-likelihood is maximised at the truth — a KL-divergence argument, Lecture 4); under
+  the usual identifiability and regularity conditions the MLE is consistent, so it too converges to
+  \((\vw^*,b^*)\). Same limit. ∎</p>
+  <p><strong>At finite \(n\).</strong> They target the same point but along different paths: naive Bayes
+  estimates \(2d+1\) parameters from independent one-dimensional counting problems, each using all \(n_k\)
+  rows of its class; logistic regression solves one coupled \(d\)-dimensional optimisation. The counting
+  estimator has far lower variance, so it gets closer sooner.</p>
+  <p><strong>At \(n=30,\ d=500\)</strong>: naive Bayes, without hesitation. Unregularised logistic regression
+  is not even identifiable here (with \(d>n\) the data are separable, the likelihood has no finite maximiser,
+  and the weights diverge — Lecture 5's separation pathology). Naive Bayes just counts, and with smoothing
+  the counts are never degenerate.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Take one binary feature \(x\) and duplicate it \(c\) times, so the design is
+  \((x,x,\dots,x)\). Let \(r=\log\frac{p(x=1\mid y=1)}{p(x=1\mid y=0)}\) be the true log-likelihood ratio for
+  a single observation of \(x=1\), and assume equal priors.</p>
+  <ol><li>What is the correct posterior log-odds after observing \(x=1\)?</li>
+  <li>What does naive Bayes report?</li>
+  <li>Fit logistic regression on the same duplicated design with a ridge penalty \(\lambda\|\vw\|^2\). What
+  does it do to the \(c\) weights, and what is the resulting log-odds? Why is this the right answer?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex82',this)">Show solution</button></div><div class="rev-body" id="ex82"><p><strong>1.</strong> The \(c\) columns are the same random variable, so they carry the evidence of
+  <em>one</em> observation. The correct log-odds is \(r\), independent of \(c\).</p>
+  <p><strong>2.</strong> Naive Bayes treats the columns as conditionally independent, so it multiplies the
+  likelihood ratio \(c\) times: reported log-odds \(=cr\). The odds are overstated by a factor
+  \(e^{(c-1)r}\), which for \(r=0.5,\ c=8\) is \(e^{3.5}\approx33\). With \(c\) large the posterior is
+  numerically 0 or 1 whatever the data says.</p>
+  <p><strong>3.</strong> The likelihood depends on \(\vw\) only through \(\sum_j w_j x = x\sum_j w_j\), so it
+  is a function of \(s=\sum_j w_j\) alone. Fix \(s\); the penalty \(\lambda\sum_j w_j^2\) is then minimised
+  subject to \(\sum_j w_j=s\), and by symmetry (or Cauchy–Schwarz, or a one-line Lagrange multiplier) the
+  minimiser is \(w_j=s/c\) for every \(j\), giving penalty \(\lambda s^2/c\).</p>
+  <p>So ridge splits the weight equally across the duplicates and the log-odds is
+  \(\sum_j w_j x = s\) — a single number fitted to the actual conditional likelihood, not \(c\) copies of it.
+  Discriminative fitting lets the correlated features negotiate; naive Bayes structurally cannot, because it
+  never looks at more than one feature at a time.</p>
+  <p><em>Aside worth noticing:</em> the effective penalty on \(s\) is \(\lambda/c\), so duplicating a feature
+  quietly <em>weakens</em> its regularisation. Redundant columns are not free even for a discriminative
+  model — they are just far less damaging.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p>Modify the code block above. Multinomial naive Bayes replaces the Bernoulli class-conditional
+  with a multinomial over word <em>counts</em>: \(p(\vx\mid y=k)\propto\prod_j \theta_{jk}^{x_j}\) with
+  \(\sum_j\theta_{jk}=1\).</p>
+  <ol><li>Derive the MLE for \(\theta_{jk}\) under the simplex constraint (Lagrange multiplier, as in the
+  lecture) and state its smoothed version.</li>
+  <li>Implement it and compare against Bernoulli NB on count data.</li>
+  <li>Is multinomial NB also a linear classifier in \(\vx\)? Prove or disprove.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex83',this)">Show solution</button></div><div class="rev-body" id="ex83"><p><strong>1.</strong> The class-\(k\) log-likelihood contribution is
+  \(\sum_{i:y_i=k}\sum_j x_{ij}\log\theta_{jk} = \sum_j N_{jk}\log\theta_{jk}\) where
+  \(N_{jk}=\sum_{i:y_i=k}x_{ij}\) is the total count of word \(j\) in class \(k\). Maximise subject to
+  \(\sum_j\theta_{jk}=1\):</p>
+  \[\mathcal{L}=\sum_j N_{jk}\log\theta_{jk}-\lambda\Big(\sum_j\theta_{jk}-1\Big),\qquad
+  \frac{N_{jk}}{\theta_{jk}}=\lambda \;\Rightarrow\; \theta_{jk}=\frac{N_{jk}}{\lambda},\]
+  <p>and summing the constraint gives \(\lambda=\sum_{j'}N_{j'k}=N_{\cdot k}\). Hence
+  \(\hat\theta_{jk}=N_{jk}/N_{\cdot k}\) — <em>exactly</em> the same Lagrange argument as for the class prior,
+  which is the point of the exercise. Smoothed: \(\hat\theta_{jk}=\frac{N_{jk}+\alpha_s}{N_{\cdot k}+\alpha_s d}\).
+  Note the denominator: \(d\) pseudo-counts total, one per vocabulary word, not \(2\alpha_s\) as in the
+  Bernoulli case.</p>
+  <p><strong>2.</strong> Sample counts with <code>rg.poisson</code> or a multinomial per document and compare.
+  Expect multinomial NB to win on count data and Bernoulli NB to win when only presence/absence matters —
+  each is the correct likelihood for its own data type, which is Lecture 4's whole message.</p>
+  <p><strong>3. Yes, it is linear.</strong>
+  \(\log\frac{p(y=1\mid\vx)}{p(y=0\mid\vx)}=\log\frac{\pi_1}{\pi_0}+\sum_j x_j\log\frac{\theta_{j1}}{\theta_{j0}}
+  = \vw^\top\vx+b\) with \(w_j=\log(\theta_{j1}/\theta_{j0})\) and \(b=\log(\pi_1/\pi_0)\). The multinomial
+  coefficient \(\frac{(\sum_j x_j)!}{\prod_j x_j!}\) depends only on \(\vx\), not on \(k\), so it cancels in
+  the ratio — which is why it can be dropped from the model entirely. Note this \(b\) has no
+  \(\sum_j\log\frac{1-\theta_{j1}}{1-\theta_{j0}}\) term: the Bernoulli model pays for the words that are
+  <em>absent</em>, the multinomial model does not model absence at all. That is a real modelling difference,
+  not a notational one.</p></div></div></div>
+<div class="box note"><span class="lbl">Where this goes next</span><p>You now have both halves of the classical supervised
+picture in the <em>linear</em> world: discriminative (Lectures 2, 5, 6) and generative (this one). The
+remaining two lectures leave linearity behind by two very different routes — Lecture 11 partitions the input
+space with axis-aligned cuts and combines many weak partitioners, and Lecture 12 keeps a linear boundary but
+changes the space it lives in.</p></div>
+<div class="pagenav"><a href="09-kmeans-and-mixtures.html" class="pv"><span class="dir">Previous</span><span class="nm">9 · k-means, Gaussian Mixtures, and EM</span></a><a href="11-trees-forests-boosting.html" class="nx"><span class="dir">Next</span><span class="nm">11 · Decision Trees, Random Forests, and Gradient Boosting</span></a></div>
+</div>
+<script>initDone('10-naive-bayes');</script>
+</body>
+</html>

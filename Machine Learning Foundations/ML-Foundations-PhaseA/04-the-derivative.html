@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>4. The Derivative from First Principles — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 4 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('04-the-derivative')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part II — Calculus of One Variable · Lecture 4</div>
+  <h1>The Derivative from First Principles</h1>
+  <p class="dek">A derivative is a limit of slopes. That single sentence, unpacked carefully, gives you tangent lines, local linear approximation, and the entire mechanism by which a neural network learns.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive \(f'(x)\) from the difference-quotient definition, for polynomials and \(1/x\)</li><li>Explain what the derivative means geometrically, physically, and as a linear approximation</li><li>Prove that differentiability implies continuity, and give a counterexample to the converse</li><li>Read gradient descent as 'walk downhill using the derivative'</li><li>Verify any derivative you compute against a numerical estimate</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lecture 3: limits, indeterminate forms, continuity</li><li>Expanding binomials such as \((x+h)^3\)</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>The question</h2>
+<p>Here is the problem gradient descent has to solve. You are standing at a point \(w\) on a loss
+curve \(L(w)\). You want to move downhill. Which way, and how far?</p>
+<p>"Which way" is a question about slope. And slope is easy for a straight line — rise over run —
+but a loss curve is not straight. Its steepness changes from point to point. So we need a notion of
+<em>slope at a single point</em>, and that phrase is initially meaningless: a slope needs two points.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>Zoom in far enough on a smooth curve and it looks straight. Photograph a one-metre
+stretch of the Earth's surface and you cannot see the curvature. The derivative is the slope of that
+straight-looking thing — the slope you would measure if you could zoom in infinitely. Limits are the tool that
+lets us say "infinitely" without hand-waving.</p></div>
+<h2 id="s2"><span class="secnum">2</span>Secants converging to a tangent</h2>
+<p>Pick a point \(x\) on the curve \(y=f(x)\), and a second point a distance \(h\) away. Two points
+determine a line — a <strong>secant</strong>. Its slope is the ordinary rise-over-run:</p>
+<p>\[m_{\text{sec}}(h) = \frac{\text{rise}}{\text{run}} = \frac{f(x+h)-f(x)}{(x+h)-x} = \frac{f(x+h)-f(x)}{h}.\]</p>
+<p>This expression is called the <strong>difference quotient</strong>, and it is the single most
+important formula in this half of the course. Now shrink \(h\). The second point slides towards the first, and
+the secant pivots towards the tangent. At \(h=0\) the formula reads \(\tfrac00\) and dies — which is exactly the
+situation limits were built for.</p>
+<div class="fig"><div class="fig-head">Secant → tangent:  shrink h and watch the slope settle<span class="tag">Interactive</span></div><canvas id="f4sec" data-h="390"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f(x) = x²</span><span><i style="background:var(--c2)"></i>secant through the two points</span><span><i style="background:var(--c3)"></i>tangent (h → 0)</span></div><div class="fig-read" id="f4sec-read"></div><div class="ctrls"><div class="ctrl"><label>base point  x</label><input type="range" min="-2" max="2.5" step="0.05" value="1" data-fmt="2" oninput="figSlide('f4sec','x',this)"><output>1.00</output></div><div class="ctrl"><label>log₁₀ h   (drag right → h shrinks)</label><input type="range" min="-4" max="0.3" step="0.01" value="0.0" data-fmt="2" oninput="figSlide('f4sec','lh',this)"><output>0.00</output></div></div><div class="fig-cap">The orange secant joins (x, f(x)) to (x+h, f(x+h)). As h shrinks the orange line rotates onto the green tangent and the two slope numbers converge. Notice that no matter how small h gets, the secant is still a genuine two-point line — we never divide by zero. The tangent is the LIMIT of these lines, not one of them.</div></div><script>makeFig("f4sec",function(vp,p,F){
+vp.pads(44,16,14,30); vp.frame(-2.6,3.4,-1.5,7);
+vp.axes({stepx:1,stepy:1});
+var x=p.x, h=Math.pow(10,-p.lh)*0+Math.pow(10,p.lh);
+var f=function(t){return t*t;}, fp=2*x;
+vp.curve(f,'--c1',{w:2.8});
+var y1=f(x), y2=f(x+h), m=(y2-y1)/h;
+// tangent
+vp.curve(function(t){return y1+fp*(t-x);},'--c3',{w:2,dash:[6,4]});
+// secant
+vp.curve(function(t){return y1+m*(t-x);},'--c2',{w:2.2});
+vp.dot(x,y1,'--c1',6.5);
+vp.dot(x+h,y2,'--c2',6);
+// rise / run annotation
+if(h>0.06){
+  vp.seg(x,y1,x+h,y1,'--ink3',{dash:[3,3],w:1.3});
+  vp.seg(x+h,y1,x+h,y2,'--ink3',{dash:[3,3],w:1.3});
+  vp.label(x+h/2,y1,'run = h','--ink3',{halo:true,dy:16,align:'center'});
+  vp.label(x+h,(y1+y2)/2,'rise','--ink3',{halo:true,dx:7});
+}
+figRead('f4sec','h = <b>'+h.toExponential(3)+'</b>   secant slope = (f(x+h) − f(x))/h = <b>'+m.toFixed(6)+'</b>'
+ +'   |   tangent slope f′(x) = 2x = <b>'+fp.toFixed(6)+'</b>   |   gap = '+Math.abs(m-fp).toExponential(2)
+ +'  <span style="color:var(--ink3)">(the gap is exactly h, as the derivation below shows)</span>');
+},[{"name": "x", "label": "base point  x", "min": -2, "max": 2.5, "step": 0.05, "value": 1, "dp": 2}, {"name": "lh", "label": "log\u2081\u2080 h   (drag right \u2192 h shrinks)", "min": -4, "max": 0.3, "step": 0.01, "value": 0.0, "dp": 2}]);window["FIG_f4sec"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>The definition</h2>
+<div class="box defn"><span class="lbl">Definition — the derivative</span><p>The <strong>derivative</strong> of \(f\) at \(x\) is</p>
+\[ f'(x) \;=\; \lim_{h\to 0}\frac{f(x+h)-f(x)}{h}, \]
+<p>provided this limit exists. When it does, \(f\) is said to be <strong>differentiable at \(x\)</strong>.</p>
+<p>Equivalent notations, all meaning the same thing:
+\(\;f'(x)\), \(\;\dfrac{df}{dx}\), \(\;\dfrac{dy}{dx}\), \(\;Df(x)\), \(\;\dot f\) (physics, for time derivatives).</p></div>
+<p>Three readings of the same object, and you should be able to move between them freely:</p>
+<ul><li><strong>Geometric.</strong> The slope of the tangent line to the graph at \(x\).</li><li><strong>Physical.</strong> The instantaneous rate of change of \(f\) with respect to \(x\). If \(f\) is position and \(x\) is time, \(f'\) is velocity.</li><li><strong>Approximation-theoretic.</strong> The number \(m\) that makes \(f(x+h)\approx f(x)+mh\) the best possible straight-line approximation near \(x\). This is the reading that generalises to many variables, and the one that matters most for us.</li></ul>
+<div class="deriv" id="d33"><div class="deriv-head"><span class="t">Computing f′(x) for f(x) = x², from the definition</span><span class="ct">0 / 4</span></div><div class="dstep">\[f'(x) = \lim_{h\to0}\frac{(x+h)^2 - x^2}{h}\]<div class="why"><b>Write down the definition.</b> Substitute \(f(t)=t^2\) at \(t=x+h\) and \(t=x\). Resist any urge to use a rule — we are <em>deriving</em> the rule.</div></div><div class="dstep">\[(x+h)^2 - x^2 = x^2 + 2xh + h^2 - x^2 = 2xh + h^2\]<div class="why"><b>Expand and cancel.</b> The \(x^2\) terms cancel — they must, because the numerator has to vanish as \(h\to0\) for the quotient to have any chance of converging. Every surviving term contains at least one factor of \(h\).</div></div><div class="dstep">\[\frac{2xh+h^2}{h} = \frac{h(2x+h)}{h} = 2x + h \qquad (h \neq 0)\]<div class="why"><b>Factor out h and cancel it.</b> This is legal because the limit never evaluates at \(h=0\) — the \(0&lt;|h|\) clause from Lecture 3. This cancellation is the whole trick: it converts an indeterminate \(\tfrac00\) into something we can substitute into.</div></div><div class="dstep">\[f'(x) = \lim_{h\to0}(2x+h) = 2x\]<div class="why"><b>Take the limit.</b> \(2x+h\) is continuous in \(h\), so the limit is its value at \(h=0\), namely \(2x\). <em>Sanity check:</em> at \(x=1\), \(f'(1)=2\) — and the interactive above, with \(x=1\), converges to 2. At \(x=0\) the slope is 0, matching the flat bottom of the parabola. At \(x=-1\) it is \(-2\), negative because the curve is falling. All three agree with the picture.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d33')">Next step</button><button class="btn ghost" onclick="dall('d33')">Show all</button><button class="btn ghost" onclick="dreset('d33')">Reset</button></div></div>
+<p>Notice the last line of step 3: the secant slope is <em>exactly</em> \(2x+h\). So the error between
+the secant slope and the true derivative is exactly \(h\) — which is what the readout in the figure reports, and
+which is the \(O(h)\) truncation error we predicted numerically in Lecture 3. The theory and the arithmetic
+agree, which is the kind of cross-check you should demand of yourself constantly.</p>
+<div class="rev"><div class="rlbl">Do this one yourself</div><p>Compute \(f'(x)\) from the definition for \(f(x)=\dfrac1x\), with \(x\neq0\).</p>
+ <p><em>Hint:</em> the numerator \(\frac{1}{x+h}-\frac1x\) needs a common denominator before anything cancels.</p><div style="margin-top:12px"><button class="btn ghost" data-show="Show the derivation" onclick="rev('r34',this)">Show the derivation</button></div><div class="rev-body" id="r34"><p>Start with the definition:</p>
+ \[ f'(x)=\lim_{h\to0}\frac{1}{h}\left(\frac{1}{x+h}-\frac{1}{x}\right). \]
+ <p><strong>Common denominator</strong> \(x(x+h)\):</p>
+ \[ \frac{1}{x+h}-\frac{1}{x} = \frac{x - (x+h)}{x(x+h)} = \frac{-h}{x(x+h)}. \]
+ <p><strong>Divide by \(h\)</strong> — i.e. multiply by \(1/h\), and cancel the \(h\) (legal, \(h\neq0\)):</p>
+ \[ \frac{1}{h}\cdot\frac{-h}{x(x+h)} = \frac{-1}{x(x+h)}. \]
+ <p><strong>Take the limit.</strong> The expression is continuous in \(h\) near 0 provided \(x\neq0\):</p>
+ \[ f'(x) = \frac{-1}{x\cdot x} = -\frac{1}{x^2}. \]
+ <p><strong>Sanity checks.</strong> The sign is always negative, matching the fact that \(1/x\) is decreasing on
+ both branches. At \(x=1\), \(f'(1)=-1\); at \(x=2\), \(f'(2)=-1/4\) — the curve flattens as \(x\) grows, which
+ is what the graph shows. And a numerical check at \(x=2\) with \(h=10^{-6}\):
+ \(\frac{1/2.000001 - 1/2}{10^{-6}} \approx -0.2499998\) ✓.</p></div></div>
+<h2 id="s4"><span class="secnum">4</span>The derivative is itself a function</h2>
+<p>We wrote \(f'(x)=2x\), not "the derivative is 2". The derivative assigns a slope to every point in
+the domain — it is a new function, built from the old one. This is why you can differentiate again, getting
+\(f''\), and again.</p>
+<div class="fig"><div class="fig-head">A function and its derivative, stacked<span class="tag">Interactive</span></div><canvas id="f4pair" data-h="430"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f (top panel)</span><span><i style="background:var(--c5)"></i>f′ (bottom panel)</span><span><i style="background:var(--c2)"></i>the point you are inspecting</span></div><div class="fig-read" id="f4pair-read"></div><div class="ctrls"><div class="ctrl"><label>0 = x³ − 3x   ·   1 = sin x   ·   2 = eˣ   ·   3 = 1/x</label><input type="range" min="0" max="3" step="1" value="0" data-fmt="0" oninput="figSlide('f4pair','which',this)"><output>0</output></div><div class="ctrl"><label>x</label><input type="range" min="-3" max="3" step="0.02" value="-1.4" data-fmt="2" oninput="figSlide('f4pair','x',this)"><output>-1.40</output></div></div><div class="fig-cap">Read the two panels together. Where f has a horizontal tangent, f′ crosses zero. Where f is rising, f′ is positive. Where f is steepest, |f′| is largest. For eˣ the two panels are identical — that is the defining property of e from Lecture 2, now visible.</div></div><script>makeFig("f4pair",function(vp,p,F){
+var W=vp.W,H=vp.H,c=vp.ctx; c.clearRect(0,0,W,H);
+var k=Math.round(p.which), x=p.x;
+var defs=[
+ {f:function(t){return t*t*t-3*t;}, d:function(t){return 3*t*t-3;}, n:'f(x) = x³ − 3x', dn:"f′(x) = 3x² − 3", y1:-4,y2:4, y3:-4,y4:8},
+ {f:Math.sin, d:Math.cos, n:'f(x) = sin x', dn:"f′(x) = cos x", y1:-1.4,y2:1.4, y3:-1.4,y4:1.4},
+ {f:Math.exp, d:Math.exp, n:'f(x) = eˣ', dn:"f′(x) = eˣ", y1:-1,y2:8, y3:-1,y4:8},
+ {f:function(t){return Math.abs(t)<1e-6?NaN:1/t;}, d:function(t){return Math.abs(t)<1e-6?NaN:-1/(t*t);},
+  n:'f(x) = 1/x', dn:"f′(x) = −1/x²", y1:-5,y2:5, y3:-8,y4:1}
+];
+var D=defs[k], top=Math.floor(H*0.5);
+function panel(y0,y1h,fn,col,name,yl,yh){
+  var sub=new Viewport(vp.cv,0,1,0,1);
+  sub.ctx=c; sub.W=W; sub.H=H;
+  sub.pad={l:46,r:14,t:y0+8,b:H-(y0+y1h)+22};
+  sub.pw=W-sub.pad.l-sub.pad.r; sub.ph=y1h-30;
+  sub.xmin=-3.2;sub.xmax=3.2;sub.ymin=yl;sub.ymax=yh;
+  sub.axes({stepx:1});
+  sub.curve(fn,col,{w:2.6});
+  var yv=fn(x);
+  if(isFinite(yv)){ sub.seg(x,yl,x,yh,'--c2',{dash:[3,3],w:1.3}); sub.dot(x,yv,'--c2',6); }
+  sub.label(-3.05,yh,name,col,{halo:true,bold:true,dy:14});
+  return yv;
+}
+var fv=panel(0,top,D.f,'--c1',D.n,D.y1,D.y2);
+c.save(); c.strokeStyle=vp.css('--line'); c.lineWidth=1;
+c.beginPath(); c.moveTo(0,top+.5); c.lineTo(W,top+.5); c.stroke(); c.restore();
+var dv=panel(top,H-top,D.d,'--c5',D.dn,D.y3,D.y4);
+var tag = !isFinite(dv) ? 'undefined here' :
+  (Math.abs(dv)<0.03 ? '<b style="color:var(--c2)">≈ 0 → horizontal tangent, a critical point</b>' :
+   (dv>0?'positive → f is increasing':'negative → f is decreasing'));
+figRead('f4pair','x = '+x.toFixed(2)+'   →   f(x) = '+(isFinite(fv)?fv.toFixed(4):'—')
+ +'   ·   f′(x) = <b>'+(isFinite(dv)?dv.toFixed(4):'—')+'</b>   '+tag);
+},[{"name": "which", "label": "0 = x\u00b3 \u2212 3x   \u00b7   1 = sin x   \u00b7   2 = e\u02e3   \u00b7   3 = 1/x", "min": 0, "max": 3, "step": 1, "value": 0, "dp": 0}, {"name": "x", "label": "x", "min": -3, "max": 3, "step": 0.02, "value": -1.4, "dp": 2}]);window["FIG_f4pair"].run();</script>
+<div class="quiz" id="q35"><div class="qlbl">Check yourself</div><div class="qq">Looking at the \(x^3-3x\) pair above: \(f'(x)=3x^2-3\) is zero at \(x=\pm1\). What is happening to \(f\)
+there?</div><button class="qopt" data-ok="1" onclick="pick('q35',0,true)">\(f\) has a horizontal tangent — a local maximum at \(x=-1\) and a local minimum at \(x=+1\).</button><button class="qopt" data-ok="0" onclick="pick('q35',1,false)">\(f\) is zero there.</button><button class="qopt" data-ok="0" onclick="pick('q35',2,false)">\(f\) is discontinuous there.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct. \(f'=0\) means zero slope, so the tangent is flat. Reading the sign of \(f'\) around each
+    point tells you which kind: \(f'>0\) then \(f'&lt;0\) at \(x=-1\) means rising-then-falling, a local maximum
+    (value \(f(-1)=-1+3=2\)). The reverse at \(x=+1\) gives a local minimum (value \(-2\)). This is the entire
+    basis of optimisation, and we make it rigorous in Lecture 7.</div><div class="qwhy" data-i="1"><b>Not quite.</b> That confuses \(f'=0\) with \(f=0\). They are different functions. Here \(f(-1)=(-1)^3-3(-1)=2\) and
+    \(f(1)=-2\) — neither is zero. \(f\) itself is zero at \(x=0\) and \(x=\pm\sqrt3\), which is where the top
+    curve crosses the axis, not where the bottom one does.</div><div class="qwhy" data-i="2"><b>Not quite.</b> \(x^3-3x\) is a polynomial, and polynomials are continuous and differentiable everywhere. Nothing
+    breaks at \(x=\pm1\); the curve simply levels off momentarily. Note also that a discontinuity would make
+    \(f'\) fail to <em>exist</em>, not equal zero.</div></div>
+<h2 id="s5"><span class="secnum">5</span>Differentiability is stronger than continuity</h2>
+<div class="box thm"><span class="lbl">Theorem — differentiable ⟹ continuous</span><p>If \(f\) is differentiable at \(c\), then
+\(f\) is continuous at \(c\).</p>
+<p><strong>Proof.</strong> We must show \(\lim_{x\to c}f(x)=f(c)\), equivalently
+\(\lim_{x\to c}\big[f(x)-f(c)\big]=0\). For \(x\neq c\) write the identity</p>
+\[ f(x)-f(c) = \frac{f(x)-f(c)}{x-c}\cdot (x-c), \]
+<p>which is legitimate because we multiplied and divided by the nonzero quantity \(x-c\). Now take the limit as
+\(x\to c\). The first factor tends to \(f'(c)\) — that is precisely the hypothesis, in its
+\(\lim_{x\to c}\frac{f(x)-f(c)}{x-c}\) form. The second factor tends to \(0\). By the product law for limits,
+which applies because both limits exist,</p>
+\[ \lim_{x\to c}\big[f(x)-f(c)\big] = f'(c)\cdot 0 = 0. \qquad\blacksquare\]</div>
+<p>The converse is false, and the counterexample is one you will meet every day.</p>
+<div class="fig"><div class="fig-head">|x| is continuous at 0 but not differentiable — the two one-sided limits disagree<span class="tag">Interactive</span></div><canvas id="f4relu" data-h="360"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f(x) = |x|</span><span><i style="background:var(--c2)"></i>secant from the right</span><span><i style="background:var(--c5)"></i>secant from the left</span></div><div class="fig-read" id="f4relu-read"></div><div class="ctrls"><div class="ctrl"><label>log₁₀ h   (drag right → h shrinks)</label><input type="range" min="-4" max="0" step="0.02" value="-0.3" data-fmt="2" oninput="figSlide('f4relu','lh',this)"><output>-0.30</output></div></div><div class="fig-cap">Both secants are drawn at distance h from the origin. Shrink h as far as you like: the right secant sits at slope +1 forever and the left at −1 forever. They never approach a common value, so the limit defining f′(0) does not exist. The function is perfectly continuous — you can draw it without lifting the pen — but it has a corner, and a corner has no single tangent.</div></div><script>makeFig("f4relu",function(vp,p,F){
+vp.pads(44,16,14,30); vp.frame(-1.6,1.6,-0.5,1.6);
+vp.axes({stepx:0.5,stepy:0.5});
+var h=Math.pow(10,p.lh);
+vp.curve(Math.abs,'--c1',{w:2.8});
+vp.curve(function(t){return t;},'--c2',{w:1.8,dash:[6,4]});
+vp.curve(function(t){return -t;},'--c5',{w:1.8,dash:[6,4]});
+vp.dot(h,h,'--c2',6); vp.dot(-h,h,'--c5',6); vp.dot(0,0,'--c1',6);
+figRead('f4relu','h = '+h.toExponential(3)+
+ '   |   right quotient (|h| − 0)/h = <b style="color:var(--c2)">+1.000000</b>'+
+ '   ·   left quotient (|−h| − 0)/(−h) = <b style="color:var(--c5)">−1.000000</b>'+
+ '   →   <b style="color:var(--bad)">no common limit, so f′(0) does not exist</b>');
+},[{"name": "lh", "label": "log\u2081\u2080 h   (drag right \u2192 h shrinks)", "min": -4, "max": 0, "step": 0.02, "value": -0.3, "dp": 2}]);window["FIG_f4relu"].run();</script>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>\(|x|\) is the shape of ReLU's kink, and this figure is the reason ReLU needs a
+<em>subgradient</em> convention. At \(x=0\) the set of valid slopes is the whole interval \([-1,1]\) for \(|x|\),
+or \([0,1]\) for \(\max(0,x)\); frameworks simply pick one (PyTorch picks 0) and carry on. Three consequences
+worth carrying with you:</p>
+<ul>
+<li>The choice is arbitrary but harmless, because a randomly-initialised network hits exactly \(x=0\) with
+probability zero.</li>
+<li>Convergence theorems for gradient descent that assume differentiability do not literally apply to ReLU
+networks. The theory that does apply — subgradient methods — gives weaker guarantees. This is a real gap
+between practice and theory, not a technicality that has been resolved.</li>
+<li>L1 regularisation \(\lambda\|\vw\|_1\) has the same kink at zero, and that kink is exactly <em>why</em> L1
+produces sparse solutions while L2 does not. We prove that in Phase B.</li>
+</ul></div>
+<h2 id="s6"><span class="secnum">6</span>Linear approximation: the reading that generalises</h2>
+<p>Rearrange the definition. For small \(h\),</p>
+<p>\[\frac{f(x+h)-f(x)}{h} \approx f'(x) \quad\Longrightarrow\quad \boxed{\,f(x+h) \approx f(x) + f'(x)\,h\,}\]</p>
+<p>This is the <strong>first-order Taylor approximation</strong>, and it is the single most useful
+consequence of the derivative. It says: to predict how \(f\) responds to a small nudge, multiply the nudge by
+the derivative.</p>
+<p>Now read gradient descent off it directly. We want to <em>decrease</em> \(f\). Choose the step
+\(h=-\eta f'(x)\) for some small \(\eta>0\). Then</p>
+<p>\[f\big(x - \eta f'(x)\big) \approx f(x) + f'(x)\cdot\big(-\eta f'(x)\big) = f(x) - \eta\,\big(f'(x)\big)^2.\]</p>
+<p>Since \(\eta>0\) and \((f'(x))^2 \ge 0\), the predicted new value is <strong>never larger</strong>
+than the old one, and is strictly smaller whenever \(f'(x)\neq0\). That is the entire justification for the
+update rule</p>
+<p>\[x_{t+1} = x_t - \eta\, f'(x_t).\]</p>
+<div class="box warn"><span class="lbl">Common trap</span><p>The word "approximately" is load-bearing. The guarantee holds for the linear
+<em>approximation</em>, which is only accurate for small \(h\). If \(\eta\) is too large the step leaves the
+region where the approximation is valid and the loss can increase — which is exactly what a diverging training
+run looks like. Lecture 6 quantifies the error term, and Lecture 7 turns that into an actual bound on \(\eta\).</p></div>
+<div class="fig"><div class="fig-head">Gradient descent in one dimension on  f(w) = w⁴ − 3w² + w + 4<span class="tag">Interactive</span></div><canvas id="f4gd" data-h="390"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f(w)</span><span><i style="background:var(--c2)"></i>the descent path</span><span><i style="background:var(--c3)"></i>tangent at the current point</span></div><div class="fig-read" id="f4gd-read"></div><div class="ctrls"><div class="ctrl"><label>starting point  w₀</label><input type="range" min="-2.2" max="2.2" step="0.02" value="1.8" data-fmt="2" oninput="figSlide('f4gd','w0',this)"><output>1.80</output></div><div class="ctrl"><label>learning rate  η</label><input type="range" min="0.005" max="0.35" step="0.005" value="0.06" data-fmt="3" oninput="figSlide('f4gd','eta',this)"><output>0.060</output></div><div class="ctrl"><label>number of steps</label><input type="range" min="0" max="40" step="1" value="8" data-fmt="0" oninput="figSlide('f4gd','steps',this)"><output>8</output></div></div><div class="fig-cap">Each orange dot is one update wₜ₊₁ = wₜ − η f′(wₜ). Small η crawls but is safe. Push η past about 0.11 and the steps overshoot the valley and bounce; past about 0.14 they diverge entirely. Also try starting at w₀ = 1.8 versus w₀ = −1.8: the same algorithm finds two different local minima, which is the non-convexity problem in miniature.</div></div><script>makeFig("f4gd",function(vp,p,F){
+vp.pads(44,16,14,30); vp.frame(-2.4,2.4,-2,8);
+vp.axes({stepx:1,stepy:2});
+var f=function(w){return w*w*w*w-3*w*w+w+4;};
+var fp=function(w){return 4*w*w*w-6*w+1;};
+vp.curve(f,'--c1',{w:2.8});
+var w=p.w0, n=Math.round(p.steps), eta=p.eta, diverged=false, path=[w];
+for(var i=0;i<n;i++){ w = w - eta*fp(w); if(!isFinite(w)||Math.abs(w)>50){diverged=true;break;} path.push(w); }
+for(var i=0;i<path.length;i++){
+  var wi=path[i], yi=f(wi);
+  if(Math.abs(wi)>2.4) continue;
+  var a=0.25+0.75*i/Math.max(1,path.length-1);
+  vp.ctx.save(); vp.ctx.globalAlpha=a; vp.dot(wi,yi,'--c2',i===path.length-1?7:4.5); vp.ctx.restore();
+  if(i>0){var pw=path[i-1]; if(Math.abs(pw)<=2.4){vp.ctx.save();vp.ctx.globalAlpha=0.45;
+     vp.seg(pw,f(pw),wi,yi,'--c2',{w:1.4});vp.ctx.restore();}}
+}
+var wf=path[path.length-1];
+if(Math.abs(wf)<=2.4){ var s=fp(wf);
+  vp.curve(function(t){return f(wf)+s*(t-wf);},'--c3',{w:1.8,dash:[6,4]}); }
+figRead('f4gd', diverged
+ ? '<b style="color:var(--bad)">DIVERGED</b> after '+path.length+' steps — η = '+eta.toFixed(3)+' is too large: the linear approximation is not valid that far out.'
+ : 'after '+n+' steps:  w = <b>'+wf.toFixed(6)+'</b>,  f(w) = <b>'+f(wf).toFixed(6)+'</b>,  f′(w) = '+fp(wf).toExponential(3)
+   +'   '+(Math.abs(fp(wf))<1e-3?'<b style="color:var(--ok)">gradient ≈ 0 → converged to a critical point</b>':'still descending'));
+},[{"name": "w0", "label": "starting point  w\u2080", "min": -2.2, "max": 2.2, "step": 0.02, "value": 1.8, "dp": 2}, {"name": "eta", "label": "learning rate  \u03b7", "min": 0.005, "max": 0.35, "step": 0.005, "value": 0.06, "dp": 3}, {"name": "steps", "label": "number of steps", "min": 0, "max": 40, "step": 1, "value": 8, "dp": 0}]);window["FIG_f4gd"].run();</script>
+<h2 id="s7"><span class="secnum">7</span>Verify everything numerically</h2>
+<div class="pyb" id="py36" data-orig="import numpy as np
+
+def numerical_derivative(f, x, h=1e-6):
+    &quot;&quot;&quot;Central difference -- more accurate than the forward difference
+    (Lecture 3, exercise 4).&quot;&quot;&quot;
+    return (f(x + h) - f(x - h)) / (2 * h)
+
+cases = [
+    (&quot;x^2&quot;,      lambda x: x**2,        lambda x: 2*x,            2.0),
+    (&quot;x^3&quot;,      lambda x: x**3,        lambda x: 3*x**2,         2.0),
+    (&quot;1/x&quot;,      lambda x: 1/x,         lambda x: -1/x**2,        2.0),
+    (&quot;sqrt(x)&quot;,  np.sqrt,               lambda x: 0.5/np.sqrt(x), 4.0),
+    (&quot;e^x&quot;,      np.exp,                np.exp,                   1.0),
+    (&quot;ln(x)&quot;,    np.log,                lambda x: 1/x,            3.0),
+    (&quot;sin(x)&quot;,   np.sin,                np.cos,                   0.7),
+]
+
+print(f&quot;{&#x27;f&#x27;:10s} {&#x27;x&#x27;:&gt;5s} {&#x27;numerical&#x27;:&gt;15s} {&#x27;analytic&#x27;:&gt;15s} {&#x27;abs error&#x27;:&gt;12s}&quot;)
+print(&quot;-&quot; * 62)
+for name, f, fprime, x in cases:
+    num, ana = numerical_derivative(f, x), fprime(x)
+    print(f&quot;{name:10s} {x:5.1f} {num:15.10f} {ana:15.10f} {abs(num-ana):12.2e}&quot;)
+
+print()
+print(&quot;Now the counterexample: |x| at 0.&quot;)
+g = np.abs
+for h in [1e-1, 1e-3, 1e-6]:
+    right = (g(0 + h) - g(0)) / h
+    left  = (g(0 - h) - g(0)) / (-h)
+    print(f&quot;  h = {h:.0e}   right = {right:+.1f}   left = {left:+.1f}   &lt;-- never agree&quot;)
+
+print()
+print(&quot;Note the central difference LIES here: (|h| - |-h|) / 2h = 0 for every h,&quot;)
+print(&quot;so it happily reports f&#x27;(0) = 0 for a derivative that does not exist.&quot;)
+print(&quot;A numerical check can confirm a derivative; it cannot prove one exists.&quot;)
+"><div class="pyb-head"><span class="t">Derivative from the definition, checked against the analytic answer</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py36')">Run</button><button class="btn ghost" onclick="resetPy('py36')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+
+def numerical_derivative(f, x, h=1e-6):
+    &quot;&quot;&quot;Central difference -- more accurate than the forward difference
+    (Lecture 3, exercise 4).&quot;&quot;&quot;
+    return (f(x + h) - f(x - h)) / (2 * h)
+
+cases = [
+    (&quot;x^2&quot;,      lambda x: x**2,        lambda x: 2*x,            2.0),
+    (&quot;x^3&quot;,      lambda x: x**3,        lambda x: 3*x**2,         2.0),
+    (&quot;1/x&quot;,      lambda x: 1/x,         lambda x: -1/x**2,        2.0),
+    (&quot;sqrt(x)&quot;,  np.sqrt,               lambda x: 0.5/np.sqrt(x), 4.0),
+    (&quot;e^x&quot;,      np.exp,                np.exp,                   1.0),
+    (&quot;ln(x)&quot;,    np.log,                lambda x: 1/x,            3.0),
+    (&quot;sin(x)&quot;,   np.sin,                np.cos,                   0.7),
+]
+
+print(f&quot;{&#x27;f&#x27;:10s} {&#x27;x&#x27;:&gt;5s} {&#x27;numerical&#x27;:&gt;15s} {&#x27;analytic&#x27;:&gt;15s} {&#x27;abs error&#x27;:&gt;12s}&quot;)
+print(&quot;-&quot; * 62)
+for name, f, fprime, x in cases:
+    num, ana = numerical_derivative(f, x), fprime(x)
+    print(f&quot;{name:10s} {x:5.1f} {num:15.10f} {ana:15.10f} {abs(num-ana):12.2e}&quot;)
+
+print()
+print(&quot;Now the counterexample: |x| at 0.&quot;)
+g = np.abs
+for h in [1e-1, 1e-3, 1e-6]:
+    right = (g(0 + h) - g(0)) / h
+    left  = (g(0 - h) - g(0)) / (-h)
+    print(f&quot;  h = {h:.0e}   right = {right:+.1f}   left = {left:+.1f}   &lt;-- never agree&quot;)
+
+print()
+print(&quot;Note the central difference LIES here: (|h| - |-h|) / 2h = 0 for every h,&quot;)
+print(&quot;so it happily reports f&#x27;(0) = 0 for a derivative that does not exist.&quot;)
+print(&quot;A numerical check can confirm a derivative; it cannot prove one exists.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s8"><span class="secnum">8</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Compute from the definition (no rules) and simplify fully:</p>
+  <p>(a) \(f(x)=3x+7\) &nbsp;&nbsp; (b) \(f(x)=x^3\) &nbsp;&nbsp; (c) \(f(x)=\sqrt{x}\), for \(x>0\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex37',this)">Show solution</button></div><div class="rev-body" id="ex37"><p><strong>(a)</strong> \(\frac{3(x+h)+7-(3x+7)}{h}=\frac{3h}{h}=3\), for every \(h\neq0\).
+  So \(f'(x)=3\). The slope of a line is constant and equals its coefficient — reassuring, and a good check that
+  the definition is behaving.</p>
+
+  <p><strong>(b)</strong> \((x+h)^3 = x^3+3x^2h+3xh^2+h^3\), so the numerator is \(3x^2h+3xh^2+h^3\).
+  Factor \(h\): \(h(3x^2+3xh+h^2)\). Divide:</p>
+  \[\frac{f(x+h)-f(x)}{h}=3x^2+3xh+h^2 \xrightarrow{\;h\to0\;} 3x^2.\]
+  <p>So \(f'(x)=3x^2\).</p>
+
+  <p><strong>(c)</strong> \(\tfrac00\) with a root — use the conjugate, as in Lecture 3:</p>
+  \[\frac{\sqrt{x+h}-\sqrt x}{h}\cdot\frac{\sqrt{x+h}+\sqrt x}{\sqrt{x+h}+\sqrt x}
+   =\frac{(x+h)-x}{h(\sqrt{x+h}+\sqrt x)}=\frac{h}{h(\sqrt{x+h}+\sqrt x)}=\frac{1}{\sqrt{x+h}+\sqrt x}.\]
+  <p>Let \(h\to0\): \(f'(x)=\dfrac{1}{2\sqrt x}\).</p>
+  <p>Note this blows up as \(x\to0^+\): \(\sqrt x\) has a vertical tangent at the origin, so it is continuous
+  there but not differentiable — a <em>second</em> way the converse of the theorem fails, different from the
+  corner in \(|x|\).</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Let \(f(x)=x^2\). Using only the definition, prove the following exact statement:</p>
+  \[\frac{f(x+h)-f(x)}{h} - f'(x) = h \quad \text{for every } h \neq 0.\]
+  <p>Then explain what this says about the truncation error of the forward difference, and reconcile it with the
+  \(O(h)\) claim from Lecture 3.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex38',this)">Show solution</button></div><div class="rev-body" id="ex38"><p>From the derivation in the lecture, the difference quotient is exactly \(2x+h\) for every
+  \(h\neq0\), and \(f'(x)=2x\). Subtracting: \((2x+h)-2x=h\). ∎ (No limit was needed — the identity is exact.)</p>
+  <p><strong>Interpretation.</strong> The forward-difference estimate of \(f'(x)\) overshoots by exactly \(h\).
+  So the truncation error is not merely \(O(h)\), it is precisely \(h\) — the constant is 1.</p>
+  <p><strong>Reconciling with Lecture 3.</strong> The general claim was truncation error \(\approx \frac{f''(x)}{2}h\),
+  which comes from the Taylor expansion \(f(x+h)=f(x)+f'(x)h+\frac{f''(x)}{2}h^2+\cdots\). Here \(f''(x)=2\), so
+  \(\frac{f''}{2}h = h\) ✓, and there are no higher terms because \(x^2\) is exactly quadratic. The general
+  formula reproduces the exact answer, which is a good sign that Lecture 6's machinery is trustworthy.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Define
+  \[ f(x)=\begin{cases} x^2, & x \le 1\\ ax+b, & x>1.\end{cases}\]
+  <p>Find \(a\) and \(b\) so that \(f\) is differentiable at \(x=1\). Explain why continuity alone is not enough,
+  and sketch what goes wrong if you only impose continuity.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex39',this)">Show solution</button></div><div class="rev-body" id="ex39"><p><strong>Continuity at 1</strong> requires the two pieces to meet: \(1^2 = a(1)+b\), i.e. \(a+b=1\).
+  That is one equation and two unknowns — a whole family of continuous choices.</p>
+  <p><strong>Differentiability</strong> requires the two one-sided derivatives to agree, exactly as in the
+  \(|x|\) figure. From the left, \(\frac{d}{dx}x^2 = 2x\), so the left slope at 1 is \(2\). From the right,
+  \(\frac{d}{dx}(ax+b)=a\). Agreement forces \(a=2\), and then \(b=1-a=-1\).</p>
+  <p>So \(a=2,\ b=-1\), giving \(f(x)=2x-1\) for \(x>1\) — which is precisely the tangent line to \(x^2\) at
+  \(x=1\). That is the geometric content of the answer: the only line that can be glued on smoothly is the
+  tangent.</p>
+  <p><strong>What continuity alone gives you.</strong> Any \((a,1-a)\) joins the pieces without a gap, but for
+  \(a\neq2\) the graph has a corner at \(x=1\), just like \(|x|\) at 0. It is continuous, so you could draw it
+  without lifting the pen, but there is no single tangent and \(f'(1)\) does not exist. Differentiability is
+  "continuous <em>and</em> smooth"; continuity is only the first half.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding + analysis.</strong> Implement gradient descent for
+  \(f(w)=w^4-3w^2+w+4\), whose derivative is \(f'(w)=4w^3-6w+1\).</p>
+  <ol>
+  <li>Run from \(w_0=1.8\) and from \(w_0=-1.8\) with \(\eta=0.05\), 200 steps. Report the two limits and the two
+  final loss values. What does the difference tell you?</li>
+  <li>Sweep \(\eta \in \{0.01, 0.05, 0.10, 0.13, 0.20\}\) from \(w_0=1.8\). Classify each as converging,
+  oscillating, or diverging.</li>
+  <li>The critical learning rate for a quadratic \(f(w)=\tfrac{a}{2}w^2\) is \(\eta&lt;2/a\). Estimate \(f''\) at
+  the minimum you found and predict the threshold. Does it match your sweep?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex40',this)">Show solution</button></div><div class="rev-body" id="ex40"><pre style="overflow-x:auto"><code>import numpy as np
+f  = lambda w: w**4 - 3*w**2 + w + 4
+fp = lambda w: 4*w**3 - 6*w + 1
+
+def gd(w0, eta, n=200):
+    w = w0; hist=[w]
+    for _ in range(n):
+        w = w - eta*fp(w)
+        if not np.isfinite(w) or abs(w) &gt; 1e6: return np.nan, hist
+        hist.append(w)
+    return w, hist
+
+for w0 in (1.8, -1.8):
+    w, _ = gd(w0, 0.05); print(f"w0={w0:+.1f} -&gt; w={w:.6f}, f={f(w):.6f}")
+for eta in (0.01, 0.05, 0.10, 0.13, 0.20):
+    w, h = gd(1.8, eta); print(f"eta={eta:.2f} -&gt; {w}")</code></pre>
+
+  <p><strong>1.</strong> The critical points solve \(4w^3-6w+1=0\), whose roots are
+  \(w\approx-1.30084,\ 0.16994,\ 1.13090\). From \(w_0=1.8\) descent lands at \(w\approx1.13090\) with
+  \(f\approx2.9298\). From \(w_0=-1.8\) it lands at \(w\approx-1.30084\) with \(f\approx0.4861\).
+  (The middle root has \(f''&lt;0\) — it is the local maximum between the two wells, and descent never lands
+  there.)</p>
+  <p>Same algorithm, same learning rate, <strong>different answers</strong> — and the left basin is the better
+  one. This is non-convexity: gradient descent finds <em>a</em> local minimum, determined entirely by where you
+  start. Every claim about deep learning optimisation lives with this fact. It is also why initialisation is a
+  research topic and why people run multiple seeds.</p>
+
+  <p><strong>2.</strong> \(\eta=0.01\) and \(0.05\): smooth convergence. \(\eta=0.10\): converges but with
+  visible oscillation, overshooting the minimum and coming back. \(\eta=0.13\): oscillates without settling, or
+  settles very slowly. \(\eta=0.20\): diverges to overflow within a few dozen steps.</p>
+
+  <p><strong>3.</strong> \(f''(w)=12w^2-6\). At \(w^\star\approx1.13090\),
+  \(f''\approx 12(1.2789)-6 \approx 9.347\). The quadratic-model threshold is
+  \(\eta_{\text{crit}} = 2/f''(w^\star) \approx 0.214\).</p>
+  <p>Our sweep started diverging somewhere between \(0.13\) and \(0.20\), a bit earlier than \(0.213\) predicts.
+  Both facts are informative: the order of magnitude is right, confirming the theory is the correct one, and the
+  discrepancy is real because \(f\) is only <em>approximately</em> quadratic near the minimum — far from it, the
+  quartic term dominates and \(f''\) is larger, so the effective threshold along the trajectory is tighter than
+  the one computed at the minimum alone.</p>
+  <p>The general principle, which you will meet again as "the edge of stability": stable step sizes are governed
+  by the <em>largest curvature encountered</em>, not the curvature at the destination. In many dimensions
+  \(f''\) becomes the Hessian and the threshold becomes \(\eta&lt;2/\lambda_{\max}\) — Lecture 11 and Lecture 12.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> computing every derivative from the definition is unsustainable. Lecture 5
+derives the rules — sum, product, quotient, and above all the chain rule, which is the mathematical content of
+backpropagation.</p>
+<div class="pagenav"><a href="03-limits-and-continuity.html" class="pv"><span class="dir">Previous</span><span class="nm">3 · Limits and Continuity</span></a><a href="05-rules-and-the-chain-rule.html" class="nx"><span class="dir">Next</span><span class="nm">5 · Differentiation Rules and the Chain Rule</span></a></div>
+</div>
+<script>initDone('04-the-derivative');</script>
+</body>
+</html>

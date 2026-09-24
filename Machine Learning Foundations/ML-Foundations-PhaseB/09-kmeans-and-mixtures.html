@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>9. k-means, Gaussian Mixtures, and EM — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 9 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('09-kmeans-and-mixtures')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part IV — Unsupervised Learning · Lecture 9</div>
+  <h1>k-means, Gaussian Mixtures, and EM</h1>
+  <p class="dek">Clustering without labels. k-means is alternating minimisation of a squared-error objective; Gaussian mixtures are its probabilistic upgrade; and EM — the algorithm that fits them — is one of the most reused ideas in the subject.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>State the k-means objective and prove Lloyd's algorithm never increases it</li><li>Explain why k-means finds local minima, and what k-means++ does about it</li><li>Write down a Gaussian mixture and see why direct likelihood maximisation is hard</li><li>Derive the EM updates from responsibilities, and state why the likelihood increases</li><li>Show that k-means is the zero-variance limit of a spherical GMM</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase A, Lecture 14: likelihood, Gaussians, the multivariate density</li><li>Phase A, Lecture 7: convexity, alternating optimisation, local minima</li><li>Phase B, Lecture 8: covariance matrices and their eigen-structure</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>What clustering is, and what it is not</h2>
+<p>We have \(\vx_1,\dots,\vx_n\) and no labels. We want to partition them into \(K\) groups such
+that points within a group are similar. Before any algorithm, three honest warnings.</p>
+<ul><li><strong>There is no correct answer.</strong> "Similar" is defined by the distance you chose, and a
+  different distance gives a different clustering. Both are correct answers to different questions.</li><li><strong>Evaluation is genuinely hard.</strong> With no \(y\) there is nothing to compare against.
+  Internal measures (inertia, silhouette) reward the structure the algorithm was designed to find, which makes
+  them somewhat circular. External measures need labels, and if you had labels you would probably be doing
+  something else.</li><li><strong>Every clustering algorithm will return clusters.</strong> Run \(k\)-means with \(K=5\) on pure
+  uniform noise and you get five tidy regions. The output is not evidence that groups exist.</li></ul>
+<h2 id="s2"><span class="secnum">2</span>k-means: the objective first</h2>
+<div class="box defn"><span class="lbl">The k-means objective</span><p>Choose centroids \(\vm_1,\dots,\vm_K\) and an assignment
+\(c:\{1..n\}\to\{1..K\}\) to minimise the <strong>within-cluster sum of squares</strong> (also called
+inertia):</p>
+\[ J(\{\vm_k\},c) = \sum_{i=1}^{n}\big\|\vx_i-\vm_{c(i)}\big\|^2. \]</div>
+<p>This is a <em>joint</em> optimisation over a discrete variable (the assignment) and a continuous
+one (the centroids). It is NP-hard in general. Lloyd's algorithm attacks it by <strong>alternating
+minimisation</strong>: fix one, optimise the other exactly, repeat.</p>
+<div class="deriv" id="d63"><div class="deriv-head"><span class="t">Lloyd's algorithm, and why J never increases</span><span class="ct">0 / 5</span></div><div class="dstep">\[\textbf{E-step: } \quad c(i) \leftarrow \argmin_{k} \|\vx_i-\vm_k\|^2\]<div class="why"><b>Fix the centroids, optimise the assignment.</b> The objective is a sum of independent terms, one per point, so we can minimise each separately: assign each point to its nearest centroid. This is <em>exactly</em> optimal given the centroids, not an approximation.</div></div><div class="dstep">\[\textbf{M-step: } \quad \vm_k \leftarrow \frac{1}{|C_k|}\sum_{i\in C_k}\vx_i\]<div class="why"><b>Fix the assignment, optimise the centroids.</b> Now \(J\) splits into \(K\) independent terms, and each is \(\sum_{i\in C_k}\|\vx_i-\vm_k\|^2\) — minimised by the mean of the cluster, by Phase A Lecture 13's result that the mean minimises expected squared deviation. Again exactly optimal, not approximate.</div></div><div class="dstep">\[J(\vm^{(t)},c^{(t)}) \;\ge\; J(\vm^{(t)},c^{(t+1)}) \;\ge\; J(\vm^{(t+1)},c^{(t+1)})\]<div class="why"><b>Monotone decrease.</b> Each step minimises \(J\) over one argument holding the other fixed, so neither can increase it. The first inequality is the E-step, the second the M-step. This is the general pattern of <em>block coordinate descent</em>.</div></div><div class="dstep">\[\text{finitely many assignments} \;+\; \text{monotone decrease} \;\Longrightarrow\; \text{convergence in finite steps}\]<div class="why"><b>Termination.</b> There are at most \(K^n\) possible assignments — an enormous number, but finite. Since \(J\) never increases and each distinct assignment determines its centroids uniquely, no assignment can recur; so the algorithm must stop. ∎</div></div><div class="dstep">\[\text{but} \quad J_{\text{final}} \;\ne\; J_{\text{global min}} \quad\text{in general}\]<div class="why"><b>The catch.</b> Monotone decrease guarantees a <em>local</em> minimum, and nothing more. \(J\) is not convex in the pair (it is not even a continuous function of the assignment), so different initialisations reach different answers. Phase A Lecture 7's distinction between local and global minima, in its most consequential appearance so far.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d63')">Next step</button><button class="btn ghost" onclick="dall('d63')">Show all</button><button class="btn ghost" onclick="dreset('d63')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Lloyd's algorithm, step by step — and how much the initialisation matters<span class="tag">Interactive</span></div><canvas id="b9kmeans" data-h="470"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>cluster 1</span><span><i style="background:var(--c5)"></i>cluster 2</span><span><i style="background:var(--c3)"></i>cluster 3</span><span><i style="background:var(--c2)"></i>centroids</span></div><div class="fig-read" id="b9kmeans-read"></div><div class="ctrls"><div class="ctrl"><label>number of clusters K</label><input type="range" min="2" max="6" step="1" value="3" data-fmt="0" oninput="figSlide('b9kmeans','K',this)"><output>3</output></div><div class="ctrl"><label>iteration</label><input type="range" min="0" max="15" step="1" value="0" data-fmt="0" oninput="figSlide('b9kmeans','step',this)"><output>0</output></div><div class="ctrl"><label>random initialisation (change to reseed)</label><input type="range" min="0" max="30" step="1" value="3" data-fmt="0" oninput="figSlide('b9kmeans','init',this)"><output>3</output></div><div class="ctrl-check"><input type="checkbox" id="b9kmeans-pp"  onchange="figCheck('b9kmeans','pp',this)"><label for="b9kmeans-pp">use k-means++ initialisation instead</label></div></div><div class="fig-cap">Step 0 shows the initial centroids. Advance the iteration slider and watch assignments and centroids alternate. The inertia in the readout never rises — that is the theorem. Now change the initialisation seed several times at a fixed step count and watch the final inertia change: that is the local-minimum problem. Switch on k-means++ and the spread of outcomes narrows sharply.</div></div><script>makeFig("b9kmeans",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,4.2);
+var K=Math.round(p.K), T=Math.round(p.step), seedI=Math.round(p.init);
+var seed=424242;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var cent=[[-2.0,-1.4],[2.1,-1.0],[0.2,2.2],[-2.4,2.0]];
+var P=[];
+for(var g=0;g<4;g++) for(var i=0;i<45;i++) P.push([cent[g][0]+0.75*gauss(), cent[g][1]+0.75*gauss()]);
+var N=P.length;
+// init
+seed=1000+seedI*7919;
+var M=[];
+if(p.pp){
+  M.push(P[Math.floor(rnd()*N)].slice());
+  while(M.length<K){
+    var d2=[], tot=0;
+    for(var i=0;i<N;i++){ var best=1e18;
+      for(var k=0;k<M.length;k++){ var dx=P[i][0]-M[k][0], dy=P[i][1]-M[k][1]; best=Math.min(best,dx*dx+dy*dy); }
+      d2.push(best); tot+=best; }
+    var r=rnd()*tot, acc=0, pick=N-1;
+    for(var i=0;i<N;i++){ acc+=d2[i]; if(acc>=r){ pick=i; break; } }
+    M.push(P[pick].slice());
+  }
+}else{
+  for(var k=0;k<K;k++) M.push([-3.4+6.8*rnd(), -3.4+6.8*rnd()]);
+}
+var assign=new Array(N).fill(0), inertias=[];
+function doAssign(){ var J=0;
+  for(var i=0;i<N;i++){ var best=1e18, bk=0;
+    for(var k=0;k<K;k++){ var dx=P[i][0]-M[k][0], dy=P[i][1]-M[k][1], d=dx*dx+dy*dy;
+      if(d<best){best=d;bk=k;} }
+    assign[i]=bk; J+=best; }
+  return J; }
+function doUpdate(){
+  var sx=new Array(K).fill(0), sy=new Array(K).fill(0), cn=new Array(K).fill(0);
+  for(var i=0;i<N;i++){ sx[assign[i]]+=P[i][0]; sy[assign[i]]+=P[i][1]; cn[assign[i]]++; }
+  for(var k=0;k<K;k++) if(cn[k]>0){ M[k][0]=sx[k]/cn[k]; M[k][1]=sy[k]/cn[k]; } }
+var J0=doAssign(); inertias.push(J0);
+for(var t=0;t<T;t++){ doUpdate(); inertias.push(doAssign()); }
+vp.axes({stepx:1,stepy:1});
+var cols=['--c1','--c5','--c3','--c4','--c6','--c2'];
+for(var i=0;i<N;i++) vp.dot(P[i][0],P[i][1], T===0?'--ink3':cols[assign[i]%6], 3.4);
+for(var k=0;k<K;k++){
+  vp.dot(M[k][0],M[k][1],'--c2',9);
+  var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css('--ink'); cc.lineWidth=1.8;
+  cc.beginPath(); cc.arc(vp.X(M[k][0]),vp.Y(M[k][1]),9,0,6.2832); cc.stroke(); cc.restore();
+}
+var Jnow=inertias[inertias.length-1], Jprev=inertias.length>1?inertias[inertias.length-2]:Jnow;
+figRead('b9kmeans','K = '+K+',  iteration '+T+',  '+(p.pp?'k-means++':'uniform random')+' init (seed '+seedI+')'
+ +'<br>inertia J = <b>'+Jnow.toFixed(3)+'</b>'
+ +(inertias.length>1?'   (previous '+Jprev.toFixed(3)+', change <b>'+(Jnow-Jprev).toFixed(4)+'</b>'
+   +(Jnow<=Jprev+1e-9?' <span style="color:var(--ok)">≤ 0 ✓ as the theorem requires</span>':' <b style="color:var(--bad)">POSITIVE — impossible</b>')+')':'')
+ +(Math.abs(Jnow-Jprev)<1e-9&&T>0?'<br><b style="color:var(--ok)">converged — no point changed cluster</b>':''));
+},[{"name": "K", "label": "number of clusters K", "min": 2, "max": 6, "step": 1, "value": 3, "dp": 0}, {"name": "step", "label": "iteration", "min": 0, "max": 15, "step": 1, "value": 0, "dp": 0}, {"name": "init", "label": "random initialisation (change to reseed)", "min": 0, "max": 30, "step": 1, "value": 3, "dp": 0}, {"name": "pp", "label": "use k-means++ initialisation instead", "type": "check", "value": 0}]);window["FIG_b9kmeans"].run();</script>
+<div class="box warn"><span class="lbl">Common trap</span><p><strong>k-means++.</strong> The fix for bad initialisation is not to try harder at
+random. Choose the first centroid uniformly, then choose each subsequent one with probability proportional to
+\(D(\vx)^2\), the squared distance to the nearest already-chosen centroid. This spreads the initial centroids
+out, and it comes with a guarantee: the expected inertia is within \(O(\log K)\) of the global optimum.</p>
+<p>It costs almost nothing and is the default in every library. Run it several times anyway
+(<code>n_init=10</code>) and keep the lowest inertia — the guarantee is in expectation, not per run.</p></div>
+<h2 id="s3"><span class="secnum">3</span>What k-means assumes</h2>
+<p>The objective \(\sum_i\|\vx_i-\vm_{c(i)}\|^2\) encodes strong assumptions, and reading them off
+tells you exactly when the method will fail.</p>
+<ul><li><strong>Spherical clusters.</strong> Euclidean distance treats all directions equally, so an elongated
+  cluster gets split down its length.</li><li><strong>Comparable sizes.</strong> The squared-error objective is dominated by large clusters, so a small
+  cluster next to a big one tends to be absorbed.</li><li><strong>Comparable spreads.</strong> A tight cluster and a diffuse one at the same location cannot be
+  separated at all.</li><li><strong>Hard assignment.</strong> A point exactly between two centroids is assigned to one of them with
+  full confidence. There is no way to express "probably cluster 1, possibly cluster 2".</li><li><strong>Scale sensitivity.</strong> Euclidean distance is not unit-free — the same issue as PCA in
+  Lecture 08. Standardise unless the units are genuinely comparable.</li></ul>
+<p>Gaussian mixtures relax the first four at once.</p>
+<h2 id="s4"><span class="secnum">4</span>Gaussian mixture models</h2>
+<div class="box defn"><span class="lbl">The model</span><p>Each point is generated by first picking a component, then drawing
+from that component's Gaussian:</p>
+\[ p(\vx) = \sum_{k=1}^{K}\pi_k\ \mathcal{N}\big(\vx \mid \vm_k, \mS_k\big), \qquad \pi_k\ge0,\ \sum_k\pi_k=1. \]
+<p>The <strong>latent variable</strong> \(z_i\in\{1..K\}\) says which component generated \(\vx_i\). We never
+observe it; that is what makes this hard and what EM is for.</p></div>
+<p>Compared with \(k\)-means: \(\mS_k\) lets clusters be elongated and differently oriented,
+\(\pi_k\) lets them have different sizes, and the posterior over \(z\) gives <em>soft</em> assignments.</p>
+<p>Why not just maximise the log-likelihood directly?</p>
+<p>\[\ell(\vt) = \sum_{i=1}^{n}\log\left(\sum_{k=1}^{K}\pi_k\,\mathcal{N}(\vx_i\mid\vm_k,\mS_k)\right)\]</p>
+<p>The log is <em>outside</em> a sum, so it does not decompose. Compare Lecture 04, where the log
+turned a product of per-point terms into a clean sum and everything simplified. Here it cannot, the objective
+is non-concave, and setting the gradient to zero gives coupled equations with no closed-form solution.</p>
+<div class="deriv" id="d64"><div class="deriv-head"><span class="t">EM for a Gaussian mixture</span><span class="ct">0 / 5</span></div><div class="dstep">\[\gamma_{ik} := P(z_i=k \mid \vx_i;\vt) = \frac{\pi_k\,\mathcal{N}(\vx_i\mid\vm_k,\mS_k)}{\sum_{j=1}^K \pi_j\,\mathcal{N}(\vx_i\mid\vm_j,\mS_j)}\]<div class="why"><b>E-step: compute the responsibilities.</b> This is Bayes' theorem (Phase A Lecture 14): prior \(\pi_k\) times likelihood \(\mathcal{N}(\vx_i\mid\cdot)\), normalised. \(\gamma_{ik}\) is the posterior probability that point \(i\) came from component \(k\), and \(\sum_k\gamma_{ik}=1\) for every \(i\). These are the soft assignments.</div></div><div class="dstep">\[N_k := \sum_{i=1}^{n}\gamma_{ik} \qquad\text{— the effective number of points in component } k\]<div class="why"><b>Soft counts.</b> Not an integer: a point split 70/30 between two components contributes 0.7 to one count and 0.3 to the other. Note \(\sum_k N_k = n\).</div></div><div class="dstep">\[\textbf{M-step: } \quad \vm_k \leftarrow \frac{1}{N_k}\sum_{i=1}^{n}\gamma_{ik}\,\vx_i\]<div class="why"><b>Weighted mean.</b> Exactly the k-means update, except every point contributes to every component in proportion to its responsibility. This is the MLE for a Gaussian mean (Phase A Lecture 14) with weights.</div></div><div class="dstep">\[\mS_k \leftarrow \frac{1}{N_k}\sum_{i=1}^{n}\gamma_{ik}\,(\vx_i-\vm_k)(\vx_i-\vm_k)^\top, \qquad \pi_k \leftarrow \frac{N_k}{n}\]<div class="why"><b>Weighted covariance and mixing weight.</b> Again the weighted versions of the standard MLEs. The mixing weight is the fraction of total responsibility the component claims — the obvious estimate, and the one the algebra produces.</div></div><div class="dstep">\[\ell(\vt^{(t+1)}) \;\ge\; \ell(\vt^{(t)}) \quad\text{at every iteration}\]<div class="why"><b>EM never decreases the likelihood.</b> The argument: build a lower bound on \(\ell\) using Jensen's inequality applied to the concave \(\log\), with the responsibilities as the mixing weights. The E-step makes the bound <em>tight</em> at the current parameters; the M-step maximises the bound. So \(\ell(\vt^{t+1})\ge \text{bound}(\vt^{t+1}) \ge \text{bound}(\vt^{t}) = \ell(\vt^{t})\). This is the <em>evidence lower bound</em> or ELBO, and the same argument underlies variational inference and VAEs. I am marking the full derivation <strong>deferred</strong> — it needs Jensen's inequality and KL divergence, and it is worth a lecture of its own.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d64')">Next step</button><button class="btn ghost" onclick="dall('d64')">Show all</button><button class="btn ghost" onclick="dreset('d64')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">k-means versus a Gaussian mixture on the same data<span class="tag">Interactive</span></div><canvas id="b9gmm" data-h="480"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>component 1</span><span><i style="background:var(--c5)"></i>component 2</span><span><i style="background:var(--c3)"></i>component 3</span><span><i style="background:var(--c2)"></i>means and 1σ / 2σ ellipses</span></div><div class="fig-read" id="b9gmm-read"></div><div class="ctrls"><div class="ctrl"><label>0 = spherical · 1 = elongated · 2 = unequal sizes · 3 = nested spreads</label><input type="range" min="0" max="3" step="1" value="1" data-fmt="0" oninput="figSlide('b9gmm','shape',this)"><output>1</output></div><div class="ctrl"><label>0 = k-means · 1 = Gaussian mixture</label><input type="range" min="0" max="1" step="1" value="0" data-fmt="0" oninput="figSlide('b9gmm','method',this)"><output>0</output></div><div class="ctrl"><label>iterations</label><input type="range" min="0" max="40" step="1" value="25" data-fmt="0" oninput="figSlide('b9gmm','step',this)"><output>25</output></div></div><div class="fig-cap">Point colour is the assignment — hard for k-means, blended by responsibility for the mixture. On spherical clusters the two agree. On elongated ones k-means slices them the wrong way because its objective can only draw straight perpendicular bisectors, while the mixture fits the covariance and recovers the true groups. Switch between methods at shape 1 and 3 and the difference is stark.</div></div><script>makeFig("b9gmm",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,4.6);
+var shape=Math.round(p.shape), meth=Math.round(p.method), T=Math.round(p.step), K=3;
+var seed=13571357;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var specs;
+if(shape===0) specs=[[[-2,-1.5],1,1,0,70],[[2,-1.5],1,1,0,70],[[0,2],1,1,0,70]];
+else if(shape===1) specs=[[[-1.6,-1.0],2.0,0.35,0.5,70],[[1.6,-1.0],2.0,0.35,-0.5,70],[[0,2.2],2.0,0.35,0,70]];
+else if(shape===2) specs=[[[-2,-1],1.1,1.1,0,140],[[2,0],0.55,0.55,0,25],[[0,2.4],0.55,0.55,0,25]];
+else specs=[[[0,0],0.35,0.35,0,90],[[0,0],1.8,1.8,0,90],[[2.6,2.2],0.5,0.5,0,50]];
+var P=[];
+for(var g=0;g<specs.length;g++){
+  var c=specs[g][0], a=specs[g][1], b=specs[g][2], th=specs[g][3], m=specs[g][4];
+  for(var i=0;i<m;i++){ var u1=a*gauss(), u2=b*gauss();
+    P.push([c[0]+u1*Math.cos(th)-u2*Math.sin(th), c[1]+u1*Math.sin(th)+u2*Math.cos(th)]); }
+}
+var N=P.length;
+seed=987654;
+var M=[]; for(var k=0;k<K;k++) M.push([-2.5+5*rnd(), -2.5+5*rnd()]);
+var cols=['--c1','--c5','--c3'];
+var gam=[], S=[], PI=[];
+for(var k=0;k<K;k++){ S.push([[1.5,0],[0,1.5]]); PI.push(1/K); }
+function dens(x,y,k){
+  var dx=x-M[k][0], dy=y-M[k][1], A=S[k];
+  var det=A[0][0]*A[1][1]-A[0][1]*A[1][0]; if(det<1e-10) det=1e-10;
+  var iA=[[A[1][1]/det,-A[0][1]/det],[-A[1][0]/det,A[0][0]/det]];
+  var q=dx*(iA[0][0]*dx+iA[0][1]*dy)+dy*(iA[1][0]*dx+iA[1][1]*dy);
+  return Math.exp(-0.5*q)/(6.2832*Math.sqrt(det));
+}
+var assign=new Array(N).fill(0), J=0, ll=0;
+for(var t=0;t<Math.max(T,1);t++){
+  if(meth===0){
+    J=0;
+    for(var i=0;i<N;i++){ var best=1e18,bk=0;
+      for(var k=0;k<K;k++){ var dx=P[i][0]-M[k][0],dy=P[i][1]-M[k][1],d=dx*dx+dy*dy;
+        if(d<best){best=d;bk=k;} }
+      assign[i]=bk; J+=best; }
+    if(t<T){ var sx=new Array(K).fill(0),sy=new Array(K).fill(0),cn=new Array(K).fill(0);
+      for(var i=0;i<N;i++){sx[assign[i]]+=P[i][0];sy[assign[i]]+=P[i][1];cn[assign[i]]++;}
+      for(var k=0;k<K;k++) if(cn[k]>0){M[k][0]=sx[k]/cn[k];M[k][1]=sy[k]/cn[k];} }
+  }else{
+    gam=[]; ll=0;
+    for(var i=0;i<N;i++){ var row=[],tot=0;
+      for(var k=0;k<K;k++){ var v=PI[k]*dens(P[i][0],P[i][1],k); row.push(v); tot+=v; }
+      tot=Math.max(tot,1e-300); ll+=Math.log(tot);
+      for(var k=0;k<K;k++) row[k]/=tot;
+      gam.push(row); }
+    if(t<T){
+      for(var k=0;k<K;k++){
+        var Nk=0,mx=0,my=0;
+        for(var i=0;i<N;i++){ Nk+=gam[i][k]; mx+=gam[i][k]*P[i][0]; my+=gam[i][k]*P[i][1]; }
+        Nk=Math.max(Nk,1e-9); M[k][0]=mx/Nk; M[k][1]=my/Nk; PI[k]=Nk/N;
+        var a=0,b=0,c=0;
+        for(var i=0;i<N;i++){ var dx=P[i][0]-M[k][0], dy=P[i][1]-M[k][1], w=gam[i][k];
+          a+=w*dx*dx; b+=w*dx*dy; c+=w*dy*dy; }
+        S[k]=[[a/Nk+1e-4,b/Nk],[b/Nk,c/Nk+1e-4]];
+      }
+    }
+  }
+}
+vp.axes({stepx:1,stepy:1});
+function mix(i){
+  if(meth===0) return vp.css(cols[assign[i]]);
+  var r=0,g2=0,b2=0;
+  var base=[[37,99,235],[124,58,237],[5,150,105]];
+  for(var k=0;k<K;k++){ r+=gam[i][k]*base[k][0]; g2+=gam[i][k]*base[k][1]; b2+=gam[i][k]*base[k][2]; }
+  return 'rgb('+Math.round(r)+','+Math.round(g2)+','+Math.round(b2)+')';
+}
+var cc=vp.ctx;
+for(var i=0;i<N;i++){ cc.save(); cc.fillStyle=mix(i);
+  cc.beginPath(); cc.arc(vp.X(P[i][0]),vp.Y(P[i][1]),3.2,0,6.2832); cc.fill(); cc.restore(); }
+for(var k=0;k<K;k++){
+  if(meth===1){
+    var A=S[k], tr=A[0][0]+A[1][1], det=A[0][0]*A[1][1]-A[0][1]*A[1][0];
+    var disc=Math.sqrt(Math.max(0,tr*tr-4*det)), l1=(tr+disc)/2, l2=(tr-disc)/2;
+    var th = (Math.abs(A[0][1])>1e-12)? Math.atan2(l1-A[0][0], A[0][1]) : 0;
+    for(var mlt=1;mlt<=2;mlt++){
+      cc.save(); cc.strokeStyle=vp.css(cols[k]); cc.lineWidth=mlt===1?2.4:1.4;
+      cc.globalAlpha=mlt===1?0.95:0.5; cc.beginPath();
+      for(var a2=0;a2<=100;a2++){ var ang=a2/100*6.2832;
+        var ux=mlt*Math.sqrt(Math.max(l1,1e-9))*Math.cos(ang), uy=mlt*Math.sqrt(Math.max(l2,1e-9))*Math.sin(ang);
+        var X=M[k][0]+ux*Math.cos(th)-uy*Math.sin(th), Y=M[k][1]+ux*Math.sin(th)+uy*Math.cos(th);
+        if(a2===0)cc.moveTo(vp.X(X),vp.Y(Y)); else cc.lineTo(vp.X(X),vp.Y(Y)); }
+      cc.closePath(); cc.stroke(); cc.restore();
+    }
+  }
+  vp.dot(M[k][0],M[k][1],'--c2',8);
+}
+var names=['spherical, equal','elongated','unequal sizes','nested spreads'];
+figRead('b9gmm',names[shape]+' clusters,  '+(meth===0?'<b>k-means</b>':'<b>Gaussian mixture (EM)</b>')+',  '+T+' iterations'
+ +(meth===0?'<br>inertia J = <b>'+J.toFixed(2)+'</b>   (hard assignment; only spherical Voronoi cells possible)'
+           :'<br>log-likelihood = <b>'+ll.toFixed(2)+'</b>   mixing weights π = ['
+             +PI.map(function(v){return v.toFixed(3);}).join(', ')+']')
+ +(meth===0&&shape!==0?'<br><span style="color:var(--c2)">Switch to the mixture and compare.</span>':''));
+},[{"name": "shape", "label": "0 = spherical \u00b7 1 = elongated \u00b7 2 = unequal sizes \u00b7 3 = nested spreads", "min": 0, "max": 3, "step": 1, "value": 1, "dp": 0}, {"name": "method", "label": "0 = k-means \u00b7 1 = Gaussian mixture", "min": 0, "max": 1, "step": 1, "value": 0, "dp": 0}, {"name": "step", "label": "iterations", "min": 0, "max": 40, "step": 1, "value": 25, "dp": 0}]);window["FIG_b9gmm"].run();</script>
+<h2 id="s5"><span class="secnum">5</span>k-means is a limiting case of a Gaussian mixture</h2>
+<div class="deriv" id="d65"><div class="deriv-head"><span class="t">Shrink the covariance to zero and EM becomes Lloyd's algorithm</span><span class="ct">0 / 4</span></div><div class="dstep">\[\mS_k = \epsilon\mI \ \text{ for all } k, \qquad \pi_k = \tfrac1K\]<div class="why"><b>Restrict the mixture.</b> Spherical components of equal, fixed size and equal weight. We will let \(\epsilon\to0\).</div></div><div class="dstep">\[\gamma_{ik} = \frac{\exp\!\big(-\|\vx_i-\vm_k\|^2/2\epsilon\big)}{\sum_j \exp\!\big(-\|\vx_i-\vm_j\|^2/2\epsilon\big)}\]<div class="why"><b>The responsibilities become a softmax.</b> The constant prefactors of the Gaussian density are identical across components and cancel, leaving softmax of the negative squared distances divided by \(2\epsilon\). Note \(1/2\epsilon\) is playing the role of an inverse temperature.</div></div><div class="dstep">\[\epsilon\to0: \quad \gamma_{ik} \to \begin{cases}1 & k = \argmin_j\|\vx_i-\vm_j\|^2\\ 0 & \text{otherwise}\end{cases}\]<div class="why"><b>Softmax becomes argmax.</b> Dividing by a vanishing \(\epsilon\) amplifies the differences between the distances without limit, so the largest term dominates completely. Soft assignment hardens into nearest-centroid assignment — the k-means E-step.</div></div><div class="dstep">\[\vm_k = \frac{\sum_i \gamma_{ik}\vx_i}{\sum_i\gamma_{ik}} \;\longrightarrow\; \frac{1}{|C_k|}\sum_{i\in C_k}\vx_i\]<div class="why"><b>And the M-step becomes the cluster mean.</b> With 0/1 responsibilities the weighted mean is the ordinary mean over the assigned points. ∎ <br><strong>k-means is EM for a spherical, equal-weight Gaussian mixture in the zero-variance limit.</strong> That is why it inherits both the monotone-improvement guarantee and the local-minimum problem — they are properties of alternating optimisation, not of either algorithm specifically.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d65')">Next step</button><button class="btn ghost" onclick="dall('d65')">Show all</button><button class="btn ghost" onclick="dreset('d65')">Reset</button></div></div>
+<div class="quiz" id="q66"><div class="qlbl">Check yourself</div><div class="qq">Running EM on a Gaussian mixture, one component's covariance shrinks towards zero and the
+log-likelihood shoots off to \(+\infty\). What has happened?</div><button class="qopt" data-ok="1" onclick="pick('q66',0,true)">A component has collapsed onto a single data point. The likelihood of a continuous density is unbounded, so this is a genuine singularity of the objective, not a bug.</button><button class="qopt" data-ok="0" onclick="pick('q66',1,false)">EM has a bug — the likelihood is supposed to increase monotonically to a finite limit.</button><button class="qopt" data-ok="0" onclick="pick('q66',2,false)">The number of components K is too small.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct, and this is worth understanding properly because it is a real defect of maximum
+    likelihood for mixtures, not an implementation error.<br><br>
+    If \(\vm_k = \vx_i\) exactly for one point and \(\mS_k=\sigma^2\mI\), then that point's density
+    contribution is \(\frac{1}{2\pi\sigma^2}\), which \(\to\infty\) as \(\sigma\to0\). The log-likelihood
+    therefore has <strong>no finite maximum</strong> — it has singularities wherever a component sits on a data
+    point. This is exactly the pathology from Phase A Lecture 7: the supremum is not attained.<br><br>
+    Recall that a density is not a probability (Phase A Lecture 13): it can exceed 1, and there is nothing
+    stopping it exceeding \(10^6\).<br><br>
+    <strong>Standard fixes:</strong> add \(\epsilon\mI\) to every covariance (a floor — this is what
+    <code>reg_covar</code> does in scikit-learn); tie the covariances across components; or put a prior on
+    \(\mS_k\) and do MAP instead of MLE, which is the principled version. Detecting a collapse and reinitialising
+    that component also works and is what many implementations do.</div><div class="qwhy" data-i="1"><b>Not quite.</b> EM is behaving exactly as designed: it is monotonically increasing the likelihood, and the
+    likelihood happens to be unbounded. The monotone-increase theorem never promised a finite limit — it
+    promised no decrease. When the objective has a singularity, faithfully climbing it takes you into the
+    singularity.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Collapse is more likely with <em>too many</em> components, not too few, because a surplus component
+    has nothing better to do than latch onto an individual point. It also becomes more likely in higher
+    dimensions, where a full covariance has \(d(d+1)/2\) parameters per component and there may be fewer points
+    per component than parameters.</div></div>
+<div class="pyb" id="py67" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=3, suppress=True)
+
+# ---------------- data: three elongated, unequal clusters ----------------
+def make(n_per=(200, 200, 120), seed=0):
+    r = np.random.default_rng(seed)
+    specs = [((-2.0,-1.0), (2.0, 0.35),  0.5),
+             (( 2.0,-1.0), (2.0, 0.35), -0.5),
+             (( 0.0, 2.2), (0.6, 0.6),   0.0)]
+    X, z = [], []
+    for k, ((cx,cy),(a,b),th) in enumerate(specs):
+        u = r.normal(size=(n_per[k],2)) * np.array([a,b])
+        R = np.array([[np.cos(th),-np.sin(th)],[np.sin(th),np.cos(th)]])
+        X.append(u @ R.T + np.array([cx,cy])); z += [k]*n_per[k]
+    return np.vstack(X), np.array(z)
+
+X, z_true = make()
+n, d = X.shape
+K = 3
+
+# ---------------- k-means ----------------
+def kmeanspp(X, K, r):
+    M = [X[r.integers(len(X))]]
+    for _ in range(K-1):
+        D2 = np.min(((X[:,None,:]-np.array(M)[None,:,:])**2).sum(-1), axis=1)
+        M.append(X[r.choice(len(X), p=D2/D2.sum())])
+    return np.array(M)
+
+def kmeans(X, K, seed=0, pp=True, T=100):
+    r = np.random.default_rng(seed)
+    M = kmeanspp(X, K, r) if pp else X[r.choice(len(X), K, replace=False)]
+    hist = []
+    for t in range(T):
+        D = ((X[:,None,:]-M[None,:,:])**2).sum(-1)
+        a = D.argmin(1); J = float(D[np.arange(len(X)), a].sum())
+        hist.append(J)
+        newM = np.array([X[a==k].mean(0) if (a==k).any() else M[k] for k in range(K)])
+        if np.allclose(newM, M): M = newM; break
+        M = newM
+    return M, a, J, hist
+
+M, a_km, J, hist = kmeans(X, K)
+print(&quot;k-means inertia decreases monotonically:&quot;)
+print(&quot;  &quot;, &quot; -&gt; &quot;.join(f&quot;{h:.1f}&quot; for h in hist[:6]), &quot;...&quot;, f&quot;{hist[-1]:.1f}&quot;)
+assert all(hist[i+1] &lt;= hist[i] + 1e-9 for i in range(len(hist)-1)), &quot;J increased!&quot;
+print(&quot;  monotone check passed&quot;)
+print()
+
+print(&quot;--- INITIALISATION MATTERS ---&quot;)
+# On the easy 3-cluster data above, every start finds the same optimum, so the
+# point is invisible. Make the search hard: 12 tight, well-separated blobs.
+rr = np.random.default_rng(5)
+cent = np.array([[i*6.0, j*6.0] for i in range(4) for j in range(3)])
+Xh = np.vstack([c + rr.normal(scale=0.35, size=(25, 2)) for c in cent])
+runs = {pp: np.array([kmeans(Xh, 12, seed=s, pp=pp)[2] for s in range(40)])
+        for pp in (False, True)}
+Jstar = min(runs[False].min(), runs[True].min())
+for pp in (False, True):
+    J = runs[pp]
+    print(f&quot;  {&#x27;k-means++&#x27; if pp else &#x27;uniform   &#x27;}  best {J.min():8.2f}&quot;
+          f&quot;   mean {J.mean():8.2f}   worst {J.max():8.2f}&quot;
+          f&quot;   within 10% of best-found: {int((J &lt;= 1.1*Jstar).sum()):2d}/40&quot;)
+print(&quot;  Same objective, same data, same algorithm. Only the start differs.&quot;)
+print(&quot;  Uniform init never once reached the optimum in 40 tries.&quot;)
+print()
+
+# ---------------- Gaussian mixture by EM ----------------
+def gauss_pdf(X, mu, S):
+    d = X.shape[1]
+    Si = np.linalg.inv(S); det = np.linalg.det(S)
+    D = X - mu
+    q = np.einsum(&#x27;ij,jk,ik-&gt;i&#x27;, D, Si, D)
+    return np.exp(-0.5*q) / np.sqrt((2*np.pi)**d * det)
+
+def em_gmm(X, K, seed=0, T=200, reg=1e-6):
+    r = np.random.default_rng(seed)
+    n, d = X.shape
+    mu = X[r.choice(n, K, replace=False)].copy()
+    S = np.array([np.cov(X.T) for _ in range(K)])
+    pi = np.full(K, 1.0/K)
+    ll_hist = []
+    for t in range(T):
+        # E-step
+        dens = np.column_stack([pi[k]*gauss_pdf(X, mu[k], S[k]) for k in range(K)])
+        tot = dens.sum(1, keepdims=True)
+        ll_hist.append(float(np.log(np.maximum(tot, 1e-300)).sum()))
+        G = dens / np.maximum(tot, 1e-300)
+        # M-step
+        Nk = G.sum(0)
+        pi = Nk / n
+        mu = (G.T @ X) / Nk[:, None]
+        for k in range(K):
+            D = X - mu[k]
+            S[k] = (G[:, k, None]*D).T @ D / Nk[k] + reg*np.eye(d)
+        if t &gt; 1 and abs(ll_hist[-1]-ll_hist[-2]) &lt; 1e-9: break
+    return mu, S, pi, G, ll_hist
+
+mu, S, pi, G, ll = em_gmm(X, K, seed=1)
+print(&quot;EM log-likelihood increases monotonically:&quot;)
+print(&quot;  &quot;, &quot; -&gt; &quot;.join(f&quot;{v:.1f}&quot; for v in ll[:5]), &quot;...&quot;, f&quot;{ll[-1]:.1f}&quot;)
+assert all(ll[i+1] &gt;= ll[i] - 1e-6 for i in range(len(ll)-1)), &quot;likelihood decreased!&quot;
+print(&quot;  monotone check passed;&quot;, len(ll), &quot;iterations&quot;)
+print()
+print(&quot;mixing weights pi:&quot;, pi, &quot; (true: 0.385, 0.385, 0.231)&quot;)
+print(&quot;component 1 covariance eigenvalues:&quot;, np.linalg.eigvalsh(S[0]))
+print(&quot;  -&gt; elongated, as the data is. k-means cannot represent this at all.&quot;)
+print()
+
+# ---------------- do they recover the true clusters? ----------------
+def purity(assign, truth, K):
+    tot = 0
+    for k in range(K):
+        m = assign == k
+        if m.sum(): tot += np.bincount(truth[m], minlength=K).max()
+    return tot/len(truth)
+
+a_gmm = G.argmax(1)
+print(f&quot;cluster purity vs the true generating component:&quot;)
+print(f&quot;  k-means           {purity(a_km,  z_true, K):.4f}&quot;)
+print(f&quot;  Gaussian mixture  {purity(a_gmm, z_true, K):.4f}&quot;)
+print()
+
+# ---------------- soft assignment is real information ----------------
+conf = G.max(1)
+print(&quot;--- SOFT ASSIGNMENTS ---&quot;)
+print(f&quot;  points assigned with &gt;99% confidence: {(conf&gt;0.99).mean():.1%}&quot;)
+print(f&quot;  points genuinely ambiguous (&lt;70%):    {(conf&lt;0.70).mean():.1%}&quot;)
+i = int(np.argmin(conf))
+print(f&quot;  most ambiguous point: responsibilities {G[i]}&quot;)
+print(&quot;  k-means would assign this point with full confidence and tell you nothing.&quot;)
+print()
+
+# ---------------- choosing K ----------------
+print(&quot;--- CHOOSING K BY BIC (lower is better) ---&quot;)
+for k in range(1, 7):
+    _, _, _, _, l = em_gmm(X, k, seed=2)
+    n_par = k*(d + d*(d+1)/2) + (k-1)          # means + covariances + weights
+    bic = -2*l[-1] + n_par*np.log(n)
+    print(f&quot;  K={k}  loglik {l[-1]:9.2f}  params {int(n_par):3d}  BIC {bic:9.2f}&quot;)
+print(&quot;  BIC penalises parameters, so it does not simply prefer the largest K.&quot;)
+print()
+
+# ---------------- the collapse pathology ----------------
+print(&quot;--- COVARIANCE COLLAPSE ---&quot;)
+# Random starts usually avoid the singularity by luck, which hides the problem.
+# Start one component sitting on a data point with a narrow covariance and watch.
+def em_seeded(X, K, reg, T=200, tight=1e-3):
+    n, d = X.shape
+    rr = np.random.default_rng(0)
+    mu = X[rr.choice(n, K, replace=False)].copy()
+    S = np.array([np.cov(X.T) for _ in range(K)]); S[0] = tight*np.eye(d)
+    pi = np.full(K, 1.0/K); G = None; ll = np.nan
+    for t in range(T):
+        dens = np.column_stack([pi[k]*gauss_pdf(X, mu[k], S[k]) for k in range(K)])
+        tot = dens.sum(1, keepdims=True)
+        ll = float(np.log(np.maximum(tot, 1e-300)).sum())
+        G = dens / np.maximum(tot, 1e-300); Nk = G.sum(0) + 1e-12
+        pi = Nk/n; mu = (G.T @ X) / Nk[:, None]
+        for k in range(K):
+            D = X - mu[k]
+            S[k] = (G[:, k, None]*D).T @ D / Nk[k] + reg*np.eye(d)
+    eig = [float(np.linalg.eigvalsh(S[k]).min()) for k in range(K)]
+    kb = int(np.argmin(eig))
+    return ll, eig[kb], float(G.sum(0)[kb]), float(pi[kb])
+
+for reg in (1e-6, 0.0):
+    lc, sm, nk, pk = em_seeded(X, K, reg)
+    print(f&quot;  reg={reg:g}   loglik {lc:9.2f}   smallest cov eigenvalue {sm:.2e}&quot;
+          f&quot;   that component owns {nk:.2f} of {n} points (pi={pk:.4f})&quot;)
+print(&quot;  With no floor the covariance shrinks to ~1e-42: a spike of zero width&quot;)
+print(&quot;  on ONE point. The likelihood is only finite here because of underflow;&quot;)
+print(&quot;  mathematically it is unbounded. The floor is not optional.&quot;)
+"><div class="pyb-head"><span class="t">k-means and a Gaussian mixture, both from scratch</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py67')">Run</button><button class="btn ghost" onclick="resetPy('py67')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=3, suppress=True)
+
+# ---------------- data: three elongated, unequal clusters ----------------
+def make(n_per=(200, 200, 120), seed=0):
+    r = np.random.default_rng(seed)
+    specs = [((-2.0,-1.0), (2.0, 0.35),  0.5),
+             (( 2.0,-1.0), (2.0, 0.35), -0.5),
+             (( 0.0, 2.2), (0.6, 0.6),   0.0)]
+    X, z = [], []
+    for k, ((cx,cy),(a,b),th) in enumerate(specs):
+        u = r.normal(size=(n_per[k],2)) * np.array([a,b])
+        R = np.array([[np.cos(th),-np.sin(th)],[np.sin(th),np.cos(th)]])
+        X.append(u @ R.T + np.array([cx,cy])); z += [k]*n_per[k]
+    return np.vstack(X), np.array(z)
+
+X, z_true = make()
+n, d = X.shape
+K = 3
+
+# ---------------- k-means ----------------
+def kmeanspp(X, K, r):
+    M = [X[r.integers(len(X))]]
+    for _ in range(K-1):
+        D2 = np.min(((X[:,None,:]-np.array(M)[None,:,:])**2).sum(-1), axis=1)
+        M.append(X[r.choice(len(X), p=D2/D2.sum())])
+    return np.array(M)
+
+def kmeans(X, K, seed=0, pp=True, T=100):
+    r = np.random.default_rng(seed)
+    M = kmeanspp(X, K, r) if pp else X[r.choice(len(X), K, replace=False)]
+    hist = []
+    for t in range(T):
+        D = ((X[:,None,:]-M[None,:,:])**2).sum(-1)
+        a = D.argmin(1); J = float(D[np.arange(len(X)), a].sum())
+        hist.append(J)
+        newM = np.array([X[a==k].mean(0) if (a==k).any() else M[k] for k in range(K)])
+        if np.allclose(newM, M): M = newM; break
+        M = newM
+    return M, a, J, hist
+
+M, a_km, J, hist = kmeans(X, K)
+print(&quot;k-means inertia decreases monotonically:&quot;)
+print(&quot;  &quot;, &quot; -&gt; &quot;.join(f&quot;{h:.1f}&quot; for h in hist[:6]), &quot;...&quot;, f&quot;{hist[-1]:.1f}&quot;)
+assert all(hist[i+1] &lt;= hist[i] + 1e-9 for i in range(len(hist)-1)), &quot;J increased!&quot;
+print(&quot;  monotone check passed&quot;)
+print()
+
+print(&quot;--- INITIALISATION MATTERS ---&quot;)
+# On the easy 3-cluster data above, every start finds the same optimum, so the
+# point is invisible. Make the search hard: 12 tight, well-separated blobs.
+rr = np.random.default_rng(5)
+cent = np.array([[i*6.0, j*6.0] for i in range(4) for j in range(3)])
+Xh = np.vstack([c + rr.normal(scale=0.35, size=(25, 2)) for c in cent])
+runs = {pp: np.array([kmeans(Xh, 12, seed=s, pp=pp)[2] for s in range(40)])
+        for pp in (False, True)}
+Jstar = min(runs[False].min(), runs[True].min())
+for pp in (False, True):
+    J = runs[pp]
+    print(f&quot;  {&#x27;k-means++&#x27; if pp else &#x27;uniform   &#x27;}  best {J.min():8.2f}&quot;
+          f&quot;   mean {J.mean():8.2f}   worst {J.max():8.2f}&quot;
+          f&quot;   within 10% of best-found: {int((J &lt;= 1.1*Jstar).sum()):2d}/40&quot;)
+print(&quot;  Same objective, same data, same algorithm. Only the start differs.&quot;)
+print(&quot;  Uniform init never once reached the optimum in 40 tries.&quot;)
+print()
+
+# ---------------- Gaussian mixture by EM ----------------
+def gauss_pdf(X, mu, S):
+    d = X.shape[1]
+    Si = np.linalg.inv(S); det = np.linalg.det(S)
+    D = X - mu
+    q = np.einsum(&#x27;ij,jk,ik-&gt;i&#x27;, D, Si, D)
+    return np.exp(-0.5*q) / np.sqrt((2*np.pi)**d * det)
+
+def em_gmm(X, K, seed=0, T=200, reg=1e-6):
+    r = np.random.default_rng(seed)
+    n, d = X.shape
+    mu = X[r.choice(n, K, replace=False)].copy()
+    S = np.array([np.cov(X.T) for _ in range(K)])
+    pi = np.full(K, 1.0/K)
+    ll_hist = []
+    for t in range(T):
+        # E-step
+        dens = np.column_stack([pi[k]*gauss_pdf(X, mu[k], S[k]) for k in range(K)])
+        tot = dens.sum(1, keepdims=True)
+        ll_hist.append(float(np.log(np.maximum(tot, 1e-300)).sum()))
+        G = dens / np.maximum(tot, 1e-300)
+        # M-step
+        Nk = G.sum(0)
+        pi = Nk / n
+        mu = (G.T @ X) / Nk[:, None]
+        for k in range(K):
+            D = X - mu[k]
+            S[k] = (G[:, k, None]*D).T @ D / Nk[k] + reg*np.eye(d)
+        if t &gt; 1 and abs(ll_hist[-1]-ll_hist[-2]) &lt; 1e-9: break
+    return mu, S, pi, G, ll_hist
+
+mu, S, pi, G, ll = em_gmm(X, K, seed=1)
+print(&quot;EM log-likelihood increases monotonically:&quot;)
+print(&quot;  &quot;, &quot; -&gt; &quot;.join(f&quot;{v:.1f}&quot; for v in ll[:5]), &quot;...&quot;, f&quot;{ll[-1]:.1f}&quot;)
+assert all(ll[i+1] &gt;= ll[i] - 1e-6 for i in range(len(ll)-1)), &quot;likelihood decreased!&quot;
+print(&quot;  monotone check passed;&quot;, len(ll), &quot;iterations&quot;)
+print()
+print(&quot;mixing weights pi:&quot;, pi, &quot; (true: 0.385, 0.385, 0.231)&quot;)
+print(&quot;component 1 covariance eigenvalues:&quot;, np.linalg.eigvalsh(S[0]))
+print(&quot;  -&gt; elongated, as the data is. k-means cannot represent this at all.&quot;)
+print()
+
+# ---------------- do they recover the true clusters? ----------------
+def purity(assign, truth, K):
+    tot = 0
+    for k in range(K):
+        m = assign == k
+        if m.sum(): tot += np.bincount(truth[m], minlength=K).max()
+    return tot/len(truth)
+
+a_gmm = G.argmax(1)
+print(f&quot;cluster purity vs the true generating component:&quot;)
+print(f&quot;  k-means           {purity(a_km,  z_true, K):.4f}&quot;)
+print(f&quot;  Gaussian mixture  {purity(a_gmm, z_true, K):.4f}&quot;)
+print()
+
+# ---------------- soft assignment is real information ----------------
+conf = G.max(1)
+print(&quot;--- SOFT ASSIGNMENTS ---&quot;)
+print(f&quot;  points assigned with &gt;99% confidence: {(conf&gt;0.99).mean():.1%}&quot;)
+print(f&quot;  points genuinely ambiguous (&lt;70%):    {(conf&lt;0.70).mean():.1%}&quot;)
+i = int(np.argmin(conf))
+print(f&quot;  most ambiguous point: responsibilities {G[i]}&quot;)
+print(&quot;  k-means would assign this point with full confidence and tell you nothing.&quot;)
+print()
+
+# ---------------- choosing K ----------------
+print(&quot;--- CHOOSING K BY BIC (lower is better) ---&quot;)
+for k in range(1, 7):
+    _, _, _, _, l = em_gmm(X, k, seed=2)
+    n_par = k*(d + d*(d+1)/2) + (k-1)          # means + covariances + weights
+    bic = -2*l[-1] + n_par*np.log(n)
+    print(f&quot;  K={k}  loglik {l[-1]:9.2f}  params {int(n_par):3d}  BIC {bic:9.2f}&quot;)
+print(&quot;  BIC penalises parameters, so it does not simply prefer the largest K.&quot;)
+print()
+
+# ---------------- the collapse pathology ----------------
+print(&quot;--- COVARIANCE COLLAPSE ---&quot;)
+# Random starts usually avoid the singularity by luck, which hides the problem.
+# Start one component sitting on a data point with a narrow covariance and watch.
+def em_seeded(X, K, reg, T=200, tight=1e-3):
+    n, d = X.shape
+    rr = np.random.default_rng(0)
+    mu = X[rr.choice(n, K, replace=False)].copy()
+    S = np.array([np.cov(X.T) for _ in range(K)]); S[0] = tight*np.eye(d)
+    pi = np.full(K, 1.0/K); G = None; ll = np.nan
+    for t in range(T):
+        dens = np.column_stack([pi[k]*gauss_pdf(X, mu[k], S[k]) for k in range(K)])
+        tot = dens.sum(1, keepdims=True)
+        ll = float(np.log(np.maximum(tot, 1e-300)).sum())
+        G = dens / np.maximum(tot, 1e-300); Nk = G.sum(0) + 1e-12
+        pi = Nk/n; mu = (G.T @ X) / Nk[:, None]
+        for k in range(K):
+            D = X - mu[k]
+            S[k] = (G[:, k, None]*D).T @ D / Nk[k] + reg*np.eye(d)
+    eig = [float(np.linalg.eigvalsh(S[k]).min()) for k in range(K)]
+    kb = int(np.argmin(eig))
+    return ll, eig[kb], float(G.sum(0)[kb]), float(pi[kb])
+
+for reg in (1e-6, 0.0):
+    lc, sm, nk, pk = em_seeded(X, K, reg)
+    print(f&quot;  reg={reg:g}   loglik {lc:9.2f}   smallest cov eigenvalue {sm:.2e}&quot;
+          f&quot;   that component owns {nk:.2f} of {n} points (pi={pk:.4f})&quot;)
+print(&quot;  With no floor the covariance shrinks to ~1e-42: a spike of zero width&quot;)
+print(&quot;  on ONE point. The likelihood is only finite here because of underflow;&quot;)
+print(&quot;  mathematically it is unbounded. The floor is not optional.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s6"><span class="secnum">6</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>You run \(k\)-means with \(K=2,3,\dots,10\) and record the inertia \(J\).</p>
+  <ol><li>What must be true about \(J\) as \(K\) increases, and why?</li>
+  <li>So why can you not choose \(K\) by minimising \(J\)?</li>
+  <li>What is \(J\) when \(K=n\)?</li>
+  <li>Name two defensible ways to choose \(K\).</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex68',this)">Show solution</button></div><div class="rev-body" id="ex68"><p><strong>1.</strong> \(J\) is non-increasing in \(K\). Any clustering with \(K\) centroids can be
+  reproduced with \(K+1\) by adding a redundant centroid at an existing location (which changes nothing) — so the
+  \(K+1\) optimum is at least as good. In practice \(J\) strictly decreases, since an extra centroid can always
+  split some cluster.</p>
+  <p><strong>2.</strong> Because a criterion that always prefers larger \(K\) does not select anything. It is
+  exactly the \(R^2\) problem from Lecture 02: a measure of fit that cannot get worse when you add capacity is
+  useless for model selection. You need a penalty for complexity, or a held-out estimate.</p>
+  <p><strong>3.</strong> \(J=0\). Each point is its own centroid, so every distance is zero. Perfect fit,
+  zero information — the clustering analogue of the lookup table from Lecture 01.</p>
+  <p><strong>4. Two defensible options.</strong></p>
+  <ul>
+  <li><strong>A penalised criterion.</strong> Fit a Gaussian mixture instead and use BIC
+  \(= -2\ell + p\log n\), which explicitly charges for parameters and therefore has an interior minimum. This is
+  principled but leans on the mixture model being roughly right.</li>
+  <li><strong>The downstream task.</strong> If the clusters feed something you can measure — a classifier, a
+  recommendation, a segmentation someone will act on — tune \(K\) by that metric with proper validation. Same
+  argument as choosing PCA's \(k\) in Lecture 08: an external criterion beats an internal one whenever you have
+  access to it.</li>
+  </ul>
+  <p>The <em>elbow method</em> and the <em>silhouette score</em> are the common alternatives. Both are
+  reasonable heuristics; neither is a principle, and both reward the kind of structure the algorithm was built
+  to find.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove the k-means M-step is exactly optimal: given a fixed assignment, the centroid minimising
+  \(\sum_{i\in C_k}\|\vx_i-\vm\|^2\) is the mean.</p>
+  <p>Then show that the objective can be written entirely in terms of pairwise distances,</p>
+  \[ \sum_{i\in C_k}\|\vx_i-\vm_k\|^2 = \frac{1}{2|C_k|}\sum_{i,j\in C_k}\|\vx_i-\vx_j\|^2, \]
+  <p>and say why that identity is useful.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex69',this)">Show solution</button></div><div class="rev-body" id="ex69"><p><strong>The M-step.</strong> Let \(g(\vm)=\sum_{i\in C_k}\|\vx_i-\vm\|^2\). Using Phase A Lecture
+  12's rules,</p>
+  \[\grad_{\vm} g = \sum_{i\in C_k} -2(\vx_i-\vm) = -2\sum_{i\in C_k}\vx_i + 2|C_k|\vm \;\stackrel{!}{=}\;\vzero
+   \;\Longrightarrow\; \vm = \frac{1}{|C_k|}\sum_{i\in C_k}\vx_i.\]
+  <p>The Hessian is \(2|C_k|\mI\succ0\), so \(g\) is strictly convex and this is the unique global minimum
+  (Phase A Lecture 7). ∎ Note it is the same computation as "the mean minimises squared deviation" (Phase A
+  Lecture 13), lifted to vectors.</p>
+
+  <p><strong>The pairwise identity.</strong> Write \(m=|C_k|\) and \(\vm_k=\frac1m\sum_i\vx_i\). Expand the
+  right-hand side:</p>
+  \[\sum_{i,j}\|\vx_i-\vx_j\|^2 = \sum_{i,j}\big(\|\vx_i\|^2 - 2\vx_i^\top\vx_j + \|\vx_j\|^2\big)
+   = 2m\sum_i\|\vx_i\|^2 - 2\Big\|\sum_i\vx_i\Big\|^2 = 2m\sum_i\|\vx_i\|^2 - 2m^2\|\vm_k\|^2.\]
+  <p>And the left-hand side:</p>
+  \[\sum_i\|\vx_i-\vm_k\|^2 = \sum_i\|\vx_i\|^2 - 2\vm_k^\top\sum_i\vx_i + m\|\vm_k\|^2
+   = \sum_i\|\vx_i\|^2 - m\|\vm_k\|^2.\]
+  <p>Dividing the first display by \(2m\) gives exactly the second. ∎</p>
+
+  <p><strong>Why it is useful — three reasons.</strong></p>
+  <p><em>It removes the centroid.</em> The objective depends only on distances between data points, never on any
+  point in the ambient space. So the method extends immediately to settings where averaging is undefined —
+  strings, graphs, permutations — as long as you can compute pairwise distances. That is
+  <strong>kernel k-means</strong>, and it is why the kernel trick of Lecture 12 applies here too.</p>
+  <p><em>It gives an interpretation.</em> Inertia is (up to the \(2|C_k|\) factor) the total pairwise
+  dissimilarity within each cluster. "Minimise distance to the centre" and "minimise average distance between
+  members" are the same instruction.</p>
+  <p><em>It explains the spherical bias.</em> Because only Euclidean distances enter, the objective is invariant
+  to rotation but not to anisotropic scaling. A cluster that is long and thin has large internal pairwise
+  distances and is therefore <em>penalised</em>, which is precisely why k-means prefers to cut it in half. The
+  bias is visible directly in the objective.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>For a one-dimensional two-component mixture with known equal variances \(\sigma^2\) and equal
+  weights:</p>
+  <ol><li>Write the responsibility \(\gamma_{i1}\) explicitly and show it is a sigmoid.</li>
+  <li>What happens to it as \(\sigma\to0\)? As \(\sigma\to\infty\)?</li>
+  <li>Relate this to the temperature in a softmax, and to the k-means limit.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex70',this)">Show solution</button></div><div class="rev-body" id="ex70"><p><strong>1.</strong> With \(\pi_1=\pi_2=\tfrac12\) the prefactors and weights cancel:</p>
+  \[\gamma_{i1} = \frac{\exp\!\big(-\tfrac{(x_i-\mu_1)^2}{2\sigma^2}\big)}
+   {\exp\!\big(-\tfrac{(x_i-\mu_1)^2}{2\sigma^2}\big)+\exp\!\big(-\tfrac{(x_i-\mu_2)^2}{2\sigma^2}\big)}
+   = \frac{1}{1+\exp\!\big(\tfrac{(x_i-\mu_1)^2-(x_i-\mu_2)^2}{2\sigma^2}\big)}.\]
+  <p>Expand the exponent: \((x-\mu_1)^2-(x-\mu_2)^2 = -2x(\mu_1-\mu_2)+\mu_1^2-\mu_2^2\), which is
+  <strong>linear in \(x\)</strong>. So</p>
+  \[\gamma_{i1} = \sigma\!\left(\frac{(\mu_1-\mu_2)}{\sigma^2}\,x_i - \frac{\mu_1^2-\mu_2^2}{2\sigma^2}\right)\]
+  <p>— a logistic sigmoid in \(x\), with slope \((\mu_1-\mu_2)/\sigma^2\) and its 0.5 crossing at the midpoint
+  \(\frac{\mu_1+\mu_2}{2}\). ∎</p>
+  <p><em>This is the generative-versus-discriminative connection of Lecture 10, appearing early:</em> a Gaussian
+  mixture with shared variance induces exactly a logistic posterior, which is why Gaussian naive Bayes and
+  logistic regression are so closely related.</p>
+
+  <p><strong>2.</strong> The slope is \((\mu_1-\mu_2)/\sigma^2\).</p>
+  <p><em>\(\sigma\to0\):</em> the slope diverges, the sigmoid becomes a step function at the midpoint, and every
+  point is assigned with probability 1 to its nearer mean. Hard assignment — the k-means E-step.</p>
+  <p><em>\(\sigma\to\infty\):</em> the slope goes to zero and \(\gamma_{i1}\to\tfrac12\) for every point. The
+  components are so diffuse that the data carries no information about which generated what, and the posterior
+  reverts to the prior. EM then makes no progress: both means converge to the global mean.</p>
+
+  <p><strong>3.</strong> Write \(\gamma_{ik}=\operatorname{softmax}_k(-d_{ik}^2/T)\) with \(T=2\sigma^2\).
+  Then \(\sigma^2\) <em>is</em> a temperature in the statistical-mechanics sense. High temperature gives a soft,
+  near-uniform distribution; low temperature concentrates all mass on the minimum. \(T\to0\) turns softmax into
+  argmax — the same limit that appears in Gumbel-softmax, in simulated annealing, and in the
+  temperature parameter of a language model's sampler.</p>
+  <p>So the k-means/GMM relationship is one instance of a general pattern: <strong>a hard combinatorial
+  algorithm is often the zero-temperature limit of a soft probabilistic one</strong>, and the soft version is
+  differentiable while the hard one is not. That observation is the engine behind a great deal of modern
+  method design.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Investigate what clustering does when there are no clusters, and how to
+  tell.</p>
+  <ol>
+  <li>Generate 500 points uniformly at random in the unit square. Run \(k\)-means for \(K=1..10\) and plot
+  inertia. Is there an elbow?</li>
+  <li>Compute the <em>gap statistic</em>: compare \(\log J_K\) on your data against the mean \(\log J_K\) on
+  uniform reference data of the same extent. What does it say?</li>
+  <li>Repeat both on data that genuinely has three clusters.</li>
+  <li>Also compute the silhouette score for both datasets. Which diagnostic is most trustworthy, and what is
+  the honest conclusion about detecting the absence of structure?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex71',this)">Show solution</button></div><div class="rev-body" id="ex71"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+
+def kmeans(X, K, seed=0, T=100):
+    r = np.random.default_rng(seed)
+    M = X[r.choice(len(X), K, replace=False)].copy()
+    for _ in range(T):
+        D = ((X[:,None,:]-M[None,:,:])**2).sum(-1); a = D.argmin(1)
+        newM = np.array([X[a==k].mean(0) if (a==k).any() else M[k] for k in range(K)])
+        if np.allclose(newM, M): break
+        M = newM
+    D = ((X[:,None,:]-M[None,:,:])**2).sum(-1); a = D.argmin(1)
+    return float(D[np.arange(len(X)), a].sum()), a
+
+def silhouette(X, a):
+    D = np.sqrt(((X[:,None,:]-X[None,:,:])**2).sum(-1)); s = []
+    for i in range(len(X)):
+        own = a == a[i]; own[i] = False
+        if own.sum() == 0: s.append(0.0); continue
+        ai = D[i, own].mean()
+        bi = min(D[i, a==k].mean() for k in set(a) - {a[i]})
+        s.append((bi-ai)/max(ai, bi))
+    return float(np.mean(s))
+
+def gap(X, Kmax=10, B=20):
+    lo, hi = X.min(0), X.max(0); out = []
+    for K in range(1, Kmax+1):
+        Jd = min(kmeans(X, K, seed=s)[0] for s in range(5))
+        ref = [np.log(min(kmeans(rng.uniform(lo, hi, X.shape), K, seed=s)[0]
+                          for s in range(3))) for _ in range(B)]
+        out.append((K, np.log(Jd), np.mean(ref), np.mean(ref)-np.log(Jd), np.std(ref)))
+    return out
+
+def clustered(n=500):
+    c = np.array([[0,0],[4,0],[2,3.5]])
+    return np.vstack([c[k] + 0.5*rng.normal(size=(n//3+1,2)) for k in range(3)])[:n]
+
+for name, X in (("uniform noise", rng.uniform(0,1,(500,2))), ("three clusters", clustered())):
+    print(f"\\n=== {name} ===")
+    print(f"{'K':>3} {'inertia':>10} {'gap':>9} {'sd_ref':>8} {'silhouette':>11}")
+    for K, lJ, lref, g, sd in gap(X):
+        sil = silhouette(X, kmeans(X, K, seed=0)[1]) if K &gt; 1 else float('nan')
+        print(f"{K:3d} {np.exp(lJ):10.3f} {g:9.4f} {sd:8.4f} {sil:11.4f}")</code></pre>
+
+  <p><strong>1.</strong> On uniform noise, inertia falls smoothly and steadily — roughly like \(K^{-1}\) in two
+  dimensions, since \(K\) cells each shrink in area. There is <strong>no elbow</strong>, but the curve looks
+  perfectly plausible, and a determined eye will find a bend somewhere around \(K=3\) or \(4\). This is the
+  central weakness of the elbow method: it produces an answer whether or not there is one.</p>
+
+  <p><strong>2. The gap statistic</strong> compares \(\log J_K\) against what you would get on structureless
+  data of the same extent. On uniform noise the gap stays near zero at every \(K\) (well within one reference
+  standard deviation) — <strong>correctly reporting no structure</strong>, and the only diagnostic here that
+  does. Tibshirani's rule is to choose the smallest \(K\) with
+  \(\text{gap}(K)\ge\text{gap}(K+1)-s_{K+1}\); on noise no \(K\) qualifies beyond 1.</p>
+
+  <p><strong>3.</strong> On the three-cluster data the inertia curve has a sharp, unmistakable elbow at
+  \(K=3\); the gap statistic peaks at \(K=3\) and is several reference standard deviations above zero; and the
+  silhouette score peaks at \(K=3\) at around 0.7–0.8. All three agree, which is what agreement is for.</p>
+
+  <p><strong>4. Which to trust, and the honest conclusion.</strong> The silhouette on uniform noise typically
+  comes out around 0.3–0.4 — a value many people would read as "moderate structure". It is not zero, because
+  silhouette measures whether the found partition is internally coherent, and \(k\)-means will always produce a
+  reasonably coherent partition of anything. <strong>Silhouette can validate a clustering; it cannot tell you
+  whether clusters exist.</strong></p>
+  <p>The gap statistic is the only one of the three with a built-in null hypothesis, and that is exactly why it
+  can detect the absence of structure. The general principle is worth taking away: <em>a diagnostic without a
+  reference distribution cannot distinguish signal from its absence</em> — which is the same lesson as
+  "compare against the majority-class baseline" in Lecture 07, and "compare against random subspaces" in
+  Lecture 08.</p>
+  <p>Practical advice: always run your clustering pipeline on shuffled or resampled data as a null, and report
+  what it produces alongside your real result.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> Part V. We return to classification, but from the other direction —
+modelling \(p(\vx\mid y)\) rather than \(p(y\mid\vx)\). Lecture 10 covers naive Bayes and the
+generative-versus-discriminative distinction, which turns out to be one of the sharpest ideas in the
+subject.</p>
+<div class="pagenav"><a href="08-pca.html" class="pv"><span class="dir">Previous</span><span class="nm">8 · Principal Component Analysis</span></a><a href="10-naive-bayes.html" class="nx"><span class="dir">Next</span><span class="nm">10 · Naive Bayes and the Generative–Discriminative Divide</span></a></div>
+</div>
+<script>initDone('09-kmeans-and-mixtures');</script>
+</body>
+</html>

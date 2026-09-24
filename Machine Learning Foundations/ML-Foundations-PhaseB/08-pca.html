@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>8. Principal Component Analysis — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 8 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('08-pca')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part IV — Unsupervised Learning · Lecture 8</div>
+  <h1>Principal Component Analysis</h1>
+  <p class="dek">Three completely different questions — which direction has most variance, which subspace loses least information, and what does the SVD of the data matrix say — all have the same answer. That coincidence is PCA, and it is the most useful thing the spectral theorem does.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive PCA as variance maximisation using the Rayleigh quotient</li><li>Derive it again as minimum reconstruction error, and prove the two agree</li><li>Connect both to the SVD of the centred data matrix</li><li>Choose \(k\) from the spectrum, and know why 'explained variance' can mislead</li><li>State precisely what PCA cannot do</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase A, Lecture 11: spectral theorem, Rayleigh quotient, quadratic forms</li><li>Phase A, Lecture 8: projection onto a subspace</li><li>Phase A, Lecture 13: variance and covariance</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>The setup, and why centring is not optional</h2>
+<p>Data \(\vx_1,\dots,\vx_n\in\RR^d\), stacked as rows of \(\mX\in\RR^{n\times d}\). First,
+<strong>centre</strong>: subtract the mean of each column, giving \(\mX_c\) with \(\frac1n\sum_i\vx_i=\vzero\).
+The sample covariance is then</p>
+<p>\[\mS = \frac{1}{n}\mX_c^\top\mX_c \in \RR^{d\times d},\]</p>
+<p>symmetric and positive semi-definite, so the spectral theorem applies:
+\(\mS=\mQ\Lambda\mQ^\top\) with orthonormal eigenvectors and non-negative eigenvalues (Phase A Lecture 11).</p>
+<div class="box warn"><span class="lbl">Common trap</span><p>Centring is not cosmetic. Without it, the largest "principal component" of a dataset whose mean
+is far from the origin will simply point at the mean, because \(\frac1n\|\mX\vu\|^2\) then measures
+<em>second moment</em>, not variance. You would spend your first component describing where the data is rather
+than how it varies. Every PCA implementation centres; if you write your own, centre first.</p></div>
+<h2 id="s2"><span class="secnum">2</span>Derivation 1 — maximum variance</h2>
+<p>Question: which unit direction \(\vu\) makes the projected data most spread out?</p>
+<div class="deriv" id="d55"><div class="deriv-head"><span class="t">The top eigenvector maximises projected variance</span><span class="ct">0 / 6</span></div><div class="dstep">\[z_i = \vu^\top\vx_i \quad\text{(the projection of point } i \text{ onto direction } \vu)\]<div class="why"><b>Project.</b> For a unit \(\vu\), \(\vu^\top\vx_i\) is the signed distance along \(\vu\) — Phase A Lecture 8's projection formula, with \(\|\vu\|=1\) so the denominator disappears. Since the data is centred, \(\bar z = \vu^\top\bar{\vx}=0\).</div></div><div class="dstep">\[\Var(z) = \frac1n\sum_{i=1}^n z_i^2 = \frac1n\sum_i \vu^\top\vx_i\vx_i^\top\vu = \vu^\top\!\left(\frac1n\mX_c^\top\mX_c\right)\!\vu = \vu^\top\mS\vu\]<div class="why"><b>The projected variance is a quadratic form.</b> Because the mean is zero, variance is just the mean square. Pulling \(\vu\) outside the sum turns the whole thing into \(\vu^\top\mS\vu\) — precisely Phase A Lecture 11's object.</div></div><div class="dstep">\[\max_{\|\vu\|=1} \vu^\top\mS\vu \quad\Longleftrightarrow\quad \max_{\vu\neq\vzero}\ \frac{\vu^\top\mS\vu}{\vu^\top\vu}\]<div class="why"><b>The Rayleigh quotient.</b> The constrained and unconstrained-ratio forms are equivalent because the ratio is invariant to rescaling \(\vu\), so we may as well normalise. Note the constraint is <em>necessary</em>: without it we could scale \(\vu\) up and make the variance arbitrarily large.</div></div><div class="dstep">\[\vu^\top\mS\vu = \sum_{i=1}^d \lambda_i (\vq_i^\top\vu)^2 \le \lambda_1\sum_i(\vq_i^\top\vu)^2 = \lambda_1\|\vu\|^2 = \lambda_1\]<div class="why"><b>Expand in the eigenbasis.</b> Write \(\vu=\sum_i c_i\vq_i\) with \(c_i=\vq_i^\top\vu\); then \(\mS\vu=\sum_i\lambda_ic_i\vq_i\) and the quadratic form is \(\sum_i\lambda_ic_i^2\). Bounding every \(\lambda_i\) by the largest gives the inequality; \(\sum_i c_i^2=\|\vu\|^2=1\) because \(\mQ\) is orthonormal (Parseval).</div></div><div class="dstep">\[\boxed{\ \vu^\star = \vq_1, \qquad \max \Var = \lambda_1\ }\]<div class="why"><b>Equality is attained.</b> Setting \(\vu=\vq_1\) gives \(c_1=1\) and all other \(c_i=0\), so the sum equals \(\lambda_1\) exactly. <strong>The top eigenvector of the covariance matrix is the direction of maximum variance, and its eigenvalue is that variance.</strong> ∎</div></div><div class="dstep">\[\vu_2^\star = \vq_2 \quad\text{subject to } \vu_2\perp\vq_1, \qquad \dots\]<div class="why"><b>Subsequent components.</b> Repeat the argument on the subspace orthogonal to \(\vq_1\): the same bound applies with \(\lambda_1\) removed from the sum, so the maximum is \(\lambda_2\), attained at \(\vq_2\). By induction, the \(k\)-th principal direction is \(\vq_k\). The orthogonality is <em>free</em> — the spectral theorem already guarantees the eigenvectors are perpendicular.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d55')">Next step</button><button class="btn ghost" onclick="dall('d55')">Show all</button><button class="btn ghost" onclick="dreset('d55')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Sweep a direction and watch the projected variance<span class="tag">Interactive</span></div><canvas id="b8var" data-h="470"></canvas><div class="legend"><span><i style="background:var(--c4)"></i>data</span><span><i style="background:var(--c2)"></i>your direction u</span><span><i style="background:var(--c1)"></i>first principal component</span><span><i style="background:var(--c5)"></i>second</span></div><div class="fig-read" id="b8var-read"></div><div class="ctrls"><div class="ctrl"><label>direction of u (degrees)</label><input type="range" min="0" max="179" step="0.5" value="10" data-fmt="1" oninput="figSlide('b8var','ang',this)"><output>10.0</output></div><div class="ctrl"><label>correlation in the data</label><input type="range" min="-0.98" max="0.98" step="0.01" value="0.85" data-fmt="2" oninput="figSlide('b8var','rho',this)"><output>0.85</output></div><div class="ctrl"><label>stretch along one axis</label><input type="range" min="0.3" max="3" step="0.05" value="1.6" data-fmt="2" oninput="figSlide('b8var','stretch',this)"><output>1.60</output></div></div><div class="fig-cap">Grey ticks along the orange line are the projections of every point onto your chosen direction. Sweep the angle and read the projected variance below. It is maximised exactly when the orange line lines up with the blue PC1, and minimised at the purple PC2 — 90 degrees away, as the spectral theorem guarantees. Set the correlation to 0 and the stretch to 1 and the variance becomes the same in every direction: PCA has nothing to say about isotropic data.</div></div><script>makeFig("b8var",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,4.0);
+var rho=p.rho, st=p.stretch;
+var seed=7654321;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var P=[];
+for(var i=0;i<180;i++){ var a=gauss(), b=rho*a+Math.sqrt(1-rho*rho)*gauss();
+  P.push([st*a*1.1, b*1.1]); }
+// centre
+var mx=0,my=0; for(var i=0;i<P.length;i++){mx+=P[i][0];my+=P[i][1];} mx/=P.length; my/=P.length;
+for(var i=0;i<P.length;i++){P[i][0]-=mx;P[i][1]-=my;}
+// covariance
+var s11=0,s12=0,s22=0;
+for(var i=0;i<P.length;i++){ s11+=P[i][0]*P[i][0]; s12+=P[i][0]*P[i][1]; s22+=P[i][1]*P[i][1]; }
+s11/=P.length; s12/=P.length; s22/=P.length;
+var tr=s11+s22, det=s11*s22-s12*s12, disc=Math.sqrt(Math.max(0,tr*tr-4*det));
+var l1=(tr+disc)/2, l2=(tr-disc)/2;
+function evec(L){ var vx,vy;
+  if(Math.abs(s12)>1e-12){ vx=s12; vy=L-s11; } else { vx=(L>=s11)?1:0; vy=(L>=s11)?0:1; }
+  var n=Math.hypot(vx,vy)||1; return [vx/n,vy/n]; }
+var q1=evec(l1), q2=evec(l2);
+vp.axes({stepx:1,stepy:1});
+var t=p.ang*Math.PI/180, u=[Math.cos(t),Math.sin(t)];
+// projection ticks
+var cc=vp.ctx; cc.save(); cc.globalAlpha=0.35;
+for(var i=0;i<P.length;i++){
+  var z=P[i][0]*u[0]+P[i][1]*u[1];
+  vp.seg(P[i][0],P[i][1], z*u[0], z*u[1], '--ink3', {w:0.8});
+}
+cc.restore();
+vp.seg(-6*u[0],-6*u[1],6*u[0],6*u[1],'--c2',{w:2.6});
+for(var i=0;i<P.length;i++) vp.dot(P[i][0],P[i][1],'--c4',3);
+var vu=0; for(var i=0;i<P.length;i++){ var z=P[i][0]*u[0]+P[i][1]*u[1]; vu+=z*z; } vu/=P.length;
+for(var i=0;i<P.length;i++){ var z=P[i][0]*u[0]+P[i][1]*u[1]; vp.dot(z*u[0],z*u[1],'--c2',2.4); }
+vp.arrow(0,0,q1[0]*Math.sqrt(l1)*2,q1[1]*Math.sqrt(l1)*2,'--c1',{w:3.4});
+vp.arrow(0,0,q2[0]*Math.sqrt(l2)*2,q2[1]*Math.sqrt(l2)*2,'--c5',{w:3.4});
+vp.label(q1[0]*Math.sqrt(l1)*2,q1[1]*Math.sqrt(l1)*2,'PC1','--c1',{halo:true,bold:true,dx:7});
+vp.label(q2[0]*Math.sqrt(l2)*2,q2[1]*Math.sqrt(l2)*2,'PC2','--c5',{halo:true,bold:true,dx:7});
+var angPC1=Math.atan2(q1[1],q1[0])*180/Math.PI; if(angPC1<0)angPC1+=180;
+figRead('b8var','your direction: '+p.ang.toFixed(1)+'°   →   projected variance = <b>'+vu.toFixed(4)+'</b>'
+ +'<br>λ₁ = <b>'+l1.toFixed(4)+'</b> at '+angPC1.toFixed(1)+'°   λ₂ = <b>'+l2.toFixed(4)+'</b>'
+ +'   |   total variance λ₁+λ₂ = trace(S) = <b>'+tr.toFixed(4)+'</b>'
+ +'<br>your direction captures <b>'+(100*vu/tr).toFixed(1)+'%</b> of the total; PC1 captures <b>'+(100*l1/tr).toFixed(1)+'%</b>'
+ +(Math.abs(vu-l1)<1e-3?'   <b style="color:var(--ok)">← you have found PC1</b>':''));
+},[{"name": "ang", "label": "direction of u (degrees)", "min": 0, "max": 179, "step": 0.5, "value": 10, "dp": 1}, {"name": "rho", "label": "correlation in the data", "min": -0.98, "max": 0.98, "step": 0.01, "value": 0.85, "dp": 2}, {"name": "stretch", "label": "stretch along one axis", "min": 0.3, "max": 3, "step": 0.05, "value": 1.6, "dp": 2}]);window["FIG_b8var"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>Derivation 2 — minimum reconstruction error</h2>
+<p>A completely different question: which \(k\)-dimensional subspace, when we project the data onto
+it and back, loses the least? Remarkably, the same answer.</p>
+<div class="deriv" id="d56"><div class="deriv-head"><span class="t">Best rank-k approximation, and why it is the same problem</span><span class="ct">0 / 6</span></div><div class="dstep">\[\text{Let } \mU_k=[\vu_1|\cdots|\vu_k] \text{ with } \mU_k^\top\mU_k=\mI_k. \quad \hat{\vx}_i = \mU_k\mU_k^\top\vx_i\]<div class="why"><b>Project and reconstruct.</b> \(\mU_k^\top\vx_i\in\RR^k\) is the coordinate vector in the subspace; \(\mU_k\) maps it back to \(\RR^d\). The composite \(\mP=\mU_k\mU_k^\top\) is the projection matrix, and it is idempotent and symmetric — Phase A Lecture 10, exercise 2.</div></div><div class="dstep">\[J(\mU_k) = \frac1n\sum_{i=1}^{n}\big\|\vx_i - \mU_k\mU_k^\top\vx_i\big\|^2\]<div class="why"><b>The reconstruction error.</b> The average squared distance from each point to the subspace. We want to <em>minimise</em> this — a different objective from Derivation 1, which <em>maximised</em> something.</div></div><div class="dstep">\[\|\vx_i\|^2 = \|\mP\vx_i\|^2 + \|\vx_i-\mP\vx_i\|^2\]<div class="why"><b>Pythagoras.</b> The projection and the residual are orthogonal (Phase A Lecture 8), so their squared lengths add. This is the pivot of the whole argument.</div></div><div class="dstep">\[J(\mU_k) = \underbrace{\frac1n\sum_i\|\vx_i\|^2}_{\text{constant}} - \underbrace{\frac1n\sum_i\|\mU_k^\top\vx_i\|^2}_{\text{captured variance}}\]<div class="why"><b>Rearrange.</b> Using \(\|\mP\vx_i\|=\|\mU_k^\top\vx_i\|\) since \(\mU_k\) has orthonormal columns. The first term does not depend on our choice of subspace. So <strong>minimising reconstruction error is exactly maximising captured variance</strong> — the two questions were the same question all along, related by a fixed total.</div></div><div class="dstep">\[\frac1n\sum_i\|\mU_k^\top\vx_i\|^2 = \tr\big(\mU_k^\top\mS\,\mU_k\big) = \sum_{j=1}^{k}\vu_j^\top\mS\vu_j\]<div class="why"><b>Write the captured variance as a trace.</b> Each column contributes its own Rayleigh quotient, and by the cyclic property of the trace the sum is \(\tr(\mU_k^\top\mS\mU_k)\).</div></div><div class="dstep">\[\boxed{\ \max_{\mU_k^\top\mU_k=\mI}\ \tr(\mU_k^\top\mS\mU_k) = \sum_{j=1}^{k}\lambda_j, \quad\text{attained at } \mU_k=[\vq_1|\cdots|\vq_k]\ }\]<div class="why"><b>Ky Fan's theorem</b> — the \(k\)-dimensional generalisation of the Rayleigh bound, proved by the same eigen-expansion argument. So the optimal subspace is spanned by the top \(k\) eigenvectors, the captured variance is \(\sum_{j\le k}\lambda_j\), and the residual error is \(\sum_{j>k}\lambda_j\). <em>The discarded eigenvalues are literally the error you incur.</em> ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d56')">Next step</button><button class="btn ghost" onclick="dall('d56')">Show all</button><button class="btn ghost" onclick="dreset('d56')">Reset</button></div></div>
+<h2 id="s4"><span class="secnum">4</span>Derivation 3 — the SVD, and why you should use it</h2>
+<p>Every real matrix factors as \(\mX_c = \mU\mathbf{\Sigma}\mV^\top\) with \(\mU,\mV\) orthonormal
+and \(\mathbf{\Sigma}\) diagonal with non-negative entries \(\sigma_1\ge\sigma_2\ge\cdots\). Then</p>
+<p>\[\mS = \frac1n\mX_c^\top\mX_c = \frac1n\mV\mathbf{\Sigma}^\top\mU^\top\mU\mathbf{\Sigma}\mV^\top
+ = \mV\left(\frac{\mathbf{\Sigma}^2}{n}\right)\mV^\top,\]</p>
+<p>using \(\mU^\top\mU=\mI\). Comparing with \(\mS=\mQ\Lambda\mQ^\top\) and matching the
+(unique, up to sign and ties) eigendecomposition:</p>
+<ul><li>the <strong>right singular vectors</strong> \(\vv_j\) are the principal directions \(\vq_j\);</li><li>the eigenvalues are \(\lambda_j = \sigma_j^2/n\);</li><li>the <strong>scores</strong> (projected coordinates) are \(\mX_c\mV = \mU\mathbf{\Sigma}\), so column \(j\) of \(\mU\mathbf{\Sigma}\) gives every point's coordinate on PC\(j\).</li></ul>
+<div class="box eng"><span class="lbl">Practical engineering note</span><strong>Always compute PCA from the SVD of \(\mX_c\), never from the eigendecomposition of
+\(\mX_c^\top\mX_c\).</strong> Forming the Gram matrix squares the condition number (Phase A Lecture 10) — a
+design with \(\kappa=10^{8}\) gives \(\kappa=10^{16}\) for the covariance, which is all of float64. The SVD works
+on \(\mX_c\) directly. It is also cheaper when \(n\ll d\): the SVD costs \(O(nd\min(n,d))\) whereas forming
+\(\mS\) alone costs \(O(nd^2)\). Every serious implementation, including scikit-learn's, uses the SVD.</div>
+<h2 id="s5"><span class="secnum">5</span>Choosing k</h2>
+<div class="fig"><div class="fig-head">The spectrum, the cumulative variance, and the reconstruction error<span class="tag">Interactive</span></div><canvas id="b8scree" data-h="460"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>eigenvalue λⱼ (scree)</span><span><i style="background:var(--c5)"></i>cumulative variance explained</span><span><i style="background:var(--c3)"></i>your k</span></div><div class="fig-read" id="b8scree-read"></div><div class="ctrls"><div class="ctrl"><label>components kept  k</label><input type="range" min="1" max="30" step="1" value="3" data-fmt="0" oninput="figSlide('b8scree','k',this)"><output>3</output></div><div class="ctrl"><label>true latent rank of the data</label><input type="range" min="1" max="15" step="1" value="4" data-fmt="0" oninput="figSlide('b8scree','rank',this)"><output>4</output></div><div class="ctrl"><label>noise level</label><input type="range" min="0.01" max="1.5" step="0.01" value="0.3" data-fmt="2" oninput="figSlide('b8scree','noise',this)"><output>0.30</output></div></div><div class="fig-cap">Thirty features generated from a low-dimensional latent signal plus noise. The scree plot shows a sharp elbow at the true rank, then a flat noise floor — that gap is the signal you look for. Raise the noise and the elbow blurs until it disappears entirely, which is exactly when 'choose k at the elbow' stops being usable advice and you should cross-validate on the downstream task instead.</div></div><script>makeFig("b8scree",function(vp,p,F){
+vp.pads(52,52,14,32);
+var d=30, r=Math.round(p.rank), nz=p.noise, k=Math.round(p.k), n=200;
+var seed=246813579;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+// build a covariance directly: r strong directions + isotropic noise
+var lam=[];
+for(var j=0;j<d;j++){
+  var sig = (j<r) ? (3.0*Math.pow(0.72,j)) : 0;
+  lam.push(sig*sig + nz*nz);
+}
+lam.sort(function(a,b){return b-a;});
+var tot=0; for(var j=0;j<d;j++) tot+=lam[j];
+var cum=[], c=0; for(var j=0;j<d;j++){ c+=lam[j]; cum.push(c/tot); }
+var lmax=lam[0]*1.12;
+vp.frame(0.5,d+0.5,0,lmax);
+vp.axes({stepx:5});
+for(var j=0;j<d;j++){
+  var cc=vp.ctx; cc.save();
+  cc.strokeStyle=vp.css(j<k?'--c1':'--line2'); cc.lineWidth=Math.max(3,vp.pw/(d*2.1));
+  cc.beginPath(); cc.moveTo(vp.X(j+1),vp.Y(0)); cc.lineTo(vp.X(j+1),vp.Y(lam[j])); cc.stroke(); cc.restore();
+  vp.dot(j+1,lam[j],j<k?'--c1':'--line2',3.2);
+}
+// cumulative on right axis (0..1 mapped to full height)
+var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css('--c5'); cc.lineWidth=2.6; cc.beginPath();
+for(var j=0;j<d;j++){ var Y=vp.pad.t+vp.ph*(1-cum[j]);
+  if(j===0)cc.moveTo(vp.X(j+1),Y); else cc.lineTo(vp.X(j+1),Y); }
+cc.stroke();
+cc.fillStyle=vp.css('--c5'); cc.font='11px -apple-system,Segoe UI,sans-serif';
+cc.fillText('100%', vp.pad.l+vp.pw+6, vp.pad.t+8);
+cc.fillText('0%',   vp.pad.l+vp.pw+6, vp.pad.t+vp.ph);
+cc.fillText('90%',  vp.pad.l+vp.pw+6, vp.pad.t+vp.ph*0.10+4);
+cc.restore();
+vp.seg(0.5,lmax*(1-0.9),d+0.5,lmax*(1-0.9),'--ink3',{w:1,dash:[2,5]});
+vp.seg(k+0.5,0,k+0.5,lmax,'--c3',{w:2,dash:[4,4]});
+var kept=0; for(var j=0;j<k;j++) kept+=lam[j];
+var lost=tot-kept;
+var k90=1; for(var j=0;j<d;j++){ if(cum[j]>=0.9){ k90=j+1; break; } }
+var k99=1; for(var j=0;j<d;j++){ if(cum[j]>=0.99){ k99=j+1; break; } }
+figRead('b8scree','true latent rank = '+r+',  noise = '+nz.toFixed(2)+',  keeping k = <b>'+k+'</b> of '+d
+ +'<br>variance explained = <b>'+(100*kept/tot).toFixed(2)+'%</b>'
+ +'   reconstruction error = Σ_{j&gt;k} λⱼ = <b>'+lost.toFixed(4)+'</b>'
+ +'<br>k for 90% = <b>'+k90+'</b>,  k for 99% = <b>'+k99+'</b>,  elbow should be at k = '+r
+ +(nz>0.8?'   <b style="color:var(--c2)">— at this noise level the elbow is gone</b>':''));
+},[{"name": "k", "label": "components kept  k", "min": 1, "max": 30, "step": 1, "value": 3, "dp": 0}, {"name": "rank", "label": "true latent rank of the data", "min": 1, "max": 15, "step": 1, "value": 4, "dp": 0}, {"name": "noise", "label": "noise level", "min": 0.01, "max": 1.5, "step": 0.01, "value": 0.3, "dp": 2}]);window["FIG_b8scree"].run();</script>
+<ul><li><strong>Scree plot / elbow.</strong> Plot \(\lambda_j\) against \(j\) and look for the knee. Works when
+  there is a genuine gap; degenerates into taste when there is not.</li><li><strong>Cumulative variance.</strong> Choose the smallest \(k\) with \(\sum_{j\le k}\lambda_j/\sum_j
+  \lambda_j \ge 0.9\) or \(0.95\). Fast, conventional, and arbitrary.</li><li><strong>Cross-validate on the downstream task.</strong> If PCA feeds a classifier, tune \(k\) by the
+  classifier's validation score. This is the only criterion that is actually about what you want, and it
+  should be your default when a downstream task exists.</li></ul>
+<div class="quiz" id="q57"><div class="qlbl">Check yourself</div><div class="qq">You run PCA on a dataset where one feature is measured in metres and another in millimetres. What
+happens?</div><button class="qopt" data-ok="1" onclick="pick('q57',0,true)">The millimetre feature dominates PC1, because its numerical variance is a million times larger — you should standardise, i.e. run PCA on the correlation matrix.</button><button class="qopt" data-ok="0" onclick="pick('q57',1,false)">Nothing — PCA is scale-invariant because the eigenvectors are normalised.</button><button class="qopt" data-ok="0" onclick="pick('q57',2,false)">PCA will fail with a numerical error.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct. Variance has units of the feature squared, so rescaling a feature by 1000 multiplies its
+    variance by \(10^6\). PCA maximises variance and has no way to know that metres and millimetres are the same
+    physical quantity — it will simply align PC1 with whichever column happens to carry the biggest numbers.<br><br>
+    <strong>The fix</strong> is to standardise each feature to unit variance first, which makes \(\mS\) the
+    <em>correlation</em> matrix. Then every feature contributes equally to the total variance \(\tr(\mS)=d\), and
+    the components describe correlation structure rather than measurement units.<br><br>
+    <strong>When NOT to standardise:</strong> if all features share a genuine common unit and their differing
+    variances are real information. Pixel intensities, spectra, and repeated measurements of one quantity are
+    the standard cases — there, a high-variance channel really is more informative, and standardising would
+    throw that away by amplifying pure noise channels to the same scale as signal ones.<br><br>
+    The choice is a modelling decision. Make it deliberately, and note it in your write-up.</div><div class="qwhy" data-i="1"><b>Not quite.</b> Normalising the eigenvectors does not normalise the data. PCA is invariant to <em>rotations</em>
+    and <em>translations</em> of the data (both preserve the covariance structure up to a rotation of the
+    eigenvectors) but emphatically <strong>not</strong> to per-feature rescaling, which changes \(\mS\) itself.
+    Try it: scale one column of a 2-D dataset by 100 and watch PC1 swing to align with it.</div><div class="qwhy" data-i="2"><b>Not quite.</b> It will run perfectly happily and give you a mathematically correct answer to a question you did
+    not mean to ask. That is the dangerous case — a loud failure would be easier to catch. The only numerical
+    symptom is a very large condition number for \(\mS\), which is worth checking but is easy to miss.</div></div>
+<h2 id="s6"><span class="secnum">6</span>What PCA cannot do</h2>
+<ul><li><strong>It is linear.</strong> Data on a curved manifold — a spiral, a Swiss roll — has no
+  low-dimensional <em>linear</em> subspace that captures it. PCA will report that you need many components when
+  the intrinsic dimension is two. Kernel PCA, t-SNE, UMAP and autoencoders exist for this.</li><li><strong>Variance is not information.</strong> The discriminative direction in a classification problem can
+  easily be a <em>low</em>-variance one. PCA is blind to labels; if you have labels and want separation, use
+  LDA or a supervised method, and do not assume the top components are the useful ones.</li><li><strong>Components are not interpretable by default.</strong> PC1 is a dense linear combination of every
+  feature. Reading it as "a factor" is a habit from factor analysis and requires care — the sign is arbitrary
+  (Phase A Lecture 11), and a rotation of the top-\(k\) subspace explains exactly as much variance while looking
+  completely different. Sparse PCA exists precisely to buy interpretability back.</li><li><strong>It is sensitive to outliers</strong>, because variance is a squared quantity. One extreme point
+  can define PC1 entirely. Robust PCA variants exist.</li></ul>
+<div class="pyb" id="py58" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=4, suppress=True)
+
+# ---------------- data with a known 3-dimensional latent structure -------------
+n, d, k_true = 400, 12, 3
+W = rng.normal(size=(k_true, d))
+Zlat = rng.normal(size=(n, k_true)) * np.array([3.0, 2.0, 1.0])
+X = Zlat @ W + 0.4*rng.normal(size=(n, d)) + np.array([5.0]*d)   # note the offset
+
+Xc = X - X.mean(0)                      # CENTRE. always.
+S = Xc.T @ Xc / n
+
+# ---- method 1: eigendecomposition of the covariance ----
+lam, Q = np.linalg.eigh(S)
+o = np.argsort(lam)[::-1]; lam, Q = lam[o], Q[:, o]
+
+# ---- method 2: SVD of the centred data ----
+U, sv, Vt = np.linalg.svd(Xc, full_matrices=False)
+lam_svd = sv**2 / n
+V = Vt.T
+
+print(&quot;eigenvalues (eigh):&quot;, lam[:6])
+print(&quot;sigma^2/n  (svd) :&quot;, lam_svd[:6])
+print(&quot;agree?&quot;, np.allclose(lam, lam_svd, atol=1e-9))
+print(&quot;directions agree (up to sign)?&quot;,
+      np.allclose(np.abs(Q[:, :5]), np.abs(V[:, :5]), atol=1e-8))
+print()
+
+# ---- method 3: maximise the Rayleigh quotient by brute force, in 2-D ----
+print(&quot;--- BRUTE FORCE CHECK IN THE TOP 2-D SUBSPACE ---&quot;)
+X2 = Xc @ Q[:, :2]                                   # work in the PC1-PC2 plane
+S2 = X2.T @ X2 / n
+best = max(((np.array([np.cos(t), np.sin(t)]) @ S2 @ np.array([np.cos(t), np.sin(t)]), t)
+            for t in np.linspace(0, np.pi, 20001)))
+print(f&quot;  best projected variance over a fine angle sweep: {best[0]:.6f}&quot;)
+print(f&quot;  lambda_1 from the eigendecomposition:            {lam[0]:.6f}&quot;)
+print(f&quot;  angle found: {np.degrees(best[1]):.3f} deg  (0 deg = PC1, as expected)&quot;)
+print()
+
+# ---- reconstruction error IS the discarded eigenvalue sum ----
+print(&quot;--- RECONSTRUCTION ERROR = SUM OF DISCARDED EIGENVALUES ---&quot;)
+print(f&quot;{&#x27;k&#x27;:&gt;3} {&#x27;explained&#x27;:&gt;11} {&#x27;measured err&#x27;:&gt;14} {&#x27;sum_{j&gt;k} lam&#x27;:&gt;15}&quot;)
+for kk in (1, 2, 3, 4, 6, 12):
+    Uk = Q[:, :kk]
+    recon = Xc @ Uk @ Uk.T
+    err = float(np.mean(np.sum((Xc - recon)**2, axis=1)))
+    print(f&quot;{kk:3d} {lam[:kk].sum()/lam.sum():10.2%} {err:14.6f} {lam[kk:].sum():15.6f}&quot;)
+print(&quot;  Exact, at every k. Eckart-Young in numbers.&quot;)
+print()
+
+# ---- PCA beats every random subspace ----
+print(&quot;--- IS THE TOP-k SUBSPACE REALLY OPTIMAL? ---&quot;)
+for kk in (1, 3, 5):
+    Uk = Q[:, :kk]
+    best_err = float(np.mean(np.sum((Xc - Xc@Uk@Uk.T)**2, axis=1)))
+    rand_best = min(
+        float(np.mean(np.sum((Xc - Xc@R@R.T)**2, axis=1)))
+        for R in (np.linalg.qr(rng.normal(size=(d, kk)))[0] for _ in range(3000)))
+    print(f&quot;  k={kk}  PCA {best_err:10.5f}   best of 3000 random subspaces {rand_best:10.5f}&quot;
+          f&quot;   {&#x27;PCA wins&#x27; if best_err &lt;= rand_best + 1e-9 else &#x27;PROBLEM&#x27;}&quot;)
+print()
+
+# ---- what happens if you forget to centre ----
+print(&quot;--- FORGETTING TO CENTRE ---&quot;)
+S_raw = X.T @ X / n
+lr, Qr = np.linalg.eigh(S_raw); o = np.argsort(lr)[::-1]; lr, Qr = lr[o], Qr[:, o]
+mean_dir = X.mean(0)/np.linalg.norm(X.mean(0))
+print(f&quot;  |cos angle between &#x27;PC1&#x27; and the data mean| = {abs(Qr[:,0] @ mean_dir):.4f}&quot;)
+print(f&quot;  first eigenvalue: centred {lam[0]:.3f}   uncentred {lr[0]:.3f}&quot;)
+print(&quot;  Uncentred, the top component just points at the mean. Useless.&quot;)
+print()
+
+# ---- whitening ----
+print(&quot;--- WHITENING ---&quot;)
+Zw = (Xc @ Q[:, :5]) / np.sqrt(lam[:5])
+print(&quot;  covariance of the whitened scores (should be the identity):&quot;)
+print(np.round(Zw.T @ Zw / n, 6))
+print()
+
+# ---- standardise or not? ----
+print(&quot;--- SCALE SENSITIVITY ---&quot;)
+Xs = X.copy(); Xs[:, 0] *= 1000.0
+for tag, M in ((&quot;original&quot;, X), (&quot;feature 0 x1000&quot;, Xs), (&quot;standardised&quot;, (Xs-Xs.mean(0))/Xs.std(0))):
+    Mc = M - M.mean(0)
+    l, Qq = np.linalg.eigh(Mc.T@Mc/n); oo = np.argsort(l)[::-1]; l, Qq = l[oo], Qq[:, oo]
+    print(f&quot;  {tag:18s} PC1 loading on feature 0 = {abs(Qq[0,0]):.4f}&quot;
+          f&quot;   explained by PC1 = {l[0]/l.sum():.2%}&quot;)
+print(&quot;  Rescaling one feature hijacks PC1. Standardising restores balance.&quot;)
+print()
+
+# ---- PCA is blind to labels ----
+print(&quot;--- VARIANCE IS NOT DISCRIMINATION ---&quot;)
+lab = rng.integers(0, 2, n)
+Xd = rng.normal(size=(n, 2)) * np.array([8.0, 1.0])       # huge variance on axis 0
+Xd[:, 1] += 3.0*lab                                        # but the LABEL lives on axis 1
+Xdc = Xd - Xd.mean(0)
+ld, Qd = np.linalg.eigh(Xdc.T@Xdc/n); od = np.argsort(ld)[::-1]; ld, Qd = ld[od], Qd[:, od]
+for j in (0, 1):
+    s = Xdc @ Qd[:, j]
+    sep = abs(s[lab==1].mean() - s[lab==0].mean()) / s.std()
+    print(f&quot;  PC{j+1}: {ld[j]/ld.sum():6.1%} of variance,&quot;
+          f&quot;   class separation {sep:.3f} standard deviations&quot;)
+print(&quot;  PC1 holds almost all the variance and almost none of the signal.&quot;)
+print(&quot;  If you reduced to k=1 with PCA here, you would throw the label away.&quot;)
+"><div class="pyb-head"><span class="t">PCA from scratch, three ways, and a check that they agree</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py58')">Run</button><button class="btn ghost" onclick="resetPy('py58')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=4, suppress=True)
+
+# ---------------- data with a known 3-dimensional latent structure -------------
+n, d, k_true = 400, 12, 3
+W = rng.normal(size=(k_true, d))
+Zlat = rng.normal(size=(n, k_true)) * np.array([3.0, 2.0, 1.0])
+X = Zlat @ W + 0.4*rng.normal(size=(n, d)) + np.array([5.0]*d)   # note the offset
+
+Xc = X - X.mean(0)                      # CENTRE. always.
+S = Xc.T @ Xc / n
+
+# ---- method 1: eigendecomposition of the covariance ----
+lam, Q = np.linalg.eigh(S)
+o = np.argsort(lam)[::-1]; lam, Q = lam[o], Q[:, o]
+
+# ---- method 2: SVD of the centred data ----
+U, sv, Vt = np.linalg.svd(Xc, full_matrices=False)
+lam_svd = sv**2 / n
+V = Vt.T
+
+print(&quot;eigenvalues (eigh):&quot;, lam[:6])
+print(&quot;sigma^2/n  (svd) :&quot;, lam_svd[:6])
+print(&quot;agree?&quot;, np.allclose(lam, lam_svd, atol=1e-9))
+print(&quot;directions agree (up to sign)?&quot;,
+      np.allclose(np.abs(Q[:, :5]), np.abs(V[:, :5]), atol=1e-8))
+print()
+
+# ---- method 3: maximise the Rayleigh quotient by brute force, in 2-D ----
+print(&quot;--- BRUTE FORCE CHECK IN THE TOP 2-D SUBSPACE ---&quot;)
+X2 = Xc @ Q[:, :2]                                   # work in the PC1-PC2 plane
+S2 = X2.T @ X2 / n
+best = max(((np.array([np.cos(t), np.sin(t)]) @ S2 @ np.array([np.cos(t), np.sin(t)]), t)
+            for t in np.linspace(0, np.pi, 20001)))
+print(f&quot;  best projected variance over a fine angle sweep: {best[0]:.6f}&quot;)
+print(f&quot;  lambda_1 from the eigendecomposition:            {lam[0]:.6f}&quot;)
+print(f&quot;  angle found: {np.degrees(best[1]):.3f} deg  (0 deg = PC1, as expected)&quot;)
+print()
+
+# ---- reconstruction error IS the discarded eigenvalue sum ----
+print(&quot;--- RECONSTRUCTION ERROR = SUM OF DISCARDED EIGENVALUES ---&quot;)
+print(f&quot;{&#x27;k&#x27;:&gt;3} {&#x27;explained&#x27;:&gt;11} {&#x27;measured err&#x27;:&gt;14} {&#x27;sum_{j&gt;k} lam&#x27;:&gt;15}&quot;)
+for kk in (1, 2, 3, 4, 6, 12):
+    Uk = Q[:, :kk]
+    recon = Xc @ Uk @ Uk.T
+    err = float(np.mean(np.sum((Xc - recon)**2, axis=1)))
+    print(f&quot;{kk:3d} {lam[:kk].sum()/lam.sum():10.2%} {err:14.6f} {lam[kk:].sum():15.6f}&quot;)
+print(&quot;  Exact, at every k. Eckart-Young in numbers.&quot;)
+print()
+
+# ---- PCA beats every random subspace ----
+print(&quot;--- IS THE TOP-k SUBSPACE REALLY OPTIMAL? ---&quot;)
+for kk in (1, 3, 5):
+    Uk = Q[:, :kk]
+    best_err = float(np.mean(np.sum((Xc - Xc@Uk@Uk.T)**2, axis=1)))
+    rand_best = min(
+        float(np.mean(np.sum((Xc - Xc@R@R.T)**2, axis=1)))
+        for R in (np.linalg.qr(rng.normal(size=(d, kk)))[0] for _ in range(3000)))
+    print(f&quot;  k={kk}  PCA {best_err:10.5f}   best of 3000 random subspaces {rand_best:10.5f}&quot;
+          f&quot;   {&#x27;PCA wins&#x27; if best_err &lt;= rand_best + 1e-9 else &#x27;PROBLEM&#x27;}&quot;)
+print()
+
+# ---- what happens if you forget to centre ----
+print(&quot;--- FORGETTING TO CENTRE ---&quot;)
+S_raw = X.T @ X / n
+lr, Qr = np.linalg.eigh(S_raw); o = np.argsort(lr)[::-1]; lr, Qr = lr[o], Qr[:, o]
+mean_dir = X.mean(0)/np.linalg.norm(X.mean(0))
+print(f&quot;  |cos angle between &#x27;PC1&#x27; and the data mean| = {abs(Qr[:,0] @ mean_dir):.4f}&quot;)
+print(f&quot;  first eigenvalue: centred {lam[0]:.3f}   uncentred {lr[0]:.3f}&quot;)
+print(&quot;  Uncentred, the top component just points at the mean. Useless.&quot;)
+print()
+
+# ---- whitening ----
+print(&quot;--- WHITENING ---&quot;)
+Zw = (Xc @ Q[:, :5]) / np.sqrt(lam[:5])
+print(&quot;  covariance of the whitened scores (should be the identity):&quot;)
+print(np.round(Zw.T @ Zw / n, 6))
+print()
+
+# ---- standardise or not? ----
+print(&quot;--- SCALE SENSITIVITY ---&quot;)
+Xs = X.copy(); Xs[:, 0] *= 1000.0
+for tag, M in ((&quot;original&quot;, X), (&quot;feature 0 x1000&quot;, Xs), (&quot;standardised&quot;, (Xs-Xs.mean(0))/Xs.std(0))):
+    Mc = M - M.mean(0)
+    l, Qq = np.linalg.eigh(Mc.T@Mc/n); oo = np.argsort(l)[::-1]; l, Qq = l[oo], Qq[:, oo]
+    print(f&quot;  {tag:18s} PC1 loading on feature 0 = {abs(Qq[0,0]):.4f}&quot;
+          f&quot;   explained by PC1 = {l[0]/l.sum():.2%}&quot;)
+print(&quot;  Rescaling one feature hijacks PC1. Standardising restores balance.&quot;)
+print()
+
+# ---- PCA is blind to labels ----
+print(&quot;--- VARIANCE IS NOT DISCRIMINATION ---&quot;)
+lab = rng.integers(0, 2, n)
+Xd = rng.normal(size=(n, 2)) * np.array([8.0, 1.0])       # huge variance on axis 0
+Xd[:, 1] += 3.0*lab                                        # but the LABEL lives on axis 1
+Xdc = Xd - Xd.mean(0)
+ld, Qd = np.linalg.eigh(Xdc.T@Xdc/n); od = np.argsort(ld)[::-1]; ld, Qd = ld[od], Qd[:, od]
+for j in (0, 1):
+    s = Xdc @ Qd[:, j]
+    sep = abs(s[lab==1].mean() - s[lab==0].mean()) / s.std()
+    print(f&quot;  PC{j+1}: {ld[j]/ld.sum():6.1%} of variance,&quot;
+          f&quot;   class separation {sep:.3f} standard deviations&quot;)
+print(&quot;  PC1 holds almost all the variance and almost none of the signal.&quot;)
+print(&quot;  If you reduced to k=1 with PCA here, you would throw the label away.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>A covariance matrix has eigenvalues \(\{40, 25, 20, 10, 4, 1\}\).</p>
+  <ol><li>What fraction of variance do the first two components explain?</li>
+  <li>How many components for 90%?</li>
+  <li>What is the reconstruction error at \(k=3\), and what is the total variance?</li>
+  <li>Would you call this a low-dimensional dataset?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex59',this)">Show solution</button></div><div class="rev-body" id="ex59"><p><strong>1.</strong> Total \(=40+25+20+10+4+1=100\). First two: \(65/100 = \mathbf{65\%}\).</p>
+  <p><strong>2.</strong> Cumulative: 40, 65, 85, 95, 99, 100. So \(k=4\) reaches 95%, and \(k=3\) only reaches
+  85%. <strong>Four components</strong> are needed for 90%.</p>
+  <p><strong>3.</strong> Reconstruction error at \(k=3\) is \(\sum_{j>3}\lambda_j = 10+4+1 = \mathbf{15}\), which
+  is 15% of the total variance \(\tr(\mS)=\mathbf{100}\). (Total variance is the trace, which equals the sum of
+  the eigenvalues — Phase A Lecture 11.)</p>
+  <p><strong>4. No, not really.</strong> The spectrum decays slowly: 40, 25, 20 are all comparable, and there is
+  no sharp elbow. Genuinely low-dimensional data looks like \(\{80, 15, 2, 1, 1, 1\}\) — a big gap and then a
+  flat floor. Here you need two-thirds of the components for 95% of the variance, which is barely a reduction.</p>
+  <p>What you can say: there is <em>some</em> structure (the top component is 40× the bottom one), and dropping
+  the last two costs 5%, which may well be worth it for denoising. But do not describe this as "the data is
+  really 2-dimensional".</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that the two derivations give the same answer, by showing directly that</p>
+  \[ \argmin_{\mU_k}\ \frac1n\sum_i\|\vx_i-\mU_k\mU_k^\top\vx_i\|^2 \;=\; \argmax_{\mU_k}\ \tr(\mU_k^\top\mS\mU_k). \]
+  <p>Then explain why \(\tr(\mS)=\sum_j\lambda_j\) is the "total variance", and what that means for the
+  interpretation of the explained-variance ratio.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex60',this)">Show solution</button></div><div class="rev-body" id="ex60"><p><strong>Equivalence.</strong> Let \(\mP=\mU_k\mU_k^\top\), which is a projection: \(\mP^2=\mP\) and
+  \(\mP^\top=\mP\). For each point, the projection and residual are orthogonal:</p>
+  \[(\mP\vx)^\top(\vx-\mP\vx) = \vx^\top\mP\vx - \vx^\top\mP^\top\mP\vx = \vx^\top\mP\vx-\vx^\top\mP\vx = 0,\]
+  <p>using \(\mP^\top\mP=\mP^2=\mP\). So Pythagoras gives \(\|\vx\|^2=\|\mP\vx\|^2+\|\vx-\mP\vx\|^2\).
+  Averaging over \(i\):</p>
+  \[\underbrace{\frac1n\sum_i\|\vx_i\|^2}_{=\,\tr(\mS),\ \text{fixed}} = \frac1n\sum_i\|\mP\vx_i\|^2 + J(\mU_k).\]
+  <p>The left-hand side does not involve \(\mU_k\), so minimising \(J\) is exactly maximising the middle term.
+  And \(\|\mP\vx\|^2 = \vx^\top\mU_k\mU_k^\top\vx = \|\mU_k^\top\vx\|^2\), whose average is
+  \(\tr(\mU_k^\top\mS\mU_k)\) by the cyclic property of the trace. ∎</p>
+
+  <p><strong>Why \(\tr(\mS)\) is the total variance.</strong> The diagonal entries \(S_{jj}\) are the individual
+  feature variances, so \(\tr(\mS)=\sum_j\Var(x_j)\). And the trace equals the sum of the eigenvalues (Phase A
+  Lecture 11's \(\lambda_1+\lambda_2=\tr\mA\), in general dimension). So</p>
+  \[\sum_{j}\Var(x_j) = \sum_j \lambda_j.\]
+  <p>The total variance is <em>invariant under rotation</em> — PCA redistributes it among orthogonal directions
+  without creating or destroying any. That is what makes the ratio \(\sum_{j\le k}\lambda_j/\sum_j\lambda_j\) a
+  meaningful "fraction explained": the denominator is a conserved quantity.</p>
+
+  <p><strong>The interpretive caveat.</strong> It is a fraction of <em>variance</em>, not a fraction of
+  <em>information</em>, and the two come apart badly in at least three ways. If you standardised, every feature
+  contributes exactly 1 to the total, so \(\tr(\mS)=d\) and the ratio partly reflects your standardisation
+  choice. If a feature is pure noise with large amplitude, it inflates the denominator and makes every ratio
+  look worse. And if the signal you care about is a low-variance direction (the last figure in the code block),
+  a component explaining 2% of the variance may carry 100% of what matters. "95% of variance explained" is a
+  statement about geometry, never about utility.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p><strong>Whitening.</strong> Define \(\vz_i = \Lambda_k^{-1/2}\mQ_k^\top\vx_i\).</p>
+  <ol><li>Show the whitened data has identity covariance.</li>
+  <li>Why is whitening useful before another algorithm? Give two concrete reasons using Phase A results.</li>
+  <li>Why is whitening dangerous when the spectrum has very small eigenvalues?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex61',this)">Show solution</button></div><div class="rev-body" id="ex61"><p><strong>1.</strong> The covariance of the whitened scores is</p>
+  \[\frac1n\sum_i \vz_i\vz_i^\top = \Lambda_k^{-1/2}\mQ_k^\top\left(\frac1n\sum_i\vx_i\vx_i^\top\right)\mQ_k\Lambda_k^{-1/2}
+   = \Lambda_k^{-1/2}\big(\mQ_k^\top\mS\mQ_k\big)\Lambda_k^{-1/2}.\]
+  <p>Since the columns of \(\mQ_k\) are eigenvectors, \(\mS\mQ_k=\mQ_k\Lambda_k\), so
+  \(\mQ_k^\top\mS\mQ_k=\Lambda_k\). Hence the covariance is
+  \(\Lambda_k^{-1/2}\Lambda_k\Lambda_k^{-1/2}=\mI_k\). ∎ (\(\Lambda_k^{-1/2}\) exists because the retained
+  eigenvalues are positive.)</p>
+
+  <p><strong>2. Two reasons, both from Phase A.</strong></p>
+  <p><em>Conditioning.</em> After whitening the covariance is \(\mI\), so \(\kappa=1\). By Lecture 03,
+  gradient descent then converges in \(O(1)\) iterations instead of \(O(\kappa)\), and the zig-zag disappears
+  entirely. Whitening is the strongest possible preconditioner for a quadratic problem — it <em>is</em> the
+  Newton step, applied to the data instead of the gradient.</p>
+  <p><em>Isotropic distance.</em> Euclidean distance in whitened space equals Mahalanobis distance in the
+  original space (Phase A Lecture 14, exercise 3). Any algorithm that uses raw distances — \(k\)-means,
+  \(k\)-NN, RBF kernels — is implicitly assuming isotropy, and whitening makes that assumption true.</p>
+
+  <p><strong>3. The danger.</strong> Whitening divides by \(\sqrt{\lambda_j}\). A direction with
+  \(\lambda_j\approx0\) is one in which the data barely varies at all — which usually means it is pure
+  measurement noise. Dividing by a tiny number <em>amplifies that noise</em> to the same scale as the genuine
+  signal, and can amplify it by orders of magnitude.</p>
+  <p>Concretely, with \(\lambda_{\min}=10^{-6}\) and \(\lambda_{\max}=1\), whitening multiplies the noisiest
+  direction by 1000 relative to the strongest. You have "improved" the conditioning from \(10^6\) to \(1\) by
+  promoting noise to first-class status.</p>
+  <p>The standard fixes: whiten only the top \(k\) components (discarding the rest, as the formula above does);
+  or use \(\Lambda^{-1/2}\) with a floor, \((\Lambda+\epsilon\mI)^{-1/2}\), which is ridge regularisation
+  applied to whitening. This is exactly the same trade-off as Lecture 06's shrinkage factors, viewed from the
+  other side — there we <em>shrank</em> small-eigenvalue directions, here we must be careful not to
+  <em>inflate</em> them.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Investigate when PCA helps a downstream classifier and when it hurts.</p>
+  <ol>
+  <li>Build a dataset in \(\RR^{50}\) where the class signal lies in a <em>high</em>-variance direction. Fit
+  logistic regression on the top \(k\) components for \(k=1,\dots,50\) and plot test accuracy against \(k\).</li>
+  <li>Now build one where the signal lies in a <em>low</em>-variance direction. Repeat.</li>
+  <li>Compare against LDA, which uses the labels, on both.</li>
+  <li>State the rule for when unsupervised dimensionality reduction is safe.</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex62',this)">Show solution</button></div><div class="rev-body" id="ex62"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+sig = lambda z: 1/(1+np.exp(-np.clip(z,-500,500)))
+
+def logistic(X, y, T=3000, lr=0.3, lam=1e-3):
+    Xb = np.column_stack([np.ones(len(y)), X]); w = np.zeros(Xb.shape[1])
+    for _ in range(T):
+        g = Xb.T @ (sig(Xb@w) - y) / len(y); g[1:] += lam*w[1:]
+        w -= lr*g
+    return w
+def acc(X, y, w):
+    return float((( sig(np.column_stack([np.ones(len(y)),X])@w) &gt;= .5) == y).mean())
+
+def make(kind, n=1500, d=50, seed=0):
+    r = np.random.default_rng(seed)
+    y = r.integers(0, 2, n).astype(float)
+    scales = np.logspace(1, -1, d)                 # variance 10 down to 0.1
+    X = r.normal(size=(n, d)) * scales
+    j = 0 if kind == "high" else d-1               # which direction carries the label
+    X[:, j] += 2.0*scales[j]*(2*y-1)
+    return X, y
+
+for kind in ("high", "low"):
+    Xtr, ytr = make(kind, seed=1); Xte, yte = make(kind, seed=2)
+    mu = Xtr.mean(0); Zc = Xtr - mu
+    l, Q = np.linalg.eigh(Zc.T@Zc/len(Zc)); o = np.argsort(l)[::-1]; l, Q = l[o], Q[:,o]
+    row = []
+    for k in (1, 2, 5, 10, 25, 50):
+        w = logistic(Zc@Q[:,:k], ytr)
+        row.append((k, acc((Xte-mu)@Q[:,:k], yte, w), l[:k].sum()/l.sum()))
+    print(f"signal in a {kind}-variance direction:")
+    for k, a, ev in row:
+        print(f"   k={k:3d}  test acc {a:.4f}   variance explained {ev:6.1%}")
+    # LDA direction: Sigma^-1 (mu1 - mu0)
+    m1, m0 = Xtr[ytr==1].mean(0), Xtr[ytr==0].mean(0)
+    Sw = np.cov(Xtr.T) + 1e-6*np.eye(Xtr.shape[1])
+    v = np.linalg.solve(Sw, m1-m0); v /= np.linalg.norm(v)
+    w = logistic((Xtr@v)[:,None], ytr)
+    print(f"   LDA, k=1               test acc {acc((Xte@v)[:,None], yte, w):.4f}\\n")</code></pre>
+
+  <p><strong>1. Signal in a high-variance direction.</strong> Accuracy is already near its ceiling at \(k=1\)
+  and stays flat as \(k\) grows. PCA has done exactly what you hoped: reduced 50 dimensions to 1 with no loss.
+  Note that \(k=1\) explains only a modest share of total variance and yet captures all the signal — variance
+  explained and accuracy are not the same axis.</p>
+
+  <p><strong>2. Signal in a low-variance direction.</strong> Accuracy at \(k=1\) is around chance, and stays
+  near chance until \(k\) approaches 50, at which point it jumps. The discriminative direction is the
+  <em>last</em> principal component, so any aggressive PCA truncation destroys the model. If you had followed
+  "keep 95% of the variance" you would have discarded the only useful direction and concluded the problem was
+  unlearnable.</p>
+
+  <p><strong>3. LDA</strong> gets near-ceiling accuracy with \(k=1\) in <em>both</em> cases, because
+  \(\mS_w^{-1}(\vm_1-\vm_0)\) is constructed from the labels: it finds the direction maximising between-class
+  separation relative to within-class scatter, wherever that direction happens to sit in the spectrum. This is
+  not magic — it is simply using information PCA is not given.</p>
+
+  <p><strong>4. The rule.</strong> <em>Unsupervised dimensionality reduction is safe exactly when the variance
+  structure of the inputs is aligned with the structure of the target — and you cannot check that without
+  looking at the target.</em></p>
+  <p>Practical consequences:</p>
+  <ul>
+  <li>If you have labels, <strong>choose \(k\) by cross-validating the downstream metric</strong>, never by a
+  variance threshold. The variance threshold is a heuristic for the case where you have no other criterion.</li>
+  <li>PCA's real strengths are noise reduction, decorrelation, conditioning, visualisation and compression —
+  all of which are about the inputs alone and are not compromised by label-blindness.</li>
+  <li>If you specifically want a supervised projection, use LDA, partial least squares, or simply let a
+  neural network learn its own first layer, which is a supervised dimensionality reduction.</li>
+  <li>Whatever you choose, <strong>fit PCA on the training split only</strong> — fitting it on all the data is
+  Lecture 01's preprocessing leak.</li>
+  </ul></div></div></div>
+<hr>
+<p><strong>Next:</strong> PCA finds directions. Lecture 09 finds <em>groups</em> — k-means, its
+probabilistic upgrade to Gaussian mixtures, and the EM algorithm that fits them, which is one of the most
+reused ideas in the subject.</p>
+<div class="pagenav"><a href="07-bias-variance-evaluation.html" class="pv"><span class="dir">Previous</span><span class="nm">7 · Bias, Variance, and Honest Evaluation</span></a><a href="09-kmeans-and-mixtures.html" class="nx"><span class="dir">Next</span><span class="nm">9 · k-means, Gaussian Mixtures, and EM</span></a></div>
+</div>
+<script>initDone('08-pca');</script>
+</body>
+</html>

@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1. What a Function Really Is — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 1 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('01-what-a-function-is')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part I — The Language of Functions · Lecture 1</div>
+  <h1>What a Function Really Is</h1>
+  <p class="dek">Every model you will ever train is a function. Before we can talk about learning one, we have to be ruthless about what the word means — and the part almost everyone skips is that a function is not just a formula.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>State the formal definition of a function and say why \(\text{domain}\) is part of the object, not an afterthought</li><li>Compute the domain of an expression and justify each exclusion</li><li>Decide whether a function is injective, surjective, bijective — and therefore invertible</li><li>Read \(g \circ f\) as a pipeline, which is exactly what a neural network is</li><li>Represent a function in NumPy and see what happens when you feed it inputs outside its domain</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Basic algebra: expanding, factoring, solving linear and quadratic equations</li><li>Comfort reading set notation, or willingness to learn it in the next five minutes</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Why we begin here</h2>
+<p>Supervised machine learning has a one-sentence summary: <em>we are searching for a function.</em>
+We have inputs \(\vx\) (pixels, words, sensor readings), we want outputs \(y\) (a label, a price, the next token),
+and we believe some function \(f\) maps one to the other. Training is the search. Everything else — gradients,
+loss functions, backpropagation — is machinery for conducting that search efficiently.</p>
+<p>So the object at the centre of the entire field is the function. It is worth two hours of your life
+to know exactly what one is. And I mean <em>exactly</em>, because the sloppy version — "a function is a formula
+like \(f(x)=x^2\)" — is the source of a specific class of error that will bite you in probability, in
+optimisation, and in numerical code.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>A function is a <strong>machine with a contract</strong>. The contract says: give me any object
+from <em>this</em> set, and I promise to return exactly one object from <em>that</em> set. The contract is
+part of the machine. A machine that only accepts positive numbers is a <em>different machine</em> from one
+that accepts all numbers, even if they compute the same arithmetic where both are defined.</p></div>
+<h2 id="s2"><span class="secnum">2</span>The definition</h2>
+<p>We build it from sets. A set is just a collection of distinct objects; \(x \in A\) means
+"\(x\) is a member of \(A\)". The sets we will use constantly:</p>
+<ul><li>\(\NN = \{0,1,2,3,\dots\}\) — the natural numbers</li><li>\(\ZZ = \{\dots,-2,-1,0,1,2,\dots\}\) — the integers</li><li>\(\RR\) — the real numbers, the whole continuous line</li><li>\(\RR^d\) — the set of ordered lists of \(d\) real numbers. This is where your data lives.</li></ul>
+<div class="box defn"><span class="lbl">Definition — function</span><p>Let \(A\) and \(B\) be sets. A <strong>function</strong>
+\(f\) from \(A\) to \(B\), written</p>
+\[ f : A \to B, \]
+<p>is a rule that assigns to <strong>every</strong> element \(a \in A\) <strong>exactly one</strong> element
+\(f(a) \in B\).</p>
+<ul>
+<li>\(A\) is the <strong>domain</strong> — the set of legal inputs.</li>
+<li>\(B\) is the <strong>codomain</strong> — the set the outputs are declared to live in.</li>
+<li>The <strong>image</strong> (or range) is \(f(A) = \{\, f(a) : a \in A \,\} \subseteq B\) — the outputs
+actually achieved.</li>
+</ul></div>
+<p>Two words in that definition are doing all the work, and you should underline them:</p>
+<ol><li><strong>every</strong> — the rule must be defined at <em>every single point</em> of \(A\). No exceptions, no gaps. This is called being <em>total</em>.</li><li><strong>exactly one</strong> — no input is allowed to produce two different outputs. This is called being <em>well-defined</em> or <em>single-valued</em>.</li></ol>
+<p>The second condition is the one you may already know as the <em>vertical line test</em>: if a vertical
+line crosses the graph twice, the picture is not the graph of a function. But notice the test is a
+<em>consequence</em> of the definition, not the definition itself. The definition works for functions between
+any sets at all, including sets you cannot draw.</p>
+<div class="fig"><div class="fig-head">Which of these relations is a function?<span class="tag">Interactive</span></div><canvas id="f1relation" data-h="330"></canvas><div class="ctrls"><div class="ctrl"><label>Relation</label><input type="range" min="0" max="2" step="1" value="0" data-fmt="0" oninput="figSlide('f1relation','which',this)"><output>0</output></div></div><div class="fig-cap">Arrows go from the domain set A on the left to the codomain set B on the right. Slide to inspect each relation. Ask two questions every time: does every left dot have an arrow leaving it? Does any left dot have two arrows leaving it?</div></div><script>makeFig("f1relation",function(vp,p,F){
+var c=vp.ctx,W=vp.W,H=vp.H; c.clearRect(0,0,W,H);
+var ink=vp.css('--ink'), ink2=vp.css('--ink2'), ink3=vp.css('--ink3'), line=vp.css('--line2');
+var ok=vp.css('--ok'), bad=vp.css('--bad'), acc=vp.css('--c1');
+var A=['1','2','3'], B=['a','b','c','d'];
+var rels=[ [[0,0],[1,1],[2,2]],
+           [[0,0],[1,1],[2,1]],
+           [[0,0],[0,2],[1,1],[2,3]] ];
+var verdicts=[
+  ['FUNCTION','Every element of A has exactly one arrow out.',ok],
+  ['FUNCTION','Two inputs may share an output. That is allowed — it is one arrow OUT per input, not one arrow IN per output.',ok],
+  ['NOT A FUNCTION','Input 1 has two arrows leaving it, so f(1) is not a single well-defined value.',bad] ];
+var r=rels[Math.round(p.which)], v=verdicts[Math.round(p.which)];
+var ax=W*0.30, bx=W*0.70, top=54, gap=44;
+function ay(i){return top+i*gap+30;}
+function by(i){return top+i*gap+8;}
+c.save();
+c.strokeStyle=line; c.lineWidth=1.4;
+function oval(cx,cy,rw,rh){c.beginPath();c.ellipse(cx,cy,rw,rh,0,0,6.2832);c.stroke();}
+oval(ax,ay(1),52,80); oval(bx,by(1.5),52,96);
+c.fillStyle=ink3; c.font='600 12px -apple-system,Segoe UI,sans-serif'; c.textAlign='center';
+c.fillText('A  (domain)',ax,ay(1)-92); c.fillText('B  (codomain)',bx,by(1.5)-108);
+c.strokeStyle=acc; c.fillStyle=acc; c.lineWidth=1.8;
+for(var k=0;k<r.length;k++){
+  var x1=ax+16,y1=ay(r[k][0]), x2=bx-16,y2=by(r[k][1]);
+  var ang=Math.atan2(y2-y1,x2-x1);
+  c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2-8*Math.cos(ang),y2-8*Math.sin(ang)); c.stroke();
+  c.beginPath(); c.moveTo(x2,y2);
+  c.lineTo(x2-11*Math.cos(ang-0.4),y2-11*Math.sin(ang-0.4));
+  c.lineTo(x2-11*Math.cos(ang+0.4),y2-11*Math.sin(ang+0.4));
+  c.closePath(); c.fill();
+}
+c.font='15px -apple-system,Segoe UI,sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+for(var i=0;i<A.length;i++){
+  var deg=0; for(var k=0;k<r.length;k++) if(r[k][0]===i) deg++;
+  c.fillStyle=(deg===1)?ink:bad;
+  c.beginPath(); c.arc(ax,ay(i),5,0,6.2832); c.fill();
+  c.fillText(A[i],ax-22,ay(i));
+}
+c.fillStyle=ink;
+for(var i=0;i<B.length;i++){
+  c.beginPath(); c.arc(bx,by(i),5,0,6.2832); c.fill();
+  c.fillText(B[i],bx+22,by(i));
+}
+c.textAlign='left'; c.textBaseline='top';
+c.fillStyle=v[2]; c.font='700 14px -apple-system,Segoe UI,sans-serif';
+c.fillText(v[0],20,H-46);
+c.fillStyle=ink2; c.font='12.5px -apple-system,Segoe UI,sans-serif';
+var words=v[1].split(' '),ln='',yy=H-26;
+for(var i=0;i<words.length;i++){var t=ln+words[i]+' ';
+  if(c.measureText(t).width>W-40){c.fillText(ln,20,yy);ln=words[i]+' ';yy+=16;}else ln=t;}
+c.fillText(ln,20,yy);
+c.restore();
+},[{"name": "which", "label": "Relation", "min": 0, "max": 2, "step": 1, "value": 0, "dp": 0}]);window["FIG_f1relation"].run();</script>
+<div class="quiz" id="q1"><div class="qlbl">Check yourself</div><div class="qq">Consider the rule "\(f(x) = \) a number whose square is \(x\)", proposed as a function \(f:\RR\to\RR\).
+What is wrong with it? (There is more than one defect — pick the <em>most</em> fundamental one.)</div><button class="qopt" data-ok="1" onclick="pick('q1',0,true)">It fails at \(x=4\), because both \(2\) and \(-2\) square to \(4\), so the output is not a single value.</button><button class="qopt" data-ok="0" onclick="pick('q1',1,false)">It fails at \(x=-1\), because no real number squares to \(-1\).</button><button class="qopt" data-ok="0" onclick="pick('q1',2,false)">Nothing is wrong; \(f(x)=\pm\sqrt{x}\) is a perfectly ordinary function.</button><div class="qwhy" data-i="0"><b>Correct.</b> This is a violation of <em>exactly one</em> — the rule is not well-defined. It is also true that it fails
+    for negative \(x\), but that is a totality problem you could fix by shrinking the domain. The two-valuedness is
+    the deeper defect: it means the rule is not a function at all, it is a <em>relation</em>. The standard repair is
+    to <em>choose</em> a branch: we define \(\sqrt{x}\) to mean the non-negative root, which is a genuine function
+    \(\sqrt{\;\cdot\;}:[0,\infty)\to[0,\infty)\).</div><div class="qwhy" data-i="1"><b>Not quite.</b> True, and a real problem — the rule is not <em>total</em> on \(\RR\). But this defect is repairable by
+    declaring the domain to be \([0,\infty)\). The two-valuedness at \(x=4\) is not repairable by shrinking the
+    domain, so it is the more fundamental failure.</div><div class="qwhy" data-i="2"><b>Not quite.</b> The notation \(\pm\sqrt{x}\) is shorthand for a <em>set</em> of two numbers, not a single number.
+    A function must return exactly one element of the codomain. \(\pm\sqrt{x}\) is a function into the set of
+    <em>subsets</em> of \(\RR\) — a different and more exotic object.</div></div>
+<h2 id="s3"><span class="secnum">3</span>The domain is part of the function</h2>
+<p>Here is the idea that most courses mention once and never return to, and that quietly causes
+real errors later. <strong>Changing the domain changes the function.</strong> The two objects</p>
+<p>\[f:\RR\to\RR,\quad f(x)=x^2 \qquad\text{and}\qquad g:[0,\infty)\to\RR,\quad g(x)=x^2\]</p>
+<p>are <em>not the same function</em>, even though the formula is identical. They have different graphs,
+different images, and — as we will see — one of them has an inverse and the other does not.</p>
+<p>When you are handed a bare formula with no domain stated, the convention is to take the
+<strong>natural domain</strong>: the largest subset of \(\RR\) on which every operation in the formula is defined.
+In practice there are exactly three things to check, and you should check them mechanically, every time:</p>
+<ol><li><strong>Division.</strong> A denominator may not be zero. Exclude every root of the denominator.</li><li><strong>Even roots.</strong> \(\sqrt{u}\), \(\sqrt[4]{u}\), … require \(u \ge 0\) over the reals.</li><li><strong>Logarithms.</strong> \(\log_b(u)\) requires \(u > 0\), strictly. Not \(\ge 0\) — strictly greater.</li></ol>
+<div class="box warn"><span class="lbl">Common trap</span><p>The third one is the one that catches people, and I am flagging it now because we will
+prove it properly in Lecture 2. It is tempting to think \(\log_2(-2)\) "should" be \(-1\), by some kind of
+sign symmetry with \(\log_2(2)=1\). It is not. There is no real number it equals. We will see exactly why by
+going back to the definition of a logarithm rather than to its rules — and the reason is the single most
+useful fact about exponentials in all of machine learning.</p></div>
+<div class="fig"><div class="fig-head">Natural domain of  f(x) = √(x − a) / (x − b)<span class="tag">Interactive</span></div><canvas id="f1domain" data-h="330"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f(x)</span><span><i style="background:var(--bad)"></i>excluded from the domain</span></div><div class="fig-read" id="f1domain-read"></div><div class="ctrls"><div class="ctrl"><label>a  (inside the square root)</label><input type="range" min="-4" max="4" step="0.1" value="-1" data-fmt="1" oninput="figSlide('f1domain','a',this)"><output>-1.0</output></div><div class="ctrl"><label>b  (root of the denominator)</label><input type="range" min="-4" max="4" step="0.1" value="2" data-fmt="1" oninput="figSlide('f1domain','b',this)"><output>2.0</output></div></div><div class="fig-cap">The red region is where the formula produces no real number. Notice that the excluded set is not a cosmetic detail — it is genuinely where the function does not exist. Slide b to the left of a and watch the puncture disappear, because it was never in the domain to begin with.</div></div><script>makeFig("f1domain",function(vp,p,F){
+vp.pads(44,16,14,32); vp.frame(-5,5,-4,6);
+var a=p.a,b=p.b;
+var c=vp.ctx;
+// shade x < a
+c.save(); c.globalAlpha=0.13; c.fillStyle=vp.css('--bad');
+c.fillRect(vp.X(-5),vp.pad.t,Math.max(0,vp.X(Math.min(a,5))-vp.X(-5)),vp.ph);
+c.restore();
+vp.axes();
+vp.curve(function(x){ if(x<a) return NaN; if(Math.abs(x-b)<1e-9) return NaN;
+                      return Math.sqrt(x-a)/(x-b); },'--c1');
+// vertical asymptote
+if(b>a){ vp.seg(b,-4,b,6,'--bad',{dash:[5,4],w:1.6});
+         vp.label(b,5.4,'x = '+b.toFixed(1),'--bad',{dx:5,halo:true,bold:true}); }
+vp.seg(a,-4,a,6,'--c4',{dash:[3,3],w:1.4});
+vp.label(a,-3.4,'x = '+a.toFixed(1),'--c4',{dx:5,halo:true,bold:true});
+var s='Domain = [ '+a.toFixed(1)+' , ∞ )';
+if(b>a) s+='  \\  { '+b.toFixed(1)+' }   →   need x ≥ '+a.toFixed(1)+' for the root, and x ≠ '+b.toFixed(1)+' for the denominator';
+else    s+='   →   the denominator vanishes at '+b.toFixed(1)+', which is already outside the root\'s domain, so nothing extra is removed';
+figRead('f1domain',s);
+},[{"name": "a", "label": "a  (inside the square root)", "min": -4, "max": 4, "step": 0.1, "value": -1, "dp": 1}, {"name": "b", "label": "b  (root of the denominator)", "min": -4, "max": 4, "step": 0.1, "value": 2, "dp": 1}]);window["FIG_f1domain"].run();</script>
+<div class="rev"><div class="rlbl">Try it before you read on</div>Write down the natural domain of each, in interval notation, and state which of the three checks
+you used for each exclusion:
+<p style="margin-top:10px">(a) \(\displaystyle h(x)=\frac{x+3}{x^2-4}\) &nbsp;&nbsp;&nbsp;
+(b) \(\displaystyle k(x)=\sqrt{5-x}\) &nbsp;&nbsp;&nbsp;
+(c) \(\displaystyle m(x)=\log(x^2-9)\)</p><div style="margin-top:12px"><button class="btn ghost" data-show="Show the answers" onclick="rev('r2',this)">Show the answers</button></div><div class="rev-body" id="r2"><p><strong>(a)</strong> \(x^2-4=(x-2)(x+2)=0\) at \(x=\pm2\). Division check.
+\(\;\text{dom}(h)=\RR\setminus\{-2,2\}=(-\infty,-2)\cup(-2,2)\cup(2,\infty)\).</p>
+<p><strong>(b)</strong> Even root check: need \(5-x\ge 0\), i.e. \(x\le 5\).
+\(\;\text{dom}(k)=(-\infty,5]\). Note the bracket is <em>closed</em> at 5 — \(\sqrt{0}=0\) is perfectly legal.</p>
+<p><strong>(c)</strong> Logarithm check: need \(x^2-9>0\), i.e. \((x-3)(x+3)>0\). A product of two factors is
+positive when both are positive (\(x>3\)) or both are negative (\(x&lt;-3\)).
+\(\;\text{dom}(m)=(-\infty,-3)\cup(3,\infty)\). The interval is <em>open</em>, because \(\log(0)\) is undefined too.
+If you wrote \(x^2-9\ge 0\) you made exactly the error I warned about above.</p></div></div>
+<h2 id="s4"><span class="secnum">4</span>Injective, surjective, bijective</h2>
+<p>The definition demands one arrow <em>out</em> of every domain element. It says nothing about
+arrows <em>into</em> codomain elements. Classifying what happens on the receiving end gives us three properties
+that decide, among other things, whether a function can be undone.</p>
+<div class="box defn"><span class="lbl">Definition — injective, surjective, bijective</span><p>Let \(f:A\to B\).</p>
+<ul>
+<li>\(f\) is <strong>injective</strong> (one-to-one) if distinct inputs give distinct outputs:
+\(\;a_1 \neq a_2 \Rightarrow f(a_1)\neq f(a_2)\). Equivalently, and usually easier to use in proofs:
+\(\;f(a_1)=f(a_2) \Rightarrow a_1=a_2\). <em>At most one arrow in.</em></li>
+<li>\(f\) is <strong>surjective</strong> (onto) if every \(b\in B\) is hit: \(\;f(A)=B\).
+<em>At least one arrow in.</em></li>
+<li>\(f\) is <strong>bijective</strong> if it is both. <em>Exactly one arrow in.</em></li>
+</ul></div>
+<p>Notice that surjectivity depends on how you declared the codomain, which is a choice.
+\(f:\RR\to\RR,\;f(x)=x^2\) is not surjective (nothing maps to \(-1\)). But \(f:\RR\to[0,\infty),\;f(x)=x^2\)
+<em>is</em> surjective, with the same formula. This is the domain lesson again, wearing a different hat: the
+sets are part of the object.</p>
+<div class="quiz" id="q3"><div class="qlbl">Check yourself</div><div class="qq">Let \(f:\RR\to\RR\) be \(f(x)=x^3-3x\). Is it injective?</div><button class="qopt" data-ok="1" onclick="pick('q3',0,true)">No — for instance \(f(0)=0\) and \(f(\sqrt{3})=0\), two different inputs with the same output.</button><button class="qopt" data-ok="0" onclick="pick('q3',1,false)">Yes — every cubic is injective, because odd-degree polynomials are strictly increasing.</button><button class="qopt" data-ok="0" onclick="pick('q3',2,false)">Yes — it passes the vertical line test.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct, and the counterexample is the right kind of proof: to <em>disprove</em> injectivity you only
+    need one collision. Check it: \(f(0)=0-0=0\), and \(f(\sqrt3)=3\sqrt3-3\sqrt3=0\). Also \(f(-\sqrt3)=0\).
+    Three inputs, one output. The cubic wiggles, and any horizontal line through the wiggle is crossed
+    three times.</div><div class="qwhy" data-i="1"><b>Not quite.</b> Every odd-degree polynomial is <em>surjective</em> onto \(\RR\) (it runs from \(-\infty\) to \(+\infty\)
+    and is continuous), but it need not be increasing. \(f'(x)=3x^2-3\) is negative on \((-1,1)\), so \(f\) decreases
+    there. \(x^3\) alone is injective; \(x^3-3x\) is not.</div><div class="qwhy" data-i="2"><b>Not quite.</b> The vertical line test checks whether the graph <em>is a function</em> at all. Injectivity is tested by
+    the <em>horizontal</em> line test: if any horizontal line meets the graph more than once, two inputs share an
+    output and the function is not injective.</div></div>
+<h2 id="s5"><span class="secnum">5</span>Inverses, and why they need injectivity</h2>
+<p>To "undo" \(f\) means to find \(f^{-1}\) with \(f^{-1}(f(a))=a\) for every \(a\in A\), and
+\(f(f^{-1}(b))=b\) for every \(b\in B\). Ask when this is possible.</p>
+<div class="deriv" id="d4"><div class="deriv-head"><span class="t">Why an inverse exists exactly when f is bijective</span><span class="ct">0 / 4</span></div><div class="dstep">\[f^{-1}(b) = \text{the } a \in A \text{ such that } f(a)=b\]<div class="why"><b>The only possible definition.</b> If \(f^{-1}\) is to undo \(f\), then given an output \(b\), it must return the input that produced it. There is nothing else it could return. So the whole question is whether this phrase describes a legal function.</div></div><div class="dstep">\[\text{Total: } \forall b \in B,\ \exists a \in A \text{ with } f(a)=b\]<div class="why"><b>First requirement of a function.</b> \(f^{-1}\) must be defined at <em>every</em> point of its domain, which is \(B\). So every \(b\) needs <em>at least one</em> preimage. That is precisely the statement that \(f\) is <strong>surjective</strong>.</div></div><div class="dstep">\[\text{Well-defined: } f(a_1)=f(a_2)=b \Rightarrow a_1 = a_2\]<div class="why"><b>Second requirement of a function.</b> \(f^{-1}(b)\) must be a <em>single</em> value. If two different inputs both produced \(b\), the phrase \"the \(a\) such that \(f(a)=b\)\" is ambiguous — exactly the defect we saw in the first quiz. Ruling this out is precisely the statement that \(f\) is <strong>injective</strong>.</div></div><div class="dstep">\[f \text{ invertible} \iff f \text{ injective and surjective} \iff f \text{ bijective}\]<div class="why"><b>Conclusion.</b> The two requirements of being a function, applied to \(f^{-1}\), translate one-for-one into injectivity and surjectivity of \(f\). Nothing else was needed. This is a small proof but it is a genuine one: we did not appeal to graphs or intuition at any step.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d4')">Next step</button><button class="btn ghost" onclick="dall('d4')">Show all</button><button class="btn ghost" onclick="dreset('d4')">Reset</button></div></div>
+<p>Geometrically, \(f^{-1}\) swaps the roles of input and output, so its graph is the graph of \(f\)
+<strong>reflected across the line \(y=x\)</strong>. That gives a fast visual test: reflect the curve; if the
+reflection fails the vertical line test, \(f\) was not injective and has no inverse.</p>
+<div class="fig"><div class="fig-head">Reflect  f(x) = x²  across  y = x  — restrict the domain until an inverse exists<span class="tag">Interactive</span></div><canvas id="f1inv" data-h="380"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f on its restricted domain</span><span><i style="background:var(--c3)"></i>reflection across y = x</span><span><i style="background:var(--ink3)"></i>y = x</span></div><div class="fig-read" id="f1inv-read"></div><div class="ctrls"><div class="ctrl"><label>restrict domain to  x ≥ d</label><input type="range" min="-3" max="2" step="0.05" value="-3" data-fmt="2" oninput="figSlide('f1inv','d',this)"><output>-3.00</output></div><div class="ctrl"><label>test height  y</label><input type="range" min="0" max="8" step="0.05" value="4" data-fmt="2" oninput="figSlide('f1inv','probe',this)"><output>4.00</output></div><div class="ctrl-check"><input type="checkbox" id="f1inv-showtest" checked onchange="figCheck('f1inv','showtest',this)"><label for="f1inv-showtest">show the horizontal / vertical line test</label></div></div><div class="fig-cap">Blue is f restricted to x ≥ d. Green is that curve reflected across the dashed diagonal. While d < 0 the green reflection is a sideways parabola: a vertical line crosses it twice, so the reflection is not a function and f has no inverse. Push d up to 0 and the reflection becomes y = √x.</div></div><script>makeFig("f1inv",function(vp,p,F){
+vp.pads(40,16,14,30); vp.frame(-3.2,8.2,-3.2,8.2);
+vp.axes({stepx:2,stepy:2});
+var d=p.d, y0=p.probe;
+vp.seg(-3.2,-3.2,8.2,8.2,'--ink3',{dash:[5,5],w:1.4});
+vp.label(7.0,7.3,'y = x','--ink3',{halo:true});
+// f restricted
+vp.curve(function(x){ return (x>=d)? x*x : NaN; },'--c1',{w:2.6});
+// reflection: x = y^2 for y>=d  ->  parametric
+var c=vp.ctx; c.save(); c.strokeStyle=vp.css('--c3'); c.lineWidth=2.6; c.lineJoin='round';
+c.beginPath(); var started=false;
+for(var i=0;i<=500;i++){
+  var t=d+(3.0-d)*i/500;      // t plays the role of the original x
+  var X=t*t, Y=t;             // reflected point (f(t), t)
+  if(X<-3.2||X>8.2||Y<-3.2||Y>8.2){started=false;continue;}
+  if(!started){c.moveTo(vp.X(X),vp.Y(Y));started=true;} else c.lineTo(vp.X(X),vp.Y(Y));
+}
+c.stroke(); c.restore();
+if(p.showtest){
+  // horizontal line at height y0 on the blue curve  = vertical line at x=y0 on the green curve
+  vp.seg(-3.2,y0,8.2,y0,'--c2',{dash:[4,4],w:1.5});
+  vp.seg(y0,-3.2,y0,8.2,'--c2',{dash:[4,4],w:1.5});
+  var roots=[]; var s=Math.sqrt(y0);
+  if(y0>=0){ if(s>=d) roots.push(s); if(-s>=d && s>1e-9) roots.push(-s); }
+  for(var k=0;k<roots.length;k++){ vp.dot(roots[k],y0,'--c2',5.5); vp.dot(y0,roots[k],'--c2',5.5); }
+  var msg;
+  if(roots.length>1) msg='<b style="color:var(--bad)">'+roots.length+' solutions</b> to f(x) = '+y0.toFixed(2)+' with x ≥ '+d.toFixed(2)+'  →  f is NOT injective here, so no inverse exists.';
+  else if(roots.length===1) msg='<b style="color:var(--ok)">exactly 1 solution</b> to f(x) = '+y0.toFixed(2)+', namely x = '+roots[0].toFixed(3)+'  →  consistent with invertibility.';
+  else msg='no solution at this height — '+y0.toFixed(2)+' is outside the image of the restricted f.';
+  figRead('f1inv','d = '+d.toFixed(2)+',  y = '+y0.toFixed(2)+'   →   '+msg+(d>=0?'   Inverse: f⁻¹(y) = √y.':''));
+}else{ figRead('f1inv','d = '+d.toFixed(2)+(d>=0?'   →   f is injective on [d, ∞); the inverse is f⁻¹(y) = √y.':'   →   f is not injective on [d, ∞), because d < 0 lets ±x collide.')); }
+},[{"name": "d", "label": "restrict domain to  x \u2265 d", "min": -3, "max": 2, "step": 0.05, "value": -3, "dp": 2}, {"name": "probe", "label": "test height  y", "min": 0, "max": 8, "step": 0.05, "value": 4, "dp": 2}, {"name": "showtest", "label": "show the horizontal / vertical line test", "type": "check", "value": 1}]);window["FIG_f1inv"].run();</script>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>This is not a toy concern. Three examples you will meet within weeks:
+<ul>
+<li><strong>The sigmoid</strong> \(\sigma(z)=1/(1+e^{-z})\) is injective from \(\RR\) onto \((0,1)\), which is
+exactly why it has an inverse — the <em>logit</em> \(\log\frac{p}{1-p}\). Logistic regression lives on that
+correspondence.</li>
+<li><strong>Softmax</strong> is <em>not</em> injective: adding the same constant to every logit leaves the output
+unchanged. That redundancy is why softmax with \(K\) classes really has only \(K-1\) degrees of freedom, and why
+we can subtract the max for numerical stability without changing anything.</li>
+<li><strong>Normalising flows</strong> — a whole family of generative models — are built entirely out of
+deliberately-invertible neural networks, precisely so the change-of-variables formula can be applied.</li>
+</ul></p></div>
+<h2 id="s6"><span class="secnum">6</span>Composition: the shape of a neural network</h2>
+<p>Given \(f:A\to B\) and \(g:B\to C\), the <strong>composition</strong> \(g\circ f: A\to C\) is
+defined by</p>
+<p>\[(g\circ f)(a) = g\big(f(a)\big).\]</p>
+<p>Read it right to left: \(f\) fires first. The codomain of \(f\) must match (or sit inside) the
+domain of \(g\), or the pipeline does not type-check. This "shape matching" requirement is the abstract version
+of the matrix-dimension errors you will spend a lot of your life debugging.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>A feedforward neural network is <em>nothing but</em> a composition:
+\[ f_{\vt} = f_L \circ f_{L-1} \circ \cdots \circ f_2 \circ f_1, \]
+where each \(f_\ell(\vz) = \sigma(\mA_\ell \vz + \vb_\ell)\). Depth <em>is</em> composition. And the chain rule,
+which we derive in Lecture 5, is the statement that you can differentiate a composition by multiplying the
+derivatives of the pieces. Backpropagation is that statement, applied efficiently.</p></div>
+<div class="fig"><div class="fig-head">Composition as a two-stage pipeline:  x → f(x) = ax + b → g(u) = u²<span class="tag">Interactive</span></div><canvas id="f1comp" data-h="360"></canvas><div class="legend"><span><i style="background:var(--c2)"></i>f(x) = ax + b</span><span><i style="background:var(--c5)"></i>g(u) = u²</span><span><i style="background:var(--c1)"></i>(g∘f)(x) = (ax+b)²</span></div><div class="fig-read" id="f1comp-read"></div><div class="ctrls"><div class="ctrl"><label>a</label><input type="range" min="-3" max="3" step="0.1" value="1.5" data-fmt="1" oninput="figSlide('f1comp','a',this)"><output>1.5</output></div><div class="ctrl"><label>b</label><input type="range" min="-4" max="4" step="0.1" value="-1" data-fmt="1" oninput="figSlide('f1comp','b',this)"><output>-1.0</output></div><div class="ctrl"><label>trace the input  x₀</label><input type="range" min="-3" max="3" step="0.05" value="1.2" data-fmt="2" oninput="figSlide('f1comp','x0',this)"><output>1.20</output></div></div><div class="fig-cap">Follow the orange dot up to f, across to the diagonal, and up to g. The blue curve is the composite you get by doing that for every x at once. Try a = 0: the composite collapses to a constant, because f destroys all information about x before g ever sees it. No amount of cleverness in g can recover it — which is the first hint of why information lost in an early layer is lost for good.</div></div><script>makeFig("f1comp",function(vp,p,F){
+vp.pads(40,16,14,30); vp.frame(-3.4,3.4,-4.5,9);
+vp.axes({stepx:1,stepy:2});
+var a=p.a,b=p.b,x0=p.x0;
+vp.curve(function(x){return a*x+b;},'--c2',{w:2.2,dash:[6,4]});
+vp.curve(function(x){return x*x;},'--c5',{w:2.2,dash:[6,4]});
+vp.curve(function(x){var u=a*x+b; return u*u;},'--c1',{w:2.8});
+var u0=a*x0+b, y0=u0*u0;
+// x0 -> f(x0)
+vp.seg(x0,0,x0,u0,'--c2',{dash:[3,3],w:1.4});
+vp.dot(x0,u0,'--c2',5.5);
+// f(x0) as a horizontal position: move to u0 on the x-axis
+vp.seg(x0,u0,u0,u0,'--ink3',{dash:[3,3],w:1.3});
+vp.seg(u0,u0,u0,0,'--ink3',{dash:[3,3],w:1.3});
+vp.dot(u0,0,'--ink3',4.5);
+// u0 -> g(u0)
+vp.seg(u0,0,u0,y0,'--c5',{dash:[3,3],w:1.4});
+vp.dot(u0,y0,'--c5',5.5);
+// composite point
+vp.dot(x0,y0,'--c1',6.5);
+vp.label(x0,y0,'(x₀, g(f(x₀)))','--c1',{dx:8,dy:-6,halo:true,bold:true});
+vp.label(x0,0,'x₀','--ink2',{dx:4,dy:16,halo:true});
+figRead('f1comp','x₀ = '+x0.toFixed(2)+'   →   f(x₀) = '+a.toFixed(1)+'·'+x0.toFixed(2)+' + ('+b.toFixed(1)+') = <b>'+u0.toFixed(3)+'</b>   →   g(f(x₀)) = ('+u0.toFixed(3)+')² = <b>'+y0.toFixed(3)+'</b>');
+},[{"name": "a", "label": "a", "min": -3, "max": 3, "step": 0.1, "value": 1.5, "dp": 1}, {"name": "b", "label": "b", "min": -4, "max": 4, "step": 0.1, "value": -1, "dp": 1}, {"name": "x0", "label": "trace the input  x\u2080", "min": -3, "max": 3, "step": 0.05, "value": 1.2, "dp": 2}]);window["FIG_f1comp"].run();</script>
+<div class="quiz" id="q5"><div class="qlbl">Check yourself</div><div class="qq">With \(f(x)=ax+b\) and \(g(u)=u^2\) as above, is \(g\circ f\) the same function as \(f\circ g\)?</div><button class="qopt" data-ok="1" onclick="pick('q5',0,true)">No. \((g\circ f)(x)=(ax+b)^2\) but \((f\circ g)(x)=ax^2+b\), and these differ for general \(a,b\).</button><button class="qopt" data-ok="0" onclick="pick('q5',1,false)">Yes, as long as both compositions are defined, they agree.</button><button class="qopt" data-ok="0" onclick="pick('q5',2,false)">Yes, but only when \(a=1\).</button><div class="qwhy" data-i="0"><b>Correct.</b> Right — composition is <strong>not commutative</strong>. Order matters, always. Check with
+    \(a=1,b=1,x=1\): \((g\circ f)(1)=(1+1)^2=4\), while \((f\circ g)(1)=1\cdot 1+1=2\). This is why the layer order
+    in a network is a real architectural decision, and why \(\mathbf{AB}\neq\mathbf{BA}\) for matrices — matrix
+    multiplication <em>is</em> composition of linear maps, as we will prove in Lecture 9.</div><div class="qwhy" data-i="1"><b>Not quite.</b> Test it numerically before believing it. Take \(a=1,b=1,x=1\): \((g\circ f)(1)=4\) but
+    \((f\circ g)(1)=2\). One counterexample is enough. Getting into the habit of testing a claim on a small
+    concrete number is one of the most valuable things you can build in this course.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Try \(a=1, b=1\): we just saw \(4\neq 2\). With \(a=1\) the two are \((x+b)^2 = x^2+2bx+b^2\) versus
+    \(x^2+b\), which agree only if \(2bx + b^2 = b\) for all \(x\) — forcing \(b=0\), i.e. both maps are just
+    squaring.</div></div>
+<h2 id="s7"><span class="secnum">7</span>Functions in NumPy</h2>
+<p>Now let us make all of this concrete. The code below is live: edit it and press <strong>Run</strong>.
+The first run downloads Python and NumPy into your browser, which takes about ten seconds; after that it is instant.</p>
+<div class="pyb" id="py6" data-orig="import numpy as np
+
+# A function in code is a rule. The DOMAIN is not enforced for you --
+# you are responsible for knowing it.
+def f(x):
+    return np.sqrt(x - 1) / (x - 3)
+
+# Natural domain: x &gt;= 1 (square root)  AND  x != 3 (denominator).
+xs = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 9.0])
+
+with np.errstate(invalid=&#x27;ignore&#x27;, divide=&#x27;ignore&#x27;):
+    ys = f(xs)
+
+for x, y in zip(xs, ys):
+    inside = (x &gt;= 1) and (x != 3)
+    print(f&quot;x = {x:4.1f}   f(x) = {str(y):&gt;10}   in domain? {inside}&quot;)
+
+print()
+print(&quot;nan means &#x27;not a number&#x27; -- NumPy&#x27;s way of saying the operation&quot;)
+print(&quot;was undefined. It does NOT raise an error, it just poisons the array:&quot;)
+print(&quot;  sum of the outputs      =&quot;, np.nansum(ys), &quot;(nansum skips the nan)&quot;)
+print(&quot;  plain sum               =&quot;, ys.sum(), &quot;&lt;-- one nan destroys everything&quot;)
+print()
+print(&quot;This is why domain reasoning is a debugging skill, not just a maths ritual.&quot;)
+"><div class="pyb-head"><span class="t">A function, its domain, and what NumPy does when you violate it</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py6')">Run</button><button class="btn ghost" onclick="resetPy('py6')">Reset</button></div><textarea spellcheck="false" rows="25">import numpy as np
+
+# A function in code is a rule. The DOMAIN is not enforced for you --
+# you are responsible for knowing it.
+def f(x):
+    return np.sqrt(x - 1) / (x - 3)
+
+# Natural domain: x &gt;= 1 (square root)  AND  x != 3 (denominator).
+xs = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 9.0])
+
+with np.errstate(invalid=&#x27;ignore&#x27;, divide=&#x27;ignore&#x27;):
+    ys = f(xs)
+
+for x, y in zip(xs, ys):
+    inside = (x &gt;= 1) and (x != 3)
+    print(f&quot;x = {x:4.1f}   f(x) = {str(y):&gt;10}   in domain? {inside}&quot;)
+
+print()
+print(&quot;nan means &#x27;not a number&#x27; -- NumPy&#x27;s way of saying the operation&quot;)
+print(&quot;was undefined. It does NOT raise an error, it just poisons the array:&quot;)
+print(&quot;  sum of the outputs      =&quot;, np.nansum(ys), &quot;(nansum skips the nan)&quot;)
+print(&quot;  plain sum               =&quot;, ys.sum(), &quot;&lt;-- one nan destroys everything&quot;)
+print()
+print(&quot;This is why domain reasoning is a debugging skill, not just a maths ritual.&quot;)
+</textarea><div class="pyout"></div></div>
+<p>Now the specific trap from the warning above. Run this and read the output carefully.</p>
+<div class="pyb" id="py7" data-orig="import numpy as np
+
+vals = np.array([8.0, 2.0, 1.0, 0.5, 0.0, -2.0, -4.0])
+
+with np.errstate(invalid=&#x27;ignore&#x27;, divide=&#x27;ignore&#x27;):
+    out = np.log2(vals)
+
+for v, o in zip(vals, out):
+    print(f&quot;log2({v:5.1f}) = {o}&quot;)
+
+print()
+print(&quot;log2(0.5) = -1.0   &lt;- this is where negative OUTPUTS come from:&quot;)
+print(&quot;                       inputs BETWEEN 0 and 1, not negative inputs.&quot;)
+print(&quot;log2(-2)  = nan    &lt;- undefined. Not -1. There is no real answer.&quot;)
+print()
+# Verify from the definition: log2(y) = c means 2**c = y.
+print(&quot;Is there any real c with 2**c = -2 ?  Scan a wide range:&quot;)
+cs = np.linspace(-50, 50, 100001)
+print(&quot;  smallest value 2**c ever takes on c in [-50, 50]:&quot;, (2.0**cs).min())
+print(&quot;  It never goes &lt;= 0.  An exponential of a real number is always positive.&quot;)
+"><div class="pyb-head"><span class="t">The logarithm of a negative number</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py7')">Run</button><button class="btn ghost" onclick="resetPy('py7')">Reset</button></div><textarea spellcheck="false" rows="21">import numpy as np
+
+vals = np.array([8.0, 2.0, 1.0, 0.5, 0.0, -2.0, -4.0])
+
+with np.errstate(invalid=&#x27;ignore&#x27;, divide=&#x27;ignore&#x27;):
+    out = np.log2(vals)
+
+for v, o in zip(vals, out):
+    print(f&quot;log2({v:5.1f}) = {o}&quot;)
+
+print()
+print(&quot;log2(0.5) = -1.0   &lt;- this is where negative OUTPUTS come from:&quot;)
+print(&quot;                       inputs BETWEEN 0 and 1, not negative inputs.&quot;)
+print(&quot;log2(-2)  = nan    &lt;- undefined. Not -1. There is no real answer.&quot;)
+print()
+# Verify from the definition: log2(y) = c means 2**c = y.
+print(&quot;Is there any real c with 2**c = -2 ?  Scan a wide range:&quot;)
+cs = np.linspace(-50, 50, 100001)
+print(&quot;  smallest value 2**c ever takes on c in [-50, 50]:&quot;, (2.0**cs).min())
+print(&quot;  It never goes &lt;= 0.  An exponential of a real number is always positive.&quot;)
+</textarea><div class="pyout"></div></div>
+<div class="box warn"><span class="lbl">Common trap</span><p>Read that last output once more. \(2^c > 0\) for <em>every</em> real \(c\) — as \(c\to-\infty\)
+the value shrinks towards zero but never reaches it, let alone crosses it. So the equation \(2^c=-2\) has no
+solution, so \(\log_2(-2)\) names nothing. Negative <em>outputs</em> of a log come from inputs strictly between
+0 and 1. That is Lecture 2's opening result, and we will derive it properly rather than assert it.</p></div>
+<h2 id="s8"><span class="secnum">8</span>The machine-learning restatement</h2>
+<p>Let me close the loop on why any of this matters. In supervised learning we posit a
+<strong>hypothesis class</strong> — a set \(\mathcal{H}\) of candidate functions — and search inside it:</p>
+<p>\[\mathcal{H} = \{\, f_{\vt} : \RR^d \to \RR^k \;\mid\; \vt \in \Theta \,\}\]</p>
+<p>Every symbol there is a thing you now have language for:</p>
+<ul><li>\(\RR^d\) is the <strong>domain</strong>: your input space. \(d\) is the number of features. For a \(28\times 28\) grayscale image, \(d=784\).</li><li>\(\RR^k\) is the <strong>codomain</strong>: the output space. \(k=1\) for scalar regression, \(k=10\) for ten-class classification.</li><li>\(\vt\) is a <strong>parameter</strong> — a knob setting. Each choice of \(\vt\) picks out one specific function from the class. \(\Theta\) is the set of legal knob settings.</li><li>Training means choosing \(\vt\). It does <em>not</em> mean choosing \(\mathcal{H}\) — that choice was made when you picked the architecture, and it constrains everything that follows.</li></ul>
+<p>And the domain lesson has one more payoff here. When you normalise your inputs, or clip them, or
+one-hot encode them, you are <em>changing the domain of your model</em>. That is why a model trained on
+normalised inputs produces nonsense on raw ones: you handed it an element that was never in \(A\).</p>
+<h2 id="s9"><span class="secnum">9</span>Exercises</h2>
+<p>Do these with pen and paper before opening the solutions. If you can only do some of them,
+that is useful information — tell me which ones and I will target the next lecture accordingly.</p>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>State the natural domain of each function, in interval notation, and name which of the three checks
+  produced each exclusion.</p>
+  <p>(a) \(\displaystyle f(x)=\frac{\sqrt{x+2}}{x^2-x-6}\) &nbsp;&nbsp;
+  (b) \(\displaystyle g(x)=\log\!\left(\frac{1}{x-4}\right)\) &nbsp;&nbsp;
+  (c) \(\displaystyle h(x)=\frac{1}{\sqrt{9-x^2}}\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex8',this)">Show solution</button></div><div class="rev-body" id="ex8"><p><strong>(a)</strong> Root: \(x+2\ge 0 \Rightarrow x\ge-2\). Denominator:
+  \(x^2-x-6=(x-3)(x+2)=0\) at \(x=3,-2\). Combining, \(x\ge -2\) but \(x\neq -2\) and \(x\neq 3\):
+  \(\text{dom}=(-2,3)\cup(3,\infty)\). Note \(x=-2\) is excluded by the <em>denominator</em> check even though the
+  root allowed it — you must apply all checks and intersect.</p>
+  <p><strong>(b)</strong> Log: need \(\frac{1}{x-4}>0\), which holds iff \(x-4>0\), i.e. \(x>4\). (The division check
+  gives \(x\neq 4\), already implied.) \(\text{dom}=(4,\infty)\).</p>
+  <p><strong>(c)</strong> Root <em>and</em> division: need \(9-x^2>0\) — strictly, because it sits in a denominator
+  as well as under a root. \((3-x)(3+x)>0 \Rightarrow -3&lt;x&lt;3\). \(\text{dom}=(-3,3)\), open at both ends.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Let \(f:\RR\to\RR\) be \(f(x)=\dfrac{2x-1}{x+3}\)… except that as written this is not a function
+  \(\RR\to\RR\). Fix the domain, then:</p>
+  <ol><li>Prove \(f\) is injective on that domain, using the \(f(a_1)=f(a_2)\Rightarrow a_1=a_2\) form.</li>
+  <li>Find the image of \(f\) — that is, which \(y\) are actually achieved.</li>
+  <li>Write down \(f^{-1}\) and state its domain.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex9',this)">Show solution</button></div><div class="rev-body" id="ex9"><p><strong>Domain fix:</strong> \(x\neq-3\), so \(f:\RR\setminus\{-3\}\to\RR\).</p>
+  <p><strong>1. Injectivity.</strong> Suppose \(\frac{2a-1}{a+3}=\frac{2b-1}{b+3}\) with \(a,b\neq-3\).
+  Cross-multiplying (legal, since both denominators are nonzero):</p>
+  \[(2a-1)(b+3)=(2b-1)(a+3)\]
+  \[2ab+6a-b-3 = 2ab+6b-a-3\]
+  <p>Cancel \(2ab\) and \(-3\) from both sides: \(6a-b = 6b-a\), so \(7a=7b\), so \(a=b\). Injective. ∎</p>
+  <p><strong>2. Image.</strong> Solve \(y=\frac{2x-1}{x+3}\) for \(x\): \(y(x+3)=2x-1 \Rightarrow yx+3y=2x-1
+  \Rightarrow x(y-2)=-1-3y \Rightarrow x=\frac{-1-3y}{y-2}=\frac{3y+1}{2-y}\). This has a solution for every \(y\)
+  <em>except</em> \(y=2\). So \(\text{image}(f)=\RR\setminus\{2\}\).</p>
+  <p>Sanity check on why \(2\) is missed: for large \(|x|\) the ratio \(\frac{2x-1}{x+3}\to 2\), approached but
+  never attained — \(y=2\) is a horizontal asymptote.</p>
+  <p><strong>3. Inverse.</strong> \(f^{-1}(y)=\dfrac{3y+1}{2-y}\), with domain \(\RR\setminus\{2\}\) — which is
+  exactly the image of \(f\), as the theory demanded. Verify:
+  \(f^{-1}(f(0)) = f^{-1}(-1/3) = \frac{-1+1}{2+1/3}=0\) ✓.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Let \(f(x)=x^2\) and \(g(x)=x+1\), both from \(\RR\) to \(\RR\).</p>
+  <ol><li>Write \(g\circ f\) and \(f\circ g\) explicitly and confirm they differ.</li>
+  <li>Find every \(x\) at which they happen to <em>agree</em>.</li>
+  <li>Interpret the answer geometrically.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex10',this)">Show solution</button></div><div class="rev-body" id="ex10"><p><strong>1.</strong> \((g\circ f)(x)=g(x^2)=x^2+1\). \((f\circ g)(x)=f(x+1)=(x+1)^2=x^2+2x+1\).</p>
+  <p><strong>2.</strong> Set them equal: \(x^2+1 = x^2+2x+1 \Rightarrow 0=2x \Rightarrow x=0\). They agree at exactly
+  one point, \(x=0\), where both give \(1\).</p>
+  <p><strong>3.</strong> The two composites are both upward parabolas of identical shape; they differ by the
+  horizontal shift that \(g\) applies before versus after squaring. \(x^2+1\) is the parabola shifted <em>up</em> by
+  one; \((x+1)^2\) is it shifted <em>left</em> by one. Two congruent parabolas offset from one another meet in at
+  most one point, and here that point is \((0,1)\).</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p>Prove the following, from the definitions, with no pictures:</p>
+  <p>If \(f:A\to B\) and \(g:B\to C\) are both injective, then \(g\circ f:A\to C\) is injective.</p>
+  <p>Then find a concrete counterexample showing the converse fails: \(g\circ f\) can be injective while
+  \(g\) is not.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex11',this)">Show solution</button></div><div class="rev-body" id="ex11"><p><strong>Proof.</strong> Take any \(a_1,a_2\in A\) with \((g\circ f)(a_1)=(g\circ f)(a_2)\).
+  By definition of composition this says \(g(f(a_1))=g(f(a_2))\).</p>
+  <p>Now \(f(a_1)\) and \(f(a_2)\) are both elements of \(B\), and \(g\) is injective, so from
+  \(g(u_1)=g(u_2)\) we may conclude \(u_1=u_2\). Hence \(f(a_1)=f(a_2)\).</p>
+  <p>But \(f\) is injective too, so \(f(a_1)=f(a_2)\) forces \(a_1=a_2\).</p>
+  <p>We assumed \((g\circ f)(a_1)=(g\circ f)(a_2)\) and derived \(a_1=a_2\); that is exactly the definition of
+  \(g\circ f\) being injective. ∎</p>
+  <p>Notice the shape of the argument: peel the outer function off using <em>its</em> injectivity, then the inner
+  one using <em>its</em> injectivity. This peeling pattern recurs constantly.</p>
+  <p><strong>Counterexample to the converse.</strong> Let \(A=\{1\}\), \(B=\{1,2\}\), \(C=\{7\}\).
+  Define \(f(1)=1\) and \(g(1)=g(2)=7\). Then \(g\) is not injective (both elements of \(B\) map to \(7\)),
+  yet \(g\circ f:A\to C\) is injective vacuously — its domain has only one element, so no two distinct inputs
+  can collide.</p>
+  <p>A real-valued version: \(f:\RR\to\RR,\;f(x)=e^x\) (image \((0,\infty)\)) and \(g:\RR\to\RR,\;g(u)=u^2\).
+  \(g\) is not injective, but \((g\circ f)(x)=e^{2x}\) is. The reason: \(f\) never lands on the part of \(g\)'s
+  domain where the collisions happen. <em>Injectivity of \(g\) only matters on the image of \(f\).</em></p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p><strong>Coding.</strong> Write a NumPy function <code>safe_log2(x)</code> that returns
+  \(\log_2 x\) where \(x&gt;0\) and returns <code>-np.inf</code> where \(x=0\), and <em>raises</em> a
+  <code>ValueError</code> naming the offending values if any entry is negative.</p>
+  <p>Then explain in one sentence why returning <code>-inf</code> at zero is defensible while returning any
+  number at all for a negative input is not.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex12',this)">Show solution</button></div><div class="rev-body" id="ex12"><pre style="overflow-x:auto"><code>import numpy as np
+
+def safe_log2(x):
+    x = np.asarray(x, dtype=float)
+    bad = x &lt; 0
+    if bad.any():
+        raise ValueError(f"log2 undefined for negative inputs: {x[bad]}")
+    out = np.full_like(x, -np.inf)
+    pos = x &gt; 0
+    out[pos] = np.log2(x[pos])
+    return out</code></pre>
+  <p><strong>Why the asymmetry.</strong> As \(x\to 0^{+}\), \(\log_2 x\) decreases without bound, so \(-\infty\)
+  is the honest <em>limit</em> of the function — it is the value the function is heading towards, and floating
+  point has a symbol for exactly that. A negative input is not a limiting case of anything: the function is not
+  merely large there, it is <em>absent</em>, because no real power of 2 is negative. Returning \(-\infty\) there
+  would be inventing a value.</p>
+  <p>This distinction matters in practice: cross-entropy loss \(-\sum y\log \hat p\) legitimately blows up to
+  \(+\infty\) when a model assigns probability 0 to the true class, and libraries clip \(\hat p\) into
+  \([\varepsilon, 1-\varepsilon]\) to keep it finite. But a negative \(\hat p\) means your model is broken, and
+  silently taking its log would hide the bug.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> we take the logarithm apart from the definition up. You will see precisely
+why \(\log_2(-2)\) is undefined, why every log rule is a disguised exponent rule, and why machine learning is
+so addicted to logs that half its loss functions have one in the name.</p>
+<div class="pagenav"><span style="flex:1"></span><a href="02-exponentials-and-logarithms.html" class="nx"><span class="dir">Next</span><span class="nm">2 · Exponentials and Logarithms</span></a></div>
+</div>
+<script>initDone('01-what-a-function-is');</script>
+</body>
+</html>

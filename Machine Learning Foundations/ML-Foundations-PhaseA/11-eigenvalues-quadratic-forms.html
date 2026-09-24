@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>11. Eigenvalues, Eigenvectors, and Quadratic Forms — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 11 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('11-eigenvalues-quadratic-forms')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part III — Linear Algebra · Lecture 11</div>
+  <h1>Eigenvalues, Eigenvectors, and Quadratic Forms</h1>
+  <p class="dek">Some directions survive a linear map unchanged except for scaling. Finding them turns a matrix into a list of numbers, turns curvature into geometry, and explains — precisely — why gradient descent zig-zags, why learning rates have a ceiling, and what PCA is doing.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Define eigenvalues and eigenvectors and compute them for \(2\times2\) matrices by hand</li><li>State the spectral theorem for symmetric matrices and use the diagonalisation \(\mA=\mQ\Lambda\mQ^\top\)</li><li>Classify a quadratic form as positive definite, semi-definite or indefinite</li><li>Derive the condition-number bound on gradient-descent convergence</li><li>Explain PCA as the eigendecomposition of a covariance matrix</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lectures 8–10: vectors, matrices as maps, projection, least squares</li><li>Lecture 7: convexity and the second-derivative test</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Directions a matrix does not turn</h2>
+<p>A matrix rotates, stretches and shears the plane, and most vectors come out pointing somewhere
+new. But some directions are special: the map only lengthens or shortens them, leaving them on the same line.</p>
+<div class="box defn"><span class="lbl">Definition — eigenvalue, eigenvector</span><p>For a square \(\mA\in\RR^{d\times d}\), a
+nonzero vector \(\vv\) is an <strong>eigenvector</strong> with <strong>eigenvalue</strong> \(\lambda\in\RR\) if</p>
+\[ \mA\vv = \lambda\vv. \]
+<p>The requirement \(\vv\neq\vzero\) matters: \(\mA\vzero=\lambda\vzero\) holds for every \(\lambda\) and would
+make the definition vacuous. Note that if \(\vv\) is an eigenvector so is \(c\vv\) for any \(c\neq0\) — it is
+really the <em>direction</em>, not the vector, that is the object of interest.</p></div>
+<div class="fig"><div class="fig-head">Hunting for eigenvectors: rotate v and watch when Av stays on the same line<span class="tag">Interactive</span></div><canvas id="f11eig" data-h="430"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>v</span><span><i style="background:var(--c2)"></i>Av</span><span><i style="background:var(--c3)"></i>eigen-directions</span></div><div class="fig-read" id="f11eig-read"></div><div class="ctrls"><div class="ctrl"><label>direction of v (degrees)</label><input type="range" min="0" max="359" step="0.5" value="20" data-fmt="1" oninput="figSlide('f11eig','th',this)"><output>20.0</output></div><div class="ctrl"><label>A₁₁</label><input type="range" min="-2" max="4" step="0.05" value="2" data-fmt="2" oninput="figSlide('f11eig','a',this)"><output>2.00</output></div><div class="ctrl"><label>A₁₂</label><input type="range" min="-3" max="3" step="0.05" value="1" data-fmt="2" oninput="figSlide('f11eig','b',this)"><output>1.00</output></div><div class="ctrl"><label>A₂₁</label><input type="range" min="-3" max="3" step="0.05" value="1" data-fmt="2" oninput="figSlide('f11eig','c',this)"><output>1.00</output></div><div class="ctrl"><label>A₂₂</label><input type="range" min="-2" max="4" step="0.05" value="2" data-fmt="2" oninput="figSlide('f11eig','d',this)"><output>2.00</output></div></div><div class="fig-cap">Sweep the angle. For most directions the orange Av points somewhere else entirely. At the eigen-directions (drawn faintly in green) the two arrows lie on one line and the readout reports the ratio — that ratio is the eigenvalue. With the default symmetric matrix the two eigen-directions are exactly 90° apart, which is the spectral theorem you will meet below. Make the matrix asymmetric (A₁₂ ≠ A₂₁) and that perpendicularity is lost.</div></div><script>makeFig("f11eig",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,3.4);
+var A=[[p.a,p.b],[p.c,p.d]];
+var tr=A[0][0]+A[1][1], det=A[0][0]*A[1][1]-A[0][1]*A[1][0], disc=tr*tr-4*det;
+// draw eigen-lines if real
+var evs=[];
+if(disc>=0){
+  var s=Math.sqrt(disc), l1=(tr+s)/2, l2=(tr-s)/2;
+  [l1,l2].forEach(function(L){
+    var vx,vy;
+    if(Math.abs(A[0][1])>1e-9){ vx=A[0][1]; vy=L-A[0][0]; }
+    else if(Math.abs(A[1][0])>1e-9){ vx=L-A[1][1]; vy=A[1][0]; }
+    else { vx=(Math.abs(L-A[0][0])<1e-9)?1:0; vy=(Math.abs(L-A[0][0])<1e-9)?0:1; }
+    var n=Math.hypot(vx,vy); if(n>1e-12) evs.push({L:L, v:[vx/n,vy/n]});
+  });
+  evs.forEach(function(e){ vp.seg(-6*e.v[0],-6*e.v[1],6*e.v[0],6*e.v[1],'--c3',{w:6}); });
+}
+var cc=vp.ctx; cc.save(); cc.globalAlpha=1; cc.restore();
+vp.axes({stepx:1,stepy:1});
+var t=p.th*Math.PI/180, v=[2*Math.cos(t),2*Math.sin(t)];
+var Av=[A[0][0]*v[0]+A[0][1]*v[1], A[1][0]*v[0]+A[1][1]*v[1]];
+vp.arrow(0,0,v[0],v[1],'--c1',{w:3});
+vp.arrow(0,0,Av[0],Av[1],'--c2',{w:3});
+vp.label(v[0],v[1],'v','--c1',{halo:true,bold:true,dx:6});
+vp.label(Av[0],Av[1],'Av','--c2',{halo:true,bold:true,dx:6});
+var cross=v[0]*Av[1]-v[1]*Av[0];
+var nv=Math.hypot(v[0],v[1]), nA=Math.hypot(Av[0],Av[1]);
+var aligned=Math.abs(cross)/(nv*Math.max(nA,1e-9))<0.008;
+var ratio=(v[0]*Av[0]+v[1]*Av[1])/(nv*nv);
+var s2='det A = '+det.toFixed(3)+',  tr A = '+tr.toFixed(3)+',  discriminant = '+disc.toFixed(3);
+if(disc<0) s2+='  <b style="color:var(--bad)">&lt; 0 → no real eigenvalues (the map rotates every direction)</b>';
+else s2+='   →   λ = <b>'+evs.map(function(e){return e.L.toFixed(4);}).join('</b>, <b>')+'</b>';
+figRead('f11eig','θ = '+p.th.toFixed(1)+'°   Av/‖v‖ ratio along v = '+ratio.toFixed(4)+'   '
+ +(aligned?'<b style="color:var(--ok)">Av ∥ v → EIGENVECTOR, eigenvalue λ = '+ratio.toFixed(4)+'</b>'
+          :'Av points off the line of v — not an eigen-direction')
+ +'<br>'+s2);
+},[{"name": "th", "label": "direction of v (degrees)", "min": 0, "max": 359, "step": 0.5, "value": 20, "dp": 1}, {"name": "a", "label": "A\u2081\u2081", "min": -2, "max": 4, "step": 0.05, "value": 2, "dp": 2}, {"name": "b", "label": "A\u2081\u2082", "min": -3, "max": 3, "step": 0.05, "value": 1, "dp": 2}, {"name": "c", "label": "A\u2082\u2081", "min": -3, "max": 3, "step": 0.05, "value": 1, "dp": 2}, {"name": "d", "label": "A\u2082\u2082", "min": -2, "max": 4, "step": 0.05, "value": 2, "dp": 2}]);window["FIG_f11eig"].run();</script>
+<h2 id="s2"><span class="secnum">2</span>Computing them</h2>
+<div class="deriv" id="d95"><div class="deriv-head"><span class="t">The characteristic equation</span><span class="ct">0 / 5</span></div><div class="dstep">\[\mA\vv = \lambda\vv \quad\Longleftrightarrow\quad \mA\vv - \lambda\vv = \vzero\]<div class="why"><b>Move everything to one side.</b> Careful: \(\mA-\lambda\) is not a legal expression — you cannot subtract a scalar from a matrix. The repair is the next step.</div></div><div class="dstep">\[\mA\vv - \lambda\mI\vv = \big(\mA-\lambda\mI\big)\vv = \vzero\]<div class="why"><b>Insert the identity.</b> \(\lambda\vv = \lambda\mI\vv\), which is legal and lets us factor. Now \(\mA-\lambda\mI\) is a genuine matrix: subtract \(\lambda\) from each diagonal entry.</div></div><div class="dstep">\[\vv \neq \vzero \text{ and } (\mA-\lambda\mI)\vv=\vzero \quad\Longrightarrow\quad \mathcal{N}(\mA-\lambda\mI) \neq \{\vzero\}\]<div class="why"><b>Reformulate as a null-space condition.</b> We need a <em>nonzero</em> vector killed by \(\mA-\lambda\mI\). By Lecture 9, that means the matrix is not injective, hence not invertible, hence singular.</div></div><div class="dstep">\[\boxed{\;\det\big(\mA-\lambda\mI\big) = 0\;} \qquad\textbf{(characteristic equation)}\]<div class="why"><b>Singular means zero determinant.</b> Expanding this determinant gives a degree-\(d\) polynomial in \(\lambda\), the <em>characteristic polynomial</em>, and its roots are exactly the eigenvalues. A degree-\(d\) polynomial has \(d\) roots over \(\mathbb{C}\), counted with multiplicity — so a \(d\times d\) matrix has \(d\) eigenvalues, though some may be complex or repeated.</div></div><div class="dstep">\[d=2:\quad \det\begin{bmatrix}a-\lambda & b\\ c & d-\lambda\end{bmatrix} = \lambda^2 - \underbrace{(a+d)}_{\tr\mA}\lambda + \underbrace{(ad-bc)}_{\det\mA} = 0\]<div class="why"><b>The 2×2 case, worth memorising.</b> Expanding: \((a-\lambda)(d-\lambda)-bc\). The two coefficients are the trace and the determinant, which gives the pair of identities \(\lambda_1+\lambda_2=\tr\mA\) and \(\lambda_1\lambda_2=\det\mA\). These hold in every dimension and are the fastest sanity check available on any eigenvalue computation.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d95')">Next step</button><button class="btn ghost" onclick="dall('d95')">Show all</button><button class="btn ghost" onclick="dreset('d95')">Reset</button></div></div>
+<div class="rev"><div class="rlbl">Work one by hand</div><p>Find the eigenvalues and eigenvectors of \(\mA=\begin{bmatrix}2&1\\1&2\end{bmatrix}\).</p>
+ <p>Then check your answer against \(\tr\mA\) and \(\det\mA\), and note whether the eigenvectors are
+ perpendicular.</p><div style="margin-top:12px"><button class="btn ghost" data-show="Show the working" onclick="rev('r96',this)">Show the working</button></div><div class="rev-body" id="r96"><p><strong>Characteristic equation.</strong> \(\tr\mA=4\), \(\det\mA=4-1=3\), so</p>
+ \[\lambda^2-4\lambda+3=0 \;\Longrightarrow\; (\lambda-3)(\lambda-1)=0 \;\Longrightarrow\; \lambda_1=3,\ \lambda_2=1.\]
+ <p><em>Check:</em> \(3+1=4=\tr\mA\) ✓, \(3\times1=3=\det\mA\) ✓.</p>
+
+ <p><strong>Eigenvector for \(\lambda=3\).</strong> Solve \((\mA-3\mI)\vv=\vzero\):</p>
+ \[\begin{bmatrix}-1&1\\1&-1\end{bmatrix}\begin{bmatrix}v_1\\v_2\end{bmatrix}=\vzero
+  \;\Longrightarrow\; -v_1+v_2=0 \;\Longrightarrow\; v_1=v_2.\]
+ <p>So \(\vv_1=(1,1)\), or normalised \(\frac{1}{\sqrt2}(1,1)\). <em>Note the two rows gave the same equation
+ — they must, because the matrix is singular by construction. If they had given independent equations you would
+ have made an arithmetic error.</em></p>
+
+ <p><strong>Eigenvector for \(\lambda=1\).</strong> \((\mA-\mI)\vv=\vzero\):</p>
+ \[\begin{bmatrix}1&1\\1&1\end{bmatrix}\vv=\vzero \;\Longrightarrow\; v_1+v_2=0 \;\Longrightarrow\; \vv_2=(1,-1).\]
+
+ <p><strong>Perpendicular?</strong> \(\vv_1\cdot\vv_2 = 1(1)+1(-1)=0\) ✓. They are orthogonal, and this is not a
+ coincidence — \(\mA\) is symmetric, and the spectral theorem below says symmetric matrices <em>always</em> have
+ orthogonal eigenvectors.</p>
+ <p><strong>Verify:</strong> \(\mA(1,1)^\top = (2+1, 1+2)^\top = (3,3)^\top = 3(1,1)^\top\) ✓, and
+ \(\mA(1,-1)^\top = (2-1, 1-2)^\top = (1,-1)^\top = 1\cdot(1,-1)^\top\) ✓.</p></div></div>
+<h2 id="s3"><span class="secnum">3</span>The spectral theorem</h2>
+<div class="box thm"><span class="lbl">Theorem — spectral theorem for symmetric matrices</span><p>Let \(\mA\in\RR^{d\times d}\)
+be symmetric (\(\mA^\top=\mA\)). Then:</p>
+<ol>
+<li>All \(d\) eigenvalues of \(\mA\) are <strong>real</strong>.</li>
+<li>Eigenvectors for distinct eigenvalues are <strong>orthogonal</strong>, and one can always choose a full
+<strong>orthonormal basis</strong> \(\vq_1,\dots,\vq_d\) of eigenvectors.</li>
+<li>Consequently \(\mA\) <strong>diagonalises orthogonally</strong>:</li>
+</ol>
+\[ \mA = \mQ\,\Lambda\,\mQ^\top, \qquad
+   \mQ = [\vq_1|\cdots|\vq_d] \text{ with } \mQ^\top\mQ = \mI, \qquad
+   \Lambda = \operatorname{diag}(\lambda_1,\dots,\lambda_d). \]</div>
+<p>Let me prove the orthogonality part, because it is three lines and it shows exactly where
+symmetry is used.</p>
+<div class="deriv" id="d97"><div class="deriv-head"><span class="t">Why symmetric matrices have orthogonal eigenvectors</span><span class="ct">0 / 4</span></div><div class="dstep">\[\mA\vu = \alpha\vu, \qquad \mA\vv = \beta\vv, \qquad \alpha \neq \beta\]<div class="why"><b>Two eigenpairs with different eigenvalues.</b> We want to show \(\vu\cdot\vv=0\).</div></div><div class="dstep">\[\vv^\top \mA\vu = \vv^\top(\alpha\vu) = \alpha\,(\vv^\top\vu)\]<div class="why"><b>Compute the scalar \(\vv^\top\mA\vu\) one way.</b> Substitute the first eigen-equation and pull out the scalar.</div></div><div class="dstep">\[\vv^\top\mA\vu = (\mA^\top\vv)^\top\vu = (\mA\vv)^\top\vu = (\beta\vv)^\top\vu = \beta\,(\vv^\top\vu)\]<div class="why"><b>Compute the same scalar the other way.</b> The second equality is <em>the only place symmetry is used</em>: \(\mA^\top=\mA\). Without it the argument collapses, which is why non-symmetric matrices need not have orthogonal eigenvectors.</div></div><div class="dstep">\[\alpha(\vv^\top\vu) = \beta(\vv^\top\vu) \;\Longrightarrow\; (\alpha-\beta)(\vv^\top\vu)=0 \;\Longrightarrow\; \vv^\top\vu = 0\]<div class="why"><b>Conclude.</b> The two computations give the same number. Since \(\alpha\neq\beta\) the first factor is nonzero, so the second must vanish. ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d97')">Next step</button><button class="btn ghost" onclick="dall('d97')">Show all</button><button class="btn ghost" onclick="dreset('d97')">Reset</button></div></div>
+<div class="box intuition"><span class="lbl">Intuition</span><p>Read \(\mA=\mQ\Lambda\mQ^\top\) right to left as a three-step recipe for what a
+symmetric matrix <em>does</em>: \(\mQ^\top\) rotates you into the eigenbasis; \(\Lambda\) stretches each of those
+axes independently by \(\lambda_i\); \(\mQ\) rotates back. <strong>Every symmetric matrix is a pure stretch, seen
+in a tilted coordinate system.</strong> That single sentence is most of what you need from this lecture.</p></div>
+<h2 id="s4"><span class="secnum">4</span>Quadratic forms</h2>
+<div class="box defn"><span class="lbl">Definition — quadratic form and definiteness</span><p>For symmetric \(\mA\), the
+<strong>quadratic form</strong> is the scalar function \(q(\vx)=\vx^\top\mA\vx\). We call \(\mA\):</p>
+<ul>
+<li><strong>positive definite</strong> (\(\mA\succ0\)) if \(q(\vx)>0\) for all \(\vx\neq\vzero\);</li>
+<li><strong>positive semi-definite</strong> (\(\mA\succeq0\)) if \(q(\vx)\ge0\) for all \(\vx\);</li>
+<li><strong>indefinite</strong> if \(q\) takes both signs.</li>
+</ul></div>
+<p>The spectral theorem turns definiteness into a statement about eigenvalues, and the proof is
+a change of variables:</p>
+<p>\[\vx^\top\mA\vx = \vx^\top\mQ\Lambda\mQ^\top\vx
+ = (\mQ^\top\vx)^\top\Lambda(\mQ^\top\vx) = \vz^\top\Lambda\vz = \sum_{i=1}^{d}\lambda_i z_i^2,
+ \qquad \vz := \mQ^\top\vx.\]</p>
+<p>Since \(\mQ\) is invertible, \(\vz\) ranges over all of \(\RR^d\) as \(\vx\) does, and
+\(\vz=\vzero\) only when \(\vx=\vzero\). Each \(z_i^2\ge0\). So the sign of \(q\) is entirely controlled by the
+signs of the eigenvalues:</p>
+<ul><li>All \(\lambda_i>0\) \(\iff\) positive definite.</li><li>All \(\lambda_i\ge0\) \(\iff\) positive semi-definite.</li><li>Mixed signs \(\iff\) indefinite — a saddle.</li></ul>
+<div class="fig"><div class="fig-head">Level sets of  q(x) = xᵀAx  — ellipses aligned to the eigenvectors<span class="tag">Interactive</span></div><canvas id="f11quad" data-h="440"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>eigenvector q₁</span><span><i style="background:var(--c5)"></i>eigenvector q₂</span><span><i style="background:var(--c3)"></i>level sets of q</span><span><i style="background:var(--c2)"></i>gradient descent path</span></div><div class="fig-read" id="f11quad-read"></div><div class="ctrls"><div class="ctrl"><label>λ₁</label><input type="range" min="-3" max="8" step="0.05" value="6" data-fmt="2" oninput="figSlide('f11quad','l1',this)"><output>6.00</output></div><div class="ctrl"><label>λ₂</label><input type="range" min="-3" max="8" step="0.05" value="1" data-fmt="2" oninput="figSlide('f11quad','l2',this)"><output>1.00</output></div><div class="ctrl"><label>rotate the eigenbasis (degrees)</label><input type="range" min="0" max="180" step="1" value="30" data-fmt="0" oninput="figSlide('f11quad','rot',this)"><output>30</output></div><div class="ctrl"><label>learning rate  η</label><input type="range" min="0.01" max="0.45" step="0.005" value="0.15" data-fmt="3" oninput="figSlide('f11quad','eta',this)"><output>0.150</output></div><div class="ctrl"><label>gradient steps</label><input type="range" min="0" max="40" step="1" value="12" data-fmt="0" oninput="figSlide('f11quad','steps',this)"><output>12</output></div></div><div class="fig-cap">Level sets of a quadratic form are ellipses whose axes are the eigenvectors and whose half-lengths go like 1/√λ. A large λ ratio means a long thin valley, and gradient descent bounces across it instead of running along it — the classic zig-zag. Set λ₁ = λ₂ and the ellipses become circles and descent goes straight to the centre in one step. Make one λ negative and the level sets become hyperbolas: a saddle, where descent escapes along the negative direction and never converges.</div></div><script>makeFig("f11quad",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,3.2);
+var l1=p.l1, l2=p.l2, t=p.rot*Math.PI/180;
+var q1=[Math.cos(t),Math.sin(t)], q2=[-Math.sin(t),Math.cos(t)];
+// A = Q diag Q^T
+var A=[[l1*q1[0]*q1[0]+l2*q2[0]*q2[0], l1*q1[0]*q1[1]+l2*q2[0]*q2[1]],
+       [l1*q1[0]*q1[1]+l2*q2[0]*q2[1], l1*q1[1]*q1[1]+l2*q2[1]*q2[1]]];
+function q(x,y){return A[0][0]*x*x + 2*A[0][1]*x*y + A[1][1]*y*y;}
+// contours by marching over a grid of levels using the eigen-parametrisation
+var cc=vp.ctx;
+var levels=[0.5,1.5,3,5,8,12,17];
+for(var li=0;li<levels.length;li++){
+  var L=levels[li];
+  cc.save(); cc.strokeStyle=vp.css('--c3'); cc.globalAlpha=0.55; cc.lineWidth=1.5;
+  cc.beginPath(); var started=false;
+  for(var i=0;i<=360;i++){
+    var a=i/360*6.2832;
+    var ca=Math.cos(a), sa=Math.sin(a);
+    var den=l1*ca*ca+l2*sa*sa;
+    if(den<=1e-6){started=false;continue;}
+    var r=Math.sqrt(L/den);
+    var zx=r*ca, zy=r*sa;
+    var x=zx*q1[0]+zy*q2[0], y=zx*q1[1]+zy*q2[1];
+    if(!started){cc.moveTo(vp.X(x),vp.Y(y));started=true;} else cc.lineTo(vp.X(x),vp.Y(y));
+  }
+  cc.stroke(); cc.restore();
+}
+vp.axes({stepx:1,stepy:1});
+vp.seg(-4*q1[0],-4*q1[1],4*q1[0],4*q1[1],'--c1',{w:1.6,dash:[6,4]});
+vp.seg(-4*q2[0],-4*q2[1],4*q2[0],4*q2[1],'--c5',{w:1.6,dash:[6,4]});
+vp.arrow(0,0,1.4*q1[0],1.4*q1[1],'--c1',{w:2.6});
+vp.arrow(0,0,1.4*q2[0],1.4*q2[1],'--c5',{w:2.6});
+// gradient descent on q (grad = 2Ax)
+var x=[2.4*q1[0]+2.0*q2[0], 2.4*q1[1]+2.0*q2[1]], n=Math.round(p.steps), eta=p.eta, path=[x.slice()];
+for(var i=0;i<n;i++){
+  var g=[2*(A[0][0]*x[0]+A[0][1]*x[1]), 2*(A[0][1]*x[0]+A[1][1]*x[1])];
+  x=[x[0]-eta*g[0], x[1]-eta*g[1]];
+  if(!isFinite(x[0])||Math.abs(x[0])>1e4) break;
+  path.push(x.slice());
+}
+for(var i=1;i<path.length;i++){
+  if(Math.abs(path[i][0])>6||Math.abs(path[i][1])>6) break;
+  vp.seg(path[i-1][0],path[i-1][1],path[i][0],path[i][1],'--c2',{w:1.8});
+  vp.dot(path[i][0],path[i][1],'--c2',3.8);
+}
+vp.dot(path[0][0],path[0][1],'--c2',6);
+var lmax=Math.max(Math.abs(l1),Math.abs(l2)), lmin=Math.min(Math.abs(l1),Math.abs(l2));
+var kappa=lmax/Math.max(lmin,1e-9);
+var kind = (l1>0&&l2>0)?'<b style="color:var(--ok)">positive definite → a bowl, unique minimum</b>'
+        : (l1<0&&l2<0)?'<b style="color:var(--c2)">negative definite → a dome, unique maximum</b>'
+        : (l1*l2<0)?'<b style="color:var(--bad)">indefinite → a SADDLE, gradient descent escapes</b>'
+        : 'semi-definite (one eigenvalue is zero → a flat valley floor)';
+var last=path[path.length-1];
+figRead('f11quad','λ = ('+l1.toFixed(2)+', '+l2.toFixed(2)+')   '+kind
+ +'<br>condition number κ = λmax/λmin = <b>'+kappa.toFixed(2)+'</b>'
+ +'   |   stability needs η &lt; 2/(2λmax) = 1/λmax = <b>'+(1/Math.max(l1,l2,1e-9)).toFixed(4)+'</b>'
+ +'   |   after '+n+' steps ‖x‖ = <b>'+Math.hypot(last[0],last[1]).toExponential(3)+'</b>');
+},[{"name": "l1", "label": "\u03bb\u2081", "min": -3, "max": 8, "step": 0.05, "value": 6, "dp": 2}, {"name": "l2", "label": "\u03bb\u2082", "min": -3, "max": 8, "step": 0.05, "value": 1, "dp": 2}, {"name": "rot", "label": "rotate the eigenbasis (degrees)", "min": 0, "max": 180, "step": 1, "value": 30, "dp": 0}, {"name": "eta", "label": "learning rate  \u03b7", "min": 0.01, "max": 0.45, "step": 0.005, "value": 0.15, "dp": 3}, {"name": "steps", "label": "gradient steps", "min": 0, "max": 40, "step": 1, "value": 12, "dp": 0}]);window["FIG_f11quad"].run();</script>
+<h2 id="s5"><span class="secnum">5</span>Condition number and the speed of gradient descent</h2>
+<p>Now we can finish the story begun in Lecture 6. Minimise \(f(\vx)=\tfrac12\vx^\top\mA\vx\) with
+\(\mA\succ0\). The gradient is \(\grad f = \mA\vx\), so</p>
+<p>\[\vx_{t+1} = \vx_t - \eta\mA\vx_t = (\mI-\eta\mA)\,\vx_t.\]</p>
+<p>Write \(\vx_t\) in the eigenbasis, \(\vx_t = \sum_i z_i^{(t)}\vq_i\). Because
+\((\mI-\eta\mA)\vq_i = (1-\eta\lambda_i)\vq_i\), the coordinates <strong>decouple completely</strong>:</p>
+<p>\[z_i^{(t)} = (1-\eta\lambda_i)^{t}\,z_i^{(0)}.\]</p>
+<p>So gradient descent on a quadratic is \(d\) <em>independent</em> one-dimensional problems, each
+exactly the scalar recursion from Lecture 6. Everything follows:</p>
+<ul><li><strong>Stability.</strong> Every coordinate must contract: \(|1-\eta\lambda_i|&lt;1\) for all \(i\).
+  The binding constraint is the largest eigenvalue, giving \(\;0&lt;\eta&lt;2/\lambda_{\max}\). Exceed it and the
+  component along \(\vq_{\max}\) blows up — even though every other direction is converging happily.</li><li><strong>Speed.</strong> The slowest coordinate governs. With the fastest safe choice
+  \(\eta = 2/(\lambda_{\max}+\lambda_{\min})\), the worst contraction factor works out to
+  \(\frac{\kappa-1}{\kappa+1}\), where \(\kappa=\lambda_{\max}/\lambda_{\min}\) is the
+  <strong>condition number</strong>.</li><li><strong>Consequence.</strong> Reaching accuracy \(\epsilon\) takes \(O(\kappa\log\frac1\epsilon)\)
+  iterations. A well-conditioned problem (\(\kappa\approx1\)) converges almost immediately; \(\kappa=10^4\)
+  needs tens of thousands of steps regardless of how you tune \(\eta\).</li></ul>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>Condition number is the hidden variable behind a great deal of practical advice:</p>
+<ul>
+<li><strong>Feature scaling.</strong> If one feature is in metres and another in millimetres, the Hessian
+\(\mX^\top\mX\) has wildly different eigenvalues and \(\kappa\) is enormous. Standardising each feature to zero
+mean and unit variance is, in effect, a cheap preconditioner. This is <em>the</em> reason "always scale your
+features" is good advice, and now you can say why.</li>
+<li><strong>Momentum</strong> improves the rate from \(O(\kappa)\) to \(O(\sqrt\kappa)\) — a genuine
+qualitative gain, not a constant factor, and the reason momentum is on by default everywhere.</li>
+<li><strong>Adam and friends</strong> rescale each coordinate by a running estimate of its curvature, which is a
+diagonal preconditioner: it attacks \(\kappa\) directly.</li>
+<li><strong>Batch normalisation</strong> was originally motivated by "internal covariate shift", but the
+better-supported modern explanation is that it improves the conditioning of the loss landscape.</li>
+<li><strong>Ridge regression</strong> replaces eigenvalues \(\lambda_i\) with \(\lambda_i+\lambda\), so
+\(\kappa\) falls from \(\frac{\lambda_{\max}}{\lambda_{\min}}\) to
+\(\frac{\lambda_{\max}+\lambda}{\lambda_{\min}+\lambda}\). It regularises <em>and</em> preconditions, which is
+the promise we made in Lecture 10, now paid.</li>
+</ul></div>
+<div class="quiz" id="q98"><div class="qlbl">Check yourself</div><div class="qq">Why is \(\mX^\top\mX\) always positive semi-definite, and when is it positive definite?</div><button class="qopt" data-ok="1" onclick="pick('q98',0,true)">Because \(\vv^\top\mX^\top\mX\vv = \|\mX\vv\|^2 \ge 0\); it is positive definite exactly when \(\mX\) has full column rank.</button><button class="qopt" data-ok="0" onclick="pick('q98',1,false)">Because it is symmetric, and symmetric matrices are positive semi-definite.</button><button class="qopt" data-ok="0" onclick="pick('q98',2,false)">Because all its entries are non-negative.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct on both counts. The identity comes from \((\mX\vv)^\top(\mX\vv)=\|\mX\vv\|^2\), and a squared
+    norm is never negative — so semi-definiteness holds for <em>any</em> \(\mX\) whatsoever.<br><br>
+    For strict positivity we need \(\|\mX\vv\|^2>0\) whenever \(\vv\neq\vzero\), i.e. \(\mX\vv\neq\vzero\), i.e.
+    \(\mathcal{N}(\mX)=\{\vzero\}\), i.e. the columns are independent, i.e. \(\rank(\mX)=d\).<br><br>
+    Both facts have consequences you have already used: semi-definiteness makes the least-squares objective
+    convex (Lecture 10), and definiteness makes it <em>strictly</em> convex with a unique minimiser. And it
+    explains the ridge fix: \(\vv^\top(\mX^\top\mX+\lambda\mI)\vv = \|\mX\vv\|^2+\lambda\|\vv\|^2 \ge
+    \lambda\|\vv\|^2>0\).</div><div class="qwhy" data-i="1"><b>Not quite.</b> Symmetry gives you <em>real</em> eigenvalues, not <em>positive</em> ones. A symmetric matrix can
+    easily be indefinite: \(\begin{bmatrix}1&0\\0&-1\end{bmatrix}\) is symmetric with eigenvalues \(+1\) and
+    \(-1\). Semi-definiteness of \(\mX^\top\mX\) comes from its <em>Gram</em> structure, not from symmetry
+    alone.</div><div class="qwhy" data-i="2"><b>Not quite.</b> They need not be. Take \(\mX=\begin{bmatrix}1&-1\end{bmatrix}\); then
+    \(\mX^\top\mX=\begin{bmatrix}1&-1\\-1&1\end{bmatrix}\), which has a negative entry and is nevertheless
+    positive semi-definite (eigenvalues 2 and 0). Entrywise sign and definiteness are unrelated properties —
+    a common confusion worth eliminating now.</div></div>
+<h2 id="s6"><span class="secnum">6</span>PCA in one paragraph</h2>
+<p>Centre your data so each feature has mean zero, and form the covariance matrix
+\(\mS = \frac1n\mX^\top\mX \in \RR^{d\times d}\). It is symmetric and positive semi-definite, so the spectral
+theorem applies: \(\mS = \mQ\Lambda\mQ^\top\). For a unit direction \(\vu\), the variance of the data projected
+onto \(\vu\) is</p>
+<p>\[\Var\big(\mX\vu\big) = \frac1n\|\mX\vu\|^2 = \vu^\top\mS\vu = \sum_i \lambda_i (\vq_i^\top\vu)^2.\]</p>
+<p>Maximising this over unit \(\vu\) puts all the weight on the largest \(\lambda\): the answer is
+\(\vu=\vq_1\), with value \(\lambda_1\). <strong>The top eigenvector of the covariance matrix is the direction of
+maximum variance, and its eigenvalue is that variance.</strong> Keeping the top \(k\) eigenvectors is PCA;
+the fraction of variance retained is \(\sum_{i\le k}\lambda_i \big/ \sum_i\lambda_i\). We do this properly in
+Phase B, but the mathematics is already complete.</p>
+<div class="pyb" id="py99" data-orig="import numpy as np
+np.set_printoptions(precision=4, suppress=True)
+
+A = np.array([[2., 1.],
+              [1., 2.]])
+
+# ALWAYS use eigh for symmetric matrices: faster, and guaranteed real output.
+vals, vecs = np.linalg.eigh(A)
+print(&quot;eigenvalues :&quot;, vals)
+print(&quot;eigenvectors (columns):\n&quot;, vecs)
+print(&quot;trace check :&quot;, vals.sum(), &quot;==&quot;, np.trace(A))
+print(&quot;det   check :&quot;, vals.prod(), &quot;==&quot;, np.linalg.det(A))
+print(&quot;orthogonal? Q^T Q =\n&quot;, vecs.T @ vecs)
+print()
+print(&quot;Reconstruction  Q L Q^T == A ?&quot;,
+      np.allclose(vecs @ np.diag(vals) @ vecs.T, A))
+print()
+
+# eig vs eigh on a NON-symmetric matrix
+B = np.array([[0., -1.],
+              [1.,  0.]])                # rotation by 90 degrees
+vb, _ = np.linalg.eig(B)
+print(&quot;rotation matrix eigenvalues:&quot;, vb, &quot; &lt;- COMPLEX: no real direction survives&quot;)
+print()
+
+# ---- conditioning and gradient descent ----
+print(&quot;--- CONDITION NUMBER CONTROLS CONVERGENCE ---&quot;)
+for kappa in [1, 10, 100, 1000]:
+    H = np.diag([1.0, 1.0/kappa])           # eigenvalues 1 and 1/kappa
+    lmax, lmin = 1.0, 1.0/kappa
+    eta = 2.0 / (lmax + lmin)               # the optimal step size
+    x = np.array([1.0, 1.0])
+    steps = 0
+    while np.linalg.norm(x) &gt; 1e-6 and steps &lt; 200000:
+        x = x - eta * (H @ x)
+        steps += 1
+    rate = (kappa - 1) / (kappa + 1)
+    predicted = np.log(1e-6/np.sqrt(2)) / np.log(rate) if kappa &gt; 1 else 1
+    print(f&quot;kappa={kappa:5d}  eta={eta:.5f}  steps={steps:7d}&quot;
+          f&quot;   contraction (k-1)/(k+1)={rate:.6f}   predicted~{predicted:.0f}&quot;)
+print()
+print(&quot;Steps grow linearly in kappa. This is why feature scaling matters.&quot;)
+print()
+
+# ---- unscaled vs scaled features ----
+print(&quot;--- FEATURE SCALING IS PRECONDITIONING ---&quot;)
+rng = np.random.default_rng(0)
+n = 500
+f1 = rng.normal(0, 1.0, n)          # e.g. metres
+f2 = rng.normal(0, 1000.0, n)       # e.g. millimetres
+Xr = np.column_stack([f1, f2])
+Xs = (Xr - Xr.mean(0)) / Xr.std(0)
+for name, X in [(&quot;raw     &quot;, Xr), (&quot;scaled  &quot;, Xs)]:
+    H = X.T @ X / n
+    ev = np.linalg.eigvalsh(H)
+    print(f&quot;{name} eigenvalues {ev}   kappa = {ev.max()/ev.min():.3e}&quot;)
+print()
+
+# ---- PCA ----
+print(&quot;--- PCA ON CORRELATED DATA ---&quot;)
+true_dir = np.array([1.0, 2.0]); true_dir /= np.linalg.norm(true_dir)
+t = rng.normal(0, 3, 400)
+Z = np.outer(t, true_dir) + 0.3*rng.normal(size=(400, 2))
+Z = Z - Z.mean(0)
+S = Z.T @ Z / len(Z)
+vals, vecs = np.linalg.eigh(S)
+order = np.argsort(vals)[::-1]
+vals, vecs = vals[order], vecs[:, order]
+print(&quot;covariance:\n&quot;, S)
+print(&quot;eigenvalues (descending):&quot;, vals)
+print(&quot;top eigenvector          :&quot;, vecs[:, 0])
+print(&quot;true generating direction:&quot;, true_dir, &quot; (sign is arbitrary)&quot;)
+print(f&quot;variance explained by PC1: {vals[0]/vals.sum():.4%}&quot;)
+print()
+print(&quot;Direct check -- variance of the data projected onto the top eigenvector:&quot;)
+print(&quot;  &quot;, np.var(Z @ vecs[:, 0]), &quot; vs eigenvalue &quot;, vals[0])
+"><div class="pyb-head"><span class="t">Eigenvalues, diagonalisation, conditioning and PCA in NumPy</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py99')">Run</button><button class="btn ghost" onclick="resetPy('py99')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+np.set_printoptions(precision=4, suppress=True)
+
+A = np.array([[2., 1.],
+              [1., 2.]])
+
+# ALWAYS use eigh for symmetric matrices: faster, and guaranteed real output.
+vals, vecs = np.linalg.eigh(A)
+print(&quot;eigenvalues :&quot;, vals)
+print(&quot;eigenvectors (columns):\n&quot;, vecs)
+print(&quot;trace check :&quot;, vals.sum(), &quot;==&quot;, np.trace(A))
+print(&quot;det   check :&quot;, vals.prod(), &quot;==&quot;, np.linalg.det(A))
+print(&quot;orthogonal? Q^T Q =\n&quot;, vecs.T @ vecs)
+print()
+print(&quot;Reconstruction  Q L Q^T == A ?&quot;,
+      np.allclose(vecs @ np.diag(vals) @ vecs.T, A))
+print()
+
+# eig vs eigh on a NON-symmetric matrix
+B = np.array([[0., -1.],
+              [1.,  0.]])                # rotation by 90 degrees
+vb, _ = np.linalg.eig(B)
+print(&quot;rotation matrix eigenvalues:&quot;, vb, &quot; &lt;- COMPLEX: no real direction survives&quot;)
+print()
+
+# ---- conditioning and gradient descent ----
+print(&quot;--- CONDITION NUMBER CONTROLS CONVERGENCE ---&quot;)
+for kappa in [1, 10, 100, 1000]:
+    H = np.diag([1.0, 1.0/kappa])           # eigenvalues 1 and 1/kappa
+    lmax, lmin = 1.0, 1.0/kappa
+    eta = 2.0 / (lmax + lmin)               # the optimal step size
+    x = np.array([1.0, 1.0])
+    steps = 0
+    while np.linalg.norm(x) &gt; 1e-6 and steps &lt; 200000:
+        x = x - eta * (H @ x)
+        steps += 1
+    rate = (kappa - 1) / (kappa + 1)
+    predicted = np.log(1e-6/np.sqrt(2)) / np.log(rate) if kappa &gt; 1 else 1
+    print(f&quot;kappa={kappa:5d}  eta={eta:.5f}  steps={steps:7d}&quot;
+          f&quot;   contraction (k-1)/(k+1)={rate:.6f}   predicted~{predicted:.0f}&quot;)
+print()
+print(&quot;Steps grow linearly in kappa. This is why feature scaling matters.&quot;)
+print()
+
+# ---- unscaled vs scaled features ----
+print(&quot;--- FEATURE SCALING IS PRECONDITIONING ---&quot;)
+rng = np.random.default_rng(0)
+n = 500
+f1 = rng.normal(0, 1.0, n)          # e.g. metres
+f2 = rng.normal(0, 1000.0, n)       # e.g. millimetres
+Xr = np.column_stack([f1, f2])
+Xs = (Xr - Xr.mean(0)) / Xr.std(0)
+for name, X in [(&quot;raw     &quot;, Xr), (&quot;scaled  &quot;, Xs)]:
+    H = X.T @ X / n
+    ev = np.linalg.eigvalsh(H)
+    print(f&quot;{name} eigenvalues {ev}   kappa = {ev.max()/ev.min():.3e}&quot;)
+print()
+
+# ---- PCA ----
+print(&quot;--- PCA ON CORRELATED DATA ---&quot;)
+true_dir = np.array([1.0, 2.0]); true_dir /= np.linalg.norm(true_dir)
+t = rng.normal(0, 3, 400)
+Z = np.outer(t, true_dir) + 0.3*rng.normal(size=(400, 2))
+Z = Z - Z.mean(0)
+S = Z.T @ Z / len(Z)
+vals, vecs = np.linalg.eigh(S)
+order = np.argsort(vals)[::-1]
+vals, vecs = vals[order], vecs[:, order]
+print(&quot;covariance:\n&quot;, S)
+print(&quot;eigenvalues (descending):&quot;, vals)
+print(&quot;top eigenvector          :&quot;, vecs[:, 0])
+print(&quot;true generating direction:&quot;, true_dir, &quot; (sign is arbitrary)&quot;)
+print(f&quot;variance explained by PC1: {vals[0]/vals.sum():.4%}&quot;)
+print()
+print(&quot;Direct check -- variance of the data projected onto the top eigenvector:&quot;)
+print(&quot;  &quot;, np.var(Z @ vecs[:, 0]), &quot; vs eigenvalue &quot;, vals[0])
+</textarea><div class="pyout"></div></div>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Find eigenvalues and eigenvectors by hand, and classify each matrix as positive definite,
+  negative definite, indefinite, or semi-definite:</p>
+  <p>(a) \(\begin{bmatrix}3&0\\0&5\end{bmatrix}\) &nbsp;&nbsp;
+  (b) \(\begin{bmatrix}4&2\\2&1\end{bmatrix}\) &nbsp;&nbsp;
+  (c) \(\begin{bmatrix}0&1\\1&0\end{bmatrix}\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex100',this)">Show solution</button></div><div class="rev-body" id="ex100"><p><strong>(a)</strong> Diagonal, so the eigenvalues are the diagonal entries: \(3,5\), with
+  eigenvectors \(\ve_1,\ve_2\). Both positive → <strong>positive definite</strong>.<br>
+  (For any diagonal matrix, \(\mD\ve_i = d_{ii}\ve_i\) directly from the definition — no characteristic
+  polynomial needed.)</p>
+
+  <p><strong>(b)</strong> \(\tr=5\), \(\det = 4-4=0\). So \(\lambda^2-5\lambda+0=0\), giving
+  \(\lambda(\lambda-5)=0\): \(\lambda=5,0\).<br>
+  For \(\lambda=5\): \(\begin{bmatrix}-1&2\\2&-4\end{bmatrix}\vv=\vzero \Rightarrow v_1=2v_2\), so
+  \(\vv=(2,1)\).<br>
+  For \(\lambda=0\): \(\begin{bmatrix}4&2\\2&1\end{bmatrix}\vv=\vzero \Rightarrow 2v_1+v_2=0\), so
+  \(\vv=(1,-2)\).<br>
+  Orthogonal ✓ (\(2-2=0\)). One eigenvalue is zero → <strong>positive semi-definite but not definite</strong>.
+  The zero eigenvalue means \(\vv=(1,-2)\) is in the null space: the matrix is singular, and \(q(\vv)=0\) there
+  even though \(\vv\neq\vzero\).</p>
+
+  <p><strong>(c)</strong> \(\tr=0\), \(\det=-1\). \(\lambda^2-1=0\), so \(\lambda=\pm1\).<br>
+  \(\lambda=1\): \(v_1=v_2\), giving \((1,1)\). \(\lambda=-1\): \(v_1=-v_2\), giving \((1,-1)\).<br>
+  Mixed signs → <strong>indefinite</strong>. This is the swap matrix, and \(q(\vx)=2x_1x_2\), which is clearly
+  positive in the first quadrant and negative in the second. A saddle.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that for symmetric \(\mA\) with eigenvalues \(\lambda_1\ge\cdots\ge\lambda_d\),</p>
+  \[ \lambda_d \|\vx\|^2 \;\le\; \vx^\top\mA\vx \;\le\; \lambda_1\|\vx\|^2 \quad\text{for all }\vx, \]
+  <p>with equality attained at the corresponding eigenvectors. (This is the Rayleigh quotient bound.)</p>
+  <p>Then use it to prove that \(\lambda_{\max}(\mA+\lambda\mI) = \lambda_{\max}(\mA)+\lambda\), justifying the
+  ridge claim from Lecture 10.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex101',this)">Show solution</button></div><div class="rev-body" id="ex101"><p><strong>Proof of the bound.</strong> Diagonalise \(\mA=\mQ\Lambda\mQ^\top\) and set
+  \(\vz=\mQ^\top\vx\). Since \(\mQ\) is orthogonal, \(\|\vz\|=\|\vx\|\) (orthogonal matrices preserve length:
+  \(\|\mQ^\top\vx\|^2 = \vx^\top\mQ\mQ^\top\vx = \vx^\top\vx\)). Then</p>
+  \[\vx^\top\mA\vx = \sum_{i=1}^d \lambda_i z_i^2.\]
+  <p>Each \(z_i^2\ge0\), so replacing every \(\lambda_i\) by the largest can only increase the sum:</p>
+  \[\sum_i \lambda_i z_i^2 \le \lambda_1\sum_i z_i^2 = \lambda_1\|\vz\|^2 = \lambda_1\|\vx\|^2.\]
+  <p>Replacing every \(\lambda_i\) by the smallest gives the lower bound identically. ∎</p>
+  <p><strong>Equality.</strong> Take \(\vx=\vq_1\), so \(\vz=\ve_1\) and the sum is exactly \(\lambda_1\), while
+  \(\|\vx\|^2=1\). Equality attained ✓. Similarly \(\vq_d\) attains the lower bound.</p>
+  <p>Equivalently: \(\lambda_1 = \max_{\vx\neq\vzero}\frac{\vx^\top\mA\vx}{\vx^\top\vx}\), the Rayleigh
+  quotient. This variational characterisation is what makes PCA's "maximise the variance" and "take the top
+  eigenvector" the same instruction.</p>
+
+  <p><strong>The ridge claim.</strong> If \(\mA\vq=\lambda\vq\) then</p>
+  \[(\mA+c\mI)\vq = \mA\vq + c\vq = (\lambda+c)\vq,\]
+  <p>so \(\vq\) is still an eigenvector, with eigenvalue shifted by \(c\). Since the eigenvectors are unchanged
+  and every eigenvalue shifts by the same \(c\), the ordering is preserved and
+  \(\lambda_{\max}(\mA+c\mI)=\lambda_{\max}(\mA)+c\), \(\lambda_{\min}(\mA+c\mI)=\lambda_{\min}(\mA)+c\). ∎</p>
+  <p>Hence for \(\mA=\mX^\top\mX\succeq0\) and \(c=\lambda>0\), every eigenvalue is at least \(\lambda>0\), so
+  none is zero, so the matrix is invertible — the promise from Lecture 10. And the condition number becomes
+  \(\frac{\lambda_{\max}+\lambda}{\lambda_{\min}+\lambda}\), which is strictly smaller than
+  \(\frac{\lambda_{\max}}{\lambda_{\min}}\) whenever \(\lambda_{\max}>\lambda_{\min}\). Regularisation and
+  preconditioning are literally the same operation.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Let \(\mA\) be symmetric positive definite with eigen-decomposition \(\mQ\Lambda\mQ^\top\). Show:</p>
+  <ol><li>\(\mA^{-1} = \mQ\Lambda^{-1}\mQ^\top\), and its eigenvalues are \(1/\lambda_i\).</li>
+  <li>\(\mA^{k} = \mQ\Lambda^{k}\mQ^\top\) for any positive integer \(k\).</li>
+  <li>There is a symmetric positive definite \(\mA^{1/2}\) with \((\mA^{1/2})^2=\mA\).</li>
+  <li>Why does this make Newton's method \(\vx - \mH^{-1}\grad f\) a "rescaling by curvature"?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex102',this)">Show solution</button></div><div class="rev-body" id="ex102"><p><strong>1.</strong> Check by multiplying:
+  \(\mQ\Lambda^{-1}\mQ^\top\,\mQ\Lambda\mQ^\top = \mQ\Lambda^{-1}(\mQ^\top\mQ)\Lambda\mQ^\top
+  = \mQ\Lambda^{-1}\Lambda\mQ^\top = \mQ\mQ^\top = \mI\) ✓. And \(\Lambda^{-1}\) is diagonal with entries
+  \(1/\lambda_i\), which exist because positive definiteness gives \(\lambda_i>0\).</p>
+
+  <p><strong>2.</strong> Induction. \(\mA^2 = \mQ\Lambda\mQ^\top\mQ\Lambda\mQ^\top = \mQ\Lambda^2\mQ^\top\), the
+  middle \(\mQ^\top\mQ\) collapsing to \(\mI\). Repeating gives \(\mA^k=\mQ\Lambda^k\mQ^\top\). ∎<br>
+  <em>This is why powers of matrices are easy in the eigenbasis and horrible outside it, and why the
+  eigen-decomposition is the right tool for anything involving repeated application — Markov chains, discrete
+  dynamical systems, and the gradient-descent recursion above.</em></p>
+
+  <p><strong>3.</strong> Define \(\mA^{1/2} = \mQ\Lambda^{1/2}\mQ^\top\) with
+  \(\Lambda^{1/2}=\operatorname{diag}(\sqrt{\lambda_i})\), well defined since \(\lambda_i>0\). Then
+  \((\mA^{1/2})^2 = \mQ\Lambda^{1/2}\Lambda^{1/2}\mQ^\top = \mQ\Lambda\mQ^\top=\mA\) ✓, and it is symmetric
+  (\((\mQ\Lambda^{1/2}\mQ^\top)^\top\) is itself) with positive eigenvalues \(\sqrt{\lambda_i}\), hence positive
+  definite. ∎<br>
+  <em>Used constantly: sampling from \(\mathcal{N}(\vzero,\mS)\) is done as \(\mS^{1/2}\vz\) with
+  \(\vz\sim\mathcal{N}(\vzero,\mI)\), and whitening a dataset is multiplication by \(\mS^{-1/2}\).</em></p>
+
+  <p><strong>4.</strong> Write the Newton step in the eigenbasis of the Hessian. With \(\vg=\grad f\) and
+  \(\tilde{\vg}=\mQ^\top\vg\), the step is</p>
+  \[\mH^{-1}\vg = \mQ\Lambda^{-1}\mQ^\top\vg = \mQ\Lambda^{-1}\tilde{\vg},\]
+  <p>i.e. component \(i\) of the gradient is divided by \(\lambda_i\). Directions of high curvature get
+  <em>small</em> steps, directions of low curvature get <em>large</em> ones. That is exactly what is needed to
+  fix the zig-zag in the figure above: after the rescaling, every direction has effective curvature 1, the
+  condition number becomes 1, and the ellipses become circles. Newton converges in a single step on a quadratic
+  for precisely this reason.</p>
+  <p>And it identifies the cost: you need \(\mH^{-1}\), which is \(O(d^3)\) to compute and \(O(d^2)\) to store.
+  Adam's diagonal rescaling is the cheap version — it fixes the conditioning that a <em>diagonal</em> Hessian
+  would cause, and ignores the rest.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Implement PCA from scratch and verify it against three independent
+  characterisations.</p>
+  <ol>
+  <li>Generate 500 points in \(\RR^{10}\) whose true structure is 3-dimensional plus noise.</li>
+  <li>Centre, compute the covariance, and take its eigendecomposition with <code>eigh</code>. Plot (or print)
+  the eigenvalue spectrum. Can you see the true rank?</li>
+  <li>Verify that projecting onto the top \(k\) eigenvectors minimises reconstruction error, by comparing
+  against 1000 random \(k\)-dimensional subspaces.</li>
+  <li>Verify that the singular values of the centred data matrix satisfy \(\sigma_i^2/n = \lambda_i\).</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex103',this)">Show solution</button></div><div class="rev-body" id="ex103"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+n, d, k_true = 500, 10, 3
+
+Z = rng.normal(size=(n, k_true))          # latent
+W = rng.normal(size=(k_true, d))          # loading
+X = Z @ W + 0.35*rng.normal(size=(n, d))  # observed
+Xc = X - X.mean(0)
+
+S = Xc.T @ Xc / n
+vals, vecs = np.linalg.eigh(S)
+o = np.argsort(vals)[::-1]; vals, vecs = vals[o], vecs[:, o]
+print("eigenvalues:", np.round(vals, 4))
+print("explained  :", np.round(np.cumsum(vals)/vals.sum(), 4))
+
+def recon_err(Q):                          # Q: d x k with orthonormal columns
+    P = Q @ Q.T
+    return np.mean(np.sum((Xc - Xc @ P)**2, axis=1))
+
+for k in (1, 2, 3, 4):
+    Qk = vecs[:, :k]
+    best = recon_err(Qk)
+    rand = min(recon_err(np.linalg.qr(rng.normal(size=(d, k)))[0])
+               for _ in range(1000))
+    print(f"k={k}  PCA err {best:.5f}   best of 1000 random subspaces {rand:.5f}"
+          f"   {'PCA wins' if best &lt;= rand else 'PROBLEM'}")
+
+U, sv, Vt = np.linalg.svd(Xc, full_matrices=False)
+print("\\nsigma^2 / n :", np.round(sv**2/n, 6)[:5])
+print("eigenvalues  :", np.round(vals, 6)[:5])
+print("match?", np.allclose(sv**2/n, vals))
+print("top singular vector vs top eigenvector (up to sign):",
+      np.allclose(np.abs(Vt[0]), np.abs(vecs[:, 0])))</code></pre>
+
+  <p><strong>What you should see.</strong></p>
+  <p><strong>2.</strong> The first three eigenvalues are large and comparable; the remaining seven are small and
+  roughly equal to the noise variance \(0.35^2\approx0.12\). That gap — the "elbow" — is the visible signature
+  of the true rank. Cumulative explained variance jumps to about 97–98% at \(k=3\) and then creeps up slowly,
+  which is the standard way of choosing \(k\).</p>
+  <p><strong>3.</strong> PCA beats every random subspace at every \(k\), usually by a wide margin. That is the
+  Eckart–Young theorem in empirical form: the top-\(k\) eigen-subspace is the <em>optimal</em> rank-\(k\)
+  approximation, not merely a good one. Note that reconstruction error and retained variance are two sides of
+  one identity — total variance is fixed, so minimising what you throw away is maximising what you keep.</p>
+  <p><strong>4.</strong> \(\sigma_i^2/n = \lambda_i\) to machine precision, and the right singular vectors equal
+  the eigenvectors up to sign. This is the practical route: computing the SVD of \(\mX_c\) directly is both
+  faster and numerically better than forming \(\mX_c^\top\mX_c\), because forming that product squares the
+  condition number — the same lesson as <code>lstsq</code> versus <code>inv</code> in Lecture 10. Every real PCA
+  implementation, including scikit-learn's, uses the SVD.</p>
+  <p><em>Sign ambiguity is worth noting:</em> if \(\vq\) is an eigenvector so is \(-\vq\), so the sign of each
+  principal component is arbitrary and can flip between library versions or platforms. If you ever see a PCA
+  plot mirror itself for no reason, that is why.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> Part IV. We have differentiated functions of one variable and manipulated
+vectors and matrices. Lecture 12 puts them together: gradients, Jacobians and Hessians, the multivariable chain
+rule, and the matrix-calculus identities we have been using on credit since Lecture 10.</p>
+<div class="pagenav"><a href="10-least-squares.html" class="pv"><span class="dir">Previous</span><span class="nm">10 · Least Squares and the Normal Equations</span></a><a href="12-gradients-jacobians-hessians.html" class="nx"><span class="dir">Next</span><span class="nm">12 · Gradients, Jacobians, and Hessians</span></a></div>
+</div>
+<script>initDone('11-eigenvalues-quadratic-forms');</script>
+</body>
+</html>

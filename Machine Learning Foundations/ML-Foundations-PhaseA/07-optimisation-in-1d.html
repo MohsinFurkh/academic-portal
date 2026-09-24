@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>7. Optimisation in One Dimension — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 7 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('07-optimisation-in-1d')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part II — Calculus of One Variable · Lecture 7</div>
+  <h1>Optimisation in One Dimension</h1>
+  <p class="dek">Training a model is minimising a function. This lecture assembles the complete one-dimensional theory — critical points, the second-derivative test, and convexity — so that when we go to a million dimensions in Lecture 12, only the bookkeeping changes.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Find and classify critical points using the first and second derivative tests</li><li>State and use the definition of a convex function, and prove \(f''\ge0 \Rightarrow\) convex</li><li>Explain precisely what convexity buys you: every local minimum is global</li><li>Derive the least-squares estimator for a one-parameter model by hand</li><li>Implement backtracking line search and explain what problem it solves</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lectures 4–6: derivatives, the chain rule, Taylor expansion</li><li>Solving quadratics and cubics by factoring</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>What we are looking for</h2>
+<div class="box defn"><span class="lbl">Definition — minima</span><p>Let \(f:S\to\RR\) with \(S\subseteq\RR\), and \(w^\star\in S\).</p>
+<ul>
+<li>\(w^\star\) is a <strong>global minimiser</strong> if \(f(w^\star)\le f(w)\) for <em>all</em> \(w\in S\).</li>
+<li>\(w^\star\) is a <strong>local minimiser</strong> if there is some \(\delta>0\) with \(f(w^\star)\le f(w)\)
+for all \(w\in S\) satisfying \(|w-w^\star|&lt;\delta\).</li>
+</ul>
+<p>Maximisers are defined by reversing the inequality. A point that is one or the other is an
+<strong>extremum</strong>.</p></div>
+<p>The \(\delta\) in the local definition is the same \(\delta\) from Lecture 3: "in some
+neighbourhood". Global means everywhere; local means only that you cannot improve by looking nearby. Gradient
+descent, which only ever looks nearby, can only ever guarantee the local version — which is why the whole field
+cares so much about when the two coincide.</p>
+<h2 id="s2"><span class="secnum">2</span>Critical points</h2>
+<div class="box thm"><span class="lbl">Theorem — Fermat's rule (interior extrema are critical)</span><p>If \(f\) has a local
+extremum at an <strong>interior</strong> point \(w^\star\) of its domain, and \(f\) is differentiable at
+\(w^\star\), then \(f'(w^\star)=0\).</p>
+<p><strong>Proof (for a local minimum).</strong> By definition there is \(\delta>0\) with \(f(w^\star+h)\ge
+f(w^\star)\) whenever \(|h|&lt;\delta\). So the numerator \(f(w^\star+h)-f(w^\star)\) is \(\ge0\) for all such
+\(h\). Now look at the difference quotient from each side:</p>
+\[ h>0:\quad \frac{f(w^\star+h)-f(w^\star)}{h} \ge 0 \quad\Longrightarrow\quad f'(w^\star)=\lim_{h\to0^+}(\cdots)\ \ge 0,\]
+\[ h&lt;0:\quad \frac{f(w^\star+h)-f(w^\star)}{h} \le 0 \quad\Longrightarrow\quad f'(w^\star)=\lim_{h\to0^-}(\cdots)\ \le 0.\]
+<p>The sign flips because we divide a non-negative numerator by a negative \(h\). Since \(f\) is differentiable,
+both one-sided limits equal the same number \(f'(w^\star)\). A number that is both \(\ge0\) and \(\le0\) is
+\(0\). ∎</p></div>
+<div class="box warn"><span class="lbl">Common trap</span><p>Read the direction of that implication carefully. It says <strong>extremum ⟹ critical</strong>.
+It does <em>not</em> say the reverse. Three ways \(f'(w)=0\) fails to be a minimum:</p>
+<ul>
+<li>\(f(w)=w^3\) at \(w=0\): \(f'(0)=0\) but the point is neither a max nor a min — an <em>inflection</em>.</li>
+<li>\(f(w)=-w^2\) at \(w=0\): critical, but a maximum.</li>
+<li>Also note the two hypotheses. <strong>Interior:</strong> \(f(w)=w\) on \([0,1]\) has its minimum at the
+endpoint \(w=0\) where \(f'=1\neq0\). <strong>Differentiable:</strong> \(f(w)=|w|\) has its minimum at \(0\),
+where \(f'\) does not exist. Both cases occur constantly in practice — constrained optimisation and L1
+regularisation respectively.</li>
+</ul></div>
+<h2 id="s3"><span class="secnum">3</span>Classifying critical points</h2>
+<p>Fermat's rule narrows the search to critical points. To sort them we use curvature, and Taylor
+tells us why it works. Expand about a critical point \(w^\star\), where \(f'(w^\star)=0\):</p>
+<p>\[f(w^\star+h) = f(w^\star) + \underbrace{f'(w^\star)}_{=\,0}h + \tfrac12 f''(w^\star)h^2 + O(h^3) = f(w^\star) + \tfrac12 f''(w^\star)h^2 + O(h^3).\]</p>
+<p>For small \(h\) the quadratic term dominates the cubic tail, and \(h^2>0\) regardless of
+direction. So the sign of \(f(w^\star+h)-f(w^\star)\) is the sign of \(f''(w^\star)\).</p>
+<div class="box thm"><span class="lbl">Theorem — second derivative test</span><p>Let \(f'(w^\star)=0\) and let \(f''\) be
+continuous near \(w^\star\).</p>
+<ul>
+<li>\(f''(w^\star)>0 \;\Rightarrow\; w^\star\) is a strict local <strong>minimum</strong> (curve opens up).</li>
+<li>\(f''(w^\star)&lt;0 \;\Rightarrow\; w^\star\) is a strict local <strong>maximum</strong> (curve opens down).</li>
+<li>\(f''(w^\star)=0 \;\Rightarrow\;\) <strong>the test is inconclusive.</strong> Look at higher derivatives or
+at the sign of \(f'\) either side.</li>
+</ul>
+<p>The third case is genuinely undecided, not a technicality: \(w^4\) (min), \(-w^4\) (max) and \(w^3\)
+(neither) all have \(f'=f''=0\) at the origin.</p></div>
+<div class="fig"><div class="fig-head">Critical points of  f(w) = w⁴ + a·w³ + b·w² — reshape and re-classify<span class="tag">Interactive</span></div><canvas id="f7class" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f</span><span><i style="background:var(--c5)"></i>f′</span><span><i style="background:var(--c3)"></i>local minimum</span><span><i style="background:var(--c4)"></i>local maximum</span><span><i style="background:var(--c2)"></i>inflection / degenerate</span></div><div class="fig-read" id="f7class-read"></div><div class="ctrls"><div class="ctrl"><label>a  (cubic coefficient)</label><input type="range" min="-4" max="4" step="0.05" value="0" data-fmt="2" oninput="figSlide('f7class','a',this)"><output>0.00</output></div><div class="ctrl"><label>b  (quadratic coefficient)</label><input type="range" min="-6" max="4" step="0.05" value="-3" data-fmt="2" oninput="figSlide('f7class','b',this)"><output>-3.00</output></div></div><div class="fig-cap">Critical points are where the purple f′ curve crosses zero. Each is classified by the SIGN OF THE SLOPE OF f′ there — which is f″. Watch the two minima merge into one as b rises through zero: at the merge point f″ = 0 and the test goes silent, exactly the inconclusive case. Set a = 0, b = −3 for the symmetric double well; add a ≠ 0 to tilt it and make one well deeper than the other.</div></div><script>makeFig("f7class",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frame(-3.2,3.2,-14,14);
+vp.axes({stepx:1,stepy:4});
+var a=p.a,b=p.b;
+var f =function(w){return w*w*w*w + a*w*w*w + b*w*w;};
+var f1=function(w){return 4*w*w*w + 3*a*w*w + 2*b*w;};
+var f2=function(w){return 12*w*w + 6*a*w + 2*b;};
+vp.curve(f,'--c1',{w:2.8});
+vp.curve(f1,'--c5',{w:2,dash:[6,4]});
+// roots of f' = w(4w^2 + 3a w + 2b)
+var roots=[0], disc=9*a*a-32*b;
+if(disc>=0){ var s=Math.sqrt(disc); roots.push((-3*a+s)/8); roots.push((-3*a-s)/8); }
+roots=roots.filter(function(r,i,arr){return arr.indexOf(r)===i;}).sort(function(x,y){return x-y;});
+var txt=[];
+for(var i=0;i<roots.length;i++){
+  var r=roots[i]; if(Math.abs(r)>3.2) continue;
+  var h=f2(r), col = Math.abs(h)<1e-6 ? '--c2' : (h>0?'--c3':'--c4');
+  var kind= Math.abs(h)<1e-6 ? 'degenerate (test inconclusive)' : (h>0?'local MIN':'local MAX');
+  vp.dot(r,f(r),col,7); vp.dot(r,0,col,4.5);
+  txt.push('w = '+r.toFixed(3)+': f″ = '+h.toFixed(3)+' → <b>'+kind+'</b>');
+}
+figRead('f7class',txt.join(' &nbsp;|&nbsp; ') || 'no critical points in view');
+},[{"name": "a", "label": "a  (cubic coefficient)", "min": -4, "max": 4, "step": 0.05, "value": 0, "dp": 2}, {"name": "b", "label": "b  (quadratic coefficient)", "min": -6, "max": 4, "step": 0.05, "value": -3, "dp": 2}]);window["FIG_f7class"].run();</script>
+<div class="quiz" id="q62"><div class="qlbl">Check yourself</div><div class="qq">\(f(w)=w^3-3w^2+2\). Find and classify all critical points.</div><button class="qopt" data-ok="1" onclick="pick('q62',0,true)">\(w=0\) is a local maximum, \(w=2\) is a local minimum.</button><button class="qopt" data-ok="0" onclick="pick('q62',1,false)">\(w=0\) and \(w=2\) are both local minima.</button><button class="qopt" data-ok="0" onclick="pick('q62',2,false)">\(w=1\) is the only critical point.</button><div class="qwhy" data-i="0"><b>Correct.</b> \(f'(w)=3w^2-6w=3w(w-2)\), zero at \(w=0\) and \(w=2\). Then \(f''(w)=6w-6\).<br>
+    At \(w=0\): \(f''=-6&lt;0\) → local maximum, value \(f(0)=2\).<br>
+    At \(w=2\): \(f''=6>0\) → local minimum, value \(f(2)=8-12+2=-2\).<br><br>
+    Note neither is <em>global</em>: a cubic runs to \(\pm\infty\), so \(f\) has no global extrema on \(\RR\).
+    "Local minimum" and "the answer to your optimisation problem" are different things.</div><div class="qwhy" data-i="1"><b>Not quite.</b> Two adjacent local minima would require a local maximum between them (the curve must come back up
+    and go back down), so this is impossible for a function with only two critical points. Concretely,
+    \(f''(0)=-6\), which is negative: the curve opens downwards at \(w=0\).</div><div class="qwhy" data-i="2"><b>Not quite.</b> \(w=1\) is where \(f''=0\) — the <em>inflection</em> point, where curvature changes sign. That is a
+    notable feature of the graph but it is not a critical point: \(f'(1)=3-6=-3\neq0\). Critical points come
+    from \(f'=0\); inflections come from \(f''=0\). Different equations, different meanings.</div></div>
+<h2 id="s4"><span class="secnum">4</span>Convexity: the property that makes optimisation tractable</h2>
+<p>Everything so far is <em>local</em>. Convexity is the assumption that upgrades local statements
+to global ones, and it is the dividing line between optimisation problems we can solve and problems we can only
+attack heuristically.</p>
+<div class="box defn"><span class="lbl">Definition — convex function</span><p>\(f\) is <strong>convex</strong> on an interval
+\(I\) if for all \(u,v\in I\) and all \(\lambda\in[0,1]\),</p>
+\[ f\big(\lambda u + (1-\lambda)v\big) \;\le\; \lambda f(u) + (1-\lambda)f(v). \]
+<p>It is <strong>strictly convex</strong> if the inequality is strict whenever \(u\neq v\) and
+\(\lambda\in(0,1)\).</p></div>
+<div class="box intuition"><span class="lbl">Intuition</span><p>The left side is the function evaluated somewhere on the segment between \(u\) and
+\(v\); the right side is the corresponding height on the straight chord joining \((u,f(u))\) to \((v,f(v))\).
+So convexity says: <strong>the chord never dips below the curve</strong>. Equivalently, the region above the
+graph is a convex set — you can stretch a rubber band between any two points on the graph and it will never
+cut through.</p></div>
+<div class="fig"><div class="fig-head">The chord test<span class="tag">Interactive</span></div><canvas id="f7convex" data-h="390"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f</span><span><i style="background:var(--c2)"></i>chord from u to v</span><span><i style="background:var(--c3)"></i>the mixed point λu+(1−λ)v</span></div><div class="fig-read" id="f7convex-read"></div><div class="ctrls"><div class="ctrl"><label>0 = w²  ·  1 = w⁴−3w²  ·  2 = eʷ  ·  3 = |w|</label><input type="range" min="0" max="3" step="1" value="0" data-fmt="0" oninput="figSlide('f7convex','which',this)"><output>0</output></div><div class="ctrl"><label>u</label><input type="range" min="-2.4" max="2.4" step="0.02" value="-1.6" data-fmt="2" oninput="figSlide('f7convex','u',this)"><output>-1.60</output></div><div class="ctrl"><label>v</label><input type="range" min="-2.4" max="2.4" step="0.02" value="1.8" data-fmt="2" oninput="figSlide('f7convex','v',this)"><output>1.80</output></div><div class="ctrl"><label>λ</label><input type="range" min="0" max="1" step="0.01" value="0.5" data-fmt="2" oninput="figSlide('f7convex','lam',this)"><output>0.50</output></div></div><div class="fig-cap">Convex means the orange chord sits on or above the blue curve for EVERY choice of u and v. For w² and eʷ you will not be able to break it. For w⁴ − 3w² you can: choose u and v in the two different wells and the chord dives under the central bump. Note |w| is convex despite the corner — convexity does not require differentiability, which is exactly why L1 regularisation is still a tractable problem.</div></div><script>makeFig("f7convex",function(vp,p,F){
+vp.pads(46,16,14,30);
+var k=Math.round(p.which);
+var defs=[ {f:function(w){return w*w;}, n:'w²', yr:[-1,7]},
+           {f:function(w){return w*w*w*w-3*w*w;}, n:'w⁴ − 3w²', yr:[-3,5]},
+           {f:Math.exp, n:'eʷ', yr:[-1,9]},
+           {f:Math.abs, n:'|w|', yr:[-0.5,3]} ];
+var D=defs[k];
+vp.frame(-2.7,2.7,D.yr[0],D.yr[1]);
+vp.axes({stepx:1,stepy:1});
+vp.curve(D.f,'--c1',{w:2.8});
+var u=p.u, v=p.v, lam=p.lam;
+var fu=D.f(u), fv=D.f(v);
+vp.seg(u,fu,v,fv,'--c2',{w:2.2});
+vp.dot(u,fu,'--c2',6); vp.dot(v,fv,'--c2',6);
+var m=lam*u+(1-lam)*v, chord=lam*fu+(1-lam)*fv, curve=D.f(m);
+vp.seg(m,curve,m,chord,'--c3',{w:2.4});
+vp.dot(m,curve,'--c1',6); vp.dot(m,chord,'--c3',6);
+// scan for the worst violation over this u,v
+var worst=0;
+for(var i=1;i<200;i++){var L=i/200, mm=L*u+(1-L)*v;
+  worst=Math.max(worst, D.f(mm)-(L*fu+(1-L)*fv)); }
+figRead('f7convex','f(λu+(1−λ)v) = <b>'+curve.toFixed(4)+'</b>  vs  λf(u)+(1−λ)f(v) = <b>'+chord.toFixed(4)+'</b>'
+ +' &nbsp;→&nbsp; '+(curve<=chord+1e-12?'<b style="color:var(--ok)">curve ≤ chord ✓</b>':'<b style="color:var(--bad)">curve ABOVE chord ✗ — convexity violated</b>')
+ +'<br>worst violation over the whole segment: <b>'+(worst>1e-9?worst.toFixed(4)+' → this function is NOT convex':'0 → no violation on this segment')+'</b>');
+},[{"name": "which", "label": "0 = w\u00b2  \u00b7  1 = w\u2074\u22123w\u00b2  \u00b7  2 = e\u02b7  \u00b7  3 = |w|", "min": 0, "max": 3, "step": 1, "value": 0, "dp": 0}, {"name": "u", "label": "u", "min": -2.4, "max": 2.4, "step": 0.02, "value": -1.6, "dp": 2}, {"name": "v", "label": "v", "min": -2.4, "max": 2.4, "step": 0.02, "value": 1.8, "dp": 2}, {"name": "lam", "label": "\u03bb", "min": 0, "max": 1, "step": 0.01, "value": 0.5, "dp": 2}]);window["FIG_f7convex"].run();</script>
+<div class="box thm"><span class="lbl">Theorem — the second derivative test for convexity</span><p>If \(f\) is twice
+differentiable on an interval \(I\), then</p>
+\[ f \text{ is convex on } I \quad\Longleftrightarrow\quad f''(w)\ge 0 \text{ for all } w\in I. \]
+<p>And \(f''(w)>0\) everywhere implies strictly convex. (The converse of that last one fails: \(w^4\) is
+strictly convex but \(f''(0)=0\).)</p></div>
+<div class="deriv" id="d63"><div class="deriv-head"><span class="t">Proving f″ ≥ 0 ⟹ f lies above every tangent ⟹ f is convex</span><span class="ct">0 / 6</span></div><div class="dstep">\[f(v) = f(u) + f'(u)(v-u) + \tfrac12 f''(\xi)(v-u)^2 \quad\text{for some }\xi\text{ between }u,v\]<div class="why"><b>Taylor with Lagrange remainder, n = 1.</b> Straight from Lecture 6. This is exact, not approximate — the mystery point \(\xi\) absorbs all the error.</div></div><div class="dstep">\[f''(\xi)\ge 0 \text{ and } (v-u)^2\ge 0 \quad\Longrightarrow\quad f(v) \;\ge\; f(u)+f'(u)(v-u)\]<div class="why"><b>Drop a non-negative term.</b> The remainder is a product of two non-negative quantities, so removing it can only decrease the right-hand side. This inequality is the <em>tangent-line characterisation</em>: a convex function lies on or above each of its tangent lines, everywhere. It is worth remembering in its own right.</div></div><div class="dstep">\[\text{Let } m=\lambda u+(1-\lambda)v. \quad \begin{cases} f(u)\ge f(m)+f'(m)(u-m)\\ f(v)\ge f(m)+f'(m)(v-m)\end{cases}\]<div class="why"><b>Apply the tangent inequality twice</b>, both times with the tangent taken at the mixed point \(m\). This is the standard trick: compare both endpoints to the point in the middle.</div></div><div class="dstep">\[\lambda f(u) + (1-\lambda)f(v) \;\ge\; f(m) + f'(m)\Big[\lambda(u-m)+(1-\lambda)(v-m)\Big]\]<div class="why"><b>Take a weighted average.</b> Multiply the first inequality by \(\lambda\ge0\) and the second by \((1-\lambda)\ge0\) — multiplying by non-negative numbers preserves \(\ge\) — then add. The \(f(m)\) terms combine because \(\lambda+(1-\lambda)=1\).</div></div><div class="dstep">\[\lambda(u-m)+(1-\lambda)(v-m) = \big[\lambda u + (1-\lambda)v\big] - m = m - m = 0\]<div class="why"><b>The bracket vanishes.</b> This is the whole point of choosing the tangent at \(m\): the first-order terms cancel exactly, by the definition of \(m\).</div></div><div class="dstep">\[\lambda f(u)+(1-\lambda)f(v) \;\ge\; f(m) = f\big(\lambda u+(1-\lambda)v\big) \qquad\blacksquare\]<div class="why"><b>That is the definition of convexity.</b> Chord above curve. Note what the proof reveals: convexity is really the statement that the function never curves away downwards, and \(f''\ge0\) is the local certificate for that.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d63')">Next step</button><button class="btn ghost" onclick="dall('d63')">Show all</button><button class="btn ghost" onclick="dreset('d63')">Reset</button></div></div>
+<div class="box thm"><span class="lbl">Theorem — why we care</span><p>Let \(f\) be convex on an interval \(I\). Then:</p>
+<ol>
+<li>Every local minimum of \(f\) is a <strong>global</strong> minimum.</li>
+<li>The set of minimisers is an interval (possibly a single point, possibly empty).</li>
+<li>If \(f\) is differentiable, then \(f'(w^\star)=0\) is <strong>sufficient</strong>, not merely necessary, for
+\(w^\star\) to be a global minimum.</li>
+<li>If \(f\) is strictly convex, the minimiser is unique when it exists.</li>
+</ol>
+<p><strong>Proof of (1).</strong> Let \(w^\star\) be a local minimum, so \(f(w^\star)\le f(w)\) for all \(w\)
+within \(\delta\). Suppose for contradiction some \(v\in I\) has \(f(v)&lt;f(w^\star)\). Consider points on the
+segment towards \(v\): for \(\lambda\in(0,1)\) close to 1, the point \(m_\lambda=\lambda w^\star+(1-\lambda)v\)
+lies within \(\delta\) of \(w^\star\). Convexity gives</p>
+\[ f(m_\lambda) \le \lambda f(w^\star) + (1-\lambda)f(v) &lt; \lambda f(w^\star)+(1-\lambda)f(w^\star) = f(w^\star), \]
+<p>where the strict inequality used \(f(v)&lt;f(w^\star)\) and \(1-\lambda>0\). So \(m_\lambda\) is a nearby point
+with a strictly smaller value — contradicting local minimality. Hence no such \(v\) exists. ∎</p></div>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>This theorem is the reason the field is split in two.</p>
+<ul>
+<li><strong>Convex problems</strong> — linear regression with squared loss, logistic regression, SVMs, LASSO —
+have a single basin. Gradient descent, run long enough with a sensible step size, provably finds <em>the</em>
+answer. There is no "try a different seed", no "it got stuck". Convergence rates are known and the solution
+does not depend on initialisation.</li>
+<li><strong>Non-convex problems</strong> — every neural network — have no such guarantee. What you find depends
+on where you start, on the random seed, on the batch order. The practical situation is much better than the
+theory allows for, and understanding <em>why</em> is an open research question. It is one of the genuinely
+interesting unsolved problems in the field, and you are now equipped to state it precisely.</li>
+</ul>
+<p>One warning about vocabulary: people say "the loss surface is non-convex" to mean the loss as a function of
+the <em>parameters</em>. Cross-entropy is convex in the network's <em>outputs</em>; it is the composition with
+the network that destroys convexity. Composition does not preserve convexity, and that is the whole difficulty
+of deep learning in one sentence.</p></div>
+<h2 id="s5"><span class="secnum">5</span>A real example: least squares by hand</h2>
+<p>Let us do a complete optimisation problem from start to finish. Given data
+\((x_1,y_1),\dots,(x_n,y_n)\), fit the one-parameter model \(\hat y = w x\) by minimising squared error.</p>
+<div class="deriv" id="d64"><div class="deriv-head"><span class="t">Deriving the least-squares estimator</span><span class="ct">0 / 5</span></div><div class="dstep">\[J(w) = \frac{1}{2}\sum_{i=1}^{n}\big(w x_i - y_i\big)^2\]<div class="why"><b>The objective.</b> Sum of squared residuals. The \(\tfrac12\) is a convention: it cancels the 2 from differentiating a square, and since scaling by a positive constant cannot move a minimiser (Lecture 2's argmax theorem), it changes nothing.</div></div><div class="dstep">\[J'(w) = \sum_{i=1}^{n}\big(wx_i-y_i\big)\,x_i\]<div class="why"><b>Differentiate.</b> Linearity moves \(\frac{d}{dw}\) inside the sum. Each term is a chain rule: outer \(\tfrac12 u^2\) with derivative \(u\), inner \(u=wx_i-y_i\) with derivative \(x_i\).</div></div><div class="dstep">\[J'(w) = w\sum_{i} x_i^2 - \sum_i x_iy_i \;\stackrel{!}{=}\; 0\]<div class="why"><b>Expand and set to zero.</b> Distribute \(x_i\) and split the sum. Note \(w\) does not depend on \(i\), so it factors out of the first sum — this is what makes the problem linear in \(w\).</div></div><div class="dstep">\[\boxed{\;\hat w = \frac{\sum_i x_iy_i}{\sum_i x_i^2}\;}\]<div class="why"><b>Solve.</b> A closed form — no iteration needed. Valid provided \(\sum x_i^2\neq0\), i.e. not every \(x_i\) is zero. Notice the structure: it is a ratio of a cross term to a self term, which in Lecture 10 you will recognise as \(\frac{\langle \vx,\vy\rangle}{\langle\vx,\vx\rangle}\) — the formula for projecting \(\vy\) onto \(\vx\).</div></div><div class="dstep">\[J''(w) = \sum_i x_i^2 \;>\; 0\]<div class="why"><b>Confirm it is a minimum, and a global one.</b> \(J''\) is a sum of squares, hence non-negative, and strictly positive unless all \(x_i=0\). So \(J\) is strictly convex, the critical point is a strict local minimum by the second-derivative test, and by the convexity theorem it is the <em>unique global</em> minimiser. This is why linear regression has no local-minimum problem, ever.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d64')">Next step</button><button class="btn ghost" onclick="dall('d64')">Show all</button><button class="btn ghost" onclick="dreset('d64')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Least squares:  the loss J(w) and the fit it produces<span class="tag">Interactive</span></div><canvas id="f7ls" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>data + fitted line</span><span><i style="background:var(--c5)"></i>J(w)</span><span><i style="background:var(--c2)"></i>current w</span><span><i style="background:var(--c3)"></i>optimal ŵ</span></div><div class="fig-read" id="f7ls-read"></div><div class="ctrls"><div class="ctrl"><label>slope  w</label><input type="range" min="-1" max="4" step="0.02" value="0.4" data-fmt="2" oninput="figSlide('f7ls','w',this)"><output>0.40</output></div><div class="ctrl"><label>data noise</label><input type="range" min="0" max="2" step="0.05" value="0.7" data-fmt="2" oninput="figSlide('f7ls','noise',this)"><output>0.70</output></div></div><div class="fig-cap">Left: the data and your candidate line, with residuals drawn in. Right: the loss as a function of w — a perfect parabola, because J is quadratic in w. Slide w and watch the point roll along the parabola. The green marker is the closed-form optimum ŵ = Σxy / Σx²; no search was needed to find it.</div></div><script>makeFig("f7ls",function(vp,p,F){
+var c=vp.ctx,W=vp.W,H=vp.H; c.clearRect(0,0,W,H);
+// deterministic pseudo-random data
+var n=14, xs=[], ys=[], s=12345;
+function rnd(){ s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff; }
+for(var i=0;i<n;i++){ var x=0.3+3.4*i/(n-1); xs.push(x); ys.push(2.1*x + p.noise*(rnd()*2-1)); }
+var Sxy=0,Sxx=0; for(var i=0;i<n;i++){Sxy+=xs[i]*ys[i];Sxx+=xs[i]*xs[i];}
+var what=Sxy/Sxx;
+function J(w){var t=0;for(var i=0;i<n;i++){var r=w*xs[i]-ys[i];t+=0.5*r*r;}return t;}
+var halfW=Math.floor(W*0.52);
+function mk(px,pw,xmin,xmax,ymin,ymax){
+  var v=new Viewport(vp.cv,0,1,0,1); v.ctx=c; v.W=W; v.H=H;
+  v.pad={l:px+42,r:W-(px+pw)+12,t:14,b:30};
+  v.pw=pw-54; v.ph=H-44; v.xmin=xmin;v.xmax=xmax;v.ymin=ymin;v.ymax=ymax; return v;}
+var A=mk(0,halfW,0,4,-1,10);
+A.axes({stepx:1,stepy:2});
+A.curve(function(x){return p.w*x;},'--c1',{w:2.4});
+for(var i=0;i<n;i++){ A.seg(xs[i],ys[i],xs[i],p.w*xs[i],'--c4',{w:1.3,dash:[2,2]}); A.dot(xs[i],ys[i],'--c1',4.5); }
+A.label(0.1,9.6,'data + line  ŷ = w·x','--c1',{halo:true,bold:true});
+c.save(); c.strokeStyle=vp.css('--line'); c.lineWidth=1;
+c.beginPath(); c.moveTo(halfW+.5,0); c.lineTo(halfW+.5,H); c.stroke(); c.restore();
+var jmax=Math.max(J(-1),J(4));
+var B=mk(halfW,W-halfW,-1,4,-jmax*0.06,jmax);
+B.axes({stepx:1});
+B.curve(J,'--c5',{w:2.6});
+B.dot(what,J(what),'--c3',7);
+B.dot(p.w,J(p.w),'--c2',6.5);
+B.seg(p.w,0,p.w,J(p.w),'--c2',{dash:[3,3],w:1.3});
+B.label(-0.9,jmax*0.95,'J(w)','--c5',{halo:true,bold:true});
+figRead('f7ls','w = '+p.w.toFixed(2)+'  →  J(w) = <b>'+J(p.w).toFixed(4)+'</b>   |   optimum  ŵ = Σxᵢyᵢ / Σxᵢ² = <b>'
+ +what.toFixed(6)+'</b>,  J(ŵ) = <b>'+J(what).toFixed(4)+'</b>   |   J″ = Σxᵢ² = '+Sxx.toFixed(2)+' &gt; 0 → strictly convex');
+},[{"name": "w", "label": "slope  w", "min": -1, "max": 4, "step": 0.02, "value": 0.4, "dp": 2}, {"name": "noise", "label": "data noise", "min": 0, "max": 2, "step": 0.05, "value": 0.7, "dp": 2}]);window["FIG_f7ls"].run();</script>
+<h2 id="s6"><span class="secnum">6</span>When you cannot solve for the optimum: line search</h2>
+<p>Least squares had a closed form. Most problems do not, and then we iterate. Lecture 6 showed the
+step size must satisfy \(\eta&lt;2/L\), but \(L\) is usually unknown. The practical answer is to <em>test</em> each
+step rather than predict it.</p>
+<div class="pyb" id="py65" data-orig="import numpy as np
+
+# A deliberately awkward function: very different curvature in different regions.
+f  = lambda w: np.log(1 + np.exp(3*w)) + 0.1*w**2      # softplus + gentle bowl
+fp = lambda w: 3/(1 + np.exp(-3*w)) + 0.2*w
+
+def backtracking_step(f, fp, w, eta0=1.0, c=1e-4, rho=0.5, max_halvings=50):
+    &quot;&quot;&quot;Armijo condition: accept eta only if it decreases f by a decent fraction
+    of what the linear model promised.&quot;&quot;&quot;
+    g, fw = fp(w), f(w)
+    eta, halvings = eta0, 0
+    # linear model predicts f(w - eta*g) ~= f(w) - eta*g^2
+    while f(w - eta*g) &gt; fw - c*eta*g*g and halvings &lt; max_halvings:
+        eta *= rho
+        halvings += 1
+    return w - eta*g, eta, halvings
+
+def run(name, stepper, w0=2.0, n=25):
+    w = w0
+    print(f&quot;\n{name}&quot;)
+    print(f&quot;{&#x27;t&#x27;:&gt;3} {&#x27;w&#x27;:&gt;12} {&#x27;f(w)&#x27;:&gt;12} {&#x27;|f prime|&#x27;:&gt;12} {&#x27;eta&#x27;:&gt;9}&quot;)
+    for t in range(n):
+        w, eta, hv = stepper(w)
+        if t &lt; 6 or t == n-1:
+            print(f&quot;{t:3d} {w:12.6f} {f(w):12.6f} {abs(fp(w)):12.3e} {eta:9.5f}&quot;)
+    return w
+
+run(&quot;BACKTRACKING (eta chosen per step)&quot;,
+    lambda w: backtracking_step(f, fp, w))
+
+for fixed in (0.5, 0.1, 0.02):
+    run(f&quot;FIXED eta = {fixed}&quot;,
+        lambda w, e=fixed: (w - e*fp(w), e, 0))
+
+print()
+print(&quot;Read the eta column in the backtracking run: it starts small (the&quot;)
+print(&quot;gradient is large and the linear model is only valid nearby) and grows&quot;)
+print(&quot;as the iterate reaches the flat basin.  A fixed eta must be small&quot;)
+print(&quot;enough for the WORST region, so it wastes steps everywhere else.&quot;)
+print()
+print(&quot;The Armijo condition f(w - eta*g) &lt;= f(w) - c*eta*g^2 is exactly the&quot;)
+print(&quot;first-order Taylor prediction from Lecture 4, discounted by c.&quot;)
+print(&quot;We are testing whether the linear model is still trustworthy.&quot;)
+"><div class="pyb-head"><span class="t">Backtracking line search — choosing η adaptively</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py65')">Run</button><button class="btn ghost" onclick="resetPy('py65')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+
+# A deliberately awkward function: very different curvature in different regions.
+f  = lambda w: np.log(1 + np.exp(3*w)) + 0.1*w**2      # softplus + gentle bowl
+fp = lambda w: 3/(1 + np.exp(-3*w)) + 0.2*w
+
+def backtracking_step(f, fp, w, eta0=1.0, c=1e-4, rho=0.5, max_halvings=50):
+    &quot;&quot;&quot;Armijo condition: accept eta only if it decreases f by a decent fraction
+    of what the linear model promised.&quot;&quot;&quot;
+    g, fw = fp(w), f(w)
+    eta, halvings = eta0, 0
+    # linear model predicts f(w - eta*g) ~= f(w) - eta*g^2
+    while f(w - eta*g) &gt; fw - c*eta*g*g and halvings &lt; max_halvings:
+        eta *= rho
+        halvings += 1
+    return w - eta*g, eta, halvings
+
+def run(name, stepper, w0=2.0, n=25):
+    w = w0
+    print(f&quot;\n{name}&quot;)
+    print(f&quot;{&#x27;t&#x27;:&gt;3} {&#x27;w&#x27;:&gt;12} {&#x27;f(w)&#x27;:&gt;12} {&#x27;|f prime|&#x27;:&gt;12} {&#x27;eta&#x27;:&gt;9}&quot;)
+    for t in range(n):
+        w, eta, hv = stepper(w)
+        if t &lt; 6 or t == n-1:
+            print(f&quot;{t:3d} {w:12.6f} {f(w):12.6f} {abs(fp(w)):12.3e} {eta:9.5f}&quot;)
+    return w
+
+run(&quot;BACKTRACKING (eta chosen per step)&quot;,
+    lambda w: backtracking_step(f, fp, w))
+
+for fixed in (0.5, 0.1, 0.02):
+    run(f&quot;FIXED eta = {fixed}&quot;,
+        lambda w, e=fixed: (w - e*fp(w), e, 0))
+
+print()
+print(&quot;Read the eta column in the backtracking run: it starts small (the&quot;)
+print(&quot;gradient is large and the linear model is only valid nearby) and grows&quot;)
+print(&quot;as the iterate reaches the flat basin.  A fixed eta must be small&quot;)
+print(&quot;enough for the WORST region, so it wastes steps everywhere else.&quot;)
+print()
+print(&quot;The Armijo condition f(w - eta*g) &lt;= f(w) - c*eta*g^2 is exactly the&quot;)
+print(&quot;first-order Taylor prediction from Lecture 4, discounted by c.&quot;)
+print(&quot;We are testing whether the linear model is still trustworthy.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Find and classify all critical points:</p>
+  <p>(a) \(f(w)=w^3-6w^2+9w+1\) &nbsp;&nbsp; (b) \(f(w)=we^{-w}\) &nbsp;&nbsp;
+  (c) \(f(w)=w^4-8w^2\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex66',this)">Show solution</button></div><div class="rev-body" id="ex66"><p><strong>(a)</strong> \(f'=3w^2-12w+9=3(w-1)(w-3)\), so \(w=1,3\). \(f''=6w-12\).<br>
+  \(f''(1)=-6&lt;0\) → local max, \(f(1)=5\). \(f''(3)=6>0\) → local min, \(f(3)=27-54+27+1=1\).</p>
+
+  <p><strong>(b)</strong> Product rule: \(f'=e^{-w}-we^{-w}=e^{-w}(1-w)\). Since \(e^{-w}>0\) always, the only
+  critical point is \(w=1\). Then \(f''=e^{-w}(w-2)\), so \(f''(1)=-e^{-1}&lt;0\) → local maximum, \(f(1)=1/e\).<br>
+  It is in fact the <em>global</em> maximum: \(f\to0\) as \(w\to+\infty\) and \(f\to-\infty\) as \(w\to-\infty\).</p>
+
+  <p><strong>(c)</strong> \(f'=4w^3-16w=4w(w^2-4)=4w(w-2)(w+2)\), so \(w=0,\pm2\). \(f''=12w^2-16\).<br>
+  \(f''(0)=-16&lt;0\) → local max, \(f(0)=0\). \(f''(\pm2)=48-16=32>0\) → local minima, \(f(\pm2)=16-32=-16\).<br>
+  Both minima are global (equal value, and \(f\to+\infty\) at both ends). A symmetric double well — and a
+  concrete example of a function with two distinct global minimisers, so the minimiser is not unique. Consistent
+  with the theorem: \(f\) is not convex.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Determine whether each is convex on the stated interval, using \(f''\):</p>
+  <p>(a) \(f(w)=e^{w}\) on \(\RR\) &nbsp;&nbsp; (b) \(f(w)=-\ln w\) on \((0,\infty)\) &nbsp;&nbsp;
+  (c) \(f(w)=w\ln w\) on \((0,\infty)\) &nbsp;&nbsp; (d) \(f(w)=\log(1+e^{w})\) on \(\RR\)</p>
+  <p>Then say which machine-learning object each of (b), (c), (d) is a piece of.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex67',this)">Show solution</button></div><div class="rev-body" id="ex67"><p><strong>(a)</strong> \(f''=e^w>0\) everywhere → strictly convex. ✓</p>
+  <p><strong>(b)</strong> \(f'=-1/w\), \(f''=1/w^2>0\) on \((0,\infty)\) → strictly convex. ✓<br>
+  <em>ML:</em> this is the negative log-likelihood of a single outcome, and the reason cross-entropy is convex
+  <em>in the predicted probability</em>.</p>
+  <p><strong>(c)</strong> \(f'=\ln w+1\), \(f''=1/w>0\) on \((0,\infty)\) → strictly convex. ✓<br>
+  <em>ML:</em> \(\sum p\ln p\) is negative entropy, so entropy \(H=-\sum p\ln p\) is <em>concave</em> — which is
+  why the uniform distribution maximises it (Lecture 2's exercise), and why maximum-entropy arguments are
+  well-posed.</p>
+  <p><strong>(d)</strong> This is softplus. From Lecture 5, \(f'=\sigma(w)\), and from the same lecture
+  \(f''=\sigma'(w)=\sigma(1-\sigma)\). Since \(0&lt;\sigma&lt;1\), the product is strictly positive → strictly
+  convex. ✓<br>
+  <em>ML:</em> \(\log(1+e^{-yz})\) is the logistic loss. Its convexity in \(z\) is exactly why logistic
+  regression is a convex problem — and why composing it with a neural network's \(z(\vt)\) is not.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Extend the least-squares derivation to the two-parameter model \(\hat y = w x + b\).</p>
+  <p>Set both partial derivatives to zero and solve the resulting \(2\times2\) system. Show that the fitted
+  line always passes through \((\bar x,\bar y)\), the centroid of the data.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex68',this)">Show solution</button></div><div class="rev-body" id="ex68"><p>\(J(w,b)=\frac12\sum_i (wx_i+b-y_i)^2\). Treat one variable at a time (formally, these are
+  <em>partial</em> derivatives — Lecture 12 makes that rigorous, but the mechanics are identical).</p>
+  \[\frac{\partial J}{\partial b} = \sum_i (wx_i+b-y_i) = 0 \quad\Longrightarrow\quad
+    w\sum x_i + nb = \sum y_i.\]
+  <p>Divide by \(n\): \(w\bar x + b = \bar y\). <strong>This already proves the centroid claim:</strong> setting
+  \(x=\bar x\) in the fitted line gives \(w\bar x + b = \bar y\) ✓. It holds for any data, and it is a direct
+  consequence of the residuals summing to zero.</p>
+  \[\frac{\partial J}{\partial w} = \sum_i (wx_i+b-y_i)x_i = 0 \quad\Longrightarrow\quad
+    w\sum x_i^2 + b\sum x_i = \sum x_iy_i.\]
+  <p>Substitute \(b=\bar y - w\bar x\) into the second equation:</p>
+  \[w\sum x_i^2 + (\bar y-w\bar x)\,n\bar x = \sum x_iy_i
+   \;\Longrightarrow\; w\left(\sum x_i^2 - n\bar x^2\right) = \sum x_iy_i - n\bar x\bar y.\]
+  \[\boxed{\;\hat w = \frac{\sum_i (x_i-\bar x)(y_i-\bar y)}{\sum_i (x_i-\bar x)^2}
+    = \frac{\Cov(x,y)}{\Var(x)}, \qquad \hat b = \bar y - \hat w\bar x.\;}\]
+  <p>The last rewriting uses the identities \(\sum x_iy_i - n\bar x\bar y = \sum(x_i-\bar x)(y_i-\bar y)\) and
+  \(\sum x_i^2 - n\bar x^2 = \sum(x_i-\bar x)^2\), both worth verifying. The result is one of the most quoted
+  formulas in statistics — slope equals covariance over variance — and you have now derived it from nothing but
+  Fermat's rule.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding + proof.</strong> Consider minimising the logistic loss for a single data point with
+  label \(y=1\):</p>
+  \[ \ell(w) = \log\!\left(1+e^{-wx}\right), \qquad x>0 \text{ fixed}. \]
+  <ol>
+  <li>Compute \(\ell'\) and \(\ell''\), and prove \(\ell\) is strictly convex.</li>
+  <li>Show that \(\ell\) has <strong>no</strong> minimiser: \(\inf \ell = 0\) but the infimum is not attained.
+  What does this mean for training?</li>
+  <li>Add L2 regularisation, \(\ell_\lambda(w)=\ell(w)+\frac{\lambda}{2}w^2\), and show a unique finite
+  minimiser now exists for every \(\lambda>0\).</li>
+  <li>Verify numerically: run gradient descent on both, for 10 000 steps, and report \(w\).</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex69',this)">Show solution</button></div><div class="rev-body" id="ex69"><p><strong>1.</strong> Chain rule (and Lecture 5's softplus result):</p>
+  \[\ell'(w) = \frac{-x e^{-wx}}{1+e^{-wx}} = -x\,\big(1-\sigma(wx)\big) = -x\,\sigma(-wx).\]
+  \[\ell''(w) = x^2\,\sigma(wx)\big(1-\sigma(wx)\big).\]
+  <p>Since \(x>0\) and \(0&lt;\sigma&lt;1\) strictly, \(\ell''>0\) everywhere → strictly convex. ✓</p>
+
+  <p><strong>2.</strong> \(\ell'(w)=-x\sigma(-wx)\) is <em>strictly negative for every \(w\)</em>, because
+  \(\sigma\) is never zero. So \(\ell\) is strictly decreasing on all of \(\RR\) and has <em>no</em> critical
+  point. As \(w\to\infty\), \(e^{-wx}\to0\) so \(\ell(w)\to\log 1=0\); and \(\ell(w)>0\) always. Hence
+  \(\inf\ell=0\), approached but never attained. ∎</p>
+  <p><strong>What this means:</strong> on linearly separable data, logistic regression has no finite optimum —
+  the weights diverge to infinity as the model becomes ever more confident. In practice you see the training
+  loss creep towards zero while \(\|\vw\|\) grows without bound, the model becomes wildly overconfident, and
+  its probability estimates stop being calibrated. This is a real, commonly-encountered failure, not a
+  pathological example. It is also why <code>sklearn.LogisticRegression</code> applies L2 regularisation
+  <em>by default</em> — a decision that surprises people until they know this.</p>
+
+  <p><strong>3.</strong> \(\ell_\lambda'' = \ell'' + \lambda > 0\), so \(\ell_\lambda\) is still strictly convex.
+  For existence: \(\ell_\lambda(w) \ge \frac{\lambda}{2}w^2 \to \infty\) as \(|w|\to\infty\) (the function is
+  <em>coercive</em>), so a minimum must be attained at a finite point. Strict convexity makes it unique. ∎</p>
+  <p>The minimiser solves \(x\,\sigma(-\hat wx) = \lambda \hat w\) — no closed form, but a well-posed problem
+  with a guaranteed answer, which is all an iterative method needs.</p>
+
+  <pre style="overflow-x:auto"><code>import numpy as np
+x, lam, eta = 1.0, 0.1, 0.5
+sig = lambda z: 1/(1+np.exp(-z))
+for name, grad in [("unregularised", lambda w: -x*sig(-w*x)),
+                   ("L2, lam=0.1",   lambda w: -x*sig(-w*x) + lam*w)]:
+    w = 0.0
+    for _ in range(10000): w -= eta*grad(w)
+    print(f"{name:16s} w = {w:.6f}")</code></pre>
+  <p>The unregularised run drifts steadily upward and keeps going — after 10 000 steps it is at
+  \(w\approx 8.52\) and still climbing logarithmically, never settling. Run it for 100 000 steps and you will
+  get roughly \(w\approx 10.8\); there is no limit. The regularised run converges to \(w\approx 1.6335\)
+  and stays there, with the gradient at machine zero.</p>
+  <p>Check the regularised answer against the stationarity condition: \(\sigma(-1.6335)=0.16335\) and
+  \(\lambda\hat w = 0.1\times1.6335=0.16335\) ✓. Note also how much the regulariser pulls the weight in —
+  from unbounded growth down to 1.63 — which is the bias-variance tradeoff appearing in its simplest possible
+  form.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> Part III. Real data has more than one feature, so a parameter is a
+<em>vector</em> and a model is a <em>matrix</em>. Lecture 8 builds vectors, spans and inner products from the
+axioms, and the geometry you develop there is what makes Lecture 12's gradients intelligible rather than
+just notation.</p>
+<div class="pagenav"><a href="06-taylor-series.html" class="pv"><span class="dir">Previous</span><span class="nm">6 · Taylor Series and Local Approximation</span></a><a href="08-vectors-span-geometry.html" class="nx"><span class="dir">Next</span><span class="nm">8 · Vectors, Span, and Geometry</span></a></div>
+</div>
+<script>initDone('07-optimisation-in-1d');</script>
+</body>
+</html>

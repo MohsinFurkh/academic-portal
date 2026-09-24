@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3. Gradient Descent That Actually Works — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 3 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('03-gradient-descent')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part II — Linear Models · Lecture 3</div>
+  <h1>Gradient Descent That Actually Works</h1>
+  <p class="dek">Every model from here on is fitted by gradient descent, so it is worth doing properly. Convergence rates from the condition number, why stochastic gradients have a noise floor, and where momentum and Adam come from — each derived, not quoted.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive the convergence rate \(\big(\tfrac{\kappa-1}{\kappa+1}\big)^t\) and say what limits it</li><li>Explain the SGD noise floor and why every schedule decays the learning rate</li><li>Derive momentum and explain the \(\kappa \to \sqrt{\kappa}\) improvement</li><li>Build AdaGrad, RMSProp and Adam one modification at a time</li><li>Diagnose a failing training run from its loss curve</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase A, Lecture 6: Taylor, Newton, the \(\eta&lt;2/L\) bound</li><li>Phase A, Lecture 11: eigenvalues, condition number, preconditioning</li><li>Phase A, Lecture 13: mini-batch gradients are unbiased with variance σ²/B</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>What Phase A established</h2>
+<p>For \(f(\vw)=\tfrac12\vw^\top\mA\vw\) with \(\mA\succ0\), gradient descent is
+\(\vw_{t+1}=(\mI-\eta\mA)\vw_t\), and in the eigenbasis the coordinates decouple:</p>
+<p>\[z_i^{(t)} = (1-\eta\lambda_i)^{t}\,z_i^{(0)}.\]</p>
+<p>Three consequences, all from Phase A Lecture 11: stability needs \(\eta&lt;2/\lambda_{\max}\);
+speed is governed by the slowest coordinate; and with the best fixed \(\eta\) the error contracts by
+\(\frac{\kappa-1}{\kappa+1}\) per step, where \(\kappa=\lambda_{\max}/\lambda_{\min}\). Let me finish that
+argument, because the optimal \(\eta\) was asserted rather than derived.</p>
+<div class="deriv" id="d13"><div class="deriv-head"><span class="t">The optimal step size and the κ rate</span><span class="ct">0 / 5</span></div><div class="dstep">\[\text{contraction}(\eta) = \max_i \big|1-\eta\lambda_i\big| = \max\Big(|1-\eta\lambda_{\min}|,\ |1-\eta\lambda_{\max}|\Big)\]<div class="why"><b>Only the extremes matter.</b> As \(\lambda\) ranges over \([\lambda_{\min},\lambda_{\max}]\), the function \(|1-\eta\lambda|\) is piecewise linear in \(\lambda\), so its maximum over the interval is attained at an endpoint. We must make the worse of those two as small as possible.</div></div><div class="dstep">\[\text{for small }\eta:\ 1-\eta\lambda_{\min} \text{ dominates}; \quad \text{for large }\eta:\ \eta\lambda_{\max}-1 \text{ dominates}\]<div class="why"><b>Two competing terms.</b> A small \(\eta\) leaves the flattest direction barely moving (contraction near 1); a large \(\eta\) makes the steepest direction overshoot. The first decreases in \(\eta\), the second increases. The best \(\eta\) balances them.</div></div><div class="dstep">\[1-\eta\lambda_{\min} = \eta\lambda_{\max}-1 \quad\Longrightarrow\quad \eta^\star = \frac{2}{\lambda_{\min}+\lambda_{\max}}\]<div class="why"><b>Set them equal.</b> A decreasing function and an increasing function are minimised in max at their crossing point — the standard minimax argument.</div></div><div class="dstep">\[\text{rate} = 1-\eta^\star\lambda_{\min} = 1-\frac{2\lambda_{\min}}{\lambda_{\min}+\lambda_{\max}} = \frac{\lambda_{\max}-\lambda_{\min}}{\lambda_{\max}+\lambda_{\min}} = \frac{\kappa-1}{\kappa+1}\]<div class="why"><b>Substitute back.</b> Dividing top and bottom by \(\lambda_{\min}\) gives the condition number. ∎</div></div><div class="dstep">\[\text{steps to reach accuracy }\epsilon:\quad t \;\approx\; \frac{\kappa}{2}\ln\frac{1}{\epsilon}\]<div class="why"><b>Turn the rate into a count.</b> We need \(\big(\frac{\kappa-1}{\kappa+1}\big)^t\le\epsilon\). Taking logs and using \(\ln\frac{\kappa-1}{\kappa+1}\approx-\frac{2}{\kappa}\) for large \(\kappa\) gives \(t\approx\frac{\kappa}{2}\ln\frac1\epsilon\). <strong>Linear in \(\kappa\).</strong> A problem with \(\kappa=10^4\) needs about ten thousand times as many steps as one with \(\kappa=1\), and no tuning of \(\eta\) can rescue it. Only changing the <em>geometry</em> — scaling features, preconditioning, momentum — helps.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d13')">Next step</button><button class="btn ghost" onclick="dall('d13')">Show all</button><button class="btn ghost" onclick="dreset('d13')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Four optimisers on the same ill-conditioned bowl<span class="tag">Interactive</span></div><canvas id="b3race" data-h="470"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>gradient descent</span><span><i style="background:var(--c2)"></i>+ momentum</span><span><i style="background:var(--c5)"></i>Adam</span><span><i style="background:var(--c3)"></i>Newton (for reference)</span></div><div class="fig-read" id="b3race-read"></div><div class="ctrls"><div class="ctrl"><label>log₁₀ condition number κ</label><input type="range" min="0" max="3" step="0.05" value="1.6" data-fmt="2" oninput="figSlide('b3race','lk',this)"><output>1.60</output></div><div class="ctrl"><label>learning rate η (GD and momentum)</label><input type="range" min="0.002" max="0.6" step="0.002" value="0.08" data-fmt="3" oninput="figSlide('b3race','eta',this)"><output>0.080</output></div><div class="ctrl"><label>momentum β</label><input type="range" min="0" max="0.98" step="0.01" value="0.9" data-fmt="2" oninput="figSlide('b3race','beta',this)"><output>0.90</output></div><div class="ctrl"><label>steps</label><input type="range" min="1" max="120" step="1" value="30" data-fmt="0" oninput="figSlide('b3race','steps',this)"><output>30</output></div></div><div class="fig-cap">Plain gradient descent zig-zags across the valley because the gradient points across it, not along it (Phase A Lecture 12). Momentum accumulates the consistent along-valley component while the oscillating across-valley components cancel. Adam rescales each coordinate by its own gradient history, which flattens the valley entirely. Newton is drawn for reference — it lands in one step, because it knows the curvature exactly.</div></div><script>makeFig("b3race",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,2.6);
+var kappa=Math.pow(10,p.lk), l1=1.0, l2=1.0/kappa;
+var th=0.55, q1=[Math.cos(th),Math.sin(th)], q2=[-Math.sin(th),Math.cos(th)];
+function f(x,y){ var a=x*q1[0]+y*q1[1], b=x*q2[0]+y*q2[1]; return 0.5*(l1*a*a+l2*b*b); }
+function grad(x,y){ var a=x*q1[0]+y*q1[1], b=x*q2[0]+y*q2[1];
+  return [l1*a*q1[0]+l2*b*q2[0], l1*a*q1[1]+l2*b*q2[1]]; }
+vp.contour(f,[0.004,0.02,0.06,0.15,0.32,0.6,1.0],'--c3',{w:1.3,alpha:0.45,N:110});
+vp.axes({stepx:1,stepy:1});
+var start=[-2.0*q2[0]+0.35*q1[0], -2.0*q2[1]+0.35*q1[1]];
+var n=Math.round(p.steps), eta=p.eta, beta=p.beta;
+function run(step){
+  var s={x:start[0],y:start[1]}, path=[[s.x,s.y]];
+  for(var i=0;i<n;i++){ step(s); if(!isFinite(s.x)||Math.abs(s.x)>1e3){break;} path.push([s.x,s.y]); }
+  return path;
+}
+var gd=run((function(){ return function(s){ var g=grad(s.x,s.y); s.x-=eta*g[0]; s.y-=eta*g[1]; }; })());
+var mo=run((function(){ var vx=0,vy=0; return function(s){ var g=grad(s.x,s.y);
+  vx=beta*vx+g[0]; vy=beta*vy+g[1]; s.x-=eta*vx; s.y-=eta*vy; }; })());
+var ad=run((function(){ var mx=0,my=0,vx=0,vy=0,t=0,a=0.12,b1=0.9,b2=0.999,e=1e-8;
+  return function(s){ t++; var g=grad(s.x,s.y);
+    mx=b1*mx+(1-b1)*g[0]; my=b1*my+(1-b1)*g[1];
+    vx=b2*vx+(1-b2)*g[0]*g[0]; vy=b2*vy+(1-b2)*g[1]*g[1];
+    var mhx=mx/(1-Math.pow(b1,t)), mhy=my/(1-Math.pow(b1,t));
+    var vhx=vx/(1-Math.pow(b2,t)), vhy=vy/(1-Math.pow(b2,t));
+    s.x-=a*mhx/(Math.sqrt(vhx)+e); s.y-=a*mhy/(Math.sqrt(vhy)+e); }; })());
+function drawPath(path,col){
+  for(var i=1;i<path.length;i++){
+    if(Math.abs(path[i][0])>4||Math.abs(path[i][1])>4) break;
+    vp.seg(path[i-1][0],path[i-1][1],path[i][0],path[i][1],col,{w:1.9});
+    vp.dot(path[i][0],path[i][1],col,2.8);
+  }
+}
+vp.seg(start[0],start[1],0,0,'--c3',{w:1.6,dash:[4,4]});
+drawPath(gd,'--c1'); drawPath(mo,'--c2'); drawPath(ad,'--c5');
+vp.dot(start[0],start[1],'--ink3',6); vp.dot(0,0,'--c3',6);
+function dist(p2){ return Math.hypot(p2[p2.length-1][0],p2[p2.length-1][1]); }
+var pred=Math.pow((kappa-1)/(kappa+1),n)*Math.hypot(start[0],start[1]);
+figRead('b3race','κ = <b>'+kappa.toFixed(1)+'</b>,  η = '+eta.toFixed(3)+',  β = '+beta.toFixed(2)+',  '+n+' steps'
+ +'<br>distance to optimum &nbsp; GD <b>'+dist(gd).toExponential(2)+'</b>'
+ +' &nbsp; momentum <b>'+dist(mo).toExponential(2)+'</b>'
+ +' &nbsp; Adam <b>'+dist(ad).toExponential(2)+'</b>'
+ +'<br><span style="color:var(--ink3)">theory for GD at the optimal η: ((κ−1)/(κ+1))^t · ‖w₀‖ = '+pred.toExponential(2)
+ +' &nbsp;|&nbsp; stability needs η &lt; 2/λmax = '+(2/l1).toFixed(3)+'</span>');
+},[{"name": "lk", "label": "log\u2081\u2080 condition number \u03ba", "min": 0, "max": 3, "step": 0.05, "value": 1.6, "dp": 2}, {"name": "eta", "label": "learning rate \u03b7 (GD and momentum)", "min": 0.002, "max": 0.6, "step": 0.002, "value": 0.08, "dp": 3}, {"name": "beta", "label": "momentum \u03b2", "min": 0, "max": 0.98, "step": 0.01, "value": 0.9, "dp": 2}, {"name": "steps", "label": "steps", "min": 1, "max": 120, "step": 1, "value": 30, "dp": 0}]);window["FIG_b3race"].run();</script>
+<h2 id="s2"><span class="secnum">2</span>Stochastic gradient descent</h2>
+<p>Phase A Lecture 13 proved the two facts that matter: the mini-batch gradient is
+<strong>unbiased</strong>, \(\E[\vg_{\mathcal B}]=\vg_{\text{full}}\), and its noise scale is
+\(\sigma/\sqrt{B}\). Two consequences follow that shape every training recipe you will ever write.</p>
+<div class="deriv" id="d14"><div class="deriv-head"><span class="t">Why constant-η SGD does not converge</span><span class="ct">0 / 5</span></div><div class="dstep">\[\vw_{t+1} = \vw_t - \eta\big(\vg_{\text{full}}(\vw_t) + \boldsymbol\xi_t\big), \qquad \E[\boldsymbol\xi_t]=\vzero,\ \Var(\boldsymbol\xi_t)=\tfrac{\sigma^2}{B}\]<div class="why"><b>Split the stochastic gradient</b> into the true gradient plus zero-mean noise. Legitimate exactly because the mini-batch estimate is unbiased.</div></div><div class="dstep">\[\text{near the optimum: } \vg_{\text{full}}(\vw)\approx \mA(\vw-\vw^\star) \quad\Longrightarrow\quad \ve_{t+1} = (\mI-\eta\mA)\ve_t - \eta\boldsymbol\xi_t\]<div class="why"><b>Linearise.</b> Writing \(\ve_t=\vw_t-\vw^\star\), the error obeys a linear recursion driven by noise — a discrete Ornstein–Uhlenbeck process. Two forces: contraction towards zero, and a random kick each step.</div></div><div class="dstep">\[\E\|\ve_{t+1}\|^2 = \E\|(\mI-\eta\mA)\ve_t\|^2 + \eta^2\frac{\sigma^2}{B}\]<div class="why"><b>Take expectations.</b> The cross term vanishes because \(\boldsymbol\xi_t\) has mean zero and is independent of \(\ve_t\) (the batch at step \(t\) is drawn fresh). Variances add — Phase A Lecture 13.</div></div><div class="dstep">\[\text{stationary point: } \E\|\ve\|^2_{\infty} \;\approx\; \frac{\eta\,\sigma^2}{2\lambda B}\]<div class="why"><b>Set \(\E\|\ve_{t+1}\|^2=\E\|\ve_t\|^2\) and solve</b> (one dimension, \(\mA=\lambda\)): \((1-\eta\lambda)^2 E + \eta^2\sigma^2/B = E\) gives \(E(2\eta\lambda-\eta^2\lambda^2)=\eta^2\sigma^2/B\), so \(E=\frac{\eta\sigma^2}{\lambda B(2-\eta\lambda)}\approx\frac{\eta\sigma^2}{2\lambda B}\) for small \(\eta\).</div></div><div class="dstep">\[\boxed{\text{noise floor} \;\propto\; \frac{\eta}{B}}\]<div class="why"><b>The result.</b> SGD with constant \(\eta\) settles into a cloud around the optimum, not onto it, and the cloud's size is proportional to \(\eta/B\). It does <em>not</em> shrink with more steps. This is why every loss curve plateaus, why cutting the learning rate produces the characteristic sudden drop, and why the classical Robbins–Monro conditions \(\sum_t\eta_t=\infty\), \(\sum_t\eta_t^2&lt;\infty\) are what guarantee actual convergence. ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d14')">Next step</button><button class="btn ghost" onclick="dall('d14')">Show all</button><button class="btn ghost" onclick="dreset('d14')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">The noise floor, and what a schedule does about it<span class="tag">Interactive</span></div><canvas id="b3sched" data-h="440"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>loss</span><span><i style="background:var(--c5)"></i>learning rate</span><span><i style="background:var(--c3)"></i>noise floor for the current η</span></div><div class="fig-read" id="b3sched-read"></div><div class="ctrls"><div class="ctrl"><label>0 = constant · 1 = step decay · 2 = cosine · 3 = warmup + cosine</label><input type="range" min="0" max="3" step="1" value="0" data-fmt="0" oninput="figSlide('b3sched','sched',this)"><output>0</output></div><div class="ctrl"><label>base learning rate η₀</label><input type="range" min="0.005" max="0.5" step="0.005" value="0.15" data-fmt="3" oninput="figSlide('b3sched','eta0',this)"><output>0.150</output></div><div class="ctrl"><label>batch size B</label><input type="range" min="1" max="128" step="1" value="8" data-fmt="0" oninput="figSlide('b3sched','B',this)"><output>8</output></div></div><div class="fig-cap">A 1-D quadratic with gradient noise, 600 steps, log loss on the vertical axis. With a constant rate the loss falls fast and then flatlines on the noise floor — extra steps buy nothing. Step decay cuts the rate and the loss immediately drops to the new, lower floor: that staircase is the most recognisable shape in deep learning. Cosine does the same thing smoothly. Raising the batch size lowers the floor too, at proportionally more compute per step.</div></div><script>makeFig("b3sched",function(vp,p,F){
+vp.pads(54,52,14,30);
+var sch=Math.round(p.sched), e0=p.eta0, B=Math.round(p.B), T=600, lam=1.0, sig=1.2;
+var seed=246810;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+function etaAt(t){
+  var frac=t/T;
+  if(sch===0) return e0;
+  if(sch===1) return e0*Math.pow(0.1, Math.floor(frac*3));
+  if(sch===2) return e0*0.5*(1+Math.cos(Math.PI*frac));
+  var wu=0.08; return frac<wu ? e0*frac/wu : e0*0.5*(1+Math.cos(Math.PI*(frac-wu)/(1-wu)));
+}
+var w=2.5, loss=[], etas=[], floors=[];
+for(var t=0;t<T;t++){
+  var e=etaAt(t); etas.push(e);
+  loss.push(0.5*lam*w*w+1e-12);
+  floors.push(0.5*lam*(e*sig*sig/(2*lam*B)));
+  w = w - e*(lam*w + sig*gauss()/Math.sqrt(B));
+  if(!isFinite(w)||Math.abs(w)>1e6){ for(var k=t+1;k<T;k++){loss.push(NaN);etas.push(etaAt(k));floors.push(NaN);} break; }
+}
+var lmin=1e9,lmax=-1e9;
+for(var t=0;t<T;t++){ if(isFinite(loss[t])){ lmin=Math.min(lmin,loss[t]); lmax=Math.max(lmax,loss[t]); } }
+lmin=Math.max(lmin,1e-9);
+var y0=Math.log10(lmin)-0.4, y1=Math.log10(lmax)+0.3;
+vp.frame(0,T,y0,y1);
+vp.axes({stepx:100});
+var cc=vp.ctx;
+cc.save(); cc.strokeStyle=vp.css('--c1'); cc.lineWidth=1.7; cc.beginPath(); var st=false;
+for(var t=0;t<T;t++){ if(!isFinite(loss[t])){st=false;continue;}
+  var Y=vp.Y(Math.log10(Math.max(loss[t],1e-12)));
+  if(!st){cc.moveTo(vp.X(t),Y);st=true;} else cc.lineTo(vp.X(t),Y); }
+cc.stroke(); cc.restore();
+cc.save(); cc.strokeStyle=vp.css('--c3'); cc.lineWidth=1.8; cc.setLineDash([5,4]); cc.beginPath(); st=false;
+for(var t=0;t<T;t++){ if(!isFinite(floors[t])||floors[t]<=0){st=false;continue;}
+  var Y=vp.Y(Math.log10(floors[t]));
+  if(!st){cc.moveTo(vp.X(t),Y);st=true;} else cc.lineTo(vp.X(t),Y); }
+cc.stroke(); cc.restore();
+// eta on a right-hand axis
+var emax=Math.max.apply(null,etas)*1.15;
+cc.save(); cc.strokeStyle=vp.css('--c5'); cc.lineWidth=1.9; cc.beginPath();
+for(var t=0;t<T;t++){ var Y=vp.pad.t+vp.ph*(1-etas[t]/emax);
+  if(t===0)cc.moveTo(vp.X(t),Y); else cc.lineTo(vp.X(t),Y); }
+cc.stroke();
+cc.fillStyle=vp.css('--c5'); cc.font='11px -apple-system,Segoe UI,sans-serif'; cc.textAlign='left';
+cc.fillText(emax.toFixed(3), vp.pad.l+vp.pw+6, vp.pad.t+8);
+cc.fillText('0', vp.pad.l+vp.pw+6, vp.pad.t+vp.ph);
+cc.fillText('η', vp.pad.l+vp.pw+6, vp.pad.t+vp.ph/2);
+cc.restore();
+vp.label(6,y1,'log₁₀ loss','--c1',{halo:true,bold:true,dy:13});
+var names=['constant','step decay (×0.1 twice)','cosine','warmup + cosine'];
+var fin=loss[T-1], theo=0.5*lam*(etaAt(T-1)*sig*sig/(2*lam*B));
+figRead('b3sched',names[sch]+',  η₀ = '+e0.toFixed(3)+',  B = '+B
+ +'<br>final loss = <b>'+(isFinite(fin)?fin.toExponential(3):'DIVERGED')+'</b>'
+ +'   |   predicted floor η`σ²/(4λB) = <b>'+theo.toExponential(3)+'</b>'
+ +'   |   final η = '+etaAt(T-1).toFixed(5)
+ +(e0>=2/lam?'   <b style="color:var(--bad)">η₀ ≥ 2/λ: unstable</b>':''));
+},[{"name": "sched", "label": "0 = constant \u00b7 1 = step decay \u00b7 2 = cosine \u00b7 3 = warmup + cosine", "min": 0, "max": 3, "step": 1, "value": 0, "dp": 0}, {"name": "eta0", "label": "base learning rate \u03b7\u2080", "min": 0.005, "max": 0.5, "step": 0.005, "value": 0.15, "dp": 3}, {"name": "B", "label": "batch size B", "min": 1, "max": 128, "step": 1, "value": 8, "dp": 0}]);window["FIG_b3sched"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>Momentum, and why it changes the exponent</h2>
+<p>Look again at the zig-zag in the first figure. Along the valley the gradient is small but
+<em>consistent in direction</em>; across the valley it is large but <em>alternates in sign</em>. If we average
+recent gradients, the consistent component accumulates and the alternating one cancels.</p>
+<div class="deriv" id="d15"><div class="deriv-head"><span class="t">Momentum as an exponentially weighted average</span><span class="ct">0 / 5</span></div><div class="dstep">\[\vv_{t} = \beta\vv_{t-1} + \vg_t, \qquad \vw_{t+1} = \vw_t - \eta\,\vv_t\]<div class="why"><b>The update.</b> \(\vv\) is a running accumulation of gradients, decayed by \(\beta\in[0,1)\) each step. \(\beta=0\) recovers plain gradient descent.</div></div><div class="dstep">\[\vv_t = \sum_{k=0}^{t}\beta^{k}\,\vg_{t-k}\]<div class="why"><b>Unroll it.</b> Momentum is an exponentially weighted sum of every past gradient, with the most recent weighted most heavily. Nothing mysterious is happening — it is a low-pass filter on the gradient sequence.</div></div><div class="dstep">\[\text{if } \vg_t \equiv \vg \text{ (constant): } \quad \vv_\infty = \frac{\vg}{1-\beta}\]<div class="why"><b>The amplification factor.</b> A persistent gradient direction gets amplified by \(\frac{1}{1-\beta}\): at \(\beta=0.9\) that is 10×, at \(\beta=0.99\) it is 100×. This is why you must <em>reduce</em> \(\eta\) when you increase \(\beta\) — the effective step size is \(\eta/(1-\beta)\).</div></div><div class="dstep">\[\text{if } \vg_t \text{ alternates } +\vg,-\vg,\dots: \quad \vv_\infty = \frac{\vg}{1+\beta}\]<div class="why"><b>The suppression factor.</b> An oscillating gradient gets <em>damped</em> to \(\frac{1}{1+\beta}\) — about \(0.53\times\) at \(\beta=0.9\). Amplify the signal by 10, damp the oscillation by half: the ratio between the two improves by a factor of roughly 20. That is the mechanism, entirely.</div></div><div class="dstep">\[\text{optimal } \beta = \left(\frac{\sqrt\kappa-1}{\sqrt\kappa+1}\right)^2, \qquad \text{rate} = \frac{\sqrt\kappa-1}{\sqrt\kappa+1}\]<div class="why"><b>The payoff (heavy-ball analysis, stated).</b> The contraction factor becomes \(\frac{\sqrt\kappa-1}{\sqrt\kappa+1}\) instead of \(\frac{\kappa-1}{\kappa+1}\), so the iteration count falls from \(O(\kappa)\) to \(O(\sqrt\kappa)\). At \(\kappa=10^4\) that is 10 000 steps versus 100 — a <em>qualitative</em> change, not a constant factor. The full derivation requires analysing a two-term linear recursion with complex roots; I am marking it <strong>deferred</strong> rather than skipped.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d15')">Next step</button><button class="btn ghost" onclick="dall('d15')">Show all</button><button class="btn ghost" onclick="dreset('d15')">Reset</button></div></div>
+<h2 id="s4"><span class="secnum">4</span>AdaGrad → RMSProp → Adam, one change at a time</h2>
+<p>Momentum fixes the <em>direction</em>. The other problem is that different coordinates need
+different step sizes — which is exactly the preconditioning idea from Phase A Lecture 11, where Newton's
+\(\mH^{-1}\vg\) divided each eigen-coordinate by its curvature. Since we cannot afford the Hessian, we
+approximate its diagonal from the gradients we have already seen.</p>
+<div class="deriv" id="d16"><div class="deriv-head"><span class="t">Building Adam</span><span class="ct">0 / 5</span></div><div class="dstep">\[\textbf{AdaGrad:}\quad s_{t,i} = \sum_{k\le t} g_{k,i}^2, \qquad w_{t+1,i} = w_{t,i} - \frac{\eta}{\sqrt{s_{t,i}}+\epsilon}\,g_{t,i}\]<div class="why"><b>Per-coordinate scaling by accumulated gradient magnitude.</b> Coordinates that have seen large gradients get small steps; rarely-active coordinates get large ones. Excellent for sparse features (a rare word's embedding still moves). The fatal flaw: \(s_t\) only grows, so the effective learning rate decays monotonically to zero and learning stops, whether or not you have arrived.</div></div><div class="dstep">\[\textbf{RMSProp:}\quad s_{t,i} = \beta_2 s_{t-1,i} + (1-\beta_2)g_{t,i}^2\]<div class="why"><b>Replace the sum with an exponential moving average.</b> Now \(s_t\) tracks the <em>recent</em> squared gradient rather than all of history, so it can decrease again and learning never dies. \(\beta_2=0.999\) means an effective window of about 1000 steps. This single change is what made adaptive methods work for neural networks.</div></div><div class="dstep">\[\textbf{Adam:}\quad m_{t,i} = \beta_1 m_{t-1,i}+(1-\beta_1)g_{t,i}, \qquad s_{t,i} = \beta_2 s_{t-1,i}+(1-\beta_2)g_{t,i}^2\]<div class="why"><b>Add momentum to RMSProp.</b> \(m_t\) is the first moment (direction), \(s_t\) the second (scale). Adam = momentum + per-coordinate preconditioning. That is the whole idea; everything else is bookkeeping.</div></div><div class="dstep">\[\hat m_t = \frac{m_t}{1-\beta_1^{t}}, \qquad \hat s_t = \frac{s_t}{1-\beta_2^{t}}\]<div class="why"><b>Bias correction — and it is genuinely necessary.</b> Both averages start at zero, so early on they are biased towards zero. Assume the gradients are stationary with mean \(g\): unrolling gives \(\E[m_t]=(1-\beta_1^t)g\), so dividing by \((1-\beta_1^t)\) makes it unbiased. Without this, the very first steps of Adam are tiny — at \(t=1\), \(m_1=(1-\beta_1)g = 0.1g\) and \(\sqrt{s_1}=\sqrt{0.001}\,|g|\), so the raw ratio would be about \(3.16\), wildly wrong. Bias correction makes step 1 have magnitude \(\approx\eta\), as intended.</div></div><div class="dstep">\[w_{t+1,i} = w_{t,i} - \eta\,\frac{\hat m_{t,i}}{\sqrt{\hat s_{t,i}}+\epsilon}\]<div class="why"><b>The Adam update.</b> Note that \(\frac{\hat m}{\sqrt{\hat s}}\) is dimensionless and roughly bounded by 1 in magnitude, so \(\eta\) sets an approximate <em>maximum step size in parameter units</em> — which is why Adam's default \(\eta=10^{-3}\) transfers across problems so much better than SGD's does. Defaults \(\beta_1=0.9,\ \beta_2=0.999,\ \epsilon=10^{-8}\).</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d16')">Next step</button><button class="btn ghost" onclick="dall('d16')">Show all</button><button class="btn ghost" onclick="dreset('d16')">Reset</button></div></div>
+<div class="box warn"><span class="lbl">Common trap</span><p>Adam is the sensible default, not a universally superior method. Three things worth
+knowing:</p>
+<ul>
+<li><strong>SGD with momentum often generalises better</strong> on vision tasks, and the gap is a real and
+partially unexplained empirical finding, not folklore. Adam converges faster in training loss and sometimes to a
+worse test loss.</li>
+<li><strong>Adam's weight decay is not L2 regularisation.</strong> Adding \(\lambda\vw\) to the gradient gets
+divided by \(\sqrt{\hat s}\) along with everything else, so the effective decay differs per coordinate — which
+is not what you asked for. <strong>AdamW</strong> decouples them by subtracting \(\eta\lambda\vw\) directly, and
+it is the reason AdamW replaced Adam as the default for transformers.</li>
+<li><strong>Adam can fail to converge</strong> on some convex problems; the original convergence proof was
+wrong, and AMSGrad was proposed as a fix. In practice it rarely matters, but "Adam always works" is not a
+theorem.</li>
+</ul></div>
+<div class="quiz" id="q17"><div class="qlbl">Check yourself</div><div class="qq">Your training loss decreases smoothly for 2000 steps, then plateaus completely. You cut the learning
+rate by 10× and it immediately drops again to a new plateau. What is happening?</div><button class="qopt" data-ok="1" onclick="pick('q17',0,true)">You were sitting on the SGD noise floor. The floor scales like \(\eta/B\), so cutting \(\eta\) by 10 lowered it by 10.</button><button class="qopt" data-ok="0" onclick="pick('q17',1,false)">The model converged, and cutting the learning rate let it overfit.</button><button class="qopt" data-ok="0" onclick="pick('q17',2,false)">The gradients vanished, and the smaller learning rate un-vanished them.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct, and this is the derivation above showing up in a real loss curve. The iterate had already
+    reached the stationary distribution around the local optimum; further steps just resampled the cloud rather
+    than shrinking it. Reducing \(\eta\) shrank the cloud.<br><br>
+    <strong>What this tells you to do:</strong> the plateau is not "converged", it is "converged <em>at this
+    learning rate</em>". A schedule that decays \(\eta\) is not an optional refinement — without it the run
+    genuinely cannot reach the optimum. Increasing the batch size lowers the floor the same way, which is why
+    progressive batch-size growth is an alternative to learning-rate decay.<br><br>
+    <em>Distinguishing it from other plateaus:</em> a noise-floor plateau has visibly noisy loss values around a
+    flat mean and responds instantly to an \(\eta\) cut. A saddle-point plateau has smooth, near-constant loss
+    and small gradient norm, and does <em>not</em> respond to cutting \(\eta\) — if anything, cutting \(\eta\)
+    makes it worse. Log the gradient norm and you can tell them apart.</div><div class="qwhy" data-i="1"><b>Not quite.</b> Overfitting would show as <em>training</em> loss continuing down while <em>validation</em> loss
+    rises. Here training loss itself dropped on cutting \(\eta\), which is an optimisation phenomenon, not a
+    generalisation one. (It is entirely possible for both to be happening; but the described symptom is the
+    noise floor.)</div><div class="qwhy" data-i="2"><b>Not quite.</b> A smaller learning rate cannot make gradients larger — the gradient at a point does not depend on
+    \(\eta\) at all. Vanishing gradients would also produce the opposite response: with tiny gradients, cutting
+    \(\eta\) makes progress slower, not faster.</div></div>
+<div class="pyb" id="py18" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+
+# ---- a badly conditioned least-squares problem ----
+n, d = 2000, 50
+A = rng.normal(size=(d, d))
+Q, _ = np.linalg.qr(A)
+scales = np.logspace(0, -2, d)                 # condition number 100
+X = rng.normal(size=(n, d)) @ (Q * scales) @ Q.T
+w_true = rng.normal(size=d)
+y = X @ w_true + 0.5*rng.normal(size=n)
+
+H = 2 * X.T @ X / n
+ev = np.linalg.eigvalsh(H)
+kappa = ev.max()/ev.min()
+print(f&quot;lambda_max {ev.max():.4f}   lambda_min {ev.min():.6f}   kappa {kappa:.1f}&quot;)
+print(f&quot;stability limit eta &lt; 2/lambda_max = {2/ev.max():.5f}&quot;)
+print(f&quot;optimal fixed eta   = 2/(lmax+lmin) = {2/(ev.max()+ev.min()):.5f}&quot;)
+print(f&quot;predicted GD rate   = (k-1)/(k+1)   = {(kappa-1)/(kappa+1):.6f} per step&quot;)
+print()
+
+w_star = np.linalg.lstsq(X, y, rcond=None)[0]
+loss = lambda w: float(np.mean((X@w - y)**2))
+L_star = loss(w_star)
+
+def full_grad(w): return 2 * X.T @ (X@w - y) / n
+def batch_grad(w, idx): return 2 * X[idx].T @ (X[idx]@w - y[idx]) / len(idx)
+
+def run(name, step, T=400, stochastic=False, B=32, seed=1):
+    r = np.random.default_rng(seed)
+    w = np.zeros(d); state = {}
+    for t in range(1, T+1):
+        g = batch_grad(w, r.integers(0, n, B)) if stochastic else full_grad(w)
+        w = step(w, g, t, state)
+        if not np.isfinite(w).all(): return name, np.inf, np.inf
+    return name, loss(w) - L_star, float(np.linalg.norm(w - w_star))
+
+eta = 2/(ev.max()+ev.min())
+
+def gd(w, g, t, s):        return w - eta*g
+def mom(w, g, t, s):
+    s[&#x27;v&#x27;] = 0.9*s.get(&#x27;v&#x27;, 0) + g
+    return w - eta*0.1*s[&#x27;v&#x27;]            # scale eta by (1-beta) to keep it stable
+def nesterov(w, g, t, s):
+    v_prev = s.get(&#x27;v&#x27;, np.zeros(d))
+    s[&#x27;v&#x27;] = 0.9*v_prev + g
+    return w - eta*0.1*(0.9*s[&#x27;v&#x27;] + g)
+def rmsprop(w, g, t, s):
+    s[&#x27;s&#x27;] = 0.999*s.get(&#x27;s&#x27;, 0) + 0.001*g*g
+    return w - 0.02*g/(np.sqrt(s[&#x27;s&#x27;]/(1-0.999**t)) + 1e-8)
+def adam(w, g, t, s):
+    s[&#x27;m&#x27;] = 0.9*s.get(&#x27;m&#x27;, 0) + 0.1*g
+    s[&#x27;s&#x27;] = 0.999*s.get(&#x27;s&#x27;, 0) + 0.001*g*g
+    mh = s[&#x27;m&#x27;]/(1-0.9**t); sh = s[&#x27;s&#x27;]/(1-0.999**t)
+    return w - 0.02*mh/(np.sqrt(sh) + 1e-8)
+
+print(f&quot;{&#x27;optimiser&#x27;:22s} {&#x27;excess loss&#x27;:&gt;14s} {&#x27;||w - w*||&#x27;:&gt;14s}&quot;)
+print(&quot;-&quot;*52)
+for nm, st in [(&quot;GD&quot;, gd), (&quot;GD + momentum&quot;, mom), (&quot;Nesterov&quot;, nesterov),
+               (&quot;RMSProp&quot;, rmsprop), (&quot;Adam&quot;, adam)]:
+    name, ex, dist = run(nm, st)
+    print(f&quot;{name:22s} {ex:14.3e} {dist:14.3e}&quot;)
+print()
+for nm, st, B in [(&quot;SGD B=8&quot;, gd, 8), (&quot;SGD B=64&quot;, gd, 64), (&quot;SGD B=512&quot;, gd, 512)]:
+    name, ex, dist = run(nm, st, stochastic=True, B=B)
+    print(f&quot;{name:22s} {ex:14.3e} {dist:14.3e}&quot;)
+print(&quot;  -&gt; noise floor falls roughly like 1/B, as derived&quot;)
+print()
+
+# ---- feature scaling is free preconditioning ----
+Xs = (X - X.mean(0)) / X.std(0)
+Hs = 2 * Xs.T @ Xs / n
+print(f&quot;kappa raw    {kappa:10.1f}&quot;)
+print(f&quot;kappa scaled {np.linalg.cond(Hs):10.1f}   &lt;- the single cheapest optimisation improvement available&quot;)
+print()
+
+# ---- the eta sweep: where does it break? ----
+print(&quot;eta sweep on full-batch GD, 400 steps:&quot;)
+for mult in (0.1, 0.5, 1.0, 1.5, 1.9, 2.1):
+    e = mult * 2/ev.max()
+    w = np.zeros(d); ok = True
+    for _ in range(400):
+        w = w - e*full_grad(w)
+        if not np.isfinite(w).all() or np.abs(w).max() &gt; 1e10: ok = False; break
+    tag = f&quot;{loss(w)-L_star:.3e}&quot; if ok else &quot;DIVERGED&quot;
+    print(f&quot;  eta = {mult:4.1f} x (2/lmax) = {e:.6f}  -&gt;  {tag}&quot;)
+"><div class="pyb-head"><span class="t">Five optimisers, one problem, honest comparison</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py18')">Run</button><button class="btn ghost" onclick="resetPy('py18')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+
+# ---- a badly conditioned least-squares problem ----
+n, d = 2000, 50
+A = rng.normal(size=(d, d))
+Q, _ = np.linalg.qr(A)
+scales = np.logspace(0, -2, d)                 # condition number 100
+X = rng.normal(size=(n, d)) @ (Q * scales) @ Q.T
+w_true = rng.normal(size=d)
+y = X @ w_true + 0.5*rng.normal(size=n)
+
+H = 2 * X.T @ X / n
+ev = np.linalg.eigvalsh(H)
+kappa = ev.max()/ev.min()
+print(f&quot;lambda_max {ev.max():.4f}   lambda_min {ev.min():.6f}   kappa {kappa:.1f}&quot;)
+print(f&quot;stability limit eta &lt; 2/lambda_max = {2/ev.max():.5f}&quot;)
+print(f&quot;optimal fixed eta   = 2/(lmax+lmin) = {2/(ev.max()+ev.min()):.5f}&quot;)
+print(f&quot;predicted GD rate   = (k-1)/(k+1)   = {(kappa-1)/(kappa+1):.6f} per step&quot;)
+print()
+
+w_star = np.linalg.lstsq(X, y, rcond=None)[0]
+loss = lambda w: float(np.mean((X@w - y)**2))
+L_star = loss(w_star)
+
+def full_grad(w): return 2 * X.T @ (X@w - y) / n
+def batch_grad(w, idx): return 2 * X[idx].T @ (X[idx]@w - y[idx]) / len(idx)
+
+def run(name, step, T=400, stochastic=False, B=32, seed=1):
+    r = np.random.default_rng(seed)
+    w = np.zeros(d); state = {}
+    for t in range(1, T+1):
+        g = batch_grad(w, r.integers(0, n, B)) if stochastic else full_grad(w)
+        w = step(w, g, t, state)
+        if not np.isfinite(w).all(): return name, np.inf, np.inf
+    return name, loss(w) - L_star, float(np.linalg.norm(w - w_star))
+
+eta = 2/(ev.max()+ev.min())
+
+def gd(w, g, t, s):        return w - eta*g
+def mom(w, g, t, s):
+    s[&#x27;v&#x27;] = 0.9*s.get(&#x27;v&#x27;, 0) + g
+    return w - eta*0.1*s[&#x27;v&#x27;]            # scale eta by (1-beta) to keep it stable
+def nesterov(w, g, t, s):
+    v_prev = s.get(&#x27;v&#x27;, np.zeros(d))
+    s[&#x27;v&#x27;] = 0.9*v_prev + g
+    return w - eta*0.1*(0.9*s[&#x27;v&#x27;] + g)
+def rmsprop(w, g, t, s):
+    s[&#x27;s&#x27;] = 0.999*s.get(&#x27;s&#x27;, 0) + 0.001*g*g
+    return w - 0.02*g/(np.sqrt(s[&#x27;s&#x27;]/(1-0.999**t)) + 1e-8)
+def adam(w, g, t, s):
+    s[&#x27;m&#x27;] = 0.9*s.get(&#x27;m&#x27;, 0) + 0.1*g
+    s[&#x27;s&#x27;] = 0.999*s.get(&#x27;s&#x27;, 0) + 0.001*g*g
+    mh = s[&#x27;m&#x27;]/(1-0.9**t); sh = s[&#x27;s&#x27;]/(1-0.999**t)
+    return w - 0.02*mh/(np.sqrt(sh) + 1e-8)
+
+print(f&quot;{&#x27;optimiser&#x27;:22s} {&#x27;excess loss&#x27;:&gt;14s} {&#x27;||w - w*||&#x27;:&gt;14s}&quot;)
+print(&quot;-&quot;*52)
+for nm, st in [(&quot;GD&quot;, gd), (&quot;GD + momentum&quot;, mom), (&quot;Nesterov&quot;, nesterov),
+               (&quot;RMSProp&quot;, rmsprop), (&quot;Adam&quot;, adam)]:
+    name, ex, dist = run(nm, st)
+    print(f&quot;{name:22s} {ex:14.3e} {dist:14.3e}&quot;)
+print()
+for nm, st, B in [(&quot;SGD B=8&quot;, gd, 8), (&quot;SGD B=64&quot;, gd, 64), (&quot;SGD B=512&quot;, gd, 512)]:
+    name, ex, dist = run(nm, st, stochastic=True, B=B)
+    print(f&quot;{name:22s} {ex:14.3e} {dist:14.3e}&quot;)
+print(&quot;  -&gt; noise floor falls roughly like 1/B, as derived&quot;)
+print()
+
+# ---- feature scaling is free preconditioning ----
+Xs = (X - X.mean(0)) / X.std(0)
+Hs = 2 * Xs.T @ Xs / n
+print(f&quot;kappa raw    {kappa:10.1f}&quot;)
+print(f&quot;kappa scaled {np.linalg.cond(Hs):10.1f}   &lt;- the single cheapest optimisation improvement available&quot;)
+print()
+
+# ---- the eta sweep: where does it break? ----
+print(&quot;eta sweep on full-batch GD, 400 steps:&quot;)
+for mult in (0.1, 0.5, 1.0, 1.5, 1.9, 2.1):
+    e = mult * 2/ev.max()
+    w = np.zeros(d); ok = True
+    for _ in range(400):
+        w = w - e*full_grad(w)
+        if not np.isfinite(w).all() or np.abs(w).max() &gt; 1e10: ok = False; break
+    tag = f&quot;{loss(w)-L_star:.3e}&quot; if ok else &quot;DIVERGED&quot;
+    print(f&quot;  eta = {mult:4.1f} x (2/lmax) = {e:.6f}  -&gt;  {tag}&quot;)
+</textarea><div class="pyout"></div></div>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p>A short list of things that actually go wrong, and what they look like.</p>
+<ul>
+<li><strong>Loss is <code>nan</code> from step one.</strong> Learning rate far too high, or a numerical issue in
+the loss itself — check for <code>log(0)</code> and use the fused stable forms from Phase A Lecture 2.</li>
+<li><strong>Loss explodes after a while.</strong> Learning rate slightly too high, or exploding gradients. Clip
+by global norm: \(\vg \leftarrow \vg\cdot\min(1, c/\|\vg\|)\).</li>
+<li><strong>Loss decreases far too slowly.</strong> Either \(\eta\) too small or \(\kappa\) too large. Check
+feature scaling <em>first</em> — it is free and often worth orders of magnitude.</li>
+<li><strong>Loss is flat from the start.</strong> Gradient is genuinely near zero: dead ReLUs, saturated
+sigmoids, or a bug where the gradient never reaches the parameters. Print \(\|\vg\|\) before blaming the
+optimiser.</li>
+<li><strong>Warmup.</strong> Adam's \(\hat s\) is a poor estimate for the first few dozen steps, so a large
+learning rate then can wreck the run. Linearly ramping \(\eta\) from 0 over a few hundred steps costs nothing
+and prevents it. This is standard for transformers for exactly this reason.</li>
+</ul></div>
+<h2 id="s5"><span class="secnum">5</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>A quadratic loss has Hessian eigenvalues \(\{4, 0.04\}\).</p>
+  <ol><li>What is the largest stable learning rate?</li>
+  <li>What is the optimal fixed learning rate, and the resulting per-step contraction?</li>
+  <li>Roughly how many steps to reduce the error by \(10^{6}\)?</li>
+  <li>What does momentum with the optimal \(\beta\) change these to?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex19',this)">Show solution</button></div><div class="rev-body" id="ex19"><p><strong>1.</strong> \(\eta&lt;2/\lambda_{\max}=2/4=0.5\).</p>
+  <p><strong>2.</strong> \(\eta^\star = \frac{2}{\lambda_{\min}+\lambda_{\max}} = \frac{2}{4.04}=0.4950\).
+  \(\kappa=4/0.04=100\), so the contraction is \(\frac{99}{101}=0.98020\) per step.</p>
+  <p><strong>3.</strong> Need \(0.98020^t\le10^{-6}\), i.e. \(t\ge\frac{-6\ln10}{\ln0.98020}=\frac{-13.816}{-0.020}
+  =689\) steps. (The approximation \(\frac{\kappa}{2}\ln\frac1\epsilon = 50\times13.82=691\) agrees.)</p>
+  <p><strong>4.</strong> \(\sqrt\kappa=10\), so the optimal \(\beta=\left(\frac{10-1}{10+1}\right)^2 =
+  \left(\frac{9}{11}\right)^2 = 0.6694\), and the rate becomes \(\frac{9}{11}=0.8182\).<br>
+  Steps needed: \(t\ge\frac{-13.816}{\ln 0.8182}=\frac{-13.816}{-0.2007}=69\) — a <strong>tenfold</strong>
+  reduction, matching \(\kappa\to\sqrt\kappa\).</p>
+  <p>Note the optimal \(\beta\) here (0.67) is well below the usual default of 0.9. The default corresponds to
+  \(\sqrt\kappa\approx 39\), i.e. \(\kappa\approx1500\) — a reasonable guess for a neural network, and quite
+  wrong for a well-conditioned problem. If momentum makes your training oscillate, \(\beta\) is too high for
+  your \(\kappa\).</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that the mini-batch gradient with batch size \(B\), sampled uniformly <em>with</em>
+  replacement, has covariance \(\frac{1}{B}\mS\) where \(\mS\) is the covariance of the per-example gradients.</p>
+  <p>Then show that sampling <em>without</em> replacement gives \(\frac{1}{B}\cdot\frac{n-B}{n-1}\mS\), and
+  interpret the extra factor. What happens at \(B=n\)?</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex20',this)">Show solution</button></div><div class="rev-body" id="ex20"><p><strong>With replacement.</strong> Let \(\vg_1,\dots,\vg_n\) be the per-example gradients, with
+  mean \(\bar{\vg}\) and covariance \(\mS = \frac1n\sum_i(\vg_i-\bar{\vg})(\vg_i-\bar{\vg})^\top\). Draw indices
+  \(I_1,\dots,I_B\) independently and uniformly. Then \(\vg_{\mathcal B}=\frac1B\sum_{j}\vg_{I_j}\) is an average
+  of \(B\) i.i.d. draws each with covariance \(\mS\), so by Phase A Lecture 13's scaling rule</p>
+  \[\Cov(\vg_{\mathcal B}) = \frac{1}{B^2}\cdot B\,\mS = \frac{\mS}{B}. \qquad\blacksquare\]
+
+  <p><strong>Without replacement.</strong> Now the draws are dependent — knowing \(I_1\) makes \(I_1\) less
+  likely for \(I_2\). Expanding,</p>
+  \[\Cov(\vg_{\mathcal B}) = \frac{1}{B^2}\Big[B\,\mS + B(B-1)\,\mathbf{C}\Big],\]
+  <p>where \(\mathbf{C}=\Cov(\vg_{I_1},\vg_{I_2})\) for two distinct draws. For sampling without replacement
+  from a finite population, \(\mathbf{C}=-\frac{\mS}{n-1}\) — the standard negative correlation, which holds
+  because the full sum \(\sum_i \vg_i\) is fixed, so drawing an above-average gradient makes the next draw
+  below-average on average. Substituting,</p>
+  \[\Cov = \frac{\mS}{B} - \frac{(B-1)}{B(n-1)}\mS = \frac{\mS}{B}\cdot\frac{n-B}{n-1}. \qquad\blacksquare\]
+
+  <p><strong>Interpretation.</strong> The factor \(\frac{n-B}{n-1}\) is the <em>finite population
+  correction</em>. Sampling without replacement is always at least as good, because you never waste a slot on a
+  duplicate. The saving is negligible when \(B\ll n\) (the factor is \(\approx1\)) and total when \(B\) is a
+  large fraction of \(n\).</p>
+  <p><strong>At \(B=n\)</strong> the factor is exactly \(0\): sampling the whole dataset without replacement
+  <em>is</em> the full-batch gradient, which has zero variance. Reassuringly, the formula knows this.
+  Sampling with replacement at \(B=n\) still has variance \(\mS/n\), because a bootstrap sample is not the
+  dataset.</p>
+  <p><strong>Practical relevance:</strong> real training loops shuffle and partition into epochs, which is
+  without-replacement sampling. For typical \(B/n\) around \(10^{-3}\) the distinction is irrelevant, and
+  assuming independence (as the lecture's derivation does) is a good approximation.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Show that Adam's bias correction is exactly what is needed.</p>
+  <ol><li>Assume the gradients are i.i.d. with \(\E[g_t]=g\). Unroll \(m_t=\beta_1 m_{t-1}+(1-\beta_1)g_t\) with
+  \(m_0=0\) and compute \(\E[m_t]\).</li>
+  <li>Show \(\E[m_t]/(1-\beta_1^t)=g\).</li>
+  <li>Compute the effective step size of an <em>uncorrected</em> Adam at \(t=1\) and explain why it is a
+  problem.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex21',this)">Show solution</button></div><div class="rev-body" id="ex21"><p><strong>1.</strong> Unrolling the recursion from \(m_0=0\):</p>
+  \[m_t = (1-\beta_1)\sum_{k=1}^{t}\beta_1^{\,t-k}\,g_k.\]
+  <p>Taking expectations and using \(\E[g_k]=g\) for all \(k\):</p>
+  \[\E[m_t] = (1-\beta_1)\,g\sum_{k=1}^{t}\beta_1^{\,t-k} = (1-\beta_1)\,g\cdot\frac{1-\beta_1^{t}}{1-\beta_1}
+   = \big(1-\beta_1^{t}\big)\,g,\]
+  <p>using the finite geometric sum (Phase A Lecture 6).</p>
+  <p><strong>2.</strong> Dividing: \(\E[\hat m_t] = \E[m_t]/(1-\beta_1^t) = g\) ✓. Exactly unbiased at every
+  \(t\), not merely asymptotically. The same computation gives \(\E[s_t]=(1-\beta_2^t)\E[g^2]\).</p>
+
+  <p><strong>3.</strong> At \(t=1\) with the defaults: \(m_1=(1-0.9)g=0.1g\) and \(s_1=(1-0.999)g^2=0.001g^2\),
+  so \(\sqrt{s_1}=0.0316|g|\). The uncorrected update would be</p>
+  \[\eta\,\frac{m_1}{\sqrt{s_1}} = \eta\,\frac{0.1\,g}{0.0316\,|g|} = 3.16\,\eta\,\operatorname{sign}(g),\]
+  <p>a step <strong>3.16 times larger</strong> than intended. With correction, \(\hat m_1 = g\) and
+  \(\sqrt{\hat s_1}=|g|\), giving exactly \(\eta\).</p>
+  <p><strong>Why it matters.</strong> The mismatch is worst precisely at the start, when the parameters are
+  random and a 3× overshoot can push them somewhere they never recover from. The asymmetry between
+  \(\beta_1=0.9\) and \(\beta_2=0.999\) is what creates it — the second moment warms up ten times more slowly
+  than the first. It is also why <em>warmup</em> helps even <em>with</em> bias correction: correcting the bias
+  in the mean does not fix the enormous <em>variance</em> of \(\hat s_t\) when it has only seen a handful of
+  samples.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Reproduce the \(\kappa\) and \(\sqrt\kappa\) scaling laws empirically.</p>
+  <ol>
+  <li>Build diagonal quadratics with \(\kappa\in\{10,100,1000,10^4\}\).</li>
+  <li>For each, run GD at the optimal \(\eta\) and momentum at the optimal \((\eta,\beta)\), counting steps to
+  reach \(\|\ve\|\le10^{-6}\|\ve_0\|\).</li>
+  <li>Plot (or tabulate) steps against \(\kappa\) on a log-log scale and estimate the slope for each method.</li>
+  <li>Now add gradient noise and repeat. What happens to the advantage of momentum, and why?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex22',this)">Show solution</button></div><div class="rev-body" id="ex22"><pre style="overflow-x:auto"><code>import numpy as np
+def steps_to(kappa, method, tol=1e-6, T=2_000_000, noise=0.0, seed=0):
+    r = np.random.default_rng(seed)
+    lam = np.array([1.0, 1.0/kappa])
+    e0 = np.array([1.0, 1.0]); e = e0.copy(); v = np.zeros(2)
+    if method == 'gd':
+        eta, beta = 2/(lam.max()+lam.min()), 0.0
+    else:
+        sk = np.sqrt(kappa)
+        beta = ((sk-1)/(sk+1))**2
+        eta  = (1+np.sqrt(beta))**2 / lam.max() * 0.9    # heavy-ball choice
+    for t in range(1, T+1):
+        g = lam*e + (noise*r.normal(size=2) if noise else 0.0)
+        v = beta*v + g
+        e = e - eta*v
+        if not np.isfinite(e).all(): return np.nan
+        if np.linalg.norm(e) &lt;= tol*np.linalg.norm(e0): return t
+    return np.nan
+
+print(f"{'kappa':>8} {'GD':>10} {'momentum':>10} {'ratio':>8} {'sqrt(k)':>9}")
+res = []
+for k in (10, 100, 1000, 10000):
+    a, b = steps_to(k,'gd'), steps_to(k,'mom')
+    res.append((k, a, b))
+    print(f"{k:8d} {a:10.0f} {b:10.0f} {a/b:8.1f} {np.sqrt(k):9.1f}")
+
+ks = np.log([r[0] for r in res])
+for j, nm in ((1,'GD'), (2,'momentum')):
+    ys = np.log([r[j] for r in res])
+    slope = np.polyfit(ks, ys, 1)[0]
+    print(f"log-log slope for {nm:9s}: {slope:.3f}")
+
+print("\\nwith gradient noise = 0.01:")
+for k in (10, 100, 1000):
+    a, b = steps_to(k,'gd',noise=0.01), steps_to(k,'mom',noise=0.01)
+    print(f"  kappa={k:6d}  GD {a}  momentum {b}")</code></pre>
+
+  <p><strong>2 &amp; 3.</strong> The step counts should come out near \(690\kappa/100\) for GD and near
+  \(70\sqrt\kappa/10\) for momentum. The log-log slopes come out at approximately <strong>1.00 for GD</strong>
+  and <strong>0.50 for momentum</strong> — direct confirmation of \(O(\kappa)\) versus \(O(\sqrt\kappa)\). At
+  \(\kappa=10^4\) the ratio is about \(100\times\), which is why momentum is on by default everywhere.</p>
+
+  <p><strong>4.</strong> With noise, both methods stop improving once they hit their noise floor, and neither
+  reaches \(10^{-6}\) at all — <code>steps_to</code> returns <code>nan</code> for the larger \(\kappa\).
+  <strong>The advantage of momentum largely disappears</strong> in the noise-dominated regime.</p>
+  <p>The reason is that momentum's benefit is entirely about the <em>deterministic</em> contraction, and once
+  the error is at the noise floor the deterministic part has already done its job. Worse, momentum
+  <em>amplifies</em> the noise: the accumulated \(\vv\) is an average of \(\approx\frac{1}{1-\beta}\) noisy
+  gradients, so its variance is reduced by that factor but the effective step is amplified by the same factor,
+  and the net effect on the stationary variance is roughly \(\frac{\eta}{1-\beta}\) instead of \(\eta\).</p>
+  <p><strong>The practical reading:</strong> momentum helps most early in training, when the deterministic
+  gradient dominates and the landscape is ill-conditioned. Late in training, when you are on the noise floor,
+  what helps is decaying \(\eta\) or growing \(B\). This is exactly the shape of standard recipes — high
+  learning rate with momentum early, aggressive decay late — and it is not a coincidence.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> we have been assuming squared error without justification. Lecture 04
+derives losses from noise models — one principle that produces squared error, cross-entropy, Poisson loss and
+the robust alternatives, and tells you which to use when.</p>
+<div class="pagenav"><a href="02-linear-regression.html" class="pv"><span class="dir">Previous</span><span class="nm">2 · Linear Regression, Properly</span></a><a href="04-losses-from-likelihoods.html" class="nx"><span class="dir">Next</span><span class="nm">4 · Where Loss Functions Come From</span></a></div>
+</div>
+<script>initDone('03-gradient-descent');</script>
+</body>
+</html>

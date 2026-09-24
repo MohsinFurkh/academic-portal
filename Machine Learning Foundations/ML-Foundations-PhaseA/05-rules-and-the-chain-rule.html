@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>5. Differentiation Rules and the Chain Rule — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 5 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('05-rules-and-the-chain-rule')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part II — Calculus of One Variable · Lecture 5</div>
+  <h1>Differentiation Rules and the Chain Rule</h1>
+  <p class="dek">Four rules replace every difference quotient you would otherwise have to compute. The last of them — the chain rule — is not merely convenient: it is the entire mathematical content of backpropagation, and therefore of how every neural network ever trained was trained.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive the sum, product, quotient and chain rules from the definition</li><li>Prove \(\frac{d}{dx}e^x = e^x\) and \(\frac{d}{dx}\ln x = \frac1x\), closing the debt from Lecture 2</li><li>Differentiate a long composition by peeling one layer at a time</li><li>Derive \(\sigma' = \sigma(1-\sigma)\) and see why it explains vanishing gradients</li><li>Implement forward-mode automatic differentiation in twenty lines of NumPy</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lecture 4: the derivative as a limit of difference quotients</li><li>Lecture 3: limit laws for sums, products and quotients</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Linearity, and the power rule</h2>
+<p>The two easiest rules follow immediately from the corresponding limit laws, because the
+difference quotient is linear in \(f\).</p>
+<div class="box thm"><span class="lbl">Theorem — linearity</span><p>If \(f\) and \(g\) are differentiable at \(x\) and
+\(\alpha,\beta\) are constants, then</p>
+\[ (\alpha f + \beta g)'(x) = \alpha f'(x) + \beta g'(x). \]
+<p><strong>Proof.</strong> The difference quotient of \(\alpha f+\beta g\) is</p>
+\[ \frac{\alpha f(x+h)+\beta g(x+h) - \alpha f(x)-\beta g(x)}{h}
+ = \alpha\,\frac{f(x+h)-f(x)}{h} + \beta\,\frac{g(x+h)-g(x)}{h}, \]
+<p>by regrouping and factoring. Both limits exist by hypothesis, so the limit of the sum is the sum of the
+limits. ∎</p></div>
+<div class="deriv" id="d41"><div class="deriv-head"><span class="t">The power rule for positive integers: d/dx xⁿ = n xⁿ⁻¹</span><span class="ct">0 / 4</span></div><div class="dstep">\[(x+h)^n = \sum_{k=0}^{n}\binom{n}{k}x^{n-k}h^{k} = x^n + n x^{n-1}h + \binom{n}{2}x^{n-2}h^2 + \cdots + h^n\]<div class="why"><b>Binomial theorem.</b> Everything hinges on separating the terms by how many factors of \(h\) they contain. Term \(k\) carries \(h^k\).</div></div><div class="dstep">\[(x+h)^n - x^n = n x^{n-1}h + \binom{n}{2}x^{n-2}h^2 + \cdots + h^n\]<div class="why"><b>The \(k=0\) term cancels.</b> As always, the constant term of the expansion is the thing we subtract. Every surviving term has at least one \(h\).</div></div><div class="dstep">\[\frac{(x+h)^n-x^n}{h} = n x^{n-1} + \underbrace{\binom{n}{2}x^{n-2}h + \cdots + h^{n-1}}_{\text{every term contains } h}\]<div class="why"><b>Divide by \(h\).</b> Legal for \(h\neq0\). The \(k=1\) term loses its \(h\) entirely and becomes the constant \(nx^{n-1}\); every term with \(k\ge2\) retains at least one factor of \(h\).</div></div><div class="dstep">\[\frac{d}{dx}x^n = \lim_{h\to0}\left[n x^{n-1} + O(h)\right] = n x^{n-1}\]<div class="why"><b>Take the limit.</b> The bracketed tail is a polynomial in \(h\) with no constant term, so it vanishes. <em>Check against Lecture 4:</em> \(n=2\) gives \(2x\) ✓, \(n=3\) gives \(3x^2\) ✓, \(n=1\) gives \(1\) ✓. The rule in fact holds for every real \(n\) — negative, fractional, irrational — but proving that needs the chain rule and the log derivative, both below.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d41')">Next step</button><button class="btn ghost" onclick="dall('d41')">Show all</button><button class="btn ghost" onclick="dreset('d41')">Reset</button></div></div>
+<h2 id="s2"><span class="secnum">2</span>The product rule, and why it is not what you would guess</h2>
+<p>The natural guess is \((fg)' = f'g'\). It is wrong, and one example kills it: take
+\(f=g=x\). Then \(fg = x^2\) with derivative \(2x\), while \(f'g' = 1\cdot1 = 1\). Not equal for any
+\(x\neq\tfrac12\).</p>
+<p>The correct rule has a picture behind it. Think of \(f(x)\) and \(g(x)\) as the side lengths of a
+rectangle, so \(f(x)g(x)\) is its area. Nudge \(x\) by \(h\): both sides grow a little, and the area grows by
+three pieces.</p>
+<div class="fig"><div class="fig-head">The product rule as growing area:  Δ(fg) = f·Δg + g·Δf + Δf·Δg<span class="tag">Interactive</span></div><canvas id="f5prod" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>original area f·g</span><span><i style="background:var(--c2)"></i>g·Δf</span><span><i style="background:var(--c5)"></i>f·Δg</span><span><i style="background:var(--c4)"></i>Δf·Δg (negligible)</span></div><div class="fig-read" id="f5prod-read"></div><div class="ctrls"><div class="ctrl"><label>nudge  h</label><input type="range" min="0.01" max="1.2" step="0.01" value="0.6" data-fmt="2" oninput="figSlide('f5prod','h',this)"><output>0.60</output></div></div><div class="fig-cap">Blue is the original rectangle. Orange and purple are the two first-order strips. Pink is the tiny corner square. Shrink h and watch the corner vanish far faster than the strips — it is proportional to h², while the strips are proportional to h. Divide everything by h and the corner still carries a factor of h, so it dies in the limit. That is the whole proof, in a picture.</div></div><script>makeFig("f5prod",function(vp,p,F){
+var c=vp.ctx,W=vp.W,H=vp.H; c.clearRect(0,0,W,H);
+var f=function(t){return 1+0.8*t;}, g=function(t){return 0.6+1.1*t;};
+var x=1.0, h=p.h;
+var f0=f(x), g0=g(x), df=f(x+h)-f0, dg=g(x+h)-g0;
+var maxW=f0+df+0.3, maxH=g0+dg+0.3;
+var ox=64, oy=H-46, sc=Math.min((W-110)/maxW,(H-80)/maxH);
+function R(x0,y0,w,hh,col,al){c.save();c.globalAlpha=al;c.fillStyle=vp.css(col);
+  c.fillRect(ox+x0*sc,oy-(y0+hh)*sc,w*sc,hh*sc);c.restore();
+  c.save();c.strokeStyle=vp.css(col);c.lineWidth=1.3;
+  c.strokeRect(ox+x0*sc,oy-(y0+hh)*sc,w*sc,hh*sc);c.restore();}
+R(0,0,f0,g0,'--c1',0.30);
+R(f0,0,df,g0,'--c2',0.42);
+R(0,g0,f0,dg,'--c5',0.42);
+R(f0,g0,df,dg,'--c4',0.60);
+c.save(); c.strokeStyle=vp.css('--ink3'); c.lineWidth=1.4;
+c.beginPath(); c.moveTo(ox,oy-maxH*sc); c.lineTo(ox,oy); c.lineTo(ox+maxW*sc,oy); c.stroke(); c.restore();
+c.fillStyle=vp.css('--ink2'); c.font='600 12.5px -apple-system,Segoe UI,sans-serif';
+c.textAlign='center'; c.fillText('f',ox+f0*sc/2,oy+18); c.fillText('Δf',ox+(f0+df/2)*sc,oy+18);
+c.textAlign='right'; c.fillText('g',ox-9,oy-g0*sc/2); c.fillText('Δg',ox-9,oy-(g0+dg/2)*sc);
+c.textAlign='center'; c.fillStyle=vp.css('--c1');
+c.fillText('f·g',ox+f0*sc/2,oy-g0*sc/2);
+if(df*sc>26){c.fillStyle=vp.css('--c2'); c.fillText('g·Δf',ox+(f0+df/2)*sc,oy-g0*sc/2);}
+if(dg*sc>22){c.fillStyle=vp.css('--c5'); c.fillText('f·Δg',ox+f0*sc/2,oy-(g0+dg/2)*sc);}
+var corner=df*dg, strips=f0*dg+g0*df;
+figRead('f5prod','h = '+h.toFixed(2)+'   |   strips (order h): <b>'+strips.toFixed(4)+
+ '</b>   corner (order h²): <b>'+corner.toFixed(4)+'</b>   |   corner / strips = <b>'+(corner/strips).toFixed(4)+
+ '</b>   →   after dividing by h, corner/h = '+(corner/h).toFixed(4)+' → 0');
+},[{"name": "h", "label": "nudge  h", "min": 0.01, "max": 1.2, "step": 0.01, "value": 0.6, "dp": 2}]);window["FIG_f5prod"].run();</script>
+<div class="deriv" id="d42"><div class="deriv-head"><span class="t">The product rule, proved</span><span class="ct">0 / 4</span></div><div class="dstep">\[\frac{f(x+h)g(x+h) - f(x)g(x)}{h}\]<div class="why"><b>The difference quotient of the product.</b> The obstacle is that both factors changed at once, so nothing cancels directly.</div></div><div class="dstep">\[= \frac{f(x+h)g(x+h) \;\underbrace{-\, f(x+h)g(x) \,+\, f(x+h)g(x)}_{\text{add and subtract}}\; -\, f(x)g(x)}{h}\]<div class="why"><b>The add-and-subtract trick.</b> We insert a hybrid term \(f(x+h)g(x)\) — new \(f\), old \(g\). This changes nothing (we added zero) but lets us split the total change into 'change due to \(g\)' and 'change due to \(f\)'. This is the algebraic version of splitting the rectangle into strips.</div></div><div class="dstep">\[= f(x+h)\,\frac{g(x+h)-g(x)}{h} \;+\; g(x)\,\frac{f(x+h)-f(x)}{h}\]<div class="why"><b>Group and factor.</b> The first two terms share \(f(x+h)\); the last two share \(g(x)\). Each bracket is now a difference quotient of a single function — the shapes we know how to take limits of.</div></div><div class="dstep">\[(fg)'(x) = f(x)g'(x) + g(x)f'(x)\]<div class="why"><b>Take the limit.</b> \(\frac{g(x+h)-g(x)}{h}\to g'(x)\) and \(\frac{f(x+h)-f(x)}{h}\to f'(x)\) by hypothesis. Crucially \(f(x+h)\to f(x)\) — and that is <em>not</em> automatic: it needs \(f\) to be continuous at \(x\), which we get free from Lecture 4's theorem, since \(f\) is differentiable there. ∎ <em>Check:</em> \(f=g=x\) gives \(x\cdot1+x\cdot1=2x\) ✓, matching \(\frac{d}{dx}x^2\).</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d42')">Next step</button><button class="btn ghost" onclick="dall('d42')">Show all</button><button class="btn ghost" onclick="dreset('d42')">Reset</button></div></div>
+<div class="quiz" id="q43"><div class="qlbl">Check yourself</div><div class="qq">Differentiate \(y = x^2 e^x\). (Take \(\frac{d}{dx}e^x = e^x\) as known — we prove it below.)</div><button class="qopt" data-ok="1" onclick="pick('q43',0,true)">\(y' = 2x e^x + x^2 e^x = xe^x(2+x)\)</button><button class="qopt" data-ok="0" onclick="pick('q43',1,false)">\(y' = 2x e^x\)</button><button class="qopt" data-ok="0" onclick="pick('q43',2,false)">\(y' = 2x \cdot e^x = (x^2)'(e^x)'\)</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct. Product rule with \(f=x^2\), \(g=e^x\): \(f'g + fg' = 2x\,e^x + x^2 e^x\). Factoring
+    \(xe^x\) gives \(xe^x(2+x)\), which is worth doing because it exposes the roots: \(y'=0\) at \(x=0\) and
+    \(x=-2\). Since \(e^x>0\) always, the sign of \(y'\) is the sign of \(x(2+x)\).</div><div class="qwhy" data-i="1"><b>Not quite.</b> This differentiates only the first factor and leaves the second alone. The product rule has
+    <em>two</em> terms because both factors are changing simultaneously — that is exactly what the two rectangle
+    strips represent. Only if \(g\) were a constant would the second term vanish.</div><div class="qwhy" data-i="2"><b>Not quite.</b> This is the tempting \((fg)'=f'g'\), disproved at the top of this section. Test it on
+    \(f=g=x\): it would give \(1\), but \(\frac{d}{dx}x^2=2x\). Coincidentally \(2xe^x\) is also what the
+    previous wrong option gives, but for a different wrong reason.</div></div>
+<h2 id="s3"><span class="secnum">3</span>The quotient rule</h2>
+<p>You can derive it the same way, but it is faster to get it from the product rule once we have the
+chain rule, so here it is stated and then re-derived below as a corollary.</p>
+<div class="box thm"><span class="lbl">Theorem — quotient rule</span><p>Where \(g(x)\neq0\),</p>
+\[ \left(\frac{f}{g}\right)'(x) = \frac{f'(x)g(x) - f(x)g'(x)}{g(x)^2}. \]
+<p>The order of the numerator matters: it is <em>low d-high minus high d-low</em>, over low squared. Getting the
+sign backwards is the single most common slip in this course, and the check is easy — try \(f=1,\ g=x\), which
+must give \(-1/x^2\) to match Lecture 4.</p></div>
+<h2 id="s4"><span class="secnum">4</span>The chain rule</h2>
+<p>Now the important one. Recall from Lecture 1 that a neural network is a composition
+\(f_L\circ\cdots\circ f_1\). To train it we need the derivative of a composition.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>Rates multiply. If a car travels 60 km per hour and burns 8 litres per 100 km, then it
+burns \(60 \times 0.08 = 4.8\) litres per hour. The <em>units</em> tell you to multiply:
+\(\frac{\text{km}}{\text{hr}}\times\frac{\text{L}}{\text{km}} = \frac{\text{L}}{\text{hr}}\), with kilometres
+cancelling. The chain rule is that cancellation, made rigorous:
+\(\frac{dy}{dx} = \frac{dy}{du}\cdot\frac{du}{dx}\).</p></div>
+<div class="deriv" id="d44"><div class="deriv-head"><span class="t">The chain rule, proved</span><span class="ct">0 / 6</span></div><div class="dstep">\[y = g(u), \quad u = f(x) \quad\Longrightarrow\quad y = (g\circ f)(x) = g(f(x))\]<div class="why"><b>Set up.</b> \(f\) is differentiable at \(x\); \(g\) is differentiable at \(u_0 = f(x)\). We want \((g\circ f)'(x)\).</div></div><div class="dstep">\[\frac{g(f(x+h)) - g(f(x))}{h} = \frac{g(f(x+h)) - g(f(x))}{f(x+h)-f(x)} \cdot \frac{f(x+h)-f(x)}{h}\]<div class="why"><b>The idea in one line.</b> Multiply and divide by \(\Delta u = f(x+h)-f(x)\). The first factor is a difference quotient for \(g\) (with increment \(\Delta u\)), the second is one for \(f\). <em>But this step is illegal whenever \(\Delta u = 0\)</em>, and \(\Delta u\) can be zero for arbitrarily small \(h\) — think of a constant \(f\). Step 4 repairs it.</div></div><div class="dstep">\[\text{As } h\to0:\quad \Delta u \to 0 \;\;\Rightarrow\;\; \frac{g(u_0+\Delta u)-g(u_0)}{\Delta u} \to g'(u_0)\]<div class="why"><b>Why the first factor converges.</b> \(f\) is differentiable at \(x\), hence continuous there, so \(\Delta u\to0\) as \(h\to0\). The inner quotient is then \(g\)'s difference quotient with a vanishing increment, which tends to \(g'(u_0)\). Note we used the differentiable ⟹ continuous theorem again.</div></div><div class="dstep">\[E(\Delta u) = \begin{cases}\dfrac{g(u_0+\Delta u)-g(u_0)}{\Delta u} & \Delta u \neq 0\\[6pt] g'(u_0) & \Delta u = 0\end{cases}\]<div class="why"><b>Patching the hole.</b> Define \(E\) to equal the quotient where that makes sense, and to equal \(g'(u_0)\) at the bad point. By step 3, \(E\) is continuous at \(0\). And the identity \(g(u_0+\Delta u)-g(u_0) = E(\Delta u)\cdot\Delta u\) now holds for <em>every</em> \(\Delta u\) including zero, where both sides are 0. This is exactly the removable-discontinuity repair from Lecture 3, used to make a proof work.</div></div><div class="dstep">\[\frac{g(f(x+h))-g(f(x))}{h} = E(\Delta u)\cdot\frac{\Delta u}{h}\]<div class="why"><b>Rewrite legally.</b> Substituting the identity from step 4 — valid for all \(h\), with no division by \(\Delta u\) anywhere.</div></div><div class="dstep">\[(g\circ f)'(x) = g'(f(x))\cdot f'(x)\]<div class="why"><b>Take the limit.</b> \(E(\Delta u)\to E(0)=g'(u_0)=g'(f(x))\) by continuity of \(E\), and \(\Delta u/h \to f'(x)\) by definition. Product of limits. ∎ <br>Read the final formula carefully: \(g'\) is evaluated <em>at \(f(x)\)</em>, not at \(x\). That is the most common error in applying it.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d44')">Next step</button><button class="btn ghost" onclick="dall('d44')">Show all</button><button class="btn ghost" onclick="dreset('d44')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Chain rule as multiplied rates:  y = sin(u),  u = x²<span class="tag">Interactive</span></div><canvas id="f5chain" data-h="430"></canvas><div class="legend"><span><i style="background:var(--c2)"></i>u = f(x) = x²</span><span><i style="background:var(--c5)"></i>y = g(u) = sin u</span><span><i style="background:var(--c1)"></i>y = g(f(x)) = sin(x²)</span></div><div class="fig-read" id="f5chain-read"></div><div class="ctrls"><div class="ctrl"><label>x</label><input type="range" min="-2.6" max="2.6" step="0.01" value="1.3" data-fmt="2" oninput="figSlide('f5chain','x',this)"><output>1.30</output></div></div><div class="fig-cap">Top-left: the inner map, with its local slope f′(x) = 2x drawn as a tangent. Top-right: the outer map, with its slope g′(u) = cos u drawn at the point u = f(x). Bottom: the composite, whose slope is the product of the two. Move x and watch all three tangents update together. Where either factor is zero, the composite is momentarily flat.</div></div><script>makeFig("f5chain",function(vp,p,F){
+var c=vp.ctx,W=vp.W,H=vp.H; c.clearRect(0,0,W,H);
+var x=p.x, u=x*x, y=Math.sin(u), fp=2*x, gp=Math.cos(u), tot=gp*fp;
+var topH=Math.floor(H*0.46), halfW=Math.floor(W/2);
+function mk(px,py,pw,ph,xmin,xmax,ymin,ymax){
+  var s=new Viewport(vp.cv,0,1,0,1); s.ctx=c; s.W=W; s.H=H;
+  s.pad={l:px+40,r:W-(px+pw)+10,t:py+10,b:H-(py+ph)+24};
+  s.pw=pw-50; s.ph=ph-34; s.xmin=xmin;s.xmax=xmax;s.ymin=ymin;s.ymax=ymax; return s;
+}
+// inner
+var A=mk(0,0,halfW,topH,-2.8,2.8,-0.5,7.5);
+A.axes({stepx:1,stepy:2});
+A.curve(function(t){return t*t;},'--c2',{w:2.4});
+A.curve(function(t){return u+fp*(t-x);},'--ink3',{w:1.6,dash:[5,4]});
+A.dot(x,u,'--c2',6);
+A.label(-2.7,7.2,'u = x²   slope f′ = '+fp.toFixed(3),'--c2',{halo:true,bold:true});
+// outer
+var B=mk(halfW,0,halfW,topH,-0.5,7.5,-1.4,1.4);
+B.axes({stepx:2,stepy:1});
+B.curve(Math.sin,'--c5',{w:2.4});
+B.curve(function(t){return y+gp*(t-u);},'--ink3',{w:1.6,dash:[5,4]});
+B.dot(u,y,'--c5',6);
+B.label(-0.4,1.3,'y = sin u   slope g′ = '+gp.toFixed(3),'--c5',{halo:true,bold:true});
+c.save(); c.strokeStyle=vp.css('--line'); c.lineWidth=1;
+c.beginPath(); c.moveTo(halfW+.5,0); c.lineTo(halfW+.5,topH); c.stroke();
+c.beginPath(); c.moveTo(0,topH+.5); c.lineTo(W,topH+.5); c.stroke(); c.restore();
+// composite
+var C=mk(0,topH,W,H-topH,-2.8,2.8,-1.5,1.5);
+C.axes({stepx:1,stepy:1});
+C.curve(function(t){return Math.sin(t*t);},'--c1',{w:2.6});
+C.curve(function(t){return y+tot*(t-x);},'--ink3',{w:1.7,dash:[5,4]});
+C.dot(x,y,'--c1',6.5);
+C.label(-2.75,1.4,'y = sin(x²)   slope = g′·f′ = '+tot.toFixed(3),'--c1',{halo:true,bold:true});
+figRead('f5chain','x = '+x.toFixed(2)+'   →   u = x² = '+u.toFixed(4)+
+ '   |   f′(x) = 2x = <b>'+fp.toFixed(4)+'</b>   ×   g′(u) = cos(u) = <b>'+gp.toFixed(4)+
+ '</b>   =   <b>'+tot.toFixed(4)+'</b>   ✓ matches 2x·cos(x²)');
+},[{"name": "x", "label": "x", "min": -2.6, "max": 2.6, "step": 0.01, "value": 1.3, "dp": 2}]);window["FIG_f5chain"].run();</script>
+<div class="rev"><div class="rlbl">Practice peeling</div><p>Differentiate, naming the outer and inner functions at each layer:</p>
+ <p>(a) \(y=(3x^2+1)^5\) &nbsp;&nbsp; (b) \(y=e^{-x^2/2}\) &nbsp;&nbsp; (c) \(y=\ln(1+e^{x})\)
+ &nbsp;&nbsp; (d) \(y=\sin\!\big(\sqrt{x^2+1}\big)\)</p><div style="margin-top:12px"><button class="btn ghost" data-show="Show the four" onclick="rev('r45',this)">Show the four</button></div><div class="rev-body" id="r45"><p><strong>(a)</strong> Outer \(u^5\), inner \(u=3x^2+1\).
+ \(y' = 5u^4\cdot u' = 5(3x^2+1)^4\cdot 6x = 30x(3x^2+1)^4\).</p>
+
+ <p><strong>(b)</strong> Outer \(e^u\), inner \(u=-x^2/2\). \(u'=-x\).
+ \(y'=e^{-x^2/2}\cdot(-x) = -x\,e^{-x^2/2}\).</p>
+ <p>This is the unnormalised Gaussian density, and its derivative being \(-x\) times itself is exactly why the
+ Gaussian is the fixed point of so many arguments. Note \(y'=0\) only at \(x=0\), the peak.</p>
+
+ <p><strong>(c)</strong> Outer \(\ln u\), inner \(u=1+e^x\). \(u'=e^x\).
+ \[y' = \frac{1}{1+e^x}\cdot e^x = \frac{e^x}{1+e^x} = \frac{1}{1+e^{-x}} = \sigma(x).\]
+ <p>The last step divides top and bottom by \(e^x\). So the derivative of the <em>softplus</em> function is
+ exactly the sigmoid — softplus is a smooth approximation to ReLU, and this identity is why.</p>
+
+ <p><strong>(d)</strong> Three layers. Outer \(\sin u\), middle \(u=\sqrt v\), inner \(v=x^2+1\).
+ \[y' = \cos(u)\cdot\frac{1}{2\sqrt v}\cdot 2x = \frac{x\cos\!\big(\sqrt{x^2+1}\big)}{\sqrt{x^2+1}}.\]
+ <p>The chain rule composes: for \(L\) layers you multiply \(L\) factors. That is literally the shape of
+ backpropagation through an \(L\)-layer network.</p></div></div>
+<h2 id="s5"><span class="secnum">5</span>Paying the Lecture 2 debt: the derivative of eˣ and ln x</h2>
+<p>We left two things unproved. Here they are.</p>
+<div class="deriv" id="d46"><div class="deriv-head"><span class="t">d/dx ln x = 1/x, and hence C(a) = ln a</span><span class="ct">0 / 5</span></div><div class="dstep">\[y = \ln x \quad\Longleftrightarrow\quad e^{y} = x\]<div class="why"><b>Use the inverse relationship.</b> Rather than attack \(\ln\) directly, convert to the exponential form — the move from Lecture 2. We take \(\frac{d}{dx}e^x=e^x\) as the <em>definition</em> of \(e\) (Lecture 2 established that some base makes \(C(a)=1\); call it \(e\)).</div></div><div class="dstep">\[\frac{d}{dx}\left[e^{y}\right] = \frac{d}{dx}\left[x\right] \quad\Longrightarrow\quad e^{y}\cdot\frac{dy}{dx} = 1\]<div class="why"><b>Differentiate both sides — implicitly.</b> The left side is a composition: outer \(e^{(\cdot)}\), inner \(y(x)\). The chain rule gives \(e^y \cdot y'\). The right side differentiates to 1. This technique, differentiating an equation rather than a formula, is called <em>implicit differentiation</em>.</div></div><div class="dstep">\[\frac{dy}{dx} = \frac{1}{e^{y}} = \frac{1}{x} \qquad\blacksquare\]<div class="why"><b>Solve and substitute back.</b> \(e^y>0\) so the division is legal, and \(e^y = x\) by step 1. Hence \(\frac{d}{dx}\ln x = \frac1x\), valid for \(x>0\) — the domain of \(\ln\), as always.</div></div><div class="dstep">\[a^{x} = e^{x\ln a} \quad\Longrightarrow\quad \frac{d}{dx}a^x = e^{x\ln a}\cdot \ln a = a^x\ln a\]<div class="why"><b>Now the general base.</b> The identity \(a = e^{\ln a}\) is just \(\exp\) and \(\ln\) undoing each other; raising to the \(x\) gives \(a^x = e^{x\ln a}\). Chain rule: outer \(e^u\), inner \(u=x\ln a\) with \(u' = \ln a\). So \(\frac{d}{dx}a^x = a^x \ln a\).</div></div><div class="dstep">\[C(a) = \lim_{h\to0}\frac{a^h-1}{h} = \left.\frac{d}{dx}a^x\right|_{x=0} = a^0\ln a = \ln a\]<div class="why"><b>The debt is paid.</b> \(C(a)\) was precisely the derivative of \(a^x\) at \(x=0\). So \(C(a)=\ln a\), and \(C(a)=1\) exactly when \(\ln a = 1\), i.e. \(a=e\). <em>Numerical check against Lecture 2's interactive:</em> at \(a=2\), \(C(2)=\ln 2 = 0.6931\) — and the finite-difference readout there showed \(0.69315\) ✓.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d46')">Next step</button><button class="btn ghost" onclick="dall('d46')">Show all</button><button class="btn ghost" onclick="dreset('d46')">Reset</button></div></div>
+<h2 id="s6"><span class="secnum">6</span>The sigmoid derivative, and the first hint of vanishing gradients</h2>
+<div class="deriv" id="d47"><div class="deriv-head"><span class="t">σ′(z) = σ(z)(1 − σ(z))</span><span class="ct">0 / 4</span></div><div class="dstep">\[\sigma(z) = \frac{1}{1+e^{-z}} = \left(1+e^{-z}\right)^{-1}\]<div class="why"><b>Rewrite as a power.</b> Now it is a two-layer composition: outer \(u^{-1}\), inner \(u = 1+e^{-z}\). This is cleaner than the quotient rule.</div></div><div class="dstep">\[\sigma'(z) = -\left(1+e^{-z}\right)^{-2}\cdot\frac{d}{dz}\left(1+e^{-z}\right) = -\left(1+e^{-z}\right)^{-2}\cdot\left(-e^{-z}\right)\]<div class="why"><b>Chain rule twice.</b> Outer layer: \(\frac{d}{du}u^{-1}=-u^{-2}\). Inner layer: \(\frac{d}{dz}e^{-z} = e^{-z}\cdot(-1)\), itself a chain rule with inner \(-z\). Two minus signs are about to cancel.</div></div><div class="dstep">\[\sigma'(z) = \frac{e^{-z}}{\left(1+e^{-z}\right)^{2}}\]<div class="why"><b>Tidy up.</b> The two negatives give a positive, confirming what the graph shows: \(\sigma\) is strictly increasing everywhere, so its derivative is positive everywhere.</div></div><div class="dstep">\[\frac{e^{-z}}{(1+e^{-z})^2} = \frac{1}{1+e^{-z}}\cdot\frac{e^{-z}}{1+e^{-z}} = \sigma(z)\cdot\big(1-\sigma(z)\big)\]<div class="why"><b>The key regrouping.</b> Split the fraction into two. The first factor is \(\sigma(z)\). For the second, recall from Lecture 2's exercise that \(1-\sigma(z) = \frac{e^{-z}}{1+e^{-z}}\) ✓. So the derivative is expressible entirely in terms of the function's own output — no exponentials needed. ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d47')">Next step</button><button class="btn ghost" onclick="dall('d47')">Show all</button><button class="btn ghost" onclick="dreset('d47')">Reset</button></div></div>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p>That last form is why every framework caches the <em>output</em> of a sigmoid layer during the
+forward pass. To get the gradient you need only <code>s * (1 - s)</code>: no exponentials, no recomputation.
+The same trick appears for tanh (\(\tanh' = 1-\tanh^2\)) and softmax.</p></div>
+<div class="fig"><div class="fig-head">σ and σ′ — why deep sigmoid networks stopped training<span class="tag">Interactive</span></div><canvas id="f5sigd" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>σ(z)</span><span><i style="background:var(--c5)"></i>σ′(z) = σ(1−σ)</span><span><i style="background:var(--c2)"></i>product over L layers</span></div><div class="fig-read" id="f5sigd-read"></div><div class="ctrls"><div class="ctrl"><label>z</label><input type="range" min="-8" max="8" step="0.05" value="0" data-fmt="2" oninput="figSlide('f5sigd','z',this)"><output>0.00</output></div><div class="ctrl"><label>depth  L  (layers chained)</label><input type="range" min="1" max="25" step="1" value="1" data-fmt="0" oninput="figSlide('f5sigd','L',this)"><output>1</output></div></div><div class="fig-cap">σ′ peaks at 0.25 when z = 0 and collapses towards zero in both tails. The chain rule multiplies one such factor per layer. Raise the depth slider and read the product: even in the best case, 0.25 to the power L shrinks geometrically. At L = 10 the best possible gradient scale is about 10⁻⁶. This is the vanishing-gradient problem, and it is pure chain rule.</div></div><script>makeFig("f5sigd",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frame(-8.4,8.4,-0.05,1.05);
+vp.axes({stepx:2,stepy:0.25});
+var sg=function(t){return 1/(1+Math.exp(-t));};
+vp.curve(sg,'--c1',{w:2.6});
+vp.curve(function(t){var s=sg(t);return s*(1-s);},'--c5',{w:2.6});
+vp.seg(-8.4,0.25,8.4,0.25,'--ink3',{dash:[3,5],w:1.2});
+vp.label(-8.2,0.25,'max σ′ = 0.25','--ink3',{halo:true,dy:-6});
+var z=p.z, L=Math.round(p.L), s=sg(z), d=s*(1-s);
+vp.seg(z,0,z,Math.max(s,d),'--c2',{dash:[3,3],w:1.4});
+vp.dot(z,s,'--c1',6); vp.dot(z,d,'--c5',6);
+var prod=Math.pow(d,L), best=Math.pow(0.25,L);
+figRead('f5sigd','z = '+z.toFixed(2)+'   σ = '+s.toFixed(5)+'   σ′ = <b>'+d.toFixed(6)+'</b>'
+ +'<br>chained through L = '+L+' layers:  (σ′)^L = <b>'+prod.toExponential(3)+'</b>'
+ +'   |   best possible (all z = 0): 0.25^'+L+' = <b>'+best.toExponential(3)+'</b>'
+ +(best<1e-5?'   <b style="color:var(--bad)">← gradient has effectively vanished</b>':''));
+},[{"name": "z", "label": "z", "min": -8, "max": 8, "step": 0.05, "value": 0, "dp": 2}, {"name": "L", "label": "depth  L  (layers chained)", "min": 1, "max": 25, "step": 1, "value": 1, "dp": 0}]);window["FIG_f5sigd"].run();</script>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>This figure is a piece of history. Networks deeper than a few layers were, for years,
+untrainable with sigmoid activations, and the reason is one line of chain rule: the gradient reaching layer 1 is
+a product of \(L\) factors each at most \(0.25\). Three of the ideas that unblocked deep learning attack exactly
+this product:</p>
+<ul>
+<li><strong>ReLU</strong> has derivative exactly 1 on the positive side. Multiply as many ones as you like and
+nothing shrinks.</li>
+<li><strong>Residual connections</strong> \(\vx + F(\vx)\) have derivative \(1 + F'\), so the product contains a
+path of pure ones — the gradient has a route home that no layer can attenuate.</li>
+<li><strong>Normalisation layers</strong> keep pre-activations near zero, where \(\sigma'\) is largest, rather
+than out in the saturated tails where it is essentially zero.</li>
+</ul>
+<p>You are not expected to fully absorb these now. The point is that you can already see <em>why</em> they were
+needed, from a rule you just proved.</p></div>
+<h2 id="s7"><span class="secnum">7</span>Automatic differentiation in twenty lines</h2>
+<p>The chain rule is mechanical, which means a computer can apply it. Here is the simplest version:
+carry the value and the derivative together through every operation, applying the rule at each step. This is
+<strong>forward-mode automatic differentiation</strong>, and it is exact — not a finite-difference
+approximation.</p>
+<div class="pyb" id="py48" data-orig="import numpy as np
+
+class Dual:
+    &quot;&quot;&quot;Carries (value, derivative). Every operation applies a rule from this lecture.&quot;&quot;&quot;
+    def __init__(self, v, d=0.0):
+        self.v, self.d = float(v), float(d)
+
+    def __repr__(self):
+        return f&quot;Dual(v={self.v:.8f}, d={self.d:.8f})&quot;
+
+    # linearity
+    def __add__(self, o):
+        o = o if isinstance(o, Dual) else Dual(o)
+        return Dual(self.v + o.v, self.d + o.d)
+    def __sub__(self, o):
+        o = o if isinstance(o, Dual) else Dual(o)
+        return Dual(self.v - o.v, self.d - o.d)
+    def __neg__(self):
+        return Dual(-self.v, -self.d)
+
+    # PRODUCT RULE
+    def __mul__(self, o):
+        o = o if isinstance(o, Dual) else Dual(o)
+        return Dual(self.v * o.v, self.d * o.v + self.v * o.d)
+
+    # QUOTIENT RULE
+    def __truediv__(self, o):
+        o = o if isinstance(o, Dual) else Dual(o)
+        return Dual(self.v / o.v, (self.d * o.v - self.v * o.d) / o.v**2)
+
+    __radd__ = __add__
+    __rmul__ = __mul__
+    def __rsub__(self, o): return Dual(o) - self
+    def __rtruediv__(self, o): return Dual(o) / self
+
+    # POWER RULE + CHAIN RULE
+    def __pow__(self, k):
+        return Dual(self.v**k, k * self.v**(k-1) * self.d)
+
+# CHAIN RULE: outer derivative times inner derivative, every time
+def exp(x):  return Dual(np.exp(x.v),  np.exp(x.v) * x.d)
+def log(x):  return Dual(np.log(x.v),  x.d / x.v)
+def sin(x):  return Dual(np.sin(x.v),  np.cos(x.v) * x.d)
+def cos(x):  return Dual(np.cos(x.v), -np.sin(x.v) * x.d)
+def sqrt(x): return Dual(np.sqrt(x.v), x.d / (2*np.sqrt(x.v)))
+
+def derivative(f, x0):
+    &quot;&quot;&quot;Seed the derivative with 1: dx/dx = 1.  Everything else follows.&quot;&quot;&quot;
+    return f(Dual(x0, 1.0)).d
+
+# ---- tests against derivatives we proved by hand ----
+tests = [
+    (&quot;x^2 e^x  at x=1&quot;,       lambda x: x**2 * exp(x),        1.0,  lambda x: 2*x*np.exp(x) + x**2*np.exp(x)),
+    (&quot;sin(x^2) at x=1.3&quot;,     lambda x: sin(x**2),            1.3,  lambda x: 2*x*np.cos(x**2)),
+    (&quot;ln(1+e^x) at x=0.4&quot;,    lambda x: log(1 + exp(x)),      0.4,  lambda x: 1/(1+np.exp(-x))),
+    (&quot;sigmoid  at x=0&quot;,       lambda x: 1 / (1 + exp(-x)),    0.0,  lambda x: (lambda s: s*(1-s))(1/(1+np.exp(-x)))),
+    (&quot;sqrt(x^2+1) at x=2&quot;,    lambda x: sqrt(x**2 + 1),       2.0,  lambda x: x/np.sqrt(x**2+1)),
+]
+
+print(f&quot;{&#x27;expression&#x27;:24s} {&#x27;autodiff&#x27;:&gt;16s} {&#x27;by hand&#x27;:&gt;16s} {&#x27;error&#x27;:&gt;10s}&quot;)
+print(&quot;-&quot; * 70)
+for name, f, x0, truth in tests:
+    a, t = derivative(f, x0), truth(x0)
+    print(f&quot;{name:24s} {a:16.12f} {t:16.12f} {abs(a-t):10.1e}&quot;)
+
+print()
+print(&quot;Errors are 0 or machine epsilon -- this is EXACT differentiation.&quot;)
+print(&quot;No h, no limit, no truncation error. The chain rule was applied&quot;)
+print(&quot;symbolically at every elementary operation, then evaluated numerically.&quot;)
+print()
+print(&quot;Deep learning frameworks use REVERSE mode instead, which computes all&quot;)
+print(&quot;partial derivatives of one output in a single pass rather than one&quot;)
+print(&quot;input&#x27;s derivative per pass.  Same chain rule, opposite traversal order.&quot;)
+print(&quot;We build that in Phase D.&quot;)
+"><div class="pyb-head"><span class="t">Dual numbers: exact derivatives with no limits and no symbols</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py48')">Run</button><button class="btn ghost" onclick="resetPy('py48')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+
+class Dual:
+    &quot;&quot;&quot;Carries (value, derivative). Every operation applies a rule from this lecture.&quot;&quot;&quot;
+    def __init__(self, v, d=0.0):
+        self.v, self.d = float(v), float(d)
+
+    def __repr__(self):
+        return f&quot;Dual(v={self.v:.8f}, d={self.d:.8f})&quot;
+
+    # linearity
+    def __add__(self, o):
+        o = o if isinstance(o, Dual) else Dual(o)
+        return Dual(self.v + o.v, self.d + o.d)
+    def __sub__(self, o):
+        o = o if isinstance(o, Dual) else Dual(o)
+        return Dual(self.v - o.v, self.d - o.d)
+    def __neg__(self):
+        return Dual(-self.v, -self.d)
+
+    # PRODUCT RULE
+    def __mul__(self, o):
+        o = o if isinstance(o, Dual) else Dual(o)
+        return Dual(self.v * o.v, self.d * o.v + self.v * o.d)
+
+    # QUOTIENT RULE
+    def __truediv__(self, o):
+        o = o if isinstance(o, Dual) else Dual(o)
+        return Dual(self.v / o.v, (self.d * o.v - self.v * o.d) / o.v**2)
+
+    __radd__ = __add__
+    __rmul__ = __mul__
+    def __rsub__(self, o): return Dual(o) - self
+    def __rtruediv__(self, o): return Dual(o) / self
+
+    # POWER RULE + CHAIN RULE
+    def __pow__(self, k):
+        return Dual(self.v**k, k * self.v**(k-1) * self.d)
+
+# CHAIN RULE: outer derivative times inner derivative, every time
+def exp(x):  return Dual(np.exp(x.v),  np.exp(x.v) * x.d)
+def log(x):  return Dual(np.log(x.v),  x.d / x.v)
+def sin(x):  return Dual(np.sin(x.v),  np.cos(x.v) * x.d)
+def cos(x):  return Dual(np.cos(x.v), -np.sin(x.v) * x.d)
+def sqrt(x): return Dual(np.sqrt(x.v), x.d / (2*np.sqrt(x.v)))
+
+def derivative(f, x0):
+    &quot;&quot;&quot;Seed the derivative with 1: dx/dx = 1.  Everything else follows.&quot;&quot;&quot;
+    return f(Dual(x0, 1.0)).d
+
+# ---- tests against derivatives we proved by hand ----
+tests = [
+    (&quot;x^2 e^x  at x=1&quot;,       lambda x: x**2 * exp(x),        1.0,  lambda x: 2*x*np.exp(x) + x**2*np.exp(x)),
+    (&quot;sin(x^2) at x=1.3&quot;,     lambda x: sin(x**2),            1.3,  lambda x: 2*x*np.cos(x**2)),
+    (&quot;ln(1+e^x) at x=0.4&quot;,    lambda x: log(1 + exp(x)),      0.4,  lambda x: 1/(1+np.exp(-x))),
+    (&quot;sigmoid  at x=0&quot;,       lambda x: 1 / (1 + exp(-x)),    0.0,  lambda x: (lambda s: s*(1-s))(1/(1+np.exp(-x)))),
+    (&quot;sqrt(x^2+1) at x=2&quot;,    lambda x: sqrt(x**2 + 1),       2.0,  lambda x: x/np.sqrt(x**2+1)),
+]
+
+print(f&quot;{&#x27;expression&#x27;:24s} {&#x27;autodiff&#x27;:&gt;16s} {&#x27;by hand&#x27;:&gt;16s} {&#x27;error&#x27;:&gt;10s}&quot;)
+print(&quot;-&quot; * 70)
+for name, f, x0, truth in tests:
+    a, t = derivative(f, x0), truth(x0)
+    print(f&quot;{name:24s} {a:16.12f} {t:16.12f} {abs(a-t):10.1e}&quot;)
+
+print()
+print(&quot;Errors are 0 or machine epsilon -- this is EXACT differentiation.&quot;)
+print(&quot;No h, no limit, no truncation error. The chain rule was applied&quot;)
+print(&quot;symbolically at every elementary operation, then evaluated numerically.&quot;)
+print()
+print(&quot;Deep learning frameworks use REVERSE mode instead, which computes all&quot;)
+print(&quot;partial derivatives of one output in a single pass rather than one&quot;)
+print(&quot;input&#x27;s derivative per pass.  Same chain rule, opposite traversal order.&quot;)
+print(&quot;We build that in Phase D.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s8"><span class="secnum">8</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Differentiate, showing which rule you used at each step:</p>
+  <p>(a) \(y = (x^3+2x)(5x-1)\) &nbsp;&nbsp; (b) \(y = \dfrac{x^2+1}{x-3}\) &nbsp;&nbsp;
+  (c) \(y = e^{3x}\sin(2x)\) &nbsp;&nbsp; (d) \(y = \ln(x^2+4)\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex49',this)">Show solution</button></div><div class="rev-body" id="ex49"><p><strong>(a)</strong> Product rule, \(f=x^3+2x\), \(g=5x-1\):
+  \(y' = (3x^2+2)(5x-1) + (x^3+2x)(5)\). Expanding: \(15x^3-3x^2+10x-2+5x^3+10x = 20x^3-3x^2+20x-2\).
+  <em>Check by expanding first:</em> \(y = 5x^4-x^3+10x^2-2x\), so \(y'=20x^3-3x^2+20x-2\) ✓. Always worth doing
+  when it is cheap.</p>
+
+  <p><strong>(b)</strong> Quotient rule with \(f=x^2+1\), \(g=x-3\):
+  \[y' = \frac{2x(x-3)-(x^2+1)(1)}{(x-3)^2} = \frac{2x^2-6x-x^2-1}{(x-3)^2} = \frac{x^2-6x-1}{(x-3)^2}.\]</p>
+
+  <p><strong>(c)</strong> Product rule, with a chain rule inside each factor:
+  \(\frac{d}{dx}e^{3x}=3e^{3x}\) and \(\frac{d}{dx}\sin(2x)=2\cos(2x)\). So
+  \[y' = 3e^{3x}\sin(2x) + 2e^{3x}\cos(2x) = e^{3x}\big(3\sin 2x + 2\cos 2x\big).\]</p>
+
+  <p><strong>(d)</strong> Chain rule, outer \(\ln u\), inner \(u=x^2+4\):
+  \(y' = \frac{1}{x^2+4}\cdot 2x = \frac{2x}{x^2+4}\). Note the domain is all of \(\RR\) here because
+  \(x^2+4>0\) always — worth checking, since \(\ln\) is fussy.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Derive the quotient rule from the product and chain rules, by writing
+  \(\dfrac{f}{g} = f\cdot g^{-1}\).</p>
+  <p>Then verify your result reproduces \(\frac{d}{dx}\frac1x = -\frac{1}{x^2}\).</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex50',this)">Show solution</button></div><div class="rev-body" id="ex50"><p>First, \(\frac{d}{dx}g^{-1}\) by the chain rule: outer \(u^{-1}\) with derivative \(-u^{-2}\),
+  inner \(g\) with derivative \(g'\). So \(\frac{d}{dx}g^{-1} = -g^{-2}g'\).</p>
+  <p>Now the product rule on \(f\cdot g^{-1}\):</p>
+  \[\left(\frac fg\right)' = f'\,g^{-1} + f\cdot\left(-g^{-2}g'\right) = \frac{f'}{g}-\frac{fg'}{g^2}.\]
+  <p>Put over the common denominator \(g^2\):</p>
+  \[= \frac{f'g - fg'}{g^2}. \qquad\blacksquare\]
+  <p><strong>Check.</strong> \(f=1,\ g=x\): \(f'=0,\ g'=1\), giving \(\frac{0\cdot x - 1\cdot 1}{x^2} =
+  -\frac{1}{x^2}\) ✓, matching the first-principles computation in Lecture 4.</p>
+  <p>This is worth internalising as a strategy: the quotient rule is not a fifth independent fact, it is a
+  consequence. Fewer things to remember, and you can always rebuild it.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove the power rule \(\frac{d}{dx}x^{r} = r x^{r-1}\) for <strong>any real</strong> \(r\) and
+  \(x>0\), using \(x^r = e^{r\ln x}\).</p>
+  <p>Why did we need \(x>0\), and what is the corresponding statement for negative \(x\) when \(r\) is an
+  integer?</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex51',this)">Show solution</button></div><div class="rev-body" id="ex51"><p>Write \(x^r = e^{r\ln x}\) — valid for \(x>0\), because that is the domain of \(\ln\).
+  Chain rule: outer \(e^u\), inner \(u = r\ln x\) with \(u' = r/x\).</p>
+  \[\frac{d}{dx}x^r = e^{r\ln x}\cdot\frac{r}{x} = x^{r}\cdot\frac{r}{x} = r\,x^{r-1}. \qquad\blacksquare\]
+  <p><strong>Why \(x>0\).</strong> The identity \(x^r=e^{r\ln x}\) requires \(\ln x\) to exist. More
+  fundamentally, \(x^r\) for irrational \(r\) is only <em>defined</em> for \(x>0\) — recall Lecture 2, Stage 3:
+  \((-8)^{1/2}\) has no real value. So the restriction is not an artefact of the proof, it is inherited from the
+  function itself.</p>
+  <p><strong>Negative \(x\), integer \(r\).</strong> Then \(x^r\) is perfectly well defined, and the rule still
+  holds — but it needs a different proof. For positive integers, the binomial argument at the top of this lecture
+  works for any real \(x\), positive or negative. For negative integers \(r=-n\), write \(x^{-n} = 1/x^n\) and
+  apply the quotient rule: \(\frac{0\cdot x^n - 1\cdot nx^{n-1}}{x^{2n}} = -n x^{-n-1}\) ✓. Three proofs for
+  three overlapping domains — a normal state of affairs in analysis.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>The vanishing gradient, quantified.</strong> Consider the scalar 'network'</p>
+  \[ y = \sigma(w_L \cdots \sigma(w_2\,\sigma(w_1 x))\cdots) \]
+  <p>with \(L\) layers, each a weight followed by a sigmoid.</p>
+  <ol>
+  <li>Write \(\frac{\partial y}{\partial w_1}\) as a product, using the chain rule.</li>
+  <li>Bound its magnitude, given that \(0&lt;\sigma'\le\tfrac14\).</li>
+  <li>What must the weights satisfy for the gradient <em>not</em> to vanish? Comment on whether that condition
+  is compatible with the activations staying in the high-derivative region.</li>
+  <li>Extend the <code>Dual</code> class above to verify your bound numerically for \(L=10\).</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex52',this)">Show solution</button></div><div class="rev-body" id="ex52"><p><strong>1.</strong> Write \(a_0 = x\), \(z_\ell = w_\ell a_{\ell-1}\), \(a_\ell = \sigma(z_\ell)\),
+  \(y=a_L\). Peeling one layer at a time:</p>
+  \[\frac{\partial y}{\partial w_1} = \underbrace{\left(\prod_{\ell=2}^{L}\sigma'(z_\ell)\,w_\ell\right)}_{\text{the chain through layers } 2..L}\cdot\;\sigma'(z_1)\,\cdot\, x.\]
+  <p>Each layer contributes exactly two factors: its activation derivative and its weight.</p>
+
+  <p><strong>2.</strong> Since \(0&lt;\sigma'(z)\le\frac14\) for all \(z\),</p>
+  \[\left|\frac{\partial y}{\partial w_1}\right| \le |x|\cdot\prod_{\ell=1}^{L}\frac{|w_\ell|}{4}
+   = |x|\left(\frac{|w|}{4}\right)^{L} \quad\text{if all }|w_\ell|=|w|.\]
+
+  <p><strong>3.</strong> The product decays geometrically unless \(|w|\gtrsim 4\). With standard
+  initialisation \(|w|\approx 1\), the factor is \(\approx (1/4)^L\): at \(L=10\) that is \(10^{-6}\), at
+  \(L=20\) it is \(10^{-12}\) — below float32 resolution relative to typical weight magnitudes. The gradient
+  is not small, it is <em>gone</em>.</p>
+  <p><strong>And the trap.</strong> Raising \(|w|\) to 4 or above does not rescue you, because \(\sigma'\)
+  reaches \(\tfrac14\) only at \(z=0\). Large weights drive \(z_\ell = w_\ell a_{\ell-1}\) into the saturated
+  tails, where \(\sigma'\) collapses towards zero far faster than \(|w|\) grows. The two requirements —
+  large weights, and pre-activations near zero — are in direct conflict. There is no setting of a plain
+  sigmoid stack that keeps the product near 1 at depth, which is precisely why the fix had to come from changing
+  the <em>architecture</em> (ReLU, residual connections) rather than from tuning.</p>
+
+  <pre style="overflow-x:auto"><code>import numpy as np
+def sig(x): return 1/(1+exp(-x))          # uses the Dual exp above
+
+def net(w1, ws, x0):
+    def f(w):
+        a = sig(w * x0)
+        for wl in ws: a = sig(Dual(wl) * a)
+        return a
+    return derivative(f, w1)
+
+rng = np.random.default_rng(0)
+for L in (1, 3, 5, 10, 20):
+    ws = rng.normal(0, 1, size=L-1)
+    g = net(1.0, ws, 1.0)
+    print(f"L={L:3d}  dy/dw1 = {g:.3e}   bound (1/4)^L = {0.25**L:.3e}")</code></pre>
+  <p>You should see the measured gradient fall below the bound at every depth (the bound is loose because
+  \(\sigma'\) is well under \(\tfrac14\) once activations drift from zero) and reach \(10^{-8}\) or smaller by
+  \(L=10\).</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> the linear approximation \(f(x+h)\approx f(x)+f'(x)h\) has an error we
+have so far ignored. Lecture 6 pins it down exactly with Taylor's theorem — and in doing so explains why
+second-order optimisers exist, and where the learning-rate bound \(\eta&lt;2/f''\) comes from.</p>
+<div class="pagenav"><a href="04-the-derivative.html" class="pv"><span class="dir">Previous</span><span class="nm">4 · The Derivative from First Principles</span></a><a href="06-taylor-series.html" class="nx"><span class="dir">Next</span><span class="nm">6 · Taylor Series and Local Approximation</span></a></div>
+</div>
+<script>initDone('05-rules-and-the-chain-rule');</script>
+</body>
+</html>

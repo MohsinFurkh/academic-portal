@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>14. Bayes, Distributions, and Maximum Likelihood — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 14 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('14-bayes-and-maximum-likelihood')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part V — Probability and Statistics · Lecture 14</div>
+  <h1>Bayes, Distributions, and Maximum Likelihood</h1>
+  <p class="dek">The last lecture of Phase A, and the one that ties it together. Maximum likelihood is a single principle from which squared error, cross-entropy, ridge and LASSO all fall out — and Bayes' theorem is the reason a 99%-accurate test can be wrong most of the time.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive Bayes' theorem and use it to resolve the base-rate fallacy quantitatively</li><li>Write down a likelihood, take its log, and maximise it</li><li>Derive the MLE for Bernoulli, Gaussian, linear regression and logistic regression</li><li>Show that MAP estimation with a Gaussian prior <em>is</em> ridge regression</li><li>Explain what an estimator's bias is, and why the MLE variance is biased</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lecture 13: random variables, expectation, variance</li><li>Lecture 2: logarithms and the argmax theorem</li><li>Lectures 7, 10, 12: optimisation, least squares, gradients</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Conditional probability</h2>
+<div class="box defn"><span class="lbl">Definition — conditional probability</span><p>For events \(A,B\) with \(P(B)>0\),</p>
+\[ P(A\mid B) = \frac{P(A\cap B)}{P(B)}. \]
+<p>Read: <em>having learned that \(B\) happened, restrict attention to \(B\) and renormalise.</em> The
+denominator is what makes the conditional probabilities of a partition sum to 1 again.</p>
+<p><strong>Independence</strong> is the statement that conditioning changes nothing:
+\(P(A\mid B)=P(A)\), equivalently \(P(A\cap B)=P(A)P(B)\).</p></div>
+<div class="deriv" id="d123"><div class="deriv-head"><span class="t">Bayes' theorem in three lines</span><span class="ct">0 / 4</span></div><div class="dstep">\[P(A\mid B)\,P(B) = P(A\cap B) = P(B\mid A)\,P(A)\]<div class="why"><b>Apply the definition twice.</b> Rearranging the definition gives \(P(A\cap B)=P(A\mid B)P(B)\), and by symmetry of intersection it also equals \(P(B\mid A)P(A)\). Two expressions for the same quantity.</div></div><div class="dstep">\[\boxed{\;P(A\mid B) = \frac{P(B\mid A)\,P(A)}{P(B)}\;}\]<div class="why"><b>Divide by \(P(B)\).</b> That is the whole proof. Bayes' theorem is a two-line rearrangement of the definition — its difficulty is entirely in its <em>interpretation</em>, never in its algebra.</div></div><div class="dstep">\[P(B) = P(B\mid A)P(A) + P(B\mid A^c)P(A^c)\]<div class="why"><b>Law of total probability</b>, for the denominator. Since \(A\) and \(A^c\) partition the sample space, \(B\) splits into the part inside \(A\) and the part outside, and the two pieces are disjoint so their probabilities add (axiom 3). In general, sum over any partition.</div></div><div class="dstep">\[\underbrace{P(A\mid B)}_{\text{posterior}} = \frac{\overbrace{P(B\mid A)}^{\text{likelihood}}\ \overbrace{P(A)}^{\text{prior}}}{\underbrace{P(B)}_{\text{evidence}}}\]<div class="why"><b>The vocabulary.</b> <em>Prior:</em> what you believed about \(A\) before. <em>Likelihood:</em> how well \(A\) explains the observation \(B\). <em>Posterior:</em> your updated belief. <em>Evidence:</em> a normalising constant that makes the posterior sum to 1. Almost every Bayesian computation in machine learning is a fight with that denominator.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d123')">Next step</button><button class="btn ghost" onclick="dall('d123')">Show all</button><button class="btn ghost" onclick="dreset('d123')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">The base-rate fallacy: a 99%-accurate test for a rare disease<span class="tag">Interactive</span></div><canvas id="f14bayes" data-h="430"></canvas><div class="legend"><span><i style="background:var(--c4)"></i>has the disease</span><span><i style="background:var(--c3)"></i>does not</span><span><i style="background:var(--c1)"></i>tests positive</span></div><div class="fig-read" id="f14bayes-read"></div><div class="ctrls"><div class="ctrl"><label>log₁₀ prevalence  P(disease)</label><input type="range" min="-5" max="-0.3" step="0.02" value="-3" data-fmt="2" oninput="figSlide('f14bayes','lprev',this)"><output>-3.00</output></div><div class="ctrl"><label>sensitivity  P(+ | disease)</label><input type="range" min="0.5" max="0.999" step="0.001" value="0.99" data-fmt="3" oninput="figSlide('f14bayes','sens',this)"><output>0.990</output></div><div class="ctrl"><label>specificity  P(− | healthy)</label><input type="range" min="0.5" max="0.9999" step="0.0001" value="0.99" data-fmt="4" oninput="figSlide('f14bayes','spec',this)"><output>0.9900</output></div></div><div class="fig-cap">Each square is one person in a population of 10 000. Pink squares have the disease; ringed squares tested positive. Count them: with 0.1% prevalence and a 99% test, about 10 sick people test positive and about 100 healthy people ALSO test positive — so a positive result means roughly a 9% chance of being ill, not 99%. The false positives outnumber the true ones because healthy people are so much more numerous. Raise the prevalence slider and watch the posterior climb.</div></div><script>makeFig("f14bayes",function(vp,p,F){
+var c=vp.ctx,W=vp.W,H=vp.H; c.clearRect(0,0,W,H);
+var prev=Math.pow(10,p.lprev), sens=p.sens, spec=p.spec;
+var N=10000, cols=100, rows=100;
+var nSick=prev*N, nWell=N-nSick;
+var TP=nSick*sens, FN=nSick*(1-sens), TN=nWell*spec, FP=nWell*(1-spec);
+var post=TP/Math.max(TP+FP,1e-12);
+// grid
+var pad=14, gw=Math.min(W-2*pad, H-64), cell=gw/cols;
+var ox=(W-gw)/2, oy=10;
+var iSick=Math.round(nSick), iTP=Math.round(TP), iFP=Math.round(FP);
+for(var i=0;i<N;i++){
+  var r=Math.floor(i/cols), q=i%cols;
+  var x=ox+q*cell, y=oy+r*cell;
+  var sick=i<iSick;
+  var pos = sick ? (i<iTP) : ((i-iSick)<iFP);
+  c.fillStyle = sick ? vp.css('--c4') : vp.css('--line');
+  c.globalAlpha = sick?0.95:0.55;
+  c.fillRect(x,y,Math.max(1,cell-0.6),Math.max(1,cell-0.6));
+  if(pos){ c.globalAlpha=1; c.strokeStyle=vp.css('--c1'); c.lineWidth=Math.max(0.5,cell*0.28);
+           c.strokeRect(x+cell*0.15,y+cell*0.15,Math.max(1,cell*0.7),Math.max(1,cell*0.7)); }
+}
+c.globalAlpha=1;
+c.fillStyle=vp.css('--ink3'); c.font='11.5px -apple-system,Segoe UI,sans-serif'; c.textAlign='center';
+c.fillText('10 000 people — pink = has the disease, ringed = tested positive', W/2, oy+gw+18);
+figRead('f14bayes','prevalence = <b>'+(prev*100).toFixed(3)+'%</b>,  sensitivity = '+(sens*100).toFixed(1)
+ +'%,  specificity = '+(spec*100).toFixed(2)+'%'
+ +'<br>true positives ≈ <b>'+TP.toFixed(1)+'</b>,  false positives ≈ <b>'+FP.toFixed(1)+'</b>'
+ +'  →  P(disease | positive) = TP/(TP+FP) = <b style="font-size:1.1em">'+(post*100).toFixed(2)+'%</b>'
+ +'<br><span style="color:var(--ink3)">Bayes: P(D|+) = '+sens.toFixed(3)+'×'+prev.toExponential(2)
+ +' / ('+sens.toFixed(3)+'×'+prev.toExponential(2)+' + '+(1-spec).toFixed(4)+'×'+(1-prev).toFixed(4)+')</span>');
+},[{"name": "lprev", "label": "log\u2081\u2080 prevalence  P(disease)", "min": -5, "max": -0.3, "step": 0.02, "value": -3, "dp": 2}, {"name": "sens", "label": "sensitivity  P(+ | disease)", "min": 0.5, "max": 0.999, "step": 0.001, "value": 0.99, "dp": 3}, {"name": "spec", "label": "specificity  P(\u2212 | healthy)", "min": 0.5, "max": 0.9999, "step": 0.0001, "value": 0.99, "dp": 4}]);window["FIG_f14bayes"].run();</script>
+<div class="box warn"><span class="lbl">Common trap</span><p>The lesson generalises well beyond medicine, and it is the single most useful piece of
+probability for an ML practitioner to hold on to. <strong>A classifier's accuracy on the positive class tells
+you almost nothing about the reliability of a positive prediction, when the positive class is rare.</strong></p>
+<p>Fraud detection, rare-disease screening, anomaly detection, safety filters — all live in this regime. Precision
+\(P(\text{actually positive}\mid\text{predicted positive})\) depends on the base rate; recall
+\(P(\text{predicted positive}\mid\text{actually positive})\) does not. That asymmetry is why you should report
+both, why the precision-recall curve is preferred to the ROC curve for imbalanced problems, and why a model with
+99.9% accuracy on a 0.1%-prevalence problem may be worthless — predicting "negative" always would score
+99.9%.</p></div>
+<h2 id="s2"><span class="secnum">2</span>Distributions you will meet constantly</h2>
+<p>Four, with their means, variances, and what they model.</p>
+<p>\[\begin{array}{llll}
+\textbf{Bernoulli}(p) & P(X{=}1)=p & \E=p & \Var=p(1-p) \\[3pt]
+\textbf{Categorical}(\boldsymbol\pi) & P(X{=}k)=\pi_k & - & - \\[3pt]
+\textbf{Gaussian}(\mu,\sigma^2) & f(x)=\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{(x-\mu)^2}{2\sigma^2}} & \E=\mu & \Var=\sigma^2\\[3pt]
+\textbf{Multivariate Gaussian} & f(\vx)=\frac{1}{\sqrt{(2\pi)^d|\mS|}}e^{-\frac12(\vx-\vm)^\top\mS^{-1}(\vx-\vm)} & \E=\vm & \Cov=\mS
+\end{array}\]</p>
+<p>Look at the exponent of the multivariate Gaussian: \((\vx-\vm)^\top\mS^{-1}(\vx-\vm)\) is a
+<strong>quadratic form</strong> — exactly Lecture 11's object. Its level sets are the ellipsoids we drew there,
+with axes along the eigenvectors of \(\mS\) and half-lengths proportional to \(\sqrt{\lambda_i}\). The density
+is constant on those ellipsoids. Everything you learned about quadratic forms is a fact about Gaussians.</p>
+<h2 id="s3"><span class="secnum">3</span>Maximum likelihood</h2>
+<div class="box defn"><span class="lbl">Definition — likelihood and MLE</span><p>Given data \(\mathcal{D}=\{x_1,\dots,x_n\}\)
+modelled as independent draws from \(p(x\mid\vt)\), the <strong>likelihood</strong> is</p>
+\[ L(\vt) = p(\mathcal{D}\mid\vt) = \prod_{i=1}^{n} p(x_i\mid\vt), \]
+<p>and the <strong>maximum likelihood estimate</strong> is \(\hat{\vt}_{\text{MLE}}=\argmax_{\vt}L(\vt)\).</p>
+<p><strong>Crucially, \(L\) is a function of \(\vt\), not of the data.</strong> The data are fixed and observed;
+we are asking which parameter setting makes what we saw most probable. This is the single most common conceptual
+slip with likelihoods, and \(L(\vt)\) is <em>not</em> a probability distribution over \(\vt\) — it does not
+integrate to 1.</p></div>
+<p>By Lecture 2's argmax theorem we may take logs, converting the product into a sum. The recipe is
+always the same four steps:</p>
+<ol><li>Write the likelihood as a product over the data.</li><li>Take the log, turning it into a sum.</li><li>Differentiate with respect to the parameters and set to zero (Lecture 7 / Lecture 12).</li><li>Check it is a maximum, via the second derivative or convexity.</li></ol>
+<div class="fig"><div class="fig-head">The likelihood as a function of the parameter<span class="tag">Interactive</span></div><canvas id="f14mle" data-h="430"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>likelihood L(θ)</span><span><i style="background:var(--c5)"></i>log-likelihood</span><span><i style="background:var(--c2)"></i>your θ</span><span><i style="background:var(--c3)"></i>the MLE</span></div><div class="fig-read" id="f14mle-read"></div><div class="ctrls"><div class="ctrl"><label>0 = Bernoulli (estimate p) · 1 = Gaussian (estimate μ)</label><input type="range" min="0" max="1" step="1" value="0" data-fmt="0" oninput="figSlide('f14mle','which',this)"><output>0</output></div><div class="ctrl"><label>sample size n</label><input type="range" min="2" max="80" step="1" value="10" data-fmt="0" oninput="figSlide('f14mle','n',this)"><output>10</output></div><div class="ctrl"><label>your guess θ</label><input type="range" min="0.01" max="0.99" step="0.005" value="0.3" data-fmt="3" oninput="figSlide('f14mle','theta',this)"><output>0.300</output></div></div><div class="fig-cap">Blue is the likelihood, purple the log-likelihood (rescaled to fit). Two things to watch. First: they peak at exactly the same θ — that is Lecture 2's argmax theorem, and it is why we may take logs freely. Second: raise n and the peak becomes dramatically sharper. More data means less uncertainty about the parameter, and the curvature at the peak is precisely the Fisher information.</div></div><script>makeFig("f14mle",function(vp,p,F){
+vp.pads(52,16,14,30);
+var k=Math.round(p.which), n=Math.round(p.n);
+var seed=13579;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+var lo,hi,logL,mle,label,dataDesc;
+if(k===0){
+  var ptrue=0.7, heads=0;
+  for(var i=0;i<n;i++) if(rnd()<ptrue) heads++;
+  lo=0.005; hi=0.995;
+  logL=function(q){ return heads*Math.log(q)+(n-heads)*Math.log(1-q); };
+  mle=heads/n; label='p'; dataDesc=heads+' successes in '+n+' trials';
+}else{
+  var mtrue=0.6, s=0.18, xs=[];
+  for(var i=0;i<n;i++){ var u1=Math.max(1e-9,rnd()), u2=rnd();
+    xs.push(mtrue+s*Math.sqrt(-2*Math.log(u1))*Math.cos(6.2832*u2)); }
+  lo=0.01; hi=0.99;
+  logL=function(q){ var t=0; for(var i=0;i<n;i++){var d=xs[i]-q; t+=-d*d/(2*s*s);} return t; };
+  var sm=0; for(var i=0;i<n;i++)sm+=xs[i]; mle=Math.max(lo,Math.min(hi,sm/n));
+  label='μ'; dataDesc='n = '+n+' Gaussian draws (σ known = '+s+')';
+}
+var best=logL(mle);
+function Ln(q){ return Math.exp(logL(q)-best); }         // normalised likelihood, peak = 1
+var llo=logL(lo), lhi=logL(hi), lmin=Math.min(llo,lhi);
+vp.frame(lo,hi,-0.12,1.18);
+vp.axes({stepx:0.1});
+vp.curve(Ln,'--c1',{w:2.9});
+vp.curve(function(q){ var v=logL(q); return (v-lmin)/(best-lmin); },'--c5',{w:2.2,dash:[6,4]});
+vp.seg(mle,-0.12,mle,1.18,'--c3',{w:2,dash:[4,4]});
+vp.dot(mle,1,'--c3',7);
+var th=Math.max(lo,Math.min(hi,p.theta));
+vp.seg(th,0,th,Ln(th),'--c2',{w:1.8,dash:[3,3]});
+vp.dot(th,Ln(th),'--c2',6.5);
+vp.label(mle,1.18,'MLE '+label+' = '+mle.toFixed(4),'--c3',{halo:true,bold:true,dx:6,dy:12});
+figRead('f14mle',dataDesc
+ +'<br>your θ = '+th.toFixed(3)+':  log L = <b>'+logL(th).toFixed(4)+'</b>,  relative likelihood = <b>'
+ +Ln(th).toFixed(6)+'</b>'
+ +'<br>MLE '+label+' = <b>'+mle.toFixed(5)+'</b>,  log L = <b>'+best.toFixed(4)
+ +'</b>  →  your guess is '+(Ln(th)>1e-12?(1/Ln(th)).toFixed(1):'&gt;10¹²')+'× less likely than the MLE');
+},[{"name": "which", "label": "0 = Bernoulli (estimate p) \u00b7 1 = Gaussian (estimate \u03bc)", "min": 0, "max": 1, "step": 1, "value": 0, "dp": 0}, {"name": "n", "label": "sample size n", "min": 2, "max": 80, "step": 1, "value": 10, "dp": 0}, {"name": "theta", "label": "your guess \u03b8", "min": 0.01, "max": 0.99, "step": 0.005, "value": 0.3, "dp": 3}]);window["FIG_f14mle"].run();</script>
+<div class="deriv" id="d124"><div class="deriv-head"><span class="t">MLE for the Bernoulli: the sample proportion</span><span class="ct">0 / 5</span></div><div class="dstep">\[L(p) = \prod_{i=1}^{n} p^{x_i}(1-p)^{1-x_i}, \qquad x_i\in\{0,1\}\]<div class="why"><b>The likelihood.</b> The clever compact form: when \(x_i=1\) the term is \(p\), when \(x_i=0\) it is \(1-p\). One expression covering both cases, which makes the algebra uniform.</div></div><div class="dstep">\[\ell(p) = \log L = \sum_i \Big[x_i\log p + (1-x_i)\log(1-p)\Big] = k\log p + (n-k)\log(1-p)\]<div class="why"><b>Take logs</b>, where \(k=\sum_i x_i\) is the number of successes. Note that \(k\) is all the data we need — it is a <em>sufficient statistic</em>. Note also that \(-\ell\) is exactly the binary cross-entropy loss.</div></div><div class="dstep">\[\ell'(p) = \frac{k}{p} - \frac{n-k}{1-p} \;\stackrel{!}{=}\; 0\]<div class="why"><b>Differentiate.</b> Using \(\frac{d}{dp}\log(1-p) = -\frac{1}{1-p}\) by the chain rule.</div></div><div class="dstep">\[k(1-p) = (n-k)p \;\Longrightarrow\; k - kp = np - kp \;\Longrightarrow\; \boxed{\hat p = \frac{k}{n}}\]<div class="why"><b>Solve.</b> Multiply through by \(p(1-p)>0\) and the \(kp\) terms cancel. The MLE is the sample proportion — reassuringly, exactly what you would have guessed. Getting the obvious answer from the machinery is how you gain confidence in the machinery.</div></div><div class="dstep">\[\ell''(p) = -\frac{k}{p^2}-\frac{n-k}{(1-p)^2} &lt; 0\]<div class="why"><b>Confirm it is a maximum.</b> Strictly negative throughout \((0,1)\), so \(\ell\) is strictly concave and this critical point is the unique global maximum (Lecture 7). ∎ <em>Edge case:</em> if \(k=0\) or \(k=n\) the maximum sits at the boundary, giving \(\hat p=0\) or \(1\) — an overconfident estimate from limited data, and exactly what a Bayesian prior fixes.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d124')">Next step</button><button class="btn ghost" onclick="dall('d124')">Show all</button><button class="btn ghost" onclick="dreset('d124')">Reset</button></div></div>
+<div class="rev"><div class="rlbl">Derive the Gaussian MLE yourself</div><p>Data \(x_1,\dots,x_n\) drawn independently from \(\mathcal{N}(\mu,\sigma^2)\), with both parameters
+unknown. Find \(\hat\mu\) and \(\hat\sigma^2\).</p>
+<p><em>Hint:</em> write the log-likelihood, then differentiate with respect to each parameter in turn.</p><div style="margin-top:12px"><button class="btn ghost" data-show="Show the derivation" onclick="rev('r125',this)">Show the derivation</button></div><div class="rev-body" id="r125"><p><strong>Log-likelihood.</strong></p>
+ \[ \ell(\mu,\sigma^2) = \sum_{i=1}^n \log\!\left[\frac{1}{\sqrt{2\pi\sigma^2}}
+   e^{-\frac{(x_i-\mu)^2}{2\sigma^2}}\right]
+  = -\frac{n}{2}\log(2\pi) - \frac{n}{2}\log\sigma^2 - \frac{1}{2\sigma^2}\sum_i (x_i-\mu)^2. \]
+
+ <p><strong>For \(\mu\):</strong> only the last term involves it.</p>
+ \[\frac{\partial\ell}{\partial\mu} = \frac{1}{\sigma^2}\sum_i (x_i-\mu) = 0
+  \;\Longrightarrow\; \sum_i x_i = n\mu \;\Longrightarrow\; \boxed{\hat\mu = \bar x}.\]
+ <p>The sample mean. Note this is independent of \(\sigma^2\), which is why we can solve for it first.
+ It is also Lecture 13's result that the mean minimises squared deviation — the same computation.</p>
+
+ <p><strong>For \(\sigma^2\):</strong> treat \(v=\sigma^2\) as the variable (cleaner than \(\sigma\)).</p>
+ \[\frac{\partial\ell}{\partial v} = -\frac{n}{2v} + \frac{1}{2v^2}\sum_i (x_i-\mu)^2 = 0.\]
+ <p>Multiply by \(2v^2>0\): \(\;-nv + \sum_i(x_i-\mu)^2 = 0\), so</p>
+ \[\boxed{\hat\sigma^2 = \frac{1}{n}\sum_{i=1}^n (x_i-\hat\mu)^2}.\]
+
+ <p><strong>The catch.</strong> Note the \(n\), not \(n-1\). By Lecture 13's exercise,
+ \(\E[\hat\sigma^2_{\text{MLE}}]=\frac{n-1}{n}\sigma^2\) — the maximum likelihood estimate of the variance is
+ <strong>biased low</strong>, systematically underestimating the spread. It is consistent (the bias vanishes as
+ \(n\to\infty\)) but not unbiased.</p>
+ <p>This is worth sitting with: maximum likelihood is a <em>principle</em>, not a guarantee. It is asymptotically
+ efficient under regularity conditions, but at finite \(n\) it can be biased, and here it is biased in the
+ dangerous direction — towards overconfidence. The same phenomenon is why a model's training loss
+ underestimates its test loss.</p></div></div>
+<h2 id="s4"><span class="secnum">4</span>Every loss function you know, derived</h2>
+<p>Now the payoff. Two standard losses, both obtained by writing down a noise model and taking
+the negative log-likelihood.</p>
+<div class="deriv" id="d126"><div class="deriv-head"><span class="t">Linear regression → squared error;  logistic regression → cross-entropy</span><span class="ct">0 / 6</span></div><div class="dstep">\[y_i \mid \vx_i \;\sim\; \mathcal{N}\big(\vw^\top\vx_i,\ \sigma^2\big)\]<div class="why"><b>Model 1: Gaussian noise around a linear mean.</b> The modelling assumption is entirely contained in this line. Everything below is mechanical.</div></div><div class="dstep">\[\ell(\vw) = -\frac{n}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum_{i=1}^n\big(y_i-\vw^\top\vx_i\big)^2\]<div class="why"><b>Log-likelihood.</b> Product of Gaussian densities, logged. The first term does not involve \(\vw\).</div></div><div class="dstep">\[\argmax_{\vw}\ \ell(\vw) = \argmin_{\vw}\ \sum_i\big(y_i-\vw^\top\vx_i\big)^2 = \argmin_{\vw}\|\vy-\mX\vw\|^2\]<div class="why"><b>Least squares, recovered.</b> Dropping the constant and the positive factor \(\frac{1}{2\sigma^2}\) leaves exactly Lecture 10's objective. <strong>Squared error is not a neutral default — it is a Gaussian noise assumption.</strong></div></div><div class="dstep">\[y_i \mid \vx_i \;\sim\; \text{Bernoulli}\big(\sigma(\vw^\top\vx_i)\big)\]<div class="why"><b>Model 2: Bernoulli, with the sigmoid as the link.</b> Recall from Lecture 2 that \(\sigma\) is the inverse of the logit, so this says the <em>log-odds</em> are linear in \(\vx\) — the natural way to make a linear model output a probability.</div></div><div class="dstep">\[\ell(\vw) = \sum_{i=1}^{n}\Big[y_i\log \hat p_i + (1-y_i)\log(1-\hat p_i)\Big], \qquad \hat p_i = \sigma(\vw^\top\vx_i)\]<div class="why"><b>Same Bernoulli log-likelihood as before</b>, now with \(p\) depending on \(\vx_i\) through the model rather than being a single number.</div></div><div class="dstep">\[-\ell(\vw) = -\sum_i\big[y_i\log\hat p_i + (1-y_i)\log(1-\hat p_i)\big] \;=\; \textbf{cross-entropy loss}\]<div class="why"><b>Cross-entropy, recovered.</b> And Lecture 12's exercise showed its gradient is \(\mX^\top(\hat{\vp}-\vy)\) — the same shape as least squares. <strong>Both of the losses you will use most are negative log-likelihoods; the only difference is the assumed noise distribution.</strong> ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d126')">Next step</button><button class="btn ghost" onclick="dall('d126')">Show all</button><button class="btn ghost" onclick="dreset('d126')">Reset</button></div></div>
+<h2 id="s5"><span class="secnum">5</span>MAP estimation: where regularisation comes from</h2>
+<p>MLE treats \(\vt\) as a fixed unknown. The Bayesian alternative treats it as random, with a prior,
+and maximises the posterior. Bayes' theorem gives</p>
+<p>\[p(\vt\mid\mathcal{D}) = \frac{p(\mathcal{D}\mid\vt)\,p(\vt)}{p(\mathcal{D})} \;\propto\; \underbrace{p(\mathcal{D}\mid\vt)}_{\text{likelihood}}\ \underbrace{p(\vt)}_{\text{prior}},\]</p>
+<p>where the evidence \(p(\mathcal{D})\) is dropped because it does not depend on \(\vt\) and so
+cannot move the argmax.</p>
+<div class="deriv" id="d127"><div class="deriv-head"><span class="t">Gaussian prior ⟹ ridge;  Laplace prior ⟹ LASSO</span><span class="ct">0 / 5</span></div><div class="dstep">\[\hat{\vw}_{\text{MAP}} = \argmax_{\vw}\Big[\log p(\mathcal{D}\mid\vw) + \log p(\vw)\Big]\]<div class="why"><b>Take logs of the posterior.</b> The product becomes a sum: log-likelihood plus log-prior. The whole of regularisation lives in that second term.</div></div><div class="dstep">\[p(\vw) = \prod_{j=1}^d \frac{1}{\sqrt{2\pi\tau^2}}\exp\!\left(-\frac{w_j^2}{2\tau^2}\right) \;\Longrightarrow\; \log p(\vw) = -\frac{1}{2\tau^2}\|\vw\|_2^2 + \text{const}\]<div class="why"><b>Choose an isotropic Gaussian prior</b> centred at zero — the formal statement of the belief 'weights are probably small'. Its log is a negative multiple of the squared L2 norm.</div></div><div class="dstep">\[\hat{\vw}_{\text{MAP}} = \argmin_{\vw}\left[\frac{1}{2\sigma^2}\|\vy-\mX\vw\|^2 + \frac{1}{2\tau^2}\|\vw\|_2^2\right] = \argmin_{\vw}\Big[\|\vy-\mX\vw\|^2 + \lambda\|\vw\|_2^2\Big]\]<div class="why"><b>Ridge regression, with \(\lambda = \sigma^2/\tau^2\).</b> Multiplying through by \(2\sigma^2\) — a positive constant, so the argmin is unchanged. The regularisation strength has an interpretation: it is the ratio of noise variance to prior variance. A confident prior (small \(\tau\)) means strong regularisation; a lot of noise (large \(\sigma\)) also means strong regularisation, because the data is less trustworthy.</div></div><div class="dstep">\[p(\vw) \propto \prod_j \exp\!\left(-\frac{|w_j|}{b}\right) \;\Longrightarrow\; \log p(\vw) = -\frac{1}{b}\|\vw\|_1 + \text{const}\]<div class="why"><b>Now a Laplace prior.</b> Same shape of argument, but the exponent has \(|w_j|\) instead of \(w_j^2\) — the Laplace density is peaked and sharp at zero rather than smooth.</div></div><div class="dstep">\[\hat{\vw}_{\text{MAP}} = \argmin_{\vw}\Big[\|\vy-\mX\vw\|^2 + \lambda\|\vw\|_1\Big] \qquad\textbf{(LASSO)}\]<div class="why"><b>L1 regularisation.</b> And now Lecture 8's unit-ball figure explains its behaviour: the L1 ball has corners on the axes, so the constrained optimum tends to land at a corner, where some coordinates are exactly zero. The sharp peak of the Laplace prior and the corners of the L1 ball are the same fact seen from two directions — one probabilistic, one geometric. ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d127')">Next step</button><button class="btn ghost" onclick="dall('d127')">Show all</button><button class="btn ghost" onclick="dreset('d127')">Reset</button></div></div>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>Three consequences worth carrying into Phase B.</p>
+<ul>
+<li><strong>Regularisation is not a hack.</strong> Every penalty term is a log-prior. When you choose weight
+decay you are asserting a Gaussian prior on the weights, whether or not you say so.</li>
+<li><strong>MAP is not fully Bayesian.</strong> It returns a single point — the mode of the posterior — and
+throws away the rest. A genuinely Bayesian treatment keeps the whole posterior and integrates over it, which
+gives calibrated uncertainty but requires computing that evidence integral. That difficulty is the reason
+approximate inference (variational methods, MCMC, Laplace approximation) is a field.</li>
+<li><strong>As \(n\to\infty\) the likelihood dominates.</strong> The log-likelihood grows like \(n\) while the
+log-prior stays fixed, so MAP converges to MLE. Priors matter most when data is scarce — which is exactly when
+regularisation matters most, and the two statements are the same statement.</li>
+</ul></div>
+<div class="quiz" id="q128"><div class="qlbl">Check yourself</div><div class="qq">A model is trained with mean squared error. What noise model does that implicitly assume, and when
+would it be a poor choice?</div><button class="qopt" data-ok="1" onclick="pick('q128',0,true)">Gaussian noise with constant variance. It is poor when errors are heavy-tailed, heteroscedastic, or the target is a count or a category.</button><button class="qopt" data-ok="0" onclick="pick('q128',1,false)">No noise model — MSE is a neutral, assumption-free choice.</button><button class="qopt" data-ok="0" onclick="pick('q128',2,false)">Uniform noise, because all errors are weighted equally.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct, and each failure mode maps to a different fix.<br><br>
+    <strong>Heavy tails:</strong> the Gaussian assigns very little probability to large deviations, so a single
+    outlier at distance 10 contributes as much as a hundred at distance 1 and dominates the fit. A Laplace noise
+    model gives \(\sum|r_i|\) — least absolute deviations — and the Huber loss interpolates between the two.<br><br>
+    <strong>Heteroscedasticity:</strong> if \(\sigma_i\) varies by observation, the \(\frac{1}{2\sigma_i^2}\)
+    factors no longer come out of the sum and you get weighted least squares. Ignoring this over-weights the
+    noisiest observations.<br><br>
+    <strong>Wrong support:</strong> a Gaussian puts probability on all of \(\RR\). For counts you want Poisson;
+    for a probability, Beta; for a category, Categorical. Using MSE on a count model will happily predict
+    \(-3.2\) customers.</div><div class="qwhy" data-i="1"><b>Not quite.</b> The derivation above shows otherwise, in three lines: assume Gaussian noise, take the negative
+    log-likelihood, and squared error falls out. Every loss encodes assumptions. The dangerous ones are the
+    assumptions you did not know you were making, and "MSE is neutral" is the most common of them.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Errors are emphatically <em>not</em> weighted equally under MSE — squaring means an error of 10 is
+    penalised a hundred times as much as an error of 1, not ten times. And a uniform noise model would give a
+    quite different (and strange) likelihood, since a uniform density is constant on its support and zero
+    outside: the MLE would be any parameter making every residual fall inside the support.</div></div>
+<div class="pyb" id="py129" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+
+# ---------------- Bayes and the base rate ----------------
+def posterior(prev, sens, spec):
+    return sens*prev / (sens*prev + (1-spec)*(1-prev))
+
+print(&quot;A test with 99% sensitivity and 99% specificity:&quot;)
+for prev in [0.5, 0.1, 0.01, 0.001, 0.0001]:
+    print(f&quot;  prevalence {prev:8.4%}  -&gt;  P(disease | positive) = {posterior(prev,.99,.99):8.4%}&quot;)
+print(&quot;Same test. The only thing that changed is the base rate.&quot;)
+print()
+
+# ---------------- MLE: Bernoulli ----------------
+p_true = 0.7
+print(&quot;Bernoulli MLE (true p = 0.7):&quot;)
+for n in [10, 100, 1000, 100_000]:
+    x = rng.random(n) &lt; p_true
+    print(f&quot;  n = {n:7d}   p_hat = {x.mean():.5f}   error {abs(x.mean()-p_true):.5f}&quot;
+          f&quot;   1/sqrt(n) = {1/np.sqrt(n):.5f}&quot;)
+print()
+
+# ---------------- MLE: Gaussian, and the variance bias ----------------
+mu_true, sd_true = 3.0, 2.0
+print(&quot;Gaussian MLE, and the bias in sigma^2 (true sigma^2 = 4.0):&quot;)
+for n in [3, 5, 10, 50]:
+    reps = 40_000
+    X = rng.normal(mu_true, sd_true, size=(reps, n))
+    var_mle = X.var(axis=1, ddof=0).mean()        # divide by n
+    var_unb = X.var(axis=1, ddof=1).mean()        # divide by n-1
+    print(f&quot;  n={n:3d}  E[MLE] = {var_mle:.4f}  (predicted {(n-1)/n*4.0:.4f})&quot;
+          f&quot;   E[unbiased] = {var_unb:.4f}&quot;)
+print(&quot;  MLE systematically underestimates the variance at small n.&quot;)
+print()
+
+# ---------------- Least squares IS Gaussian MLE ----------------
+n, d = 200, 4
+X = np.column_stack([np.ones(n), rng.normal(size=(n, d))])
+w_true = np.array([1.0, -2.0, 0.5, 3.0, -1.0])
+sigma = 1.5
+y = X @ w_true + sigma*rng.normal(size=n)
+
+def neg_log_lik(w, s):
+    r = y - X @ w
+    return 0.5*n*np.log(2*np.pi*s**2) + np.sum(r**2)/(2*s**2)
+
+w_ls, *_ = np.linalg.lstsq(X, y, rcond=None)
+print(&quot;least squares solution:&quot;, np.round(w_ls, 4))
+print(&quot;negative log-likelihood at the LS solution:&quot;, round(neg_log_lik(w_ls, sigma), 6))
+worse = 0
+for _ in range(3000):
+    w_try = w_ls + 0.05*rng.normal(size=d+1)
+    if neg_log_lik(w_try, sigma) &lt; neg_log_lik(w_ls, sigma): worse += 1
+print(f&quot;random perturbations that beat it: {worse} / 3000  &lt;- LS maximises the likelihood&quot;)
+print()
+
+# ---------------- MAP with a Gaussian prior IS ridge ----------------
+tau = 0.4
+lam = sigma**2 / tau**2
+w_map_closed = np.linalg.solve(X.T@X + lam*np.eye(d+1), X.T@y)
+
+def neg_log_post(w):
+    return neg_log_lik(w, sigma) + np.sum(w**2)/(2*tau**2)
+
+print(f&quot;prior sd tau = {tau}  -&gt;  lambda = sigma^2/tau^2 = {lam:.4f}&quot;)
+print(&quot;ridge closed form :&quot;, np.round(w_map_closed, 4))
+w = np.zeros(d+1)
+for _ in range(200_000):                                   # gradient descent on the posterior
+    g = -X.T @ (y - X@w)/sigma**2 + w/tau**2
+    w = w - 1e-4*g
+print(&quot;numerical MAP     :&quot;, np.round(w, 4))
+print(&quot;match?&quot;, np.allclose(w, w_map_closed, atol=1e-3))
+print()
+print(&quot;ridge ||w|| =&quot;, round(np.linalg.norm(w_map_closed), 4),
+      &quot;  vs unregularised ||w|| =&quot;, round(np.linalg.norm(w_ls), 4))
+print(&quot;The prior pulled the estimate towards zero, exactly as designed.&quot;)
+"><div class="pyb-head"><span class="t">Bayes, MLE, and MAP, all verified numerically</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py129')">Run</button><button class="btn ghost" onclick="resetPy('py129')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+
+# ---------------- Bayes and the base rate ----------------
+def posterior(prev, sens, spec):
+    return sens*prev / (sens*prev + (1-spec)*(1-prev))
+
+print(&quot;A test with 99% sensitivity and 99% specificity:&quot;)
+for prev in [0.5, 0.1, 0.01, 0.001, 0.0001]:
+    print(f&quot;  prevalence {prev:8.4%}  -&gt;  P(disease | positive) = {posterior(prev,.99,.99):8.4%}&quot;)
+print(&quot;Same test. The only thing that changed is the base rate.&quot;)
+print()
+
+# ---------------- MLE: Bernoulli ----------------
+p_true = 0.7
+print(&quot;Bernoulli MLE (true p = 0.7):&quot;)
+for n in [10, 100, 1000, 100_000]:
+    x = rng.random(n) &lt; p_true
+    print(f&quot;  n = {n:7d}   p_hat = {x.mean():.5f}   error {abs(x.mean()-p_true):.5f}&quot;
+          f&quot;   1/sqrt(n) = {1/np.sqrt(n):.5f}&quot;)
+print()
+
+# ---------------- MLE: Gaussian, and the variance bias ----------------
+mu_true, sd_true = 3.0, 2.0
+print(&quot;Gaussian MLE, and the bias in sigma^2 (true sigma^2 = 4.0):&quot;)
+for n in [3, 5, 10, 50]:
+    reps = 40_000
+    X = rng.normal(mu_true, sd_true, size=(reps, n))
+    var_mle = X.var(axis=1, ddof=0).mean()        # divide by n
+    var_unb = X.var(axis=1, ddof=1).mean()        # divide by n-1
+    print(f&quot;  n={n:3d}  E[MLE] = {var_mle:.4f}  (predicted {(n-1)/n*4.0:.4f})&quot;
+          f&quot;   E[unbiased] = {var_unb:.4f}&quot;)
+print(&quot;  MLE systematically underestimates the variance at small n.&quot;)
+print()
+
+# ---------------- Least squares IS Gaussian MLE ----------------
+n, d = 200, 4
+X = np.column_stack([np.ones(n), rng.normal(size=(n, d))])
+w_true = np.array([1.0, -2.0, 0.5, 3.0, -1.0])
+sigma = 1.5
+y = X @ w_true + sigma*rng.normal(size=n)
+
+def neg_log_lik(w, s):
+    r = y - X @ w
+    return 0.5*n*np.log(2*np.pi*s**2) + np.sum(r**2)/(2*s**2)
+
+w_ls, *_ = np.linalg.lstsq(X, y, rcond=None)
+print(&quot;least squares solution:&quot;, np.round(w_ls, 4))
+print(&quot;negative log-likelihood at the LS solution:&quot;, round(neg_log_lik(w_ls, sigma), 6))
+worse = 0
+for _ in range(3000):
+    w_try = w_ls + 0.05*rng.normal(size=d+1)
+    if neg_log_lik(w_try, sigma) &lt; neg_log_lik(w_ls, sigma): worse += 1
+print(f&quot;random perturbations that beat it: {worse} / 3000  &lt;- LS maximises the likelihood&quot;)
+print()
+
+# ---------------- MAP with a Gaussian prior IS ridge ----------------
+tau = 0.4
+lam = sigma**2 / tau**2
+w_map_closed = np.linalg.solve(X.T@X + lam*np.eye(d+1), X.T@y)
+
+def neg_log_post(w):
+    return neg_log_lik(w, sigma) + np.sum(w**2)/(2*tau**2)
+
+print(f&quot;prior sd tau = {tau}  -&gt;  lambda = sigma^2/tau^2 = {lam:.4f}&quot;)
+print(&quot;ridge closed form :&quot;, np.round(w_map_closed, 4))
+w = np.zeros(d+1)
+for _ in range(200_000):                                   # gradient descent on the posterior
+    g = -X.T @ (y - X@w)/sigma**2 + w/tau**2
+    w = w - 1e-4*g
+print(&quot;numerical MAP     :&quot;, np.round(w, 4))
+print(&quot;match?&quot;, np.allclose(w, w_map_closed, atol=1e-3))
+print()
+print(&quot;ridge ||w|| =&quot;, round(np.linalg.norm(w_map_closed), 4),
+      &quot;  vs unregularised ||w|| =&quot;, round(np.linalg.norm(w_ls), 4))
+print(&quot;The prior pulled the estimate towards zero, exactly as designed.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s6"><span class="secnum">6</span>What you have built</h2>
+<p>That is Phase A. It is worth pausing to see the shape of it, because the pieces connect more
+tightly than they appeared to at the time.</p>
+<ul><li><strong>A function</strong> is a rule with a domain (L1). Logs and exponentials are inverse functions,
+  and their domains are where half of all numerical bugs live (L2). Limits make "approaching" precise (L3).</li><li><strong>The derivative</strong> is a limit of slopes (L4), obeys rules whose chief member is the chain
+  rule (L5), gives local polynomial approximations with computable error (L6), and locates minima (L7). Gradient
+  descent, Newton's method, and the learning-rate ceiling all came out of those four lectures.</li><li><strong>Data is vectors</strong> with lengths and angles (L8); models are matrices, which are linear maps
+  (L9); fitting is projection, which gives the normal equations (L10); and the eigenvalues of the resulting
+  matrices control conditioning, convergence speed and PCA (L11).</li><li><strong>Multivariable calculus</strong> merges the two halves: gradients point uphill, Jacobians compose
+  by matrix multiplication, and that composition <em>is</em> backpropagation (L12).</li><li><strong>Probability</strong> says what a loss really is — an expectation estimated from a sample, with
+  error \(\sigma/\sqrt n\) (L13) — and maximum likelihood generates the losses themselves, with priors
+  generating the regularisers (L14).</li></ul>
+<p>Phase B builds classical machine learning on this. You will find that most of it is already
+half-derived: linear regression is Lecture 10, logistic regression is Lectures 2, 5 and 14, PCA is Lecture 11,
+gradient descent is Lectures 4, 6 and 12, and the bias-variance decomposition is Lecture 13. That is the
+intended effect. Foundations built properly make the material above them feel inevitable rather than
+arbitrary.</p>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>A factory has three machines producing 50%, 30% and 20% of output, with defect rates 1%, 2% and 3%
+  respectively.</p>
+  <ol><li>What fraction of output is defective?</li>
+  <li>Given a defective item, what is the probability it came from machine 3?</li>
+  <li>Which machine is the most likely source of a defective item, and is that the same as the machine with the
+  highest defect rate?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex130',this)">Show solution</button></div><div class="rev-body" id="ex130"><p><strong>1. Law of total probability.</strong></p>
+  \[P(D) = 0.5(0.01)+0.3(0.02)+0.2(0.03) = 0.005+0.006+0.006 = 0.017 = 1.7\%.\]
+
+  <p><strong>2. Bayes.</strong></p>
+  \[P(M_3\mid D) = \frac{P(D\mid M_3)P(M_3)}{P(D)} = \frac{0.03\times0.20}{0.017}
+   = \frac{0.006}{0.017} \approx 0.3529.\]
+  <p>About 35.3%.</p>
+
+  <p><strong>3.</strong> The three posteriors are \(\frac{0.005}{0.017}=29.4\%\),
+  \(\frac{0.006}{0.017}=35.3\%\), \(\frac{0.006}{0.017}=35.3\%\). Machines 2 and 3 are tied as the most likely
+  source, at 35.3% each.</p>
+  <p>And no, this is not the same as the highest defect rate: machine 3 is three times as defect-prone as
+  machine 1, yet contributes only slightly more defects, because machine 1 produces two and a half times as
+  much. <strong>Posterior = likelihood × prior</strong>, and the prior here is production volume. This is the
+  base-rate lesson again, in an industrial setting: to reduce total defects you should weigh volume alongside
+  rate.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Derive the MLE for the rate \(\lambda\) of a Poisson distribution,
+  \(P(X=k)=\frac{\lambda^k e^{-\lambda}}{k!}\), from data \(k_1,\dots,k_n\).</p>
+  <p>Then state the corresponding loss function for a regression model that predicts counts, and say when you
+  would use it in preference to squared error.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex131',this)">Show solution</button></div><div class="rev-body" id="ex131"><p><strong>Log-likelihood.</strong></p>
+  \[\ell(\lambda) = \sum_{i=1}^n\Big[k_i\log\lambda - \lambda - \log(k_i!)\Big]
+   = \left(\sum_i k_i\right)\log\lambda - n\lambda - \sum_i\log(k_i!).\]
+  <p>The last term does not involve \(\lambda\) and can be ignored for optimisation.</p>
+  \[\ell'(\lambda) = \frac{\sum_i k_i}{\lambda} - n = 0 \;\Longrightarrow\;
+    \boxed{\hat\lambda = \frac1n\sum_i k_i = \bar k}.\]
+  <p>The sample mean, again. And \(\ell''(\lambda) = -\frac{\sum k_i}{\lambda^2}&lt;0\), so it is the unique
+  maximum. ∎</p>
+
+  <p><strong>Poisson regression.</strong> Model \(y_i\sim\text{Poisson}(\lambda_i)\) with
+  \(\lambda_i=\exp(\vw^\top\vx_i)\) — the exponential link, which guarantees \(\lambda_i>0\) as a rate must be
+  (a domain constraint, Lecture 1). The negative log-likelihood is</p>
+  \[ L(\vw) = \sum_i\Big[\exp(\vw^\top\vx_i) - y_i\,\vw^\top\vx_i\Big], \]
+  <p>dropping the \(\log(y_i!)\) constant. Its gradient is \(\sum_i(\hat\lambda_i - y_i)\vx_i =
+  \mX^\top(\hat{\boldsymbol\lambda}-\vy)\) — the same <em>design-transposed-times-error</em> shape as least
+  squares and logistic regression, for the same exponential-family reason.</p>
+
+  <p><strong>When to prefer it.</strong> Whenever the target is a non-negative integer count: website visits,
+  defect counts, photon arrivals, word frequencies. Two concrete advantages over squared error:</p>
+  <ul>
+  <li><strong>Correct support.</strong> The exponential link cannot predict a negative count; a linear-Gaussian
+  model routinely will.</li>
+  <li><strong>Correct variance structure.</strong> A Poisson has \(\Var = \E\), so large counts are naturally
+  noisier. Squared error assumes constant variance and therefore over-weights the large counts, distorting the
+  fit. (If the data are <em>over</em>-dispersed — variance well above the mean, which is common — negative
+  binomial is the next step up.)</li>
+  </ul></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Show that for the multivariate Gaussian \(\mathcal{N}(\vm,\mS)\), maximising the log-likelihood
+  over \(\vm\) with \(\mS\) known gives \(\hat{\vm}=\bar{\vx}\), the sample mean vector.</p>
+  <p>Then explain what the level sets of the density look like in terms of the eigenvalues of \(\mS\), and what
+  the quantity \((\vx-\vm)^\top\mS^{-1}(\vx-\vm)\) is called and used for.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex132',this)">Show solution</button></div><div class="rev-body" id="ex132"><p><strong>Log-likelihood.</strong> Dropping terms without \(\vm\):</p>
+  \[\ell(\vm) = -\frac12\sum_{i=1}^n (\vx_i-\vm)^\top\mS^{-1}(\vx_i-\vm) + \text{const}.\]
+  <p>Differentiate using Lecture 12's rule \(\grad_{\vz}(\vz^\top\mA\vz)=2\mA\vz\) for symmetric \(\mA\)
+  (and \(\mS^{-1}\) is symmetric because \(\mS\) is), together with the chain rule for the inner
+  \(\vz=\vx_i-\vm\), whose Jacobian with respect to \(\vm\) is \(-\mI\):</p>
+  \[\grad_{\vm}\ell = \sum_{i=1}^n \mS^{-1}(\vx_i-\vm) = \mS^{-1}\left(\sum_i\vx_i - n\vm\right) = \vzero.\]
+  <p>Since \(\mS^{-1}\) is invertible we may multiply by \(\mS\):
+  \(\sum_i\vx_i = n\vm\), so \(\hat{\vm}=\bar{\vx}\). ∎</p>
+  <p>The Hessian is \(-n\mS^{-1}\), which is negative definite because \(\mS\succ0\) implies \(\mS^{-1}\succ0\)
+  (Lecture 11: inverting a positive definite matrix inverts its eigenvalues, keeping them positive). So it is
+  the unique global maximum.</p>
+
+  <p><strong>Level sets.</strong> The density depends on \(\vx\) only through the quadratic form, so level sets
+  of the density are level sets of that form: <strong>ellipsoids centred at \(\vm\)</strong>. By Lecture 11, if
+  \(\mS=\mQ\Lambda\mQ^\top\) then \(\mS^{-1}=\mQ\Lambda^{-1}\mQ^\top\), so the form is
+  \(\sum_i z_i^2/\lambda_i\) in the eigenbasis. The ellipsoid axes point along the eigenvectors \(\vq_i\), with
+  half-lengths proportional to \(\sqrt{\lambda_i}\) — <em>long</em> in directions of high variance. An isotropic
+  \(\mS=\sigma^2\mI\) gives spheres; strongly correlated variables give long thin cigars.</p>
+
+  <p><strong>The quantity.</strong> \(d_M(\vx)^2 = (\vx-\vm)^\top\mS^{-1}(\vx-\vm)\) is the squared
+  <strong>Mahalanobis distance</strong>. It is Euclidean distance measured in units of the local standard
+  deviation, in every direction at once — equivalently, ordinary distance after whitening by \(\mS^{-1/2}\).
+  Uses you will meet: multivariate outlier detection (under a Gaussian, \(d_M^2\sim\chi^2_d\), giving a
+  principled threshold), the discriminant in Gaussian classifiers and LDA, and the natural-gradient and
+  trust-region methods that measure parameter changes in the metric induced by the Fisher information rather
+  than in raw Euclidean distance.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding + analysis, the Phase A capstone.</strong> Build a Bayesian linear regression by
+  hand and compare it with MLE and MAP.</p>
+  <ol>
+  <li>Generate \(n=15\) noisy points from a degree-3 polynomial. Fit polynomial features up to degree 12.</li>
+  <li>Fit by MLE (ordinary least squares). Plot the fit. What happens between the data points?</li>
+  <li>Fit by MAP with a Gaussian prior at several \(\lambda\). Which \(\lambda\) looks best, and how would you
+  choose it without looking?</li>
+  <li>Compute the full Gaussian posterior \(p(\vw\mid\mathcal{D}) = \mathcal{N}(\vm_N,\mS_N)\) with
+  \(\mS_N=(\sigma^{-2}\mX^\top\mX+\tau^{-2}\mI)^{-1}\) and \(\vm_N=\sigma^{-2}\mS_N\mX^\top\vy\). Draw 30
+  samples from it and plot them. What does the spread show that the point estimate does not?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex133',this)">Show solution</button></div><div class="rev-body" id="ex133"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(3)
+n, deg, sigma, tau = 15, 12, 0.25, 1.0
+xs = np.sort(rng.uniform(-1, 1, n))
+f  = lambda x: 1.0 - 2.0*x + 0.5*x**2 + 3.0*x**3
+y  = f(xs) + sigma*rng.normal(size=n)
+P  = lambda x: np.vander(np.atleast_1d(x), deg+1, increasing=True)
+X  = P(xs)
+
+w_mle, *_ = np.linalg.lstsq(X, y, rcond=None)
+grid = np.linspace(-1.15, 1.15, 400); G = P(grid)
+print("||w_mle|| =", np.linalg.norm(w_mle).round(2))
+print("max |fit| on the grid =", np.abs(G @ w_mle).max().round(2),
+      " vs max |data| =", np.abs(y).max().round(2))
+
+for lam in [1e-8, 1e-4, 1e-2, 1e0, 1e2]:
+    w = np.linalg.solve(X.T@X + lam*np.eye(deg+1), X.T@y)
+    train = np.mean((X@w - y)**2)
+    true  = np.mean((G@w - f(grid))**2)          # error against the TRUE function
+    print(f"lambda={lam:8.0e}  ||w||={np.linalg.norm(w):9.2f}"
+          f"  train MSE={train:.5f}  error vs truth={true:.5f}")
+
+S_N = np.linalg.inv(X.T@X/sigma**2 + np.eye(deg+1)/tau**2)
+m_N = S_N @ X.T @ y / sigma**2
+L = np.linalg.cholesky(S_N + 1e-12*np.eye(deg+1))
+samples = m_N + (L @ rng.normal(size=(deg+1, 30))).T
+band = samples @ G.T                              # 30 x len(grid)
+print("\\nposterior sd of the prediction, inside vs outside the data:")
+i0 = np.argmin(np.abs(grid))
+print(f"  x= 0.00  sd={band[:, i0].std():.4f}")
+print(f"  x= 1.15  sd={band[:, -1].std():.4f}   <- outside the data range")</code></pre>
+
+  <p><strong>2.</strong> With this seed \(\|\vw_{\text{MLE}}\|\approx 3.5\times10^4\), and the fitted curve
+  reaches a magnitude of about \(9\times10^4\) on the plotting grid — against data whose largest value is
+  \(1.89\). It passes essentially through every data point while oscillating violently between them and
+  exploding outside the data range. Twelve degrees of freedom fitted to fifteen noisy points is
+  near-interpolation: the model has fitted the noise. This is the textbook picture of overfitting, and also the
+  ill-conditioning of Lecture 10 — the Vandermonde matrix here has \(\operatorname{cond}(\mX)\approx
+  2.8\times10^6\).</p>
+
+  <p><strong>3.</strong> Error against the truth is U-shaped in \(\lambda\) and spans an enormous range: with
+  this seed it runs \(3.9\times10^{4}\) at \(\lambda=10^{-8}\), down through \(129\) at \(10^{-4}\) and
+  \(1.52\) at \(10^{-2}\), to a minimum of about \(0.87\) at \(\lambda=1\), then back up to \(1.71\) at
+  \(\lambda=100\). Meanwhile training MSE rises monotonically the whole way, from \(0.011\) to \(1.18\) —
+  <em>training error alone would have told you to pick the worst model on the list.</em> Too small and you
+  overfit; too large and you underfit towards
+  the zero function. <strong>Choosing it without peeking</strong> means cross-validation: hold out folds, fit on
+  the rest, and pick the \(\lambda\) minimising held-out error. Never tune on the test set, and never tune
+  against the true function — you do not have it. (The Bayesian alternative is to maximise the marginal
+  likelihood, or "evidence", which integrates the parameters out rather than holding data out.)</p>
+
+  <p><strong>4.</strong> The posterior samples agree tightly with each other where there is data and
+  <strong>fan out dramatically outside the data range and in any gaps</strong>. Concretely: the predictive
+  standard deviation is about \(0.09\) at \(x=0\), in the middle of the data, and about \(9.0\) at
+  \(x=1.15\), just beyond it — a hundredfold increase over a short distance.</p>
+  <p>That is the thing a point estimate cannot tell you. \(\vw_{\text{MAP}}\) gives one curve with no
+  indication of confidence; the posterior says <em>here is what I know, and here is where I am guessing</em>.
+  This distinction matters enormously in any setting where acting on a confident-but-wrong prediction is costly
+  — medicine, control, active learning, Bayesian optimisation — and it is why calibration and uncertainty
+  quantification are active research areas rather than solved problems.</p>
+  <p>It is worth appreciating what made this tractable: the posterior is Gaussian in closed form <em>only</em>
+  because a Gaussian prior is conjugate to a Gaussian likelihood. For a neural network no such closed form
+  exists, and everything in approximate Bayesian deep learning — Laplace approximation, variational inference,
+  deep ensembles, MC dropout — is an attempt to recover a usable version of the fan you just plotted.</p></div></div></div>
+<hr>
+<p><strong>Phase A complete.</strong> Take the index page's advice seriously before moving on: if
+there are exercises here you could not do, tell me which ones. That is more useful to me than a claim that
+everything made sense, and it decides whether Phase B starts next or whether we revisit something first.</p>
+<div class="pagenav"><a href="13-random-variables-expectation.html" class="pv"><span class="dir">Previous</span><span class="nm">13 · Random Variables, Expectation, and Variance</span></a><span style="flex:1"></span></div>
+</div>
+<script>initDone('14-bayes-and-maximum-likelihood');</script>
+</body>
+</html>

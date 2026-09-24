@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>10. Least Squares and the Normal Equations — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 10 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('10-least-squares')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part III — Linear Algebra · Lecture 10</div>
+  <h1>Least Squares and the Normal Equations</h1>
+  <p class="dek">Real data gives you more equations than unknowns, and no exact solution. Least squares is the principled answer: project the target onto what your model can actually reach. This is linear regression, derived twice — geometrically and by calculus — and shown to be the same theorem.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Explain why \(\mX\vw=\vy\) is usually unsolvable and what we should ask instead</li><li>Derive the normal equations \(\mX^\top\mX\vw = \mX^\top\vy\) from orthogonality</li><li>Derive the same equations by minimising \(\|\mX\vw-\vy\|^2\)</li><li>State when the solution is unique, and what ridge regularisation fixes</li><li>Fit a regression in NumPy correctly — and know why <code>lstsq</code> beats <code>inv</code></li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lecture 8: projection, orthogonality, norms</li><li>Lecture 9: matrices as maps, column space, rank</li><li>Lecture 7: convexity and the second-derivative test</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>An unsolvable system</h2>
+<p>We have \(n\) data points and \(d\) features, and we want weights \(\vw\) such that predictions
+match targets exactly:</p>
+<p>\[\mX\vw = \vy, \qquad \mX\in\RR^{n\times d},\ \vw\in\RR^{d},\ \vy\in\RR^{n}.\]</p>
+<p>In any realistic setting \(n \gg d\): thousands of houses, a handful of features. That is
+<em>thousands of equations in a handful of unknowns</em> — an overdetermined system. By Lecture 9's column
+picture, \(\mX\vw\) ranges over the column space \(\mathcal{C}(\mX)\), a subspace of \(\RR^n\) of dimension at
+most \(d\). Meanwhile \(\vy\) is an arbitrary point of \(\RR^n\). A \(d\)-dimensional subspace inside an
+\(n\)-dimensional space is a vanishingly thin sliver, so \(\vy\) is essentially never in it.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>Picture \(n=3\), \(d=2\): the reachable predictions form a <em>plane</em> through the
+origin in three-dimensional space, and \(\vy\) is a point floating somewhere off that plane. No \(\vw\) can hit
+it. So we stop asking for an exact hit and ask a better question: <strong>which point of the plane is
+closest to \(\vy\)?</strong> That is the projection question from Lecture 8, now with a subspace instead of a
+line.</p></div>
+<div class="box defn"><span class="lbl">The least-squares problem</span><p>\[ \hat{\vw} \;=\; \argmin_{\vw\in\RR^d}\ \|\mX\vw-\vy\|^2
+ \;=\; \argmin_{\vw}\ \sum_{i=1}^{n}\big(\vx_i^\top\vw - y_i\big)^2. \]
+<p>The vector \(\vr = \vy-\mX\hat{\vw}\) is the <strong>residual</strong>, and \(\hat{\vy}=\mX\hat{\vw}\) is the
+vector of <strong>fitted values</strong>.</p></p></div>
+<div class="fig"><div class="fig-head">y lives in ℝ³; the model can only reach a plane. Least squares drops a perpendicular.<span class="tag">Interactive</span></div><canvas id="f10proj" data-h="430"></canvas><div class="legend"><span><i style="background:var(--c3)"></i>column space of X (what the model can reach)</span><span><i style="background:var(--c5)"></i>target y</span><span><i style="background:var(--c1)"></i>fitted ŷ = Xŵ</span><span><i style="background:var(--c4)"></i>residual r = y − ŷ</span></div><div class="fig-read" id="f10proj-read"></div><div class="ctrls"><div class="ctrl"><label>rotate the view</label><input type="range" min="0" max="359" step="1" value="35" data-fmt="0" oninput="figSlide('f10proj','yaw',this)"><output>35</output></div><div class="ctrl"><label>how far y sits off the plane</label><input type="range" min="-2.5" max="2.5" step="0.05" value="1.6" data-fmt="2" oninput="figSlide('f10proj','lift',this)"><output>1.60</output></div><div class="ctrl"><label>try your own w₁</label><input type="range" min="-2" max="2" step="0.02" value="1.0" data-fmt="2" oninput="figSlide('f10proj','w1',this)"><output>1.00</output></div><div class="ctrl"><label>try your own w₂</label><input type="range" min="-2" max="2" step="0.02" value="0.3" data-fmt="2" oninput="figSlide('f10proj','w2',this)"><output>0.30</output></div></div><div class="fig-cap">Grey mesh: every prediction the model can produce. Purple: the target. Green: the least-squares fit — the foot of the perpendicular. Blue: whatever your sliders produce. The readout compares your squared error to the optimum; you cannot beat it, and the reason is that the optimal residual is perpendicular to the plane, so any move within the plane only adds length by Pythagoras.</div></div><script>makeFig("f10proj",function(vp,p,F){
+vp.pads(20,16,14,26); vp.frameEq(0,0,3.2);
+var c=vp.ctx, yaw=p.yaw*Math.PI/180, pitch=0.42;
+function proj3(P){ // simple isometric-ish projection
+  var x=P[0]*Math.cos(yaw)-P[1]*Math.sin(yaw);
+  var y=P[0]*Math.sin(yaw)+P[1]*Math.cos(yaw);
+  return [x, -y*Math.sin(pitch)+P[2]*Math.cos(pitch)];
+}
+function S(P){var q=proj3(P); return [vp.X(q[0]), vp.Y(q[1])];}
+function line(A,B,col,o){o=o||{}; var a=S(A),b=S(B);
+  c.save(); c.strokeStyle=vp.css(col); c.lineWidth=o.w||1.6;
+  if(o.dash)c.setLineDash(o.dash); if(o.al)c.globalAlpha=o.al;
+  c.beginPath(); c.moveTo(a[0],a[1]); c.lineTo(b[0],b[1]); c.stroke(); c.restore();}
+function pt(P,col,r){var a=S(P); c.save(); c.fillStyle=vp.css(col);
+  c.beginPath(); c.arc(a[0],a[1],r||6,0,6.2832); c.fill();
+  c.strokeStyle=vp.css('--panel'); c.lineWidth=1.6; c.stroke(); c.restore();}
+function txt(P,s,col,dx,dy){var a=S(P); c.save(); c.fillStyle=vp.css(col);
+  c.font='600 12.5px -apple-system,Segoe UI,sans-serif';
+  c.strokeStyle=vp.css('--bg'); c.lineWidth=3.4;
+  c.strokeText(s,a[0]+(dx||8),a[1]+(dy||-6)); c.fillText(s,a[0]+(dx||8),a[1]+(dy||-6)); c.restore();}
+// basis of the plane = columns of X
+var c1=[1.6,0.2,0], c2=[0.3,1.5,0];
+function comb(a,b){return [a*c1[0]+b*c2[0], a*c1[1]+b*c2[1], a*c1[2]+b*c2[2]];}
+// plane mesh
+for(var k=-2;k<=2;k++){ line(comb(k,-2),comb(k,2),'--c3',{w:1,al:0.45});
+                        line(comb(-2,k),comb(2,k),'--c3',{w:1,al:0.45}); }
+// axes
+line([-3,0,0],[3,0,0],'--ink3',{w:1.2,al:0.5});
+line([0,-3,0],[0,3,0],'--ink3',{w:1.2,al:0.5});
+line([0,0,-2.6],[0,0,2.6],'--ink3',{w:1.2,al:0.5});
+// target y = a point in the plane plus a lift out of it
+var base=comb(0.9,0.7);
+var y=[base[0],base[1],base[2]+p.lift];
+// least squares fit = drop the third coordinate (plane is z=0 here)
+var yhat=[y[0],y[1],0];
+var mine=comb(p.w1,p.w2);
+line(yhat,y,'--c4',{w:2.4,dash:[5,4]});
+line([0,0,0],y,'--c5',{w:2.6});
+line([0,0,0],yhat,'--c3',{w:2.6});
+line([0,0,0],mine,'--c1',{w:2.2});
+line(mine,y,'--c1',{w:1.6,dash:[3,3],al:0.7});
+// right angle marker
+var e=0.22, dir=[ (yhat[0]-0)*0, 0, 1];
+line([yhat[0]+e*0.9,yhat[1],0],[yhat[0]+e*0.9,yhat[1],e],'--ink3',{w:1.3});
+line([yhat[0],yhat[1],e],[yhat[0]+e*0.9,yhat[1],e],'--ink3',{w:1.3});
+pt(y,'--c5',7); pt(yhat,'--c3',7); pt(mine,'--c1',6);
+txt(y,'y','--c5'); txt(yhat,'ŷ = Xŵ','--c3',8,16); txt(mine,'Xw (yours)','--c1',8,-8);
+function d2(A,B){return (A[0]-B[0])*(A[0]-B[0])+(A[1]-B[1])*(A[1]-B[1])+(A[2]-B[2])*(A[2]-B[2]);}
+var best=d2(y,yhat), yours=d2(y,mine);
+figRead('f10proj','optimal ‖y − ŷ‖² = <b>'+best.toFixed(4)+'</b>   |   your ‖y − Xw‖² = <b>'+yours.toFixed(4)+'</b>'
+ +'   |   excess = '+(yours-best).toFixed(4)
+ +'<br>Pythagoras check: ‖y − Xw‖² = ‖y − ŷ‖² + ‖ŷ − Xw‖² → '+best.toFixed(4)+' + '+d2(yhat,mine).toFixed(4)
+ +' = <b>'+(best+d2(yhat,mine)).toFixed(4)+'</b> ✓  — so you can never beat ŷ.');
+},[{"name": "yaw", "label": "rotate the view", "min": 0, "max": 359, "step": 1, "value": 35, "dp": 0}, {"name": "lift", "label": "how far y sits off the plane", "min": -2.5, "max": 2.5, "step": 0.05, "value": 1.6, "dp": 2}, {"name": "w1", "label": "try your own w\u2081", "min": -2, "max": 2, "step": 0.02, "value": 1.0, "dp": 2}, {"name": "w2", "label": "try your own w\u2082", "min": -2, "max": 2, "step": 0.02, "value": 0.3, "dp": 2}]);window["FIG_f10proj"].run();</script>
+<h2 id="s2"><span class="secnum">2</span>Derivation 1: orthogonality</h2>
+<p>This is Lecture 8's projection argument with a subspace in place of a line. The logic is
+identical; only the bookkeeping grows.</p>
+<div class="deriv" id="d87"><div class="deriv-head"><span class="t">The normal equations from perpendicularity</span><span class="ct">0 / 6</span></div><div class="dstep">\[\hat{\vy} = \mX\hat{\vw} \in \mathcal{C}(\mX)\]<div class="why"><b>Parameterise the reachable set.</b> Whatever the answer is, it is some combination of the columns of \(\mX\) — that is the entire content of the column picture. So we search over \(\vw\).</div></div><div class="dstep">\[\vr = \vy - \mX\hat{\vw} \quad \perp \quad \mathcal{C}(\mX)\]<div class="why"><b>Impose orthogonality.</b> Same intuition as before: if the residual had any component lying <em>inside</em> the reachable set, we could add that component to our prediction and shrink the error. At the optimum, nothing reachable is left in the error.</div></div><div class="dstep">\[\vr \perp \mathcal{C}(\mX) \iff \vr \perp \text{every column of } \mX \iff \mX^\top\vr = \vzero\]<div class="why"><b>Turn 'perpendicular to a subspace' into an equation.</b> Being perpendicular to a span means being perpendicular to each spanning vector (if \(\vr\cdot\va_j=0\) for every column then \(\vr\cdot\sum\alpha_j\va_j=0\) too, by linearity). And stacking those \(d\) dot products is exactly what \(\mX^\top\vr\) computes — row \(j\) of \(\mX^\top\) is column \(j\) of \(\mX\). <em>This step is why transposes appear everywhere in statistics.</em></div></div><div class="dstep">\[\mX^\top\big(\vy-\mX\hat{\vw}\big) = \vzero\]<div class="why"><b>Substitute the residual.</b> One equation, and it contains everything.</div></div><div class="dstep">\[\boxed{\;\mX^\top\mX\,\hat{\vw} = \mX^\top\vy\;} \qquad \textbf{(the normal equations)}\]<div class="why"><b>Expand and rearrange.</b> \(\mX^\top\mX\) is \(d\times d\) — small, square, and symmetric. \(\mX^\top\vy\) is \(d\times 1\). We have converted \(n\) unsolvable equations into \(d\) solvable ones. Compare with Lecture 8's scalar version \(\vu\cdot\vv - k(\vu\cdot\vu)=0\): identical structure, with \(\mX^\top\mX\) playing the role of \(\vu\cdot\vu\).</div></div><div class="dstep">\[\hat{\vw} = \big(\mX^\top\mX\big)^{-1}\mX^\top\vy \qquad \text{if } \mX^\top\mX \text{ is invertible}\]<div class="why"><b>Solve — with a condition.</b> The inverse exists exactly when \(\rank(\mX)=d\), i.e. the columns are independent. The matrix \(\mX^{+}=(\mX^\top\mX)^{-1}\mX^\top\) is the <em>pseudoinverse</em>, and \(\mP = \mX\mX^{+}\) is the <em>projection matrix</em> onto \(\mathcal{C}(\mX)\). <em>Never actually compute this inverse in code</em> — see the numerical section below.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d87')">Next step</button><button class="btn ghost" onclick="dall('d87')">Show all</button><button class="btn ghost" onclick="dreset('d87')">Reset</button></div></div>
+<h2 id="s3"><span class="secnum">3</span>Derivation 2: calculus</h2>
+<p>Now the same result by minimising, which is how you would get there without the geometry — and
+which reassures us that "closest point" and "minimum squared error" really are the same problem.</p>
+<div class="deriv" id="d88"><div class="deriv-head"><span class="t">Minimising ‖Xw − y‖² directly</span><span class="ct">0 / 6</span></div><div class="dstep">\[J(\vw) = \|\mX\vw-\vy\|^2 = (\mX\vw-\vy)^\top(\mX\vw-\vy)\]<div class="why"><b>Write the norm as a dot product.</b> \(\|\vv\|^2=\vv^\top\vv\) — Lecture 8's definition.</div></div><div class="dstep">\[= \vw^\top\mX^\top\mX\vw - \vw^\top\mX^\top\vy - \vy^\top\mX\vw + \vy^\top\vy\]<div class="why"><b>Expand.</b> Using \((\mA\vb)^\top = \vb^\top\mA^\top\). Four terms, as with expanding \((a-b)^2\).</div></div><div class="dstep">\[= \vw^\top\mX^\top\mX\vw - 2\,\vw^\top\mX^\top\vy + \|\vy\|^2\]<div class="why"><b>Combine the middle terms.</b> \(\vw^\top\mX^\top\vy\) is a \(1\times1\) matrix — a scalar — and a scalar equals its own transpose, so \(\vy^\top\mX\vw = (\vy^\top\mX\vw)^\top = \vw^\top\mX^\top\vy\). This little transpose trick recurs constantly.</div></div><div class="dstep">\[\grad_{\vw} J = 2\,\mX^\top\mX\vw - 2\,\mX^\top\vy\]<div class="why"><b>Differentiate.</b> Using two matrix-calculus rules we will <em>prove</em> in Lecture 12: \(\grad_{\vw}(\vw^\top\mA\vw)=2\mA\vw\) for symmetric \(\mA\) (and \(\mX^\top\mX\) is symmetric, since \((\mX^\top\mX)^\top = \mX^\top\mX\)), and \(\grad_{\vw}(\vw^\top\vb)=\vb\). These are the exact analogues of \(\frac{d}{dw}aw^2=2aw\) and \(\frac{d}{dw}bw=b\).</div></div><div class="dstep">\[\grad_{\vw}J = \vzero \quad\Longrightarrow\quad \mX^\top\mX\vw = \mX^\top\vy\]<div class="why"><b>Same normal equations.</b> The two derivations agree, exactly as they did in the one-dimensional case in Lecture 8. Geometry and calculus are describing one object.</div></div><div class="dstep">\[\mH = \grad^2_{\vw}J = 2\,\mX^\top\mX \succeq 0\]<div class="why"><b>Confirm it is a minimum.</b> For any \(\vv\), \(\vv^\top(\mX^\top\mX)\vv = (\mX\vv)^\top(\mX\vv) = \|\mX\vv\|^2 \ge 0\) — a sum of squares. So the Hessian is positive semi-definite, \(J\) is convex, and by Lecture 7 every critical point is a <em>global</em> minimum. If \(\rank(\mX)=d\) then \(\|\mX\vv\|^2>0\) for \(\vv\neq\vzero\), the Hessian is positive definite, \(J\) is strictly convex, and the minimiser is unique.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d88')">Next step</button><button class="btn ghost" onclick="dall('d88')">Show all</button><button class="btn ghost" onclick="dreset('d88')">Reset</button></div></div>
+<div class="quiz" id="q89"><div class="qlbl">Check yourself</div><div class="qq">What goes wrong if two columns of \(\mX\) are identical?</div><button class="qopt" data-ok="1" onclick="pick('q89',0,true)">\(\mX^\top\mX\) is singular, so \(\hat{\vw}\) is not unique — infinitely many weight vectors give the same predictions.</button><button class="qopt" data-ok="0" onclick="pick('q89',1,false)">The predictions become wrong.</button><button class="qopt" data-ok="0" onclick="pick('q89',2,false)">Nothing — least squares handles it automatically.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct, and worth unpacking. If columns \(j\) and \(k\) are equal then \(\mX\vv=\vzero\) for
+    \(\vv=\ve_j-\ve_k\), so the null space is nontrivial and \(\rank(\mX)&lt;d\). Then
+    \((\mX^\top\mX)\vv=\vzero\) too, so \(\mX^\top\mX\) is singular.<br><br>
+    But notice what is <em>not</em> broken: the fitted values \(\hat{\vy}\) are still unique, because the
+    projection onto a subspace is unique regardless of how you coordinatise that subspace. Predictions are fine;
+    the <em>interpretation</em> of individual coefficients is meaningless. That distinction matters — a
+    collinear model can predict perfectly well while its coefficients are pure noise, which is why you should
+    never read feature importance off a regression without checking conditioning.</div><div class="qwhy" data-i="1"><b>Not quite.</b> They do not. The projection \(\hat{\vy}\) onto \(\mathcal{C}(\mX)\) is unique — duplicating a
+    column does not change the column <em>space</em>, only the number of ways to name a point in it. The fit is
+    exactly as good as it would have been with the duplicate removed.</div><div class="qwhy" data-i="2"><b>Not quite.</b> It does not handle it silently. <code>np.linalg.inv(X.T @ X)</code> will either raise
+    <code>LinAlgError</code> or, worse, return an enormous garbage matrix built from round-off. Only routines
+    built on the SVD — <code>np.linalg.lstsq</code>, <code>pinv</code> — degrade gracefully, and they do so by
+    silently choosing the minimum-norm solution among the infinitely many. That is a reasonable choice, but it
+    is a choice, and you should know it is being made for you.</div></div>
+<h2 id="s4"><span class="secnum">4</span>Ridge regression: making it always solvable</h2>
+<p>Add a penalty on the size of the weights:</p>
+<p>\[J_\lambda(\vw) = \|\mX\vw-\vy\|^2 + \lambda\|\vw\|^2, \qquad \lambda>0.\]</p>
+<p>Differentiating gives \(2\mX^\top\mX\vw - 2\mX^\top\vy + 2\lambda\vw = \vzero\), so</p>
+<p>\[\boxed{\;\hat{\vw}_{\text{ridge}} = \big(\mX^\top\mX + \lambda\mI\big)^{-1}\mX^\top\vy\;}\]</p>
+<p>The matrix \(\mX^\top\mX+\lambda\mI\) is invertible for <em>every</em> \(\lambda>0\), even when
+\(\mX^\top\mX\) is singular. Here is the one-line reason, which we will make fully rigorous in Lecture 11: for
+any \(\vv\neq\vzero\),</p>
+<p>\[\vv^\top\big(\mX^\top\mX+\lambda\mI\big)\vv = \|\mX\vv\|^2 + \lambda\|\vv\|^2 \ \ge\ \lambda\|\vv\|^2 \ > \ 0,\]</p>
+<p>so no nonzero vector is annihilated, so the null space is trivial, so the matrix is invertible.
+The \(\lambda\mI\) term puts a floor under every eigenvalue.</p>
+<div class="fig"><div class="fig-head">Ridge on near-collinear features: coefficients stabilise as λ grows<span class="tag">Interactive</span></div><canvas id="f10ridge" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>ŵ₁</span><span><i style="background:var(--c5)"></i>ŵ₂</span><span><i style="background:var(--c2)"></i>training error</span><span><i style="background:var(--c3)"></i>‖ŵ‖</span></div><div class="fig-read" id="f10ridge-read"></div><div class="ctrls"><div class="ctrl"><label>collinearity of the two features</label><input type="range" min="0" max="0.9999" step="0.0005" value="0.995" data-fmt="4" oninput="figSlide('f10ridge','corr',this)"><output>0.9950</output></div><div class="ctrl"><label>log₁₀ λ</label><input type="range" min="-6" max="2" step="0.05" value="-6" data-fmt="2" oninput="figSlide('f10ridge','llam',this)"><output>-6.00</output></div></div><div class="fig-cap">Two features that are almost the same. With λ ≈ 0 the fitted coefficients are enormous and of opposite sign — the model is straining to cancel a near-null direction, and those numbers mean nothing. Slide λ up and they collapse to something sane, at the cost of a small rise in training error. That trade is the entire content of regularisation, and here you can watch it happen.</div></div><script>makeFig("f10ridge",function(vp,p,F){
+vp.pads(52,16,14,30);
+// deterministic data
+var n=40, rho=p.corr, lam=Math.pow(10,p.llam), s=987654321;
+function rnd(){ s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff-0.5; }
+var X=[], y=[];
+for(var i=0;i<n;i++){
+  var a=rnd()*2, b=rho*a+Math.sqrt(1-rho*rho)*rnd()*2;
+  X.push([a,b]); y.push(1.5*a+0.5*b+0.25*rnd());
+}
+function solve(l){
+  var A=[[l,0],[0,l]], bb=[0,0];
+  for(var i=0;i<n;i++){ var x=X[i];
+    A[0][0]+=x[0]*x[0]; A[0][1]+=x[0]*x[1]; A[1][0]+=x[1]*x[0]; A[1][1]+=x[1]*x[1];
+    bb[0]+=x[0]*y[i]; bb[1]+=x[1]*y[i]; }
+  var det=A[0][0]*A[1][1]-A[0][1]*A[1][0];
+  if(Math.abs(det)<1e-14) return [NaN,NaN];
+  return [(A[1][1]*bb[0]-A[0][1]*bb[1])/det, (A[0][0]*bb[1]-A[1][0]*bb[0])/det];
+}
+function mse(w){var t=0;for(var i=0;i<n;i++){var r=X[i][0]*w[0]+X[i][1]*w[1]-y[i];t+=r*r;}return t/n;}
+// path over lambda
+var pts=[];
+for(var k=0;k<=200;k++){ var L=Math.pow(10,-6+8*k/200); pts.push([-6+8*k/200, solve(L)]); }
+var lo=0,hi=0;
+for(var k=0;k<pts.length;k++){ lo=Math.min(lo,pts[k][1][0],pts[k][1][1]); hi=Math.max(hi,pts[k][1][0],pts[k][1][1]); }
+var pad=(hi-lo)*0.12+0.3;
+vp.frame(-6,2,lo-pad,hi+pad);
+vp.axes({stepx:1});
+function trace(idx,col){ var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css(col); cc.lineWidth=2.6;
+  cc.beginPath(); for(var k=0;k<pts.length;k++){ var xx=pts[k][0], yy=pts[k][1][idx];
+    if(k===0)cc.moveTo(vp.X(xx),vp.Y(yy)); else cc.lineTo(vp.X(xx),vp.Y(yy)); }
+  cc.stroke(); cc.restore(); }
+trace(0,'--c1'); trace(1,'--c5');
+vp.seg(-6,0,2,0,'--ink3',{dash:[3,5],w:1.2});
+var w=solve(lam);
+vp.seg(p.llam,lo-pad,p.llam,hi+pad,'--c2',{dash:[4,4],w:1.5});
+vp.dot(p.llam,w[0],'--c1',6.5); vp.dot(p.llam,w[1],'--c5',6.5);
+vp.label(-5.9,hi+pad,'coefficient value','--ink3',{halo:true,dy:14});
+vp.label(1.9,lo-pad,'log₁₀ λ','--ink3',{halo:true,align:'right',dy:-6});
+var w0=solve(1e-12);
+figRead('f10ridge','collinearity = '+rho.toFixed(4)+',  λ = '+lam.toExponential(2)
+ +'<br>ŵ = (<b>'+w[0].toFixed(4)+', '+w[1].toFixed(4)+'</b>)   ‖ŵ‖ = <b>'+Math.hypot(w[0],w[1]).toFixed(4)
+ +'</b>   training MSE = <b>'+mse(w).toFixed(6)+'</b>'
+ +'<br>unregularised: ŵ = ('+w0[0].toFixed(3)+', '+w0[1].toFixed(3)+'),  ‖ŵ‖ = '+Math.hypot(w0[0],w0[1]).toFixed(3)
+ +',  MSE = '+mse(w0).toFixed(6)+'   <span style="color:var(--ink3)">(true weights were 1.5 and 0.5)</span>');
+},[{"name": "corr", "label": "collinearity of the two features", "min": 0, "max": 0.9999, "step": 0.0005, "value": 0.995, "dp": 4}, {"name": "llam", "label": "log\u2081\u2080 \u03bb", "min": -6, "max": 2, "step": 0.05, "value": -6, "dp": 2}]);window["FIG_f10ridge"].run();</script>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>Three things this figure is showing you at once, all of which recur throughout Phase B:</p>
+<ul>
+<li><strong>Regularisation is a bias–variance trade.</strong> Ridge deliberately biases the estimate towards
+zero. It always increases training error. It usually decreases test error, because the variance it removes
+exceeds the bias it adds.</li>
+<li><strong>Weight decay is ridge.</strong> The <code>weight_decay</code> parameter in every deep learning
+optimiser is \(\lambda\) here, and adding \(\frac{\lambda}{2}\|\vw\|^2\) to the loss adds \(-\eta\lambda\vw\)
+to each gradient step — literally decaying the weights.</li>
+<li><strong>It is also MAP estimation.</strong> Put a Gaussian prior \(\vw\sim\mathcal{N}(\vzero,\tau^2\mI)\) on
+the weights and maximise the posterior; the log-prior contributes exactly \(-\frac{1}{2\tau^2}\|\vw\|^2\). Ridge
+is the maximum-a-posteriori estimate with \(\lambda=\sigma^2/\tau^2\). We derive that properly in Lecture 14
+once we have Bayes' theorem.</li>
+</ul></div>
+<h2 id="s5"><span class="secnum">5</span>Doing it correctly in NumPy</h2>
+<div class="pyb" id="py90" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+
+# ---- build data with a KNOWN answer so we can check ----
+n, d = 200, 3
+X = rng.normal(size=(n, d))
+X = np.column_stack([np.ones(n), X])         # bias column -&gt; d+1 = 4 columns
+w_true = np.array([2.0, -1.5, 0.7, 3.0])
+y = X @ w_true + 0.3 * rng.normal(size=n)
+
+print(&quot;true w         :&quot;, w_true)
+
+# 1. explicit inverse -- mathematically correct, numerically the worst option
+w1 = np.linalg.inv(X.T @ X) @ X.T @ y
+print(&quot;inv(X^T X)     :&quot;, np.round(w1, 6))
+
+# 2. solve the normal equations without forming an inverse -- better
+w2 = np.linalg.solve(X.T @ X, X.T @ y)
+print(&quot;solve(XtX, Xty):&quot;, np.round(w2, 6))
+
+# 3. lstsq -- uses SVD, handles rank deficiency, THE DEFAULT CHOICE
+w3, *_ = np.linalg.lstsq(X, y, rcond=None)
+print(&quot;lstsq          :&quot;, np.round(w3, 6))
+
+# 4. pseudoinverse -- same as lstsq, spelled differently
+w4 = np.linalg.pinv(X) @ y
+print(&quot;pinv           :&quot;, np.round(w4, 6))
+print()
+
+# ---- verify the geometry ----
+r = y - X @ w3
+print(&quot;Is the residual orthogonal to every column of X?&quot;)
+print(&quot;  X^T r =&quot;, np.round(X.T @ r, 12), &quot; &lt;- all ~0, as the derivation requires&quot;)
+print()
+print(&quot;Pythagoras:  ||y||^2  ==  ||yhat||^2 + ||r||^2 ?&quot;)
+yhat = X @ w3
+print(f&quot;  {y @ y:.6f}  ==  {yhat @ yhat:.6f} + {r @ r:.6f} = {yhat@yhat + r@r:.6f}&quot;)
+print()
+
+# ---- why inv() is dangerous: an ill-conditioned design ----
+print(&quot;--- ILL-CONDITIONED DESIGN ---&quot;)
+a = rng.normal(size=n)
+Xb = np.column_stack([a, a + 1e-7 * rng.normal(size=n)])   # nearly identical columns
+yb = 2*a + 0.01*rng.normal(size=n)
+
+print(f&quot;cond(Xb^T Xb) = {np.linalg.cond(Xb.T @ Xb):.3e}&quot;)
+try:
+    wi = np.linalg.inv(Xb.T @ Xb) @ Xb.T @ yb
+    print(&quot;inv    -&gt;&quot;, wi, &quot; ||w|| =&quot;, f&quot;{np.linalg.norm(wi):.3e}&quot;)
+except np.linalg.LinAlgError as e:
+    print(&quot;inv    -&gt; LinAlgError:&quot;, e)
+wl, *_ = np.linalg.lstsq(Xb, yb, rcond=None)
+print(&quot;lstsq  -&gt;&quot;, wl, &quot; ||w|| =&quot;, f&quot;{np.linalg.norm(wl):.3e}&quot;)
+wr = np.linalg.solve(Xb.T @ Xb + 1e-3*np.eye(2), Xb.T @ yb)
+print(&quot;ridge  -&gt;&quot;, wr, &quot; ||w|| =&quot;, f&quot;{np.linalg.norm(wr):.3e}&quot;)
+print()
+print(&quot;All three fit the data about equally well:&quot;)
+for name, w in [(&quot;inv&quot;, wi), (&quot;lstsq&quot;, wl), (&quot;ridge&quot;, wr)]:
+    print(f&quot;   {name:6s} training MSE = {np.mean((Xb@w - yb)**2):.8f}&quot;)
+print()
+print(&quot;Same predictions, wildly different coefficients. The coefficients are&quot;)
+print(&quot;not identifiable, and only ridge gives you a stable, reportable number.&quot;)
+print()
+print(&quot;RULE: use lstsq by default. Reach for inv() only when you genuinely need&quot;)
+print(&quot;the inverse matrix itself, which in practice is almost never.&quot;)
+"><div class="pyb-head"><span class="t">Four ways to fit, three of which you should use</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py90')">Run</button><button class="btn ghost" onclick="resetPy('py90')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+
+# ---- build data with a KNOWN answer so we can check ----
+n, d = 200, 3
+X = rng.normal(size=(n, d))
+X = np.column_stack([np.ones(n), X])         # bias column -&gt; d+1 = 4 columns
+w_true = np.array([2.0, -1.5, 0.7, 3.0])
+y = X @ w_true + 0.3 * rng.normal(size=n)
+
+print(&quot;true w         :&quot;, w_true)
+
+# 1. explicit inverse -- mathematically correct, numerically the worst option
+w1 = np.linalg.inv(X.T @ X) @ X.T @ y
+print(&quot;inv(X^T X)     :&quot;, np.round(w1, 6))
+
+# 2. solve the normal equations without forming an inverse -- better
+w2 = np.linalg.solve(X.T @ X, X.T @ y)
+print(&quot;solve(XtX, Xty):&quot;, np.round(w2, 6))
+
+# 3. lstsq -- uses SVD, handles rank deficiency, THE DEFAULT CHOICE
+w3, *_ = np.linalg.lstsq(X, y, rcond=None)
+print(&quot;lstsq          :&quot;, np.round(w3, 6))
+
+# 4. pseudoinverse -- same as lstsq, spelled differently
+w4 = np.linalg.pinv(X) @ y
+print(&quot;pinv           :&quot;, np.round(w4, 6))
+print()
+
+# ---- verify the geometry ----
+r = y - X @ w3
+print(&quot;Is the residual orthogonal to every column of X?&quot;)
+print(&quot;  X^T r =&quot;, np.round(X.T @ r, 12), &quot; &lt;- all ~0, as the derivation requires&quot;)
+print()
+print(&quot;Pythagoras:  ||y||^2  ==  ||yhat||^2 + ||r||^2 ?&quot;)
+yhat = X @ w3
+print(f&quot;  {y @ y:.6f}  ==  {yhat @ yhat:.6f} + {r @ r:.6f} = {yhat@yhat + r@r:.6f}&quot;)
+print()
+
+# ---- why inv() is dangerous: an ill-conditioned design ----
+print(&quot;--- ILL-CONDITIONED DESIGN ---&quot;)
+a = rng.normal(size=n)
+Xb = np.column_stack([a, a + 1e-7 * rng.normal(size=n)])   # nearly identical columns
+yb = 2*a + 0.01*rng.normal(size=n)
+
+print(f&quot;cond(Xb^T Xb) = {np.linalg.cond(Xb.T @ Xb):.3e}&quot;)
+try:
+    wi = np.linalg.inv(Xb.T @ Xb) @ Xb.T @ yb
+    print(&quot;inv    -&gt;&quot;, wi, &quot; ||w|| =&quot;, f&quot;{np.linalg.norm(wi):.3e}&quot;)
+except np.linalg.LinAlgError as e:
+    print(&quot;inv    -&gt; LinAlgError:&quot;, e)
+wl, *_ = np.linalg.lstsq(Xb, yb, rcond=None)
+print(&quot;lstsq  -&gt;&quot;, wl, &quot; ||w|| =&quot;, f&quot;{np.linalg.norm(wl):.3e}&quot;)
+wr = np.linalg.solve(Xb.T @ Xb + 1e-3*np.eye(2), Xb.T @ yb)
+print(&quot;ridge  -&gt;&quot;, wr, &quot; ||w|| =&quot;, f&quot;{np.linalg.norm(wr):.3e}&quot;)
+print()
+print(&quot;All three fit the data about equally well:&quot;)
+for name, w in [(&quot;inv&quot;, wi), (&quot;lstsq&quot;, wl), (&quot;ridge&quot;, wr)]:
+    print(f&quot;   {name:6s} training MSE = {np.mean((Xb@w - yb)**2):.8f}&quot;)
+print()
+print(&quot;Same predictions, wildly different coefficients. The coefficients are&quot;)
+print(&quot;not identifiable, and only ridge gives you a stable, reportable number.&quot;)
+print()
+print(&quot;RULE: use lstsq by default. Reach for inv() only when you genuinely need&quot;)
+print(&quot;the inverse matrix itself, which in practice is almost never.&quot;)
+</textarea><div class="pyout"></div></div>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p>Why is <code>inv</code> worse? Two reasons. First, forming \(\mX^\top\mX\) <em>squares the
+condition number</em>: if \(\mX\) has condition number \(10^{8}\) — quite ordinary — then \(\mX^\top\mX\) has
+\(10^{16}\), which exhausts float64 entirely. <code>lstsq</code> works on \(\mX\) directly via the SVD and never
+forms that product. Second, \(\mathbf{A}^{-1}\vb\) computed as "invert, then multiply" does more arithmetic and
+accumulates more error than solving the system directly. The rule <em>never invert, always solve</em> is close
+to universal in numerical linear algebra.</p></div>
+<h2 id="s6"><span class="secnum">6</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Fit \(y = w_1 x + w_0\) by least squares to the three points \((1,2),(2,2),(3,4)\), by hand.</p>
+  <ol><li>Write down \(\mX\) and \(\vy\).</li>
+  <li>Compute \(\mX^\top\mX\) and \(\mX^\top\vy\).</li>
+  <li>Solve the \(2\times2\) system.</li>
+  <li>Verify \(\mX^\top\vr=\vzero\).</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex91',this)">Show solution</button></div><div class="rev-body" id="ex91"><p><strong>1.</strong> With the bias column first,
+  \(\mX=\begin{bmatrix}1&1\\1&2\\1&3\end{bmatrix}\), \(\vy=\begin{bmatrix}2\\2\\4\end{bmatrix}\),
+  \(\vw=\begin{bmatrix}w_0\\w_1\end{bmatrix}\).</p>
+  <p><strong>2.</strong> \(\mX^\top\mX=\begin{bmatrix}3&6\\6&14\end{bmatrix}\) (entries: \(n=3\), \(\sum x=6\),
+  \(\sum x^2=1+4+9=14\)). \(\mX^\top\vy=\begin{bmatrix}8\\ 2+4+12\end{bmatrix}=\begin{bmatrix}8\\18\end{bmatrix}\).</p>
+  <p><strong>3.</strong> \(3w_0+6w_1=8\) and \(6w_0+14w_1=18\). Multiply the first by 2 and subtract:
+  \(2w_1=2\), so \(w_1=1\). Then \(3w_0=8-6=2\), so \(w_0=\tfrac23\).</p>
+  <p>Cross-check with Lecture 7's formula: \(\bar x=2\), \(\bar y=\tfrac83\);
+  \(\sum(x-\bar x)(y-\bar y) = (-1)(-\tfrac23)+(0)(-\tfrac23)+(1)(\tfrac43)=2\);
+  \(\sum(x-\bar x)^2=2\); so \(\hat w_1=1\) ✓ and \(\hat w_0=\tfrac83-2=\tfrac23\) ✓.</p>
+  <p><strong>4.</strong> Fitted values: \(\tfrac23+1,\ \tfrac23+2,\ \tfrac23+3 = \tfrac53,\tfrac83,\tfrac{11}3\).
+  Residuals: \(2-\tfrac53=\tfrac13\), \(2-\tfrac83=-\tfrac23\), \(4-\tfrac{11}3=\tfrac13\).<br>
+  \(\sum r_i = \tfrac13-\tfrac23+\tfrac13=0\) ✓ (orthogonality to the bias column).<br>
+  \(\sum x_ir_i = \tfrac13-\tfrac43+1=0\) ✓ (orthogonality to the \(x\) column).</p>
+  <p>Note the first check is where "residuals sum to zero" comes from — it holds precisely because there is a
+  column of ones. Drop the intercept and it stops being true.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Define \(\mP=\mX(\mX^\top\mX)^{-1}\mX^\top\), the projection matrix (or "hat matrix", since
+  \(\hat{\vy}=\mP\vy\)). Prove:</p>
+  <ol><li>\(\mP^2=\mP\) (idempotent). Interpret this geometrically.</li>
+  <li>\(\mP^\top=\mP\) (symmetric).</li>
+  <li>\((\mI-\mP)\mX = \mathbf{0}\).</li>
+  <li>\(\tr(\mP)=d\), given \(\rank(\mX)=d\).</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex92',this)">Show solution</button></div><div class="rev-body" id="ex92"><p><strong>1.</strong> Write \(\mS=(\mX^\top\mX)^{-1}\).</p>
+  \[\mP^2 = \mX\mS\mX^\top\,\mX\mS\mX^\top = \mX\mS\,\underbrace{(\mX^\top\mX)\mS}_{=\,\mI}\,\mX^\top
+   = \mX\mS\mX^\top = \mP.\]
+  <p><em>Geometrically:</em> projecting a vector onto a subspace lands it in the subspace; projecting again
+  moves nothing, because it is already there. Idempotence <em>is</em> "projection" in algebraic form.</p>
+
+  <p><strong>2.</strong> \(\mP^\top = (\mX\mS\mX^\top)^\top = \mX\mS^\top\mX^\top\). And
+  \(\mS^\top = ((\mX^\top\mX)^{-1})^\top = ((\mX^\top\mX)^\top)^{-1} = (\mX^\top\mX)^{-1}=\mS\), using that
+  transpose and inverse commute and that \(\mX^\top\mX\) is symmetric. So \(\mP^\top=\mP\). ∎</p>
+  <p>(Symmetry is what makes it an <em>orthogonal</em> projection rather than an oblique one.)</p>
+
+  <p><strong>3.</strong> \((\mI-\mP)\mX = \mX - \mX\mS\mX^\top\mX = \mX - \mX\mS(\mX^\top\mX) = \mX-\mX\mI
+  = \mathbf{0}\). ∎<br>
+  Meaning: \(\mI-\mP\) is the projection onto the <em>orthogonal complement</em>, and it annihilates everything
+  in the column space. The residual is \(\vr=(\mI-\mP)\vy\), which is why \(\mX^\top\vr=\vzero\).</p>
+
+  <p><strong>4.</strong> Use the cyclic property of the trace, \(\tr(\mA\mB)=\tr(\mB\mA)\):</p>
+  \[\tr(\mP) = \tr\big(\mX\mS\mX^\top\big) = \tr\big(\mS\mX^\top\mX\big) = \tr\big((\mX^\top\mX)^{-1}(\mX^\top\mX)\big)
+   = \tr(\mI_d) = d. \qquad\blacksquare\]
+  <p><strong>Why anyone cares:</strong> \(\tr(\mP)\) counts the <em>effective degrees of freedom</em> used by the
+  fit. For ordinary least squares it is exactly \(d\), one per parameter. For ridge it is
+  \(\tr(\mX(\mX^\top\mX+\lambda\mI)^{-1}\mX^\top) = \sum_j \frac{\sigma_j^2}{\sigma_j^2+\lambda} &lt; d\) — the
+  penalty buys you a model that behaves as if it had <em>fewer</em> parameters, continuously tunable by
+  \(\lambda\). This is the precise sense in which regularisation reduces model complexity, and it is the basis
+  of AIC, generalised cross-validation, and the whole effective-capacity literature.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Show that least squares with squared error is exactly maximum likelihood under the model</p>
+  \[ y_i = \vx_i^\top\vw + \epsilon_i, \qquad \epsilon_i \sim \mathcal{N}(0,\sigma^2) \text{ independent}. \]
+  <p>You may use that the Gaussian density is
+  \(p(\epsilon)=\frac{1}{\sqrt{2\pi\sigma^2}}\exp\!\big(-\frac{\epsilon^2}{2\sigma^2}\big)\).</p>
+  <p>What does this tell you about <em>when squared error is the wrong loss</em>?</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex93',this)">Show solution</button></div><div class="rev-body" id="ex93"><p>The likelihood of the whole dataset, using independence:</p>
+  \[ L(\vw) = \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}}\exp\!\left(-\frac{(y_i-\vx_i^\top\vw)^2}{2\sigma^2}\right).\]
+  <p>Take logs — legal and argmax-preserving, by Lecture 2's theorem:</p>
+  \[ \log L(\vw) = -\frac{n}{2}\log(2\pi\sigma^2) \;-\; \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\vx_i^\top\vw)^2.\]
+  <p>The first term does not involve \(\vw\). Maximising over \(\vw\) therefore means maximising
+  \(-\frac{1}{2\sigma^2}\|\vy-\mX\vw\|^2\), i.e. <strong>minimising \(\|\vy-\mX\vw\|^2\)</strong> — the
+  least-squares objective, with \(\frac{1}{2\sigma^2}\) an irrelevant positive constant. ∎</p>
+
+  <p><strong>When squared error is wrong.</strong> The derivation used three assumptions, and squared error is
+  the wrong loss exactly when one of them fails:</p>
+  <ul>
+  <li><strong>Gaussian noise.</strong> The exponent's \(\epsilon^2\) is where the squaring comes from. Laplace
+  noise \(\propto e^{-|\epsilon|/b}\) gives \(\sum|r_i|\) instead — least <em>absolute</em> deviations, which is
+  robust to outliers precisely because it does not square them. If your data has heavy tails, squared error is
+  actively harmful: one outlier at distance 10 counts as much as a hundred at distance 1.</li>
+  <li><strong>Constant \(\sigma^2\)</strong> (homoscedasticity). If noise varies by observation, the
+  \(\frac{1}{2\sigma_i^2}\) does not factor out and you get <em>weighted</em> least squares, each residual
+  divided by its own variance.</li>
+  <li><strong>Independence.</strong> Correlated errors give \(\|\cdot\|^2\) replaced by a Mahalanobis norm
+  \(\vr^\top\mS^{-1}\vr\) — generalised least squares.</li>
+  </ul>
+  <p>And for classification, \(y\in\{0,1\}\) is not Gaussian at all. The corresponding derivation with a
+  Bernoulli likelihood produces cross-entropy, exactly as in Lecture 2. Every standard loss function is a
+  negative log-likelihood for some noise model; choosing a loss <em>is</em> choosing a noise model, whether or
+  not you realise it.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Investigate the bias–variance effect of ridge empirically.</p>
+  <ol>
+  <li>Generate 200 independent datasets of \(n=30\) points from
+  \(y=\mX\vw_{\text{true}}+\epsilon\) with \(d=20\) features and \(\sigma=1\).</li>
+  <li>For each \(\lambda\) on a log grid, fit ridge on each dataset and record the estimated \(\hat{\vw}\).</li>
+  <li>Compute, across the 200 fits: squared bias \(\|\E[\hat{\vw}]-\vw_{\text{true}}\|^2\), total variance
+  \(\sum_j\Var(\hat w_j)\), and mean squared error on a held-out test set.</li>
+  <li>Plot all three against \(\lambda\). Where is test error minimised, and does it coincide with minimum bias
+  or minimum variance?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex94',this)">Show solution</button></div><div class="rev-body" id="ex94"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+n, d, sigma, reps = 30, 20, 1.0, 200
+w_true = rng.normal(size=d)
+X  = rng.normal(size=(n, d))                  # fixed design
+Xt = rng.normal(size=(2000, d))               # test design
+yt = Xt @ w_true                              # noiseless test target
+
+lams = np.logspace(-3, 3, 40)
+rows = []
+for lam in lams:
+    W = np.empty((reps, d))
+    for r in range(reps):
+        y = X @ w_true + sigma*rng.normal(size=n)
+        W[r] = np.linalg.solve(X.T@X + lam*np.eye(d), X.T@y)
+    bias2 = np.sum((W.mean(0) - w_true)**2)
+    var   = np.sum(W.var(0))
+    test  = np.mean([(np.mean((Xt@w - yt)**2)) for w in W])
+    rows.append((lam, bias2, var, test))
+    print(f"lam={lam:9.4f}  bias^2={bias2:9.4f}  var={var:9.4f}  test MSE={test:9.4f}")
+
+best = min(rows, key=lambda r: r[3])
+print("\\nbest lambda:", best[0], " test MSE:", best[3])</code></pre>
+
+  <p><strong>What you will see.</strong> With \(n=30\) and \(d=20\), the design is badly under-determined and
+  the unregularised estimator is terrible.</p>
+  <ul>
+  <li><strong>Squared bias</strong> starts near zero at \(\lambda\to0\) (OLS is unbiased) and rises
+  monotonically — ridge shrinks towards \(\vzero\), and \(\vw_{\text{true}}\neq\vzero\).</li>
+  <li><strong>Variance</strong> starts enormous (hundreds, driven by the small eigenvalues of \(\mX^\top\mX\))
+  and falls monotonically towards zero.</li>
+  <li><strong>Test error</strong> is roughly bias² + variance + irreducible noise, so it is <strong>U-shaped</strong>,
+  with a minimum somewhere in the middle — typically \(\lambda\) of order 1 to 10 for these settings.</li>
+  </ul>
+  <p><strong>The answer to part 4:</strong> the optimum coincides with <em>neither</em>. Minimum bias is at
+  \(\lambda=0\); minimum variance is at \(\lambda=\infty\) (where the estimator is the constant \(\vzero\), with
+  zero variance and maximal bias). The best model deliberately accepts some bias to buy a larger reduction in
+  variance. That trade is the single most important idea in statistical learning, and it is why an unbiased
+  estimator is <em>not</em> automatically a good one.</p>
+  <p>Try re-running with \(n=500\): the variance term shrinks by roughly \(n\), the U-shape flattens, and the
+  optimal \(\lambda\) moves towards zero. More data reduces the need for regularisation — which is the same
+  statement as "regularisation substitutes for data you do not have".</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> we have been saying "\(\mX^\top\mX\) is positive semi-definite" and
+"\(\lambda\mI\) puts a floor under the eigenvalues" on credit. Lecture 11 introduces eigenvalues properly, and
+with them the spectral theorem, quadratic forms, condition numbers, and the multi-dimensional learning-rate
+bound.</p>
+<div class="pagenav"><a href="09-matrices-as-linear-maps.html" class="pv"><span class="dir">Previous</span><span class="nm">9 · Matrices as Linear Maps</span></a><a href="11-eigenvalues-quadratic-forms.html" class="nx"><span class="dir">Next</span><span class="nm">11 · Eigenvalues, Eigenvectors, and Quadratic Forms</span></a></div>
+</div>
+<script>initDone('10-least-squares');</script>
+</body>
+</html>

@@ -14,6 +14,15 @@ SESSIONS = [
         "note": "Actively taught this semester. Material is added as each lecture is delivered.",
     },
     {
+        "key": "open",
+        "name": "Open courses",
+        "period": "Self-paced",
+        "quiet": False,
+        "note": "Not tied to a semester or a timetable. Written to be worked through "
+                "alone, in order, by anyone who wants the mathematics as well as the "
+                "algorithms.",
+    },
+    {
         "key": "previous",
         "name": "Previous session",
         "period": "August 2025 – June 2026",
@@ -91,6 +100,21 @@ COURSES = [
                 "literature study and research ethics, technical writing and proposals, "
                 "and intellectual property and patents.",
         "meta": ["6 units", "2 unit notes", "4 lecture decks"],
+    },
+
+    # ---- Open ------------------------------------------------------------
+    {
+        "dir": "Machine Learning Foundations",
+        "title": "Machine Learning Foundations",
+        "code": "",
+        "field": "Mathematics &amp; ML",
+        "session": "open",
+        "status": "current",
+        "desc": "Machine learning from first principles, deriving every step rather "
+                "than quoting it: the functions, calculus, linear algebra and "
+                "probability it rests on, then the classical algorithms built on top. "
+                "Interactive lectures with editable Python that runs in the browser.",
+        "meta": ["2 of 4 phases", "26 lectures", "Self-paced"],
     },
 
     # ---- Previous session -------------------------------------------------
@@ -180,9 +204,6 @@ COURSES = [
      "field": "Core CS", "session": "archive", "status": "empty",
      "desc": "No material published yet.", "meta": []},
     {"dir": "Artificial Intelligence", "title": "Artificial Intelligence", "code": "",
-     "field": "Core CS", "session": "archive", "status": "empty",
-     "desc": "No material published yet.", "meta": []},
-    {"dir": "Machine Learning", "title": "Machine Learning", "code": "",
      "field": "Core CS", "session": "archive", "status": "empty",
      "desc": "No material published yet.", "meta": []},
 ]

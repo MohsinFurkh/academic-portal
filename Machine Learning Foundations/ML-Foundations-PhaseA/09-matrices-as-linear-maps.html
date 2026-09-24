@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>9. Matrices as Linear Maps — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 9 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('09-matrices-as-linear-maps')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part III — Linear Algebra · Lecture 9</div>
+  <h1>Matrices as Linear Maps</h1>
+  <p class="dek">A matrix is not a grid of numbers that you multiply by a strange rule. It is a linear function, written down. Once you see that, matrix multiplication stops being arbitrary — it is composition, and the shape rules are just Lecture 1's requirement that the codomain of one map match the domain of the next.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Define a linear map and prove every such map \(\RR^n\to\RR^m\) is a matrix</li><li>Read \(\mA\vx\) both as a stack of dot products and as a combination of columns</li><li>Derive the matrix multiplication formula from composition</li><li>Define rank, column space and null space, and connect rank deficiency to unidentifiable models</li><li>Debug shape errors and broadcasting bugs in NumPy on purpose</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lecture 8: vectors, span, independence, dot products</li><li>Lecture 1: composition of functions</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Linear maps</h2>
+<div class="box defn"><span class="lbl">Definition — linear map</span><p>A function \(T:\RR^n\to\RR^m\) is <strong>linear</strong> if
+for all \(\vu,\vv\in\RR^n\) and all \(\alpha,\beta\in\RR\),</p>
+\[ T(\alpha\vu + \beta\vv) = \alpha\,T(\vu) + \beta\,T(\vv). \]
+<p>Equivalently: \(T\) preserves addition and preserves scaling. Note the immediate consequence
+\(T(\vzero)=\vzero\) — take \(\alpha=\beta=0\).</p></div>
+<div class="box intuition"><span class="lbl">Intuition</span><p>Linear means <em>you can do the arithmetic before or after applying \(T\) and get the
+same answer</em>. Mix two inputs then transform, or transform each then mix — identical. That commuting
+property is what makes linear algebra computable at scale, and it is exactly what a neural network's
+nonlinearity deliberately destroys, because a composition of linear maps is just another linear map and would
+buy no expressive power at all.</p></div>
+<div class="deriv" id="d79"><div class="deriv-head"><span class="t">Every linear map ℝⁿ → ℝᵐ is a matrix</span><span class="ct">0 / 5</span></div><div class="dstep">\[\ve_1=\begin{bmatrix}1\\0\\\vdots\\0\end{bmatrix},\quad \ve_2=\begin{bmatrix}0\\1\\\vdots\\0\end{bmatrix},\quad\dots,\quad \ve_n\]<div class="why"><b>The standard basis.</b> \(\ve_j\) has a 1 in slot \(j\) and zeros elsewhere. These \(n\) vectors are independent and span \(\RR^n\) (Lecture 8), so every vector decomposes along them uniquely.</div></div><div class="dstep">\[\vx = \begin{bmatrix}x_1\\ \vdots\\ x_n\end{bmatrix} = x_1\ve_1 + x_2\ve_2+\cdots+x_n\ve_n\]<div class="why"><b>Coordinates ARE the coefficients.</b> This looks trivial and is the crux: the numbers in a column vector are precisely the coefficients of its expansion in the standard basis.</div></div><div class="dstep">\[T(\vx) = T\!\left(\sum_{j=1}^{n}x_j\ve_j\right) = \sum_{j=1}^{n}x_j\,T(\ve_j)\]<div class="why"><b>Apply linearity.</b> Pull the sum and the scalars out. This is the whole argument: <em>\(T\) is completely determined by what it does to the \(n\) basis vectors.</em> Everything else follows by linear combination. \(n\) vectors' worth of information determines a function on an infinite set.</div></div><div class="dstep">\[\mA = \Big[\; T(\ve_1) \;\Big|\; T(\ve_2) \;\Big|\;\cdots\;\Big|\; T(\ve_n)\;\Big] \in \RR^{m\times n}\]<div class="why"><b>Build the matrix.</b> Store those \(n\) output vectors as the <em>columns</em> of a matrix. Each is in \(\RR^m\), so the matrix is \(m\times n\): as many rows as the output dimension, as many columns as the input dimension. This is why the shape convention is what it is.</div></div><div class="dstep">\[T(\vx) = \sum_{j=1}^{n} x_j\,\big(\text{column } j \text{ of } \mA\big) \;=:\; \mA\vx\]<div class="why"><b>Define the matrix-vector product.</b> Matrix-vector multiplication is <em>defined</em> to be exactly this: a linear combination of the columns, weighted by the entries of \(\vx\). It was not invented arbitrarily — it is the only formula that makes \(\mA\) represent \(T\). ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d79')">Next step</button><button class="btn ghost" onclick="dall('d79')">Show all</button><button class="btn ghost" onclick="dreset('d79')">Reset</button></div></div>
+<h2 id="s2"><span class="secnum">2</span>Two ways to read Ax</h2>
+<p>The derivation gave the <em>column</em> picture. Writing out coordinates gives the <em>row</em>
+picture. Both are correct and you need both.</p>
+<p>\[\underbrace{\mA\vx = x_1\va_1 + x_2\va_2+\cdots+x_n\va_n}_{\textbf{column picture}}
+\qquad\qquad
+\underbrace{(\mA\vx)_i = \sum_{j} A_{ij}x_j = \text{row}_i(\mA)\cdot\vx}_{\textbf{row picture}}\]</p>
+<ul><li><strong>Column picture:</strong> \(\mA\vx\) is a linear combination of \(\mA\)'s columns. So the set of
+  all achievable outputs — the <em>image</em> of \(T\) — is exactly \(\operatorname{span}\) of the columns. This
+  is called the <strong>column space</strong>. Solving \(\mA\vx=\vb\) asks: <em>is \(\vb\) in the span of the
+  columns, and with what coefficients?</em></li><li><strong>Row picture:</strong> each output coordinate is a dot product of one row with the input. This is
+  the computational view, and the one that makes a neural network layer legible: row \(i\) of \(\mW\) is the
+  weight vector of neuron \(i\), and \((\mW\vx)_i\) is that neuron's pre-activation.</li></ul>
+<div class="fig"><div class="fig-head">A 2×2 matrix as a transformation of the plane<span class="tag">Interactive</span></div><canvas id="f9map" data-h="440"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>image of e₁ = first column</span><span><i style="background:var(--c5)"></i>image of e₂ = second column</span><span><i style="background:var(--c3)"></i>transformed grid</span><span><i style="background:var(--c2)"></i>a test vector and its image</span></div><div class="fig-read" id="f9map-read"></div><div class="ctrls"><div class="ctrl"><label>a  (A₁₁)</label><input type="range" min="-2" max="3" step="0.05" value="1.4" data-fmt="2" oninput="figSlide('f9map','a',this)"><output>1.40</output></div><div class="ctrl"><label>b  (A₁₂)</label><input type="range" min="-2" max="3" step="0.05" value="0.6" data-fmt="2" oninput="figSlide('f9map','b',this)"><output>0.60</output></div><div class="ctrl"><label>c  (A₂₁)</label><input type="range" min="-2" max="3" step="0.05" value="0.3" data-fmt="2" oninput="figSlide('f9map','c',this)"><output>0.30</output></div><div class="ctrl"><label>d  (A₂₂)</label><input type="range" min="-2" max="3" step="0.05" value="1.1" data-fmt="2" oninput="figSlide('f9map','d',this)"><output>1.10</output></div><div class="ctrl"><label>test vector x₁</label><input type="range" min="-2" max="2" step="0.05" value="1" data-fmt="2" oninput="figSlide('f9map','tx',this)"><output>1.00</output></div><div class="ctrl"><label>test vector x₂</label><input type="range" min="-2" max="2" step="0.05" value="0.5" data-fmt="2" oninput="figSlide('f9map','ty',this)"><output>0.50</output></div></div><div class="fig-cap">Faint grey is the original grid; green is where it lands. The two coloured arrows are the images of the standard basis vectors — read straight off as the COLUMNS of A. Every other point moves as the corresponding combination of them, which is the derivation above, made visible. Push the determinant towards zero (try a=1, b=2, c=0.5, d=1) and the whole plane collapses onto a line: the map is no longer invertible, and information has been destroyed.</div></div><script>makeFig("f9map",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,3.6);
+var A=[[p.a,p.b],[p.c,p.d]], det=A[0][0]*A[1][1]-A[0][1]*A[1][0];
+var cx=vp.ctx;
+// original grid, faint
+cx.save(); cx.globalAlpha=0.30;
+for(var k=-4;k<=4;k++){ vp.seg(k,-4,k,4,'--line2',{w:1}); vp.seg(-4,k,4,k,'--line2',{w:1}); }
+cx.restore();
+// transformed grid
+function T(x,y){return [A[0][0]*x+A[0][1]*y, A[1][0]*x+A[1][1]*y];}
+cx.save(); cx.globalAlpha=0.55; cx.strokeStyle=vp.css('--c3'); cx.lineWidth=1.2;
+for(var k=-4;k<=4;k++){
+  var p1=T(k,-4),p2=T(k,4); cx.beginPath();cx.moveTo(vp.X(p1[0]),vp.Y(p1[1]));cx.lineTo(vp.X(p2[0]),vp.Y(p2[1]));cx.stroke();
+  var q1=T(-4,k),q2=T(4,k); cx.beginPath();cx.moveTo(vp.X(q1[0]),vp.Y(q1[1]));cx.lineTo(vp.X(q2[0]),vp.Y(q2[1]));cx.stroke();
+}
+cx.restore();
+vp.axes({stepx:1,stepy:1});
+// unit square image, shaded => |det| is its area
+cx.save(); cx.globalAlpha=0.16; cx.fillStyle=vp.css(det>=0?'--c3':'--bad');
+var s0=T(0,0),s1=T(1,0),s2=T(1,1),s3=T(0,1);
+cx.beginPath(); cx.moveTo(vp.X(s0[0]),vp.Y(s0[1])); cx.lineTo(vp.X(s1[0]),vp.Y(s1[1]));
+cx.lineTo(vp.X(s2[0]),vp.Y(s2[1])); cx.lineTo(vp.X(s3[0]),vp.Y(s3[1])); cx.closePath(); cx.fill(); cx.restore();
+vp.arrow(0,0,A[0][0],A[1][0],'--c1',{w:3.2});
+vp.arrow(0,0,A[0][1],A[1][1],'--c5',{w:3.2});
+vp.label(A[0][0],A[1][0],'Ae₁','--c1',{halo:true,bold:true,dx:6});
+vp.label(A[0][1],A[1][1],'Ae₂','--c5',{halo:true,bold:true,dx:6});
+var v=[p.tx,p.ty], Tv=T(v[0],v[1]);
+vp.arrow(0,0,v[0],v[1],'--ink3',{w:2});
+vp.arrow(0,0,Tv[0],Tv[1],'--c2',{w:3});
+vp.label(Tv[0],Tv[1],'Ax','--c2',{halo:true,bold:true,dx:6,dy:-4});
+figRead('f9map','A = [['+p.a.toFixed(2)+', '+p.b.toFixed(2)+'], ['+p.c.toFixed(2)+', '+p.d.toFixed(2)+']]'
+ +' &nbsp;|&nbsp; x = ('+v[0].toFixed(2)+', '+v[1].toFixed(2)+') → Ax = (<b>'+Tv[0].toFixed(3)+', '+Tv[1].toFixed(3)+'</b>)'
+ +'<br>column picture: '+v[0].toFixed(2)+'·('+A[0][0].toFixed(2)+','+A[1][0].toFixed(2)+') + '
+ +v[1].toFixed(2)+'·('+A[0][1].toFixed(2)+','+A[1][1].toFixed(2)+')'
+ +' &nbsp;|&nbsp; det A = <b>'+det.toFixed(4)+'</b> = signed area of the shaded image of the unit square &nbsp;'
+ +(Math.abs(det)<0.02?'<b style="color:var(--bad)">≈ 0 → rank 1, plane collapsed to a line, NOT invertible</b>'
+   :(det<0?'<span style="color:var(--c2)">negative → orientation flipped</span>':'<span style="color:var(--ok)">rank 2, invertible</span>')));
+},[{"name": "a", "label": "a  (A\u2081\u2081)", "min": -2, "max": 3, "step": 0.05, "value": 1.4, "dp": 2}, {"name": "b", "label": "b  (A\u2081\u2082)", "min": -2, "max": 3, "step": 0.05, "value": 0.6, "dp": 2}, {"name": "c", "label": "c  (A\u2082\u2081)", "min": -2, "max": 3, "step": 0.05, "value": 0.3, "dp": 2}, {"name": "d", "label": "d  (A\u2082\u2082)", "min": -2, "max": 3, "step": 0.05, "value": 1.1, "dp": 2}, {"name": "tx", "label": "test vector x\u2081", "min": -2, "max": 2, "step": 0.05, "value": 1, "dp": 2}, {"name": "ty", "label": "test vector x\u2082", "min": -2, "max": 2, "step": 0.05, "value": 0.5, "dp": 2}]);window["FIG_f9map"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>Matrix multiplication is composition</h2>
+<p>Now the formula that looks arbitrary until you see where it comes from. Apply \(\mB\) then
+\(\mA\). By Lecture 1 that is the composition \(\mA\circ\mB\), and it is again linear (check: it preserves
+combinations because each factor does). So it must be a matrix. Which one?</p>
+<div class="deriv" id="d80"><div class="deriv-head"><span class="t">Deriving (AB)ᵢⱼ = Σₖ Aᵢₖ Bₖⱼ</span><span class="ct">0 / 5</span></div><div class="dstep">\[\mB\in\RR^{p\times n},\qquad \mA\in\RR^{m\times p}, \qquad \mA\circ\mB : \RR^{n}\to\RR^{m}\]<div class="why"><b>Shapes first.</b> \(\mB\) eats an \(n\)-vector and produces a \(p\)-vector; \(\mA\) eats a \(p\)-vector and produces an \(m\)-vector. For the pipeline to type-check, \(\mB\)'s output dimension must equal \(\mA\)'s input dimension — both \(p\). <em>This is why the inner dimensions must match.</em> It is Lecture 1's codomain-meets-domain condition, nothing more.</div></div><div class="dstep">\[\text{column } j \text{ of } \mA\mB \;=\; (\mA\mB)\ve_j \;=\; \mA\big(\mB\ve_j\big)\]<div class="why"><b>Use the column characterisation.</b> From the previous derivation, the \(j\)-th column of any matrix is what it does to \(\ve_j\). And applying the composition to \(\ve_j\) means applying \(\mB\) first.</div></div><div class="dstep">\[\mB\ve_j = \text{column } j \text{ of } \mB \;=\; \vb_j\]<div class="why"><b>Same fact applied to B.</b> Multiplying by \(\ve_j\) selects column \(j\) — read it off the column picture: the combination has coefficient 1 on column \(j\) and 0 everywhere else.</div></div><div class="dstep">\[\text{column } j \text{ of } \mA\mB = \mA\vb_j\]<div class="why"><b>So the rule is: apply A to each column of B.</b> That single sentence is matrix multiplication, and it is worth remembering in preference to the index formula.</div></div><div class="dstep">\[(\mA\vb_j)_i = \sum_{k=1}^{p} A_{ik}\,(\vb_j)_k = \sum_{k=1}^{p} A_{ik}B_{kj}\]<div class="why"><b>Write it in coordinates.</b> Entry \(i\) of \(\mA\vb_j\) is the dot product of row \(i\) of \(\mA\) with \(\vb_j\) (row picture), and \((\vb_j)_k = B_{kj}\). ∎ The famous index formula falls out; it was never a definition, it was a consequence.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d80')">Next step</button><button class="btn ghost" onclick="dall('d80')">Show all</button><button class="btn ghost" onclick="dreset('d80')">Reset</button></div></div>
+<div class="quiz" id="q81"><div class="qlbl">Check yourself</div><div class="qq">Why is \(\mA\mB \neq \mB\mA\) in general — even when both products are defined and the same size?</div><button class="qopt" data-ok="1" onclick="pick('q81',0,true)">Because matrix multiplication represents function composition, and composing functions in a different order gives a different function.</button><button class="qopt" data-ok="0" onclick="pick('q81',1,false)">Because the shapes usually do not match.</button><button class="qopt" data-ok="0" onclick="pick('q81',2,false)">Because of floating point rounding.</button><div class="qwhy" data-i="0"><b>Correct.</b> Exactly. This is Lecture 1's quiz reappearing: \((g\circ f)\neq(f\circ g)\) for \(f(x)=ax+b\),
+    \(g(u)=u^2\). Matrices inherit that non-commutativity because they <em>are</em> functions.<br><br>
+    A concrete geometric example: let \(\mR\) rotate the plane by \(90^\circ\) and \(\mS\) scale only the
+    \(x\)-axis by 2. Rotate-then-stretch stretches what used to be the \(y\)-axis; stretch-then-rotate stretches
+    what is still the \(x\)-axis. Different outcomes, visibly.<br><br>
+    This matters practically: in a network, \(\mW_2\mW_1\vx\) and \(\mW_1\mW_2\vx\) are different models, and
+    the order of layers is a real architectural choice, not a formatting one.</div><div class="qwhy" data-i="1"><b>Not quite.</b> Shape mismatch is a separate issue — and the question explicitly assumes both products exist and
+    have the same size, as happens whenever \(\mA\) and \(\mB\) are both \(n\times n\). Even then they generally
+    differ. Try \(\mA=\begin{bmatrix}1&1\\0&1\end{bmatrix}\), \(\mB=\begin{bmatrix}1&0\\1&1\end{bmatrix}\):
+    \(\mA\mB=\begin{bmatrix}2&1\\1&1\end{bmatrix}\) but \(\mB\mA=\begin{bmatrix}1&1\\1&2\end{bmatrix}\).</div><div class="qwhy" data-i="2"><b>Not quite.</b> This is exact mathematics, not numerics. The two products differ symbolically, with integer
+    entries and no rounding anywhere. (Floating-point non-associativity is a real and separate phenomenon —
+    \((a+b)+c \neq a+(b+c)\) in float — but it is not what is happening here.)</div></div>
+<div class="fig"><div class="fig-head">Order matters: rotate-then-shear vs shear-then-rotate<span class="tag">Interactive</span></div><canvas id="f9comp" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>original unit square</span><span><i style="background:var(--c5)"></i>A then B</span><span><i style="background:var(--c2)"></i>B then A</span></div><div class="fig-read" id="f9comp-read"></div><div class="ctrls"><div class="ctrl"><label>rotation angle (degrees)</label><input type="range" min="0" max="180" step="1" value="40" data-fmt="0" oninput="figSlide('f9comp','th',this)"><output>40</output></div><div class="ctrl"><label>shear amount</label><input type="range" min="-2" max="2" step="0.05" value="1.0" data-fmt="2" oninput="figSlide('f9comp','sh',this)"><output>1.00</output></div></div><div class="fig-cap">Both purple and orange shapes are built from the SAME two matrices — a rotation and a shear — applied in opposite orders. They are congruent only by coincidence (at shear = 0 or angle = 0). Everywhere else they differ, which is what AB ≠ BA looks like.</div></div><script>makeFig("f9comp",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0.4,0.4,2.6);
+vp.axes({stepx:1,stepy:1});
+var t=p.th*Math.PI/180, k=p.sh;
+var R=[[Math.cos(t),-Math.sin(t)],[Math.sin(t),Math.cos(t)]];
+var S=[[1,k],[0,1]];
+function mul(M,N){return [[M[0][0]*N[0][0]+M[0][1]*N[1][0], M[0][0]*N[0][1]+M[0][1]*N[1][1]],
+                          [M[1][0]*N[0][0]+M[1][1]*N[1][0], M[1][0]*N[0][1]+M[1][1]*N[1][1]]];}
+var SR=mul(S,R), RS=mul(R,S);
+var sq=[[0,0],[1,0],[1,1],[0,1]];
+function poly(M,col,al,w){
+  var c=vp.ctx; c.save(); c.beginPath();
+  for(var i=0;i<4;i++){ var x=M[0][0]*sq[i][0]+M[0][1]*sq[i][1], y=M[1][0]*sq[i][0]+M[1][1]*sq[i][1];
+    if(i===0)c.moveTo(vp.X(x),vp.Y(y)); else c.lineTo(vp.X(x),vp.Y(y)); }
+  c.closePath(); c.globalAlpha=al; c.fillStyle=vp.css(col); c.fill();
+  c.globalAlpha=1; c.strokeStyle=vp.css(col); c.lineWidth=w; c.stroke(); c.restore();
+}
+poly([[1,0],[0,1]],'--c1',0.10,2);
+poly(SR,'--c5',0.18,2.6);
+poly(RS,'--c2',0.18,2.6);
+function fmt(M){return '[['+M[0][0].toFixed(2)+', '+M[0][1].toFixed(2)+'], ['+M[1][0].toFixed(2)+', '+M[1][1].toFixed(2)+']]';}
+var diff=Math.abs(SR[0][0]-RS[0][0])+Math.abs(SR[0][1]-RS[0][1])+Math.abs(SR[1][0]-RS[1][0])+Math.abs(SR[1][1]-RS[1][1]);
+figRead('f9comp','S·R (rotate first) = <b>'+fmt(SR)+'</b><br>R·S (shear first) = <b>'+fmt(RS)+'</b>'
+ +'<br>total absolute difference = <b>'+diff.toFixed(4)+'</b> '
+ +(diff<1e-9?'<span style="color:var(--ink3)">— they happen to coincide here</span>'
+            :'<b style="color:var(--bad)">→ different matrices, different models</b>')
+ +' &nbsp;|&nbsp; both have det = '+(SR[0][0]*SR[1][1]-SR[0][1]*SR[1][0]).toFixed(3)+' (rotation and shear each preserve area)');
+},[{"name": "th", "label": "rotation angle (degrees)", "min": 0, "max": 180, "step": 1, "value": 40, "dp": 0}, {"name": "sh", "label": "shear amount", "min": -2, "max": 2, "step": 0.05, "value": 1.0, "dp": 2}]);window["FIG_f9comp"].run();</script>
+<h2 id="s4"><span class="secnum">4</span>Rank, column space, null space</h2>
+<div class="box defn"><span class="lbl">Definition — the four words you need</span><p>For \(\mA\in\RR^{m\times n}\):</p>
+<ul>
+<li><strong>Column space</strong> \(\mathcal{C}(\mA)=\{\mA\vx : \vx\in\RR^n\} = \operatorname{span}\) of the
+columns. A subspace of \(\RR^m\). This is the image of the map.</li>
+<li><strong>Null space</strong> \(\mathcal{N}(\mA)=\{\vx : \mA\vx=\vzero\}\). A subspace of \(\RR^n\). These are
+the inputs the map annihilates.</li>
+<li><strong>Rank</strong> \(\rank(\mA) = \dim\mathcal{C}(\mA)\) = the number of independent columns. It also
+equals the number of independent rows, which is a small miracle worth pausing on.</li>
+<li><strong>Rank–nullity theorem:</strong> \(\;\rank(\mA) + \dim\mathcal{N}(\mA) = n\). Dimensions you keep plus
+dimensions you destroy equals dimensions you started with.</li>
+</ul></div>
+<p>Now connect this to Lecture 1. A map is injective exactly when nothing but \(\vzero\) is sent to
+\(\vzero\) — i.e. when \(\mathcal{N}(\mA)=\{\vzero\}\). It is surjective onto \(\RR^m\) exactly when
+\(\mathcal{C}(\mA)=\RR^m\). An \(n\times n\) matrix is invertible exactly when both hold, which by rank–nullity
+happens exactly when \(\rank=n\), which happens exactly when \(\det\mA\neq0\). All those conditions are the same
+condition.</p>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p><strong>Why rank deficiency ruins a regression.</strong> Suppose your design matrix \(\mX\)
+has two perfectly correlated features — say <code>height_cm</code> and <code>height_m</code>. Then one column is
+100 times the other, the columns are dependent, and \(\rank(\mX)&lt;d\).</p>
+<p>Consequences, all the same fact in different clothes:</p>
+<ul>
+<li>\(\mathcal{N}(\mX)\) contains a nonzero \(\vv\) — here \(\vv\) with \(+1\) on one feature and \(-100\) on the
+other. So \(\mX(\vw+\vv)=\mX\vw\): two <em>different</em> weight vectors give <em>identical</em> predictions.
+The model is <strong>unidentifiable</strong>.</li>
+<li>\(\mX^\top\mX\) is singular, so the normal equations of Lecture 10 have no unique solution and
+<code>np.linalg.inv</code> either fails or returns garbage.</li>
+<li>Even <em>near</em>-dependence is bad: the matrix becomes ill-conditioned, the fitted coefficients become
+enormous and unstable, and tiny changes in the data swing them wildly. This is <em>multicollinearity</em>.</li>
+<li>Ridge regression fixes it by solving \((\mX^\top\mX+\lambda\mI)^{-1}\), which is invertible for any
+\(\lambda>0\). We prove that in Lecture 11 using eigenvalues, and it is the linear-algebra reason regularisation
+works.</li>
+</ul></div>
+<h2 id="s5"><span class="secnum">5</span>Matrices in NumPy: shapes, and the mistakes to make on purpose</h2>
+<div class="pyb" id="py82" data-orig="import numpy as np
+
+A = np.array([[1., 2.],
+              [3., 4.],
+              [5., 6.]])          # 3x2  : a map from R^2 to R^3
+x = np.array([1., -1.])           # a vector in R^2
+
+print(&quot;A.shape =&quot;, A.shape, &quot;  x.shape =&quot;, x.shape)
+print(&quot;A @ x   =&quot;, A @ x, &quot;  shape&quot;, (A @ x).shape, &quot; -&gt; lands in R^3&quot;)
+print()
+
+print(&quot;ROW picture -- each output is a dot product with a row:&quot;)
+for i in range(3):
+    print(f&quot;   row {i} = {A[i]}  .  {x}  =  {A[i] @ x}&quot;)
+print()
+print(&quot;COLUMN picture -- output is a combination of columns:&quot;)
+print(f&quot;   {x[0]} * {A[:,0]}  +  {x[1]} * {A[:,1]}  =  {x[0]*A[:,0] + x[1]*A[:,1]}&quot;)
+print()
+
+# ---- composition ----
+B = np.array([[0., -1.],
+              [1.,  0.]])         # rotate 90 degrees, 2x2
+print(&quot;A @ B shape:&quot;, (A @ B).shape, &quot; (3x2 @ 2x2 -&gt; 3x2)&quot;)
+print(&quot;check: (A@B)@x == A@(B@x) ?&quot;, np.allclose((A @ B) @ x, A @ (B @ x)))
+print(&quot;  -&gt; matrix multiplication is associative BECAUSE composition is&quot;)
+print()
+
+# ---- the classic bug ----
+print(&quot;--- THE BUG THAT COSTS EVERYONE A DAY ---&quot;)
+M = np.array([[1., 2.], [3., 4.]])
+print(&quot;M * M   (elementwise!) =\n&quot;, M * M)
+print(&quot;M @ M   (matrix mult)  =\n&quot;, M @ M)
+print(&quot;These are DIFFERENT operations. * is Hadamard, @ is matmul.&quot;)
+print()
+
+# ---- broadcasting: silent wrong answers ----
+print(&quot;--- BROADCASTING: no error, wrong answer ---&quot;)
+col = np.array([[1.], [2.], [3.]])     # shape (3,1)
+row = np.array([10., 20., 30.])        # shape (3,)
+print(&quot;col.shape&quot;, col.shape, &quot; row.shape&quot;, row.shape)
+print(&quot;col + row  gives shape&quot;, (col + row).shape, &quot;-- a 3x3 OUTER sum, probably not what you wanted:&quot;)
+print(col + row)
+print()
+print(&quot;If you meant elementwise, make the shapes agree:&quot;)
+print(&quot;col.ravel() + row =&quot;, col.ravel() + row)
+print()
+print(&quot;Rule: a length-n 1-D array is NOT a column vector. Print .shape when confused.&quot;)
+print()
+
+# ---- rank and the null space ----
+print(&quot;--- RANK DEFICIENCY ---&quot;)
+X_good = np.array([[1., 0.5], [2., 1.5], [3., 1.0], [4., 2.5]])
+X_bad  = np.column_stack([X_good[:,0], 100*X_good[:,0]])   # height_m and height_cm
+
+for name, X in [(&quot;independent columns&quot;, X_good), (&quot;duplicated feature&quot;, X_bad)]:
+    XtX = X.T @ X
+    print(f&quot;{name:22s} rank(X) = {np.linalg.matrix_rank(X)}&quot;
+          f&quot;   det(X^T X) = {np.linalg.det(XtX):12.4e}&quot;
+          f&quot;   cond = {np.linalg.cond(XtX):.3e}&quot;)
+
+v = np.array([100., -1.])      # a null vector of X_bad
+print()
+print(&quot;X_bad @ [100, -1] =&quot;, X_bad @ v, &quot; &lt;- exactly zero: this direction is invisible&quot;)
+w = np.array([0.3, 0.01])
+print(&quot;X_bad @ w         =&quot;, X_bad @ w)
+print(&quot;X_bad @ (w + v/1000) =&quot;, X_bad @ (w + v/1000), &quot; &lt;- SAME predictions, different weights&quot;)
+print(&quot;The model cannot distinguish these parameter vectors. That is unidentifiability.&quot;)
+"><div class="pyb-head"><span class="t">Everything about shapes, including the bugs</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py82')">Run</button><button class="btn ghost" onclick="resetPy('py82')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+
+A = np.array([[1., 2.],
+              [3., 4.],
+              [5., 6.]])          # 3x2  : a map from R^2 to R^3
+x = np.array([1., -1.])           # a vector in R^2
+
+print(&quot;A.shape =&quot;, A.shape, &quot;  x.shape =&quot;, x.shape)
+print(&quot;A @ x   =&quot;, A @ x, &quot;  shape&quot;, (A @ x).shape, &quot; -&gt; lands in R^3&quot;)
+print()
+
+print(&quot;ROW picture -- each output is a dot product with a row:&quot;)
+for i in range(3):
+    print(f&quot;   row {i} = {A[i]}  .  {x}  =  {A[i] @ x}&quot;)
+print()
+print(&quot;COLUMN picture -- output is a combination of columns:&quot;)
+print(f&quot;   {x[0]} * {A[:,0]}  +  {x[1]} * {A[:,1]}  =  {x[0]*A[:,0] + x[1]*A[:,1]}&quot;)
+print()
+
+# ---- composition ----
+B = np.array([[0., -1.],
+              [1.,  0.]])         # rotate 90 degrees, 2x2
+print(&quot;A @ B shape:&quot;, (A @ B).shape, &quot; (3x2 @ 2x2 -&gt; 3x2)&quot;)
+print(&quot;check: (A@B)@x == A@(B@x) ?&quot;, np.allclose((A @ B) @ x, A @ (B @ x)))
+print(&quot;  -&gt; matrix multiplication is associative BECAUSE composition is&quot;)
+print()
+
+# ---- the classic bug ----
+print(&quot;--- THE BUG THAT COSTS EVERYONE A DAY ---&quot;)
+M = np.array([[1., 2.], [3., 4.]])
+print(&quot;M * M   (elementwise!) =\n&quot;, M * M)
+print(&quot;M @ M   (matrix mult)  =\n&quot;, M @ M)
+print(&quot;These are DIFFERENT operations. * is Hadamard, @ is matmul.&quot;)
+print()
+
+# ---- broadcasting: silent wrong answers ----
+print(&quot;--- BROADCASTING: no error, wrong answer ---&quot;)
+col = np.array([[1.], [2.], [3.]])     # shape (3,1)
+row = np.array([10., 20., 30.])        # shape (3,)
+print(&quot;col.shape&quot;, col.shape, &quot; row.shape&quot;, row.shape)
+print(&quot;col + row  gives shape&quot;, (col + row).shape, &quot;-- a 3x3 OUTER sum, probably not what you wanted:&quot;)
+print(col + row)
+print()
+print(&quot;If you meant elementwise, make the shapes agree:&quot;)
+print(&quot;col.ravel() + row =&quot;, col.ravel() + row)
+print()
+print(&quot;Rule: a length-n 1-D array is NOT a column vector. Print .shape when confused.&quot;)
+print()
+
+# ---- rank and the null space ----
+print(&quot;--- RANK DEFICIENCY ---&quot;)
+X_good = np.array([[1., 0.5], [2., 1.5], [3., 1.0], [4., 2.5]])
+X_bad  = np.column_stack([X_good[:,0], 100*X_good[:,0]])   # height_m and height_cm
+
+for name, X in [(&quot;independent columns&quot;, X_good), (&quot;duplicated feature&quot;, X_bad)]:
+    XtX = X.T @ X
+    print(f&quot;{name:22s} rank(X) = {np.linalg.matrix_rank(X)}&quot;
+          f&quot;   det(X^T X) = {np.linalg.det(XtX):12.4e}&quot;
+          f&quot;   cond = {np.linalg.cond(XtX):.3e}&quot;)
+
+v = np.array([100., -1.])      # a null vector of X_bad
+print()
+print(&quot;X_bad @ [100, -1] =&quot;, X_bad @ v, &quot; &lt;- exactly zero: this direction is invisible&quot;)
+w = np.array([0.3, 0.01])
+print(&quot;X_bad @ w         =&quot;, X_bad @ w)
+print(&quot;X_bad @ (w + v/1000) =&quot;, X_bad @ (w + v/1000), &quot; &lt;- SAME predictions, different weights&quot;)
+print(&quot;The model cannot distinguish these parameter vectors. That is unidentifiability.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s6"><span class="secnum">6</span>A neural network layer, in these terms</h2>
+<p>A fully connected layer is</p>
+<p>\[\vh = \sigma\big(\mW\vx + \vb\big), \qquad \mW\in\RR^{h\times d},\ \vx\in\RR^{d},\ \vb\in\RR^{h}.\]</p>
+<ul><li>\(\mW\vx\) is a linear map \(\RR^d\to\RR^h\). Row \(i\) is neuron \(i\)'s weights; \(\rank(\mW)\le\min(d,h)\) bounds how much information can pass through.</li><li>Adding \(\vb\) makes it <em>affine</em>, not linear — \(T(\vzero)=\vb\neq\vzero\). Affine maps are linear maps plus a translation, and the distinction matters when you read theorems.</li><li>\(\sigma\) is applied elementwise and is <em>non</em>linear. Without it, stacking layers gives \(\mW_2\mW_1\vx\), which is just another matrix — a deep linear network has exactly the expressive power of a single layer. The nonlinearity is not a detail; it is the entire reason depth helps.</li><li>In practice you process a batch: \(\mX\in\RR^{B\times d}\) with samples as rows, and the layer is
+  <code>X @ W.T + b</code>, shape \((B,h)\). Now you can see why frameworks store weights as \((h,d)\) and
+  transpose — it keeps the mathematical convention \(\mW\vx\) while letting the data stay row-major.</li></ul>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Let \(\mA=\begin{bmatrix}2&1\\0&3\end{bmatrix}\), \(\mB=\begin{bmatrix}1&-1\\2&0\end{bmatrix}\).</p>
+  <ol><li>Compute \(\mA\mB\) and \(\mB\mA\) and confirm they differ.</li>
+  <li>Compute \(\mA\vx\) for \(\vx=(1,2)\), both by rows and by columns, and check they agree.</li>
+  <li>Compute \(\det\mA\), \(\det\mB\), \(\det(\mA\mB)\). What relationship do you observe?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex83',this)">Show solution</button></div><div class="rev-body" id="ex83"><p><strong>1.</strong>
+  \(\mA\mB = \begin{bmatrix}2(1)+1(2) & 2(-1)+1(0)\\ 0(1)+3(2) & 0(-1)+3(0)\end{bmatrix}
+   = \begin{bmatrix}4&-2\\6&0\end{bmatrix}\).<br>
+  \(\mB\mA = \begin{bmatrix}1(2)+(-1)(0) & 1(1)+(-1)(3)\\ 2(2)+0 & 2(1)+0\end{bmatrix}
+   = \begin{bmatrix}2&-2\\4&2\end{bmatrix}\). Different ✓.</p>
+
+  <p><strong>2.</strong> Rows: \((2\cdot1+1\cdot2,\ 0\cdot1+3\cdot2) = (4,6)\).<br>
+  Columns: \(1\begin{bmatrix}2\\0\end{bmatrix}+2\begin{bmatrix}1\\3\end{bmatrix}
+   = \begin{bmatrix}2\\0\end{bmatrix}+\begin{bmatrix}2\\6\end{bmatrix}=\begin{bmatrix}4\\6\end{bmatrix}\) ✓.</p>
+
+  <p><strong>3.</strong> \(\det\mA = 6-0 = 6\). \(\det\mB = 0-(-2) = 2\).
+  \(\det(\mA\mB) = 4(0)-(-2)(6) = 12 = 6\times2\) ✓.<br>
+  The relationship is \(\det(\mA\mB)=\det\mA\cdot\det\mB\), and it has a clean geometric reading: determinant
+  is the factor by which area is scaled, and applying two maps in sequence multiplies the scalings. It also
+  immediately explains why a product is singular if <em>either</em> factor is: destroy a dimension once and no
+  later map can restore it.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that a linear map \(T:\RR^n\to\RR^m\) is injective if and only if
+  \(\mathcal{N}(\mA)=\{\vzero\}\), where \(\mA\) is its matrix.</p>
+  <p>Then use rank–nullity to show that a linear map \(\RR^n\to\RR^m\) with \(n>m\) can <em>never</em> be
+  injective, and interpret that for dimensionality reduction.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex84',this)">Show solution</button></div><div class="rev-body" id="ex84"><p><strong>(⟸)</strong> Suppose \(\mathcal{N}(\mA)=\{\vzero\}\) and \(\mA\vu=\mA\vv\). Then by
+  linearity \(\mA(\vu-\vv)=\vzero\), so \(\vu-\vv\in\mathcal{N}(\mA)=\{\vzero\}\), so \(\vu=\vv\). That is
+  injectivity, in exactly the form from Lecture 1.</p>
+  <p><strong>(⟹)</strong> Suppose \(T\) is injective and take \(\vx\in\mathcal{N}(\mA)\), so \(\mA\vx=\vzero\).
+  But also \(\mA\vzero=\vzero\) (every linear map sends zero to zero). Two inputs with the same output, so
+  injectivity forces \(\vx=\vzero\). ∎</p>
+  <p><em>Note how much simpler this is than for a general function: for a linear map you only have to check one
+  point, the origin. That is a genuine gift of linearity.</em></p>
+
+  <p><strong>Rank–nullity consequence.</strong> \(\rank(\mA)+\dim\mathcal{N}(\mA)=n\). Since
+  \(\mathcal{C}(\mA)\subseteq\RR^m\) we have \(\rank(\mA)\le m\). Therefore</p>
+  \[\dim\mathcal{N}(\mA) = n - \rank(\mA) \ge n-m > 0 \quad\text{when } n>m.\]
+  <p>A positive-dimensional null space contains nonzero vectors, so \(T\) is not injective. ∎</p>
+  <p><strong>Interpretation.</strong> Any linear dimensionality reduction from \(\RR^n\) to \(\RR^m\) with
+  \(m&lt;n\) <em>must</em> lose information: there is a subspace of dimension at least \(n-m\) that gets crushed to
+  zero and can never be recovered. PCA does not evade this; it chooses <em>which</em> \(n-m\) dimensions to
+  destroy, picking the ones carrying least variance. Autoencoders do not evade it either — they escape only by
+  being nonlinear, so that the "subspace" being preserved can be a curved manifold rather than a flat
+  subspace.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Show that the composition of two linear maps is linear, directly from the definition. Then explain
+  in one paragraph why this means a neural network without activation functions has exactly the expressive power
+  of a single linear layer, no matter how deep.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex85',this)">Show solution</button></div><div class="rev-body" id="ex85"><p>Let \(S,T\) be linear. For any \(\vu,\vv\) and scalars \(\alpha,\beta\):</p>
+  \[(S\circ T)(\alpha\vu+\beta\vv) = S\big(T(\alpha\vu+\beta\vv)\big)
+    = S\big(\alpha T(\vu)+\beta T(\vv)\big)
+    = \alpha S(T(\vu)) + \beta S(T(\vv))\]
+  \[= \alpha (S\circ T)(\vu) + \beta (S\circ T)(\vv).\]
+  <p>The second equality used linearity of \(T\); the third used linearity of \(S\). ∎ (Same peeling pattern as
+  the injectivity-of-composition proof in Lecture 1.)</p>
+  <p><strong>Consequence for depth.</strong> An \(L\)-layer network with no activation computes
+  \(\vy=\mW_L\mW_{L-1}\cdots\mW_1\vx\). By the above, the composition is linear, so it equals \(\mW\vx\) for the
+  single matrix \(\mW=\mW_L\cdots\mW_1\). Whatever function the deep stack computes, one layer of the right
+  shape computes it too. Worse, \(\rank(\mW)\le\min_\ell \rank(\mW_\ell)\), so depth can only <em>reduce</em>
+  the achievable rank — a hundred layers buys strictly nothing and risks a bottleneck.</p>
+  <p>Adding biases makes it affine rather than linear, but the same collapse happens: a composition of affine
+  maps is affine. The nonlinearity is the only thing standing between "deep network" and "one matrix".</p>
+  <p><em>Caveat worth knowing:</em> deep linear networks are still studied, because although their
+  <em>expressivity</em> is that of one layer, their <em>optimisation dynamics</em> are different and
+  surprisingly informative. Expressive power and trainability are separate questions.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Implement matrix multiplication three ways and compare correctness and
+  speed on \(512\times512\) matrices:</p>
+  <ol><li>Triple nested Python loop, using the index formula.</li>
+  <li>Column-by-column, using <code>A @ b_j</code> for each column of \(\mB\) — the derivation's own
+  formulation.</li>
+  <li><code>A @ B</code>.</li></ol>
+  <p>Then explain the speed gap. What is BLAS actually doing that your loop is not?</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex86',this)">Show solution</button></div><div class="rev-body" id="ex86"><pre style="overflow-x:auto"><code>import numpy as np, time
+rng = np.random.default_rng(0)
+n = 512
+A, B = rng.normal(size=(n,n)), rng.normal(size=(n,n))
+
+def mm_loops(A, B):                       # only run this on a smaller n!
+    m, p = A.shape; p2, q = B.shape
+    C = np.zeros((m, q))
+    for i in range(m):
+        for j in range(q):
+            s = 0.0
+            for k in range(p): s += A[i,k]*B[k,j]
+            C[i,j] = s
+    return C
+
+def mm_cols(A, B):
+    return np.column_stack([A @ B[:, j] for j in range(B.shape[1])])
+
+for name, f, size in [("triple loop", mm_loops, 128),
+                      ("column-wise", mm_cols, n),
+                      ("A @ B",       lambda A,B: A@B, n)]:
+    a, b = A[:size,:size], B[:size,:size]
+    t0 = time.perf_counter(); C = f(a, b); t1 = time.perf_counter()
+    print(f"{name:12s} n={size:4d}  {(t1-t0)*1000:9.1f} ms  "
+          f"max err {np.abs(C - a@b).max():.2e}")</code></pre>
+  <p><strong>Typical result.</strong> All three agree to about \(10^{-13}\) — the small discrepancy is
+  floating-point summation order, not a bug. Timings: the triple loop takes on the order of a second at
+  \(n=128\); the column-wise version takes a few milliseconds at \(n=512\); <code>A @ B</code> takes a few
+  milliseconds too but does \(64\times\) more work than the \(n=128\) loop. Extrapolated to the same size, the
+  gap between the pure-Python loop and BLAS is typically three to four orders of magnitude.</p>
+
+  <p><strong>Why.</strong> Four things, roughly in order of importance:</p>
+  <ol>
+  <li><strong>No interpreter overhead.</strong> The loop executes \(2n^3 \approx 2.7\times10^8\) Python
+  bytecode operations, each involving object allocation and type dispatch. BLAS runs compiled machine code.</li>
+  <li><strong>Cache blocking.</strong> The naive loop walks \(\mB\) down a column, striding \(n\) floats between
+  accesses — a cache miss almost every time. BLAS partitions the matrices into tiles that fit in L1/L2 cache
+  and reuses each loaded tile many times. On modern hardware, matrix multiplication is memory-bound before it
+  is compute-bound, and this is the dominant fix.</li>
+  <li><strong>SIMD vectorisation.</strong> AVX-512 or NEON instructions perform 8–16 multiply-accumulates per
+  cycle per core.</li>
+  <li><strong>Multithreading.</strong> BLAS splits the work across cores automatically.</li>
+  </ol>
+  <p><strong>The lesson for ML.</strong> This is why everything in deep learning is expressed as matrix
+  multiplication even when another formulation would be more natural. A GPU is, to a first approximation, a
+  machine for doing exactly this operation, and an algorithm that cannot be written as dense linear algebra is
+  an algorithm that cannot use the hardware. That constraint has shaped the field's architectures at least as
+  much as any mathematical consideration.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> we solve \(\mA\vx=\vb\) when it has no solution — which is the usual
+situation with real data, and whose answer is the least-squares estimator. Lecture 8's projection formula is
+about to become a matrix.</p>
+<div class="pagenav"><a href="08-vectors-span-geometry.html" class="pv"><span class="dir">Previous</span><span class="nm">8 · Vectors, Span, and Geometry</span></a><a href="10-least-squares.html" class="nx"><span class="dir">Next</span><span class="nm">10 · Least Squares and the Normal Equations</span></a></div>
+</div>
+<script>initDone('09-matrices-as-linear-maps');</script>
+</body>
+</html>

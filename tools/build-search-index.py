@@ -11,6 +11,7 @@ Run after adding material:   python3 tools/build-search-index.py
 import json
 import os
 import re
+import subprocess
 import sys
 
 from bs4 import BeautifulSoup
@@ -61,7 +62,13 @@ def clean(s):
     return re.sub(r"\s+", " ", (s or "")).strip()
 
 
+PHASE = re.compile(r"ML-Foundations-Phase([AB])")
+
+
 def unit_of(rel):
+    m = PHASE.search(rel)
+    if m:
+        return f"Phase {m.group(1)}"
     """The 'Unit III' style folder a file sits in, if any."""
     for part in rel.split(os.sep)[1:-1]:
         if re.match(r"^(Unit|Uni)[\s\-]", part, re.I):
@@ -72,6 +79,8 @@ def unit_of(rel):
 
 
 def kind_of(rel, name):
+    if PHASE.search(rel) and re.match(r"^\d\d-", name):
+        return "Lecture"
     low = (rel + " " + name).lower()
     ext = os.path.splitext(name)[1].lower()
     if ext in DOC_KINDS:
@@ -102,12 +111,14 @@ TITLE_UNIT = re.compile(r"^(Unit[\s\-]?[IVXLC\d]+|L\d{2})\s*[\u00b7\u2013\u2014|
 TITLE_SUFFIX = re.compile(
     r"\s*[\u00b7\u2013\u2014|-]\s*(Mohsin Furkh Dar|UPES|Academic Portal|"
     r"Interactive Presentation|Interactive Guide|CS[A-Z]{2}\d{4}.*|CSEG\d{4}.*|"
-    r"Unit[\s\-][IVXLC\d]+( Notes)?)\s*$", re.I)
+    r"Unit[\s\-][IVXLC\d]+( Notes)?|ML Foundations|ML Phase [AB]|"
+    r"Classical ML)\s*$", re.I)
 EMOJI = re.compile("[\U0001F000-\U0001FAFF\u2190-\u21FF\u2600-\u27BF\uFE0F]+")
 
 
 def tidy_title(t):
     t = EMOJI.sub("", clean(t))
+    t = re.sub(r"^\d{1,2}\.\s+", "", t)      # "11. Eigenvalues..." -> "Eigenvalues..."
     for _ in range(2):
         t = TITLE_SUFFIX.sub("", t)
     t = TITLE_PREFIX.sub("", t)
@@ -170,6 +181,23 @@ def prettify(name):
     return clean(stem) or name
 
 
+def git_ignored(paths):
+    """Which of these paths does .gitignore exclude?
+
+    The index is built by walking the filesystem, but the site is what git
+    publishes. Without this, locally-kept files (reference PDFs, private
+    material) would be offered in search and 404 for every student.
+    """
+    if not paths:
+        return set()
+    try:
+        r = subprocess.run(["git", "check-ignore", "--stdin"], cwd=ROOT,
+                           input="\n".join(paths), capture_output=True, text=True)
+    except OSError:
+        return set()
+    return {line.strip() for line in r.stdout.splitlines() if line.strip()}
+
+
 def build():
     records = []
 
@@ -186,7 +214,16 @@ def build():
             "p": 30,
         })
 
-    # 2. Everything inside each course folder.
+    # 2. Everything inside each course folder, minus whatever git ignores.
+    candidates = []
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+        rd = os.path.relpath(dirpath, ROOT)
+        rd = "" if rd == "." else rd
+        for n in filenames:
+            candidates.append((os.path.join(rd, n) if rd else n).replace(os.sep, "/"))
+    ignored = git_ignored(candidates)
+
     for dirpath, dirnames, filenames in os.walk(ROOT):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
         rel_dir = os.path.relpath(dirpath, ROOT)
@@ -203,6 +240,8 @@ def build():
                 continue
             rel = os.path.join(rel_dir, name) if rel_dir else name
             if rel in ("index.html", "about.html", "research.html"):
+                continue
+            if rel.replace(os.sep, "/") in ignored:
                 continue
             if top in ("quiz", "exam"):
                 continue

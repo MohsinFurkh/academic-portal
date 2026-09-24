@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>6. Taylor Series and Local Approximation — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 6 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('06-taylor-series')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part II — Calculus of One Variable · Lecture 6</div>
+  <h1>Taylor Series and Local Approximation</h1>
+  <p class="dek">The tangent line is the best straight-line approximation to a curve. Taylor's theorem says what the best parabola is, the best cubic, and exactly how wrong each of them is — which is where second-order optimisers, learning-rate bounds, and half of numerical analysis come from.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Construct the degree-\(n\) Taylor polynomial by matching derivatives at a point</li><li>State Taylor's theorem with the Lagrange remainder and use it to bound an approximation error</li><li>Derive the series for \(e^x\), \(\sin x\), \(\ln(1+x)\), \(\tfrac1{1-x}\)</li><li>Explain gradient descent as first-order and Newton's method as second-order Taylor</li><li>Recognise catastrophic cancellation and know why a mathematically exact series can be numerically useless</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lectures 4–5: derivatives, the chain rule, higher derivatives</li><li>Factorials and summation notation</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>How wrong is the tangent line?</h2>
+<p>Lecture 4 gave us \(f(x+h)\approx f(x)+f'(x)h\), and we used it to justify gradient descent
+while noting the word "approximately" was carrying weight. Now we make the error precise.</p>
+<p>The tangent line agrees with \(f\) in two respects at the base point: same value, same slope. It
+disagrees in a third: <em>curvature</em>. A line has zero second derivative; a curve generally does not. So the
+natural repair is to add a quadratic term chosen to match the second derivative too. Then a cubic term to match
+the third. And so on.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>A Taylor polynomial is a forgery. You are asked to fake a function using only
+polynomials, given complete information at a single point. All you can copy is the derivatives there — the
+value, the slope, the curvature, the rate of change of curvature. The remarkable fact is that for many
+functions, copying enough derivatives <em>at one point</em> reproduces the function over a whole interval.</p></div>
+<div class="deriv" id="d53"><div class="deriv-head"><span class="t">Constructing the Taylor polynomial by matching derivatives</span><span class="ct">0 / 6</span></div><div class="dstep">\[P_n(x) = c_0 + c_1(x-a) + c_2(x-a)^2 + \cdots + c_n(x-a)^n\]<div class="why"><b>The ansatz.</b> A general degree-\(n\) polynomial, deliberately written in powers of \((x-a)\) rather than powers of \(x\). This is the crucial choice: it makes every derivative at \(x=a\) pick out exactly one coefficient, because every other term still carries a factor of \((x-a)\) and therefore vanishes there.</div></div><div class="dstep">\[P_n(a) = c_0 \quad\Longrightarrow\quad c_0 = f(a)\]<div class="why"><b>Match the value.</b> Setting \(x=a\) kills every term except the first. Demanding \(P_n(a)=f(a)\) fixes \(c_0\).</div></div><div class="dstep">\[P_n'(x) = c_1 + 2c_2(x-a)+\cdots \quad\Longrightarrow\quad P_n'(a)=c_1 = f'(a)\]<div class="why"><b>Match the slope.</b> Differentiate term by term (linearity plus the power rule), then set \(x=a\). Again everything but one term dies. So \(c_1=f'(a)\), and \(P_1\) is exactly the tangent line — Lecture 4's approximation, recovered.</div></div><div class="dstep">\[P_n''(x) = 2c_2 + 6c_3(x-a)+\cdots \quad\Longrightarrow\quad P_n''(a)=2c_2 = f''(a) \;\Rightarrow\; c_2 = \frac{f''(a)}{2}\]<div class="why"><b>Match the curvature.</b> Differentiating \(c_2(x-a)^2\) twice gives \(2c_2\) — note the factor of 2 appearing from the power rule. This is where the factorials come from.</div></div><div class="dstep">\[\frac{d^k}{dx^k}\Big[c_k (x-a)^k\Big]_{x=a} = k!\,c_k \quad\Longrightarrow\quad c_k = \frac{f^{(k)}(a)}{k!}\]<div class="why"><b>The general pattern.</b> Differentiating \((x-a)^k\) exactly \(k\) times gives \(k(k-1)\cdots 1 = k!\), a constant; differentiating it more times gives 0; differentiating it fewer times leaves a factor of \((x-a)\) that vanishes at \(a\). So the \(k\)-th derivative of \(P_n\) at \(a\) is precisely \(k!c_k\).</div></div><div class="dstep">\[\boxed{\;P_n(x) = \sum_{k=0}^{n}\frac{f^{(k)}(a)}{k!}(x-a)^k\;}\]<div class="why"><b>The Taylor polynomial of degree n about a.</b> When \(a=0\) it is also called the Maclaurin polynomial. Nothing here was guessed: each coefficient was <em>forced</em> by a matching condition, exactly as the exponent laws forced \(a^0=1\) in Lecture 2.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d53')">Next step</button><button class="btn ghost" onclick="dall('d53')">Show all</button><button class="btn ghost" onclick="dreset('d53')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Taylor polynomials closing in on the true function<span class="tag">Interactive</span></div><canvas id="f6taylor" data-h="400"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f(x)</span><span><i style="background:var(--c5)"></i>Pₙ(x)</span><span><i style="background:var(--c2)"></i>expansion point a</span></div><div class="fig-read" id="f6taylor-read"></div><div class="ctrls"><div class="ctrl"><label>0 = eˣ · 1 = sin x · 2 = ln(1+x) · 3 = 1/(1−x)</label><input type="range" min="0" max="3" step="1" value="0" data-fmt="0" oninput="figSlide('f6taylor','which',this)"><output>0</output></div><div class="ctrl"><label>degree  n</label><input type="range" min="0" max="14" step="1" value="1" data-fmt="0" oninput="figSlide('f6taylor','n',this)"><output>1</output></div><div class="ctrl"><label>expansion point  a</label><input type="range" min="-2" max="2" step="0.05" value="0" data-fmt="2" oninput="figSlide('f6taylor','a',this)"><output>0.00</output></div></div><div class="fig-cap">Raise the degree and watch the purple polynomial peel away from the base point more and more slowly. Two things to notice. First: agreement is always best near a and degrades as you move away. Second: for ln(1+x) and 1/(1−x) the approximation NEVER converges beyond a fixed distance, no matter how high the degree — those functions have a singularity nearby, and it caps the radius of convergence. eˣ and sin x have no such wall.</div></div><script>makeFig("f6taylor",function(vp,p,F){
+vp.pads(46,16,14,30);
+var k=Math.round(p.which), n=Math.round(p.n), a=p.a;
+var defs=[
+ {f:Math.exp, d:function(j,x){return Math.exp(x);}, n:'eˣ', xr:[-3,3], yr:[-2,10], amin:-2,amax:2},
+ {f:Math.sin, d:function(j,x){var m=j%4; return m===0?Math.sin(x):m===1?Math.cos(x):m===2?-Math.sin(x):-Math.cos(x);},
+  n:'sin x', xr:[-8,8], yr:[-2.5,2.5], amin:-2,amax:2},
+ {f:function(x){return x>-1?Math.log(1+x):NaN;},
+  d:function(j,x){ if(j===0)return Math.log(1+x); var s=(j%2===1)?1:-1, fact=1;
+                   for(var i=1;i<j;i++)fact*=i; return s*fact/Math.pow(1+x,j);},
+  n:'ln(1+x)', xr:[-1.2,3], yr:[-3,2.2], amin:-0.5,amax:2},
+ {f:function(x){return Math.abs(x-1)<1e-9?NaN:1/(1-x);},
+  d:function(j,x){var fact=1; for(var i=1;i<=j;i++)fact*=i; return fact/Math.pow(1-x,j+1);},
+  n:'1/(1−x)', xr:[-2.5,2.5], yr:[-4,6], amin:-2,amax:0.8}
+];
+var D=defs[k];
+a=Math.max(D.amin,Math.min(D.amax,a));
+vp.frame(D.xr[0],D.xr[1],D.yr[0],D.yr[1]);
+vp.axes({stepx:1});
+function T(x){ var s=0, fact=1;
+  for(var j=0;j<=n;j++){ if(j>0)fact*=j; s+=D.d(j,a)/fact*Math.pow(x-a,j); }
+  return s; }
+vp.curve(D.f,'--c1',{w:2.9});
+vp.curve(T,'--c5',{w:2.3});
+vp.seg(a,D.yr[0],a,D.yr[1],'--c2',{dash:[4,4],w:1.4});
+vp.dot(a,D.f(a),'--c2',6);
+vp.label(D.xr[0]+0.1,D.yr[1],'f(x) = '+D.n,'--c1',{halo:true,bold:true,dy:14});
+// error readout at a probe point
+var probes=[a+0.5,a+1,a+2], txt='';
+for(var i=0;i<probes.length;i++){
+  var xp=probes[i]; if(xp<D.xr[0]||xp>D.xr[1]) continue;
+  var tv=D.f(xp), av=T(xp);
+  if(!isFinite(tv)) continue;
+  txt += 'x = a+'+(xp-a).toFixed(1)+': |f − P| = <b>'+Math.abs(tv-av).toExponential(2)+'</b> &nbsp; ';
+}
+figRead('f6taylor','P'+n+' about a = '+a.toFixed(2)+' &nbsp;→&nbsp; '+txt);
+},[{"name": "which", "label": "0 = e\u02e3 \u00b7 1 = sin x \u00b7 2 = ln(1+x) \u00b7 3 = 1/(1\u2212x)", "min": 0, "max": 3, "step": 1, "value": 0, "dp": 0}, {"name": "n", "label": "degree  n", "min": 0, "max": 14, "step": 1, "value": 1, "dp": 0}, {"name": "a", "label": "expansion point  a", "min": -2, "max": 2, "step": 0.05, "value": 0, "dp": 2}]);window["FIG_f6taylor"].run();</script>
+<h2 id="s2"><span class="secnum">2</span>Taylor's theorem: the error term</h2>
+<p>Matching derivatives gives a polynomial that <em>looks</em> right near \(a\). Taylor's theorem
+turns "looks right" into an exact statement with a computable bound.</p>
+<div class="box thm"><span class="lbl">Theorem — Taylor with Lagrange remainder</span><p>Suppose \(f\) is \((n+1)\)-times
+differentiable on an interval containing \(a\) and \(x\). Then there exists some point \(\xi\) strictly between
+\(a\) and \(x\) such that</p>
+\[ f(x) \;=\; \underbrace{\sum_{k=0}^{n}\frac{f^{(k)}(a)}{k!}(x-a)^k}_{P_n(x)}
+   \;+\; \underbrace{\frac{f^{(n+1)}(\xi)}{(n+1)!}(x-a)^{n+1}}_{R_n(x)}. \]</div>
+<p>Three observations, in increasing order of usefulness:</p>
+<ol><li>This is an <strong>equality</strong>, not an approximation. The remainder \(R_n\) is exactly the shortfall.</li><li>The remainder looks like <em>one more Taylor term</em>, except that the derivative is evaluated at a
+  mystery point \(\xi\) rather than at \(a\). We are not told where \(\xi\) is — only that it lies between
+  \(a\) and \(x\).</li><li>That is enough. If we can bound \(|f^{(n+1)}|\) by some \(M\) on the whole interval, then
+  \(|R_n(x)| \le \frac{M}{(n+1)!}|x-a|^{n+1}\), regardless of where \(\xi\) hides. <strong>This is how error
+  bounds are actually produced.</strong></li></ol>
+<div class="box note"><span class="lbl">On the proof</span><p>The proof is a clever application of Rolle's theorem to an auxiliary
+function, and it is about half a page. I am <strong>deferring</strong> it rather than skipping it: it adds no
+conceptual content you need right now, and the statement is what does the work in everything below. Ask and we
+will do it properly.</p></div>
+<div class="rev"><div class="rlbl">Use the theorem</div><p>Estimate \(\sqrt{e} = e^{0.5}\) using \(P_3\) about \(a=0\), and give a <em>rigorous bound</em> on the
+error using the Lagrange remainder. Then check your bound against the true error.</p>
+<p><em>Hint:</em> every derivative of \(e^x\) is \(e^x\), and on \([0,0.5]\) you can bound \(e^\xi\) by
+something concrete without knowing \(\xi\).</p><div style="margin-top:12px"><button class="btn ghost" data-show="Show the worked bound" onclick="rev('r54',this)">Show the worked bound</button></div><div class="rev-body" id="r54"><p><strong>The polynomial.</strong> All derivatives of \(e^x\) at 0 equal 1, so
+ \(P_3(x)=1+x+\frac{x^2}{2}+\frac{x^3}{6}\). At \(x=0.5\):</p>
+ \[P_3(0.5)=1+0.5+0.125+0.0208\overline{3}=1.6458\overline{3}.\]
+
+ <p><strong>The bound.</strong> The remainder is \(R_3(0.5)=\frac{e^{\xi}}{4!}(0.5)^4\) for some
+ \(\xi\in(0,0.5)\). We do not know \(\xi\), but \(e^x\) is increasing, so \(e^\xi &lt; e^{0.5}\). And
+ \(e^{0.5}&lt;e&lt;3\), a bound we can assert without circularity. Hence</p>
+ \[|R_3(0.5)| &lt; \frac{3}{24}\cdot 0.0625 = 0.0078125.\]
+
+ <p><strong>Check.</strong> The true value is \(\sqrt e = 1.6487212707\ldots\), so the actual error is
+ \(1.6487213-1.6458333=0.0028879\). Our bound said "less than \(0.0078\)" ✓ — correct, and about a factor of
+ 2.7 loose, which is the price of replacing \(e^\xi\) by its worst case.</p>
+ <p>That looseness is normal and acceptable. The value of the bound is that it is <em>guaranteed</em>: it holds
+ without ever computing \(\sqrt e\). This is exactly how numerical libraries decide how many terms to use.</p></div></div>
+<h2 id="s3"><span class="secnum">3</span>Four series worth knowing</h2>
+<p>Each is derived the same way: compute derivatives at 0, divide by factorials.</p>
+<p>\[\begin{aligned}
+e^{x} &= 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + \cdots = \sum_{k=0}^{\infty}\frac{x^k}{k!}
+ && \text{for all } x\in\RR \\[4pt]
+\sin x &= x - \frac{x^3}{3!} + \frac{x^5}{5!} - \cdots = \sum_{k=0}^{\infty}\frac{(-1)^k x^{2k+1}}{(2k+1)!}
+ && \text{for all } x\in\RR \\[4pt]
+\ln(1+x) &= x - \frac{x^2}{2} + \frac{x^3}{3} - \cdots = \sum_{k=1}^{\infty}\frac{(-1)^{k+1}x^k}{k}
+ && \text{for } -1 &lt; x \le 1 \\[4pt]
+\frac{1}{1-x} &= 1 + x + x^2 + x^3 + \cdots = \sum_{k=0}^{\infty}x^k
+ && \text{for } |x| &lt; 1
+\end{aligned}\]</p>
+<p>The domain restrictions on the last two are not decorative. The geometric series
+\(\sum x^k\) diverges for \(|x|\ge1\) — try \(x=2\) and you get \(1+2+4+8+\cdots\), which is not \(1/(1-2)=-1\).
+The <strong>radius of convergence</strong> is determined by how far the nearest singularity is from the
+expansion point: \(1/(1-x)\) blows up at \(x=1\), which sits at distance 1 from \(a=0\), and that distance is
+exactly the radius. You saw this in the figure above: raising the degree improved things inside the radius and
+made them dramatically worse outside it.</p>
+<div class="quiz" id="q55"><div class="qlbl">Check yourself</div><div class="qq">Use \(\ln(1+x)\approx x\) for small \(x\) to explain why, for a probability \(p\) very close to 1,
+\(-\ln p \approx 1-p\).</div><button class="qopt" data-ok="1" onclick="pick('q55',0,true)">Write \(p=1-\epsilon\) with \(\epsilon\) small; then \(-\ln p = -\ln(1-\epsilon)\approx \epsilon = 1-p\).</button><button class="qopt" data-ok="0" onclick="pick('q55',1,false)">Because \(\ln\) and the identity function are equal near 1.</button><button class="qopt" data-ok="0" onclick="pick('q55',2,false)">Because \(\ln p \approx p\) for all \(p\).</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct. Substituting \(x=-\epsilon\) into \(\ln(1+x)\approx x\) gives \(\ln(1-\epsilon)\approx
+    -\epsilon\), so \(-\ln(1-\epsilon)\approx\epsilon\). Since \(\epsilon = 1-p\), we get \(-\ln p\approx 1-p\).
+    <br><br>This is a genuinely useful fact: cross-entropy loss \(-\ln p\) for a confident correct prediction is
+    approximately the <em>error probability</em> \(1-p\). At \(p=0.99\), \(-\ln p = 0.01005\) versus \(1-p=0.01\)
+    — agreement to three digits. It is also why <code>log1p</code> exists in every maths library: computing
+    \(\ln(1+x)\) as <code>log(1+x)</code> loses precision when \(x\) is tiny, because \(1+x\) rounds to 1.</div><div class="qwhy" data-i="1"><b>Not quite.</b> They are not equal — \(\ln(1)=0\) while the identity gives 1. The correct statement is about
+    \(\ln(1+x)\) versus \(x\), which agree to first order <em>at \(x=0\)</em>: both are 0 there and both have
+    slope 1 there. That is a Taylor statement, and it is why the substitution \(p=1-\epsilon\) is the necessary
+    first move.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Test it: \(\ln(0.99)=-0.01005\), which is nowhere near \(0.99\). The approximation
+    \(\ln(1+x)\approx x\) is anchored at \(x=0\), i.e. at argument \(1\), and only holds for arguments
+    <em>close to 1</em>. Anchoring matters: a Taylor approximation is local to its expansion point.</div></div>
+<h2 id="s4"><span class="secnum">4</span>Second order: where Newton's method comes from</h2>
+<p>Now the payoff for optimisation. Take the Taylor expansion of a loss \(f\) about the current
+point \(w\), keeping two terms:</p>
+<p>\[f(w+h) \;\approx\; f(w) + f'(w)\,h + \tfrac12 f''(w)\,h^2 \;=:\; q(h).\]</p>
+<p>This is a parabola in \(h\), and we know how to minimise a parabola exactly.</p>
+<div class="deriv" id="d56"><div class="deriv-head"><span class="t">Minimising the quadratic model</span><span class="ct">0 / 4</span></div><div class="dstep">\[q(h) = f(w) + f'(w)h + \tfrac12 f''(w)h^2\]<div class="why"><b>The local model.</b> The best quadratic approximation to \(f\) near \(w\). Note that \(f(w)\), \(f'(w)\), \(f''(w)\) are all just <em>numbers</em> once \(w\) is fixed; \(h\) is the only variable.</div></div><div class="dstep">\[q'(h) = f'(w) + f''(w)\,h \;\stackrel{!}{=}\; 0\]<div class="why"><b>Set the derivative to zero.</b> The minimum of a parabola is at its unique critical point — provided it opens upwards, which needs \(f''(w)>0\). We will return to that condition.</div></div><div class="dstep">\[h^{\star} = -\frac{f'(w)}{f''(w)}\]<div class="why"><b>Solve.</b> One line of algebra, valid whenever \(f''(w)\neq0\).</div></div><div class="dstep">\[w_{t+1} = w_t - \frac{f'(w_t)}{f''(w_t)} \qquad \textbf{(Newton's method)}\]<div class="why"><b>Iterate.</b> Compare with gradient descent \(w_{t+1}=w_t-\eta f'(w_t)\). The step direction is the same — downhill — but Newton <em>computes</em> the step size \(1/f''\) instead of guessing it. Where the curve is sharply curved (\(f''\) large) it takes small steps; where the curve is flat (\(f''\) small) it takes large ones. This is exactly the adaptive behaviour that learning-rate schedules try to imitate by hand.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d56')">Next step</button><button class="btn ghost" onclick="dall('d56')">Show all</button><button class="btn ghost" onclick="dreset('d56')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Gradient descent vs Newton on  f(w) = ¼w⁴ − w² + 0.3w + 2<span class="tag">Interactive</span></div><canvas id="f6newton" data-h="410"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>f(w)</span><span><i style="background:var(--c2)"></i>gradient descent</span><span><i style="background:var(--c5)"></i>Newton</span><span><i style="background:var(--c3)"></i>Newton's quadratic model</span></div><div class="fig-read" id="f6newton-read"></div><div class="ctrls"><div class="ctrl"><label>start  w₀</label><input type="range" min="-2.4" max="2.4" step="0.02" value="2.0" data-fmt="2" oninput="figSlide('f6newton','w0',this)"><output>2.00</output></div><div class="ctrl"><label>learning rate  η  (gradient descent only)</label><input type="range" min="0.01" max="0.4" step="0.005" value="0.12" data-fmt="3" oninput="figSlide('f6newton','eta',this)"><output>0.120</output></div><div class="ctrl"><label>steps</label><input type="range" min="0" max="25" step="1" value="4" data-fmt="0" oninput="figSlide('f6newton','steps',this)"><output>4</output></div></div><div class="fig-cap">The green dashed parabola is Newton's local model at its current point; Newton jumps straight to that parabola's minimum. It typically reaches the answer in a handful of steps where gradient descent needs dozens. But look what happens if you start near w = 0, where f″ turns negative: Newton's model opens DOWNWARDS, so its 'minimum' is a maximum and the step runs uphill. That failure mode is why second-order methods are not the default in deep learning.</div></div><script>makeFig("f6newton",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frame(-2.6,2.6,-1,6);
+vp.axes({stepx:1,stepy:1});
+var f =function(w){return 0.25*w*w*w*w - w*w + 0.3*w + 2;};
+var f1=function(w){return w*w*w - 2*w + 0.3;};
+var f2=function(w){return 3*w*w - 2;};
+vp.curve(f,'--c1',{w:2.8});
+var n=Math.round(p.steps), eta=p.eta;
+function walk(update){var w=p.w0, path=[w];
+  for(var i=0;i<n;i++){ var nw=update(w); if(!isFinite(nw)||Math.abs(nw)>30) break; w=nw; path.push(w);} return path;}
+var gdp=walk(function(w){return w-eta*f1(w);});
+var nwp=walk(function(w){var h=f2(w); return Math.abs(h)<1e-9?w:w-f1(w)/h;});
+function draw(path,col,r){
+  for(var i=0;i<path.length;i++){ var w=path[i]; if(Math.abs(w)>2.6)continue;
+    vp.ctx.save(); vp.ctx.globalAlpha=0.3+0.7*i/Math.max(1,path.length-1);
+    vp.dot(w,f(w),col,i===path.length-1?7:4.2); vp.ctx.restore();
+    if(i>0&&Math.abs(path[i-1])<=2.6){vp.ctx.save();vp.ctx.globalAlpha=0.4;
+      vp.seg(path[i-1],f(path[i-1]),w,f(w),col,{w:1.4});vp.ctx.restore();}}}
+draw(gdp,'--c2'); draw(nwp,'--c5');
+var wn=nwp[nwp.length-1];
+if(Math.abs(wn)<=2.6){
+  var g=f1(wn), H=f2(wn), fv=f(wn);
+  vp.curve(function(t){var h=t-wn; return fv+g*h+0.5*H*h*h;},'--c3',{w:1.8,dash:[6,4]});
+}
+var wg=gdp[gdp.length-1];
+figRead('f6newton','after '+n+' steps &nbsp;|&nbsp; gradient descent: w = <b>'+wg.toFixed(6)+'</b>, |f′| = '+Math.abs(f1(wg)).toExponential(2)
+ +' &nbsp;|&nbsp; Newton: w = <b>'+wn.toFixed(6)+'</b>, |f′| = '+Math.abs(f1(wn)).toExponential(2)
+ +'<br>Newton curvature f″(w) = <b>'+f2(wn).toFixed(4)+'</b> '
+ +(f2(wn)>0?'<span style="color:var(--ok)">&gt; 0 → model is a valid upward parabola</span>'
+           :'<b style="color:var(--bad)">&lt; 0 → model opens downwards; Newton is climbing towards a MAXIMUM</b>'));
+},[{"name": "w0", "label": "start  w\u2080", "min": -2.4, "max": 2.4, "step": 0.02, "value": 2.0, "dp": 2}, {"name": "eta", "label": "learning rate  \u03b7  (gradient descent only)", "min": 0.01, "max": 0.4, "step": 0.005, "value": 0.12, "dp": 3}, {"name": "steps", "label": "steps", "min": 0, "max": 25, "step": 1, "value": 4, "dp": 0}]);window["FIG_f6newton"].run();</script>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>In one dimension Newton needs one number, \(f''\). In \(d\) dimensions it needs the
+<strong>Hessian</strong>: a \(d\times d\) matrix of second partial derivatives, which must then be
+<em>inverted</em>. For a model with \(d=10^9\) parameters that is \(10^{18}\) entries — not storable, let alone
+invertible. That, plus the negative-curvature failure you can see in the figure, is why deep learning uses
+first-order methods.</p>
+<p>But the idea survives in disguise. Adam, RMSProp and their relatives maintain a running estimate of the
+<em>diagonal</em> of something Hessian-like and divide the gradient by it. They are cheap approximations to
+Newton, and the family name for such methods is <em>quasi-Newton</em>. You will build them in Phase D, and you
+now know what they are approximating.</p></div>
+<h2 id="s5"><span class="secnum">5</span>The learning-rate bound, derived</h2>
+<p>We can also now derive the bound that Lecture 4's exercise had you discover numerically. Take
+\(f\) with \(f''(w) = L\) roughly constant near the minimum \(w^\star\) (i.e. \(f\) is locally quadratic).
+Gradient descent gives</p>
+<p>\[\begin{aligned}
+w_{t+1}-w^\star &= w_t - \eta f'(w_t) - w^\star \\
+                &= (w_t - w^\star) - \eta\,L\,(w_t-w^\star) \qquad \text{since } f'(w)\approx L(w-w^\star)\\
+                &= (1-\eta L)\,(w_t-w^\star).
+\end{aligned}\]</p>
+<p>So the distance to the optimum is multiplied by \(|1-\eta L|\) every step. Convergence requires
+that factor to be less than 1:</p>
+<p>\[|1-\eta L| &lt; 1 \quad\Longleftrightarrow\quad -1 &lt; 1-\eta L &lt; 1 \quad\Longleftrightarrow\quad 0 &lt; \eta &lt; \frac{2}{L}.\]</p>
+<ul><li>\(\eta = 1/L\) makes the factor exactly \(0\): one step lands on the optimum. That is Newton's method.</li><li>\(0&lt;\eta&lt;1/L\): monotone convergence, approaching from one side.</li><li>\(1/L&lt;\eta&lt;2/L\): convergence with oscillation — overshooting and coming back, which is exactly what the Lecture 4 figure showed at \(\eta=0.10\).</li><li>\(\eta>2/L\): the factor exceeds 1 in magnitude and the error grows geometrically. Divergence.</li></ul>
+<p>In many dimensions \(L\) becomes the largest eigenvalue of the Hessian, \(\lambda_{\max}\), and
+the bound becomes \(\eta&lt;2/\lambda_{\max}\). We prove that in Lecture 11, once we have eigenvalues. The
+one-dimensional case here is the whole idea, with the linear algebra stripped away.</p>
+<h2 id="s6"><span class="secnum">6</span>When an exact series is numerically useless</h2>
+<div class="pyb" id="py57" data-orig="import numpy as np
+
+def exp_series(x, terms=60):
+    &quot;&quot;&quot;Sum the Taylor series for e^x directly. Mathematically exact in the limit.&quot;&quot;&quot;
+    total, term = 0.0, 1.0
+    for k in range(terms):
+        total += term
+        term = term * x / (k + 1)
+    return total
+
+print(f&quot;{&#x27;x&#x27;:&gt;7} {&#x27;series&#x27;:&gt;22} {&#x27;np.exp&#x27;:&gt;22} {&#x27;rel error&#x27;:&gt;12}&quot;)
+print(&quot;-&quot; * 66)
+for x in [1.0, 5.0, -1.0, -5.0, -20.0, -30.0]:
+    s, t = exp_series(x), np.exp(x)
+    print(f&quot;{x:7.1f} {s:22.12e} {t:22.12e} {abs(s-t)/abs(t):12.2e}&quot;)
+
+print()
+print(&quot;Positive x: fine.  Large NEGATIVE x: catastrophically wrong.&quot;)
+print()
+print(&quot;Why. For x = -20 the individual terms reach enormous size before&quot;)
+print(&quot;the alternating signs cancel them:&quot;)
+term, biggest = 1.0, 0.0
+for k in range(60):
+    biggest = max(biggest, abs(term))
+    term = term * (-20.0) / (k + 1)
+print(f&quot;  largest |term| = {biggest:.4e}&quot;)
+print(f&quot;  true answer    = {np.exp(-20.0):.4e}&quot;)
+print(f&quot;  ratio          = {biggest/np.exp(-20.0):.3e}&quot;)
+print()
+print(&quot;We are adding numbers of size 1e+7 to get an answer of size 1e-9.&quot;)
+print(&quot;float64 carries ~16 significant digits, so absolute errors of about&quot;)
+print(&quot;1e+7 * 1e-16 = 1e-9 survive -- the same size as the answer itself.&quot;)
+print(&quot;Every significant digit is destroyed.  This is CATASTROPHIC CANCELLATION.&quot;)
+print()
+print(&quot;The fix is algebraic, not numerical:  e^-20 = 1 / e^20&quot;)
+print(&quot;  1/exp_series(20.0) =&quot;, 1.0/exp_series(20.0))
+print(&quot;  np.exp(-20.0)      =&quot;, np.exp(-20.0))
+print()
+print(&quot;Moral: a formula being mathematically exact says nothing about whether&quot;)
+print(&quot;it is safe in floating point.  Same lesson as log-sum-exp in Lecture 2.&quot;)
+"><div class="pyb-head"><span class="t">Catastrophic cancellation in the exponential series</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py57')">Run</button><button class="btn ghost" onclick="resetPy('py57')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+
+def exp_series(x, terms=60):
+    &quot;&quot;&quot;Sum the Taylor series for e^x directly. Mathematically exact in the limit.&quot;&quot;&quot;
+    total, term = 0.0, 1.0
+    for k in range(terms):
+        total += term
+        term = term * x / (k + 1)
+    return total
+
+print(f&quot;{&#x27;x&#x27;:&gt;7} {&#x27;series&#x27;:&gt;22} {&#x27;np.exp&#x27;:&gt;22} {&#x27;rel error&#x27;:&gt;12}&quot;)
+print(&quot;-&quot; * 66)
+for x in [1.0, 5.0, -1.0, -5.0, -20.0, -30.0]:
+    s, t = exp_series(x), np.exp(x)
+    print(f&quot;{x:7.1f} {s:22.12e} {t:22.12e} {abs(s-t)/abs(t):12.2e}&quot;)
+
+print()
+print(&quot;Positive x: fine.  Large NEGATIVE x: catastrophically wrong.&quot;)
+print()
+print(&quot;Why. For x = -20 the individual terms reach enormous size before&quot;)
+print(&quot;the alternating signs cancel them:&quot;)
+term, biggest = 1.0, 0.0
+for k in range(60):
+    biggest = max(biggest, abs(term))
+    term = term * (-20.0) / (k + 1)
+print(f&quot;  largest |term| = {biggest:.4e}&quot;)
+print(f&quot;  true answer    = {np.exp(-20.0):.4e}&quot;)
+print(f&quot;  ratio          = {biggest/np.exp(-20.0):.3e}&quot;)
+print()
+print(&quot;We are adding numbers of size 1e+7 to get an answer of size 1e-9.&quot;)
+print(&quot;float64 carries ~16 significant digits, so absolute errors of about&quot;)
+print(&quot;1e+7 * 1e-16 = 1e-9 survive -- the same size as the answer itself.&quot;)
+print(&quot;Every significant digit is destroyed.  This is CATASTROPHIC CANCELLATION.&quot;)
+print()
+print(&quot;The fix is algebraic, not numerical:  e^-20 = 1 / e^20&quot;)
+print(&quot;  1/exp_series(20.0) =&quot;, 1.0/exp_series(20.0))
+print(&quot;  np.exp(-20.0)      =&quot;, np.exp(-20.0))
+print()
+print(&quot;Moral: a formula being mathematically exact says nothing about whether&quot;)
+print(&quot;it is safe in floating point.  Same lesson as log-sum-exp in Lecture 2.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Find \(P_3(x)\) about \(a=0\) for each, by computing derivatives:</p>
+  <p>(a) \(f(x)=\cos x\) &nbsp;&nbsp; (b) \(f(x)=\sqrt{1+x}\) &nbsp;&nbsp; (c) \(f(x)=\sigma(x)=\frac{1}{1+e^{-x}}\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex58',this)">Show solution</button></div><div class="rev-body" id="ex58"><p><strong>(a)</strong> \(f=\cos,\ f'=-\sin,\ f''=-\cos,\ f'''=\sin\). At 0: \(1,0,-1,0\).
+  So \(P_3(x)=1-\frac{x^2}{2}\). (The cubic coefficient is zero — \(\cos\) is even, so all odd terms vanish.)</p>
+
+  <p><strong>(b)</strong> \(f=(1+x)^{1/2}\), \(f'=\frac12(1+x)^{-1/2}\), \(f''=-\frac14(1+x)^{-3/2}\),
+  \(f'''=\frac38(1+x)^{-5/2}\). At 0: \(1,\ \frac12,\ -\frac14,\ \frac38\). Divide by factorials:</p>
+  \[P_3(x)=1+\frac{x}{2}-\frac{x^2}{8}+\frac{x^3}{16}.\]
+  <p>Check at \(x=0.1\): \(P_3=1.0488125\) versus \(\sqrt{1.1}=1.0488088\) — four correct digits.</p>
+
+  <p><strong>(c)</strong> Use \(\sigma'=\sigma(1-\sigma)\) from Lecture 5. At \(x=0\), \(\sigma=\frac12\), so
+  \(\sigma'=\frac14\). Differentiating again: \(\sigma''=\sigma'(1-2\sigma)\), which at 0 is
+  \(\frac14(1-1)=0\). And \(\sigma'''=\sigma''(1-2\sigma)-2(\sigma')^2\), which at 0 is
+  \(0-2\cdot\frac1{16}=-\frac18\). So</p>
+  \[P_3(x)=\frac12+\frac{x}{4}-\frac{x^3}{48}.\]
+  <p>The vanishing quadratic term reflects the fact that \(\sigma(x)-\frac12\) is an odd function.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Use the Lagrange remainder to determine how many terms of the series for \(e^x\) are needed to
+  compute \(e^{1}\) with error below \(10^{-10}\).</p>
+  <p>Then verify your answer by direct computation.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex59',this)">Show solution</button></div><div class="rev-body" id="ex59"><p>With \(a=0\), \(x=1\), and \(f^{(n+1)}(\xi)=e^{\xi}\) for some \(\xi\in(0,1)\):</p>
+  \[|R_n(1)| = \frac{e^{\xi}}{(n+1)!}\cdot 1^{n+1} &lt; \frac{3}{(n+1)!},\]
+  <p>using \(e^\xi &lt; e &lt; 3\). We need \(\frac{3}{(n+1)!} &lt; 10^{-10}\), i.e. \((n+1)! > 3\times10^{10}\).</p>
+  <p>Factorials: \(13!=6.227\times10^{9}\) (too small), \(14!=8.718\times10^{10}\) ✓. So \(n+1=14\), giving
+  \(n=13\) — that is terms \(k=0\) through \(13\), fourteen terms.</p>
+  <pre style="overflow-x:auto"><code>import numpy as np, math
+for n in (11, 12, 13, 14):
+    s = sum(1.0/math.factorial(k) for k in range(n+1))
+    print(n, f"{s:.15f}", f"err {abs(s-np.e):.2e}")</code></pre>
+  <p>You will find \(n=13\) gives error \(1.2\times10^{-11}\) — comfortably inside the target, and the bound
+  correctly predicted it. \(n=12\) gives \(1.7\times10^{-10}\), just outside. So the bound identified the right
+  cutoff exactly. It is loose by about a factor of 8 on the error itself, which is the price of replacing
+  \(e^\xi\) by 3.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Show that for gradient descent on the exact quadratic \(f(w)=\tfrac{L}{2}(w-w^\star)^2\), the error
+  after \(t\) steps is exactly</p>
+  \[ w_t - w^\star = (1-\eta L)^{t}\,(w_0-w^\star). \]
+  <p>Then answer: with \(L=10\), how many steps are needed to reduce the error by \(10^{6}\), at
+  (i) \(\eta=0.01\), (ii) \(\eta=0.1\), (iii) \(\eta=0.19\)? Comment on the pattern.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex60',this)">Show solution</button></div><div class="rev-body" id="ex60"><p><strong>Derivation.</strong> \(f'(w)=L(w-w^\star)\), so</p>
+  \[w_{t+1}-w^\star = w_t - \eta L(w_t-w^\star) - w^\star = (1-\eta L)(w_t-w^\star).\]
+  <p>Each step multiplies the error by the same constant \(r=1-\eta L\), so by induction
+  \(w_t-w^\star = r^t(w_0-w^\star)\). ∎ (For an exact quadratic there is no approximation: the relation is
+  an identity, not a local model.)</p>
+
+  <p><strong>Step counts.</strong> Need \(|r|^t \le 10^{-6}\), i.e. \(t \ge \frac{-6\ln 10}{\ln|r|}\).</p>
+  <ul>
+  <li>\(\eta=0.01\): \(r=0.9\), \(\ln|r|=-0.10536\), \(t\ge 131.1\) → <strong>132 steps</strong>.</li>
+  <li>\(\eta=0.1\): \(r=0\) → <strong>1 step</strong>. Exact convergence, because \(\eta=1/L\) is the Newton step.</li>
+  <li>\(\eta=0.19\): \(r=-0.9\), \(|r|=0.9\), \(t\ge131.1\) → <strong>132 steps</strong>, but with the error
+  <em>alternating in sign</em> — overshooting past the minimum every step.</li>
+  </ul>
+  <p><strong>The pattern.</strong> Convergence speed is governed by \(|1-\eta L|\), which is a V-shape in
+  \(\eta\) with its minimum (zero) at \(\eta=1/L\) and roots of the boundary at \(\eta=0\) and \(\eta=2/L\).
+  Speed is <em>symmetric</em> about \(\eta=1/L\): being 90% too small and 90% too large cost exactly the same.
+  This is why learning-rate tuning has a sweet spot rather than a "bigger is faster" regime, and why the
+  standard advice is to increase \(\eta\) until training becomes unstable and then back off — you are searching
+  for \(2/\lambda_{\max}\) empirically.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding + analysis.</strong> Newton's method for root-finding solves \(g(w)=0\) via
+  \(w_{t+1}=w_t - g(w_t)/g'(w_t)\). Applying it to \(g=f'\) gives the optimiser above.</p>
+  <ol>
+  <li>Implement it for \(g(w)=w^2-2\) (so the root is \(\sqrt2\)) starting from \(w_0=1\). Print the error at
+  each step. How many correct digits do you gain per iteration?</li>
+  <li>This is <em>quadratic convergence</em>: \(|e_{t+1}|\approx C|e_t|^2\). Estimate \(C\) numerically and
+  compare with the theoretical \(C = \frac{|g''|}{2|g'|}\) at the root.</li>
+  <li>Now apply Newton to minimise \(f(w)=\frac14 w^4 - w^2 + 0.3w + 2\) starting from \(w_0=0.1\). What happens,
+  and why? Relate your answer to the sign of \(f''\).</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex61',this)">Show solution</button></div><div class="rev-body" id="ex61"><pre style="overflow-x:auto"><code>import numpy as np
+g, gp = lambda w: w*w - 2, lambda w: 2*w
+w, root = 1.0, np.sqrt(2)
+for t in range(6):
+    e = abs(w - root)
+    print(f"t={t}  w={w:.18f}  err={e:.3e}")
+    w = w - g(w)/gp(w)</code></pre>
+
+  <p><strong>1.</strong> The errors run
+  \(4.14\times10^{-1},\ 8.58\times10^{-2},\ 2.45\times10^{-3},\ 2.12\times10^{-6},\ 1.59\times10^{-12},\ 0\).
+  The number of correct digits <strong>doubles</strong> each iteration — from 0 to 1 to 2 to 5 to 11 to full
+  machine precision. Five iterations from a poor starting guess.</p>
+
+  <p><strong>2.</strong> \(C \approx e_{t+1}/e_t^2\). The successive ratios are
+  \(0.500,\ 0.333,\ 0.353,\ 0.354\dots\) — settling on about \(0.354\). Theory: at \(w=\sqrt2\),
+  \(g''=2\) and \(g'=2\sqrt2\), so \(C=\frac{2}{2\cdot 2\sqrt2}=\frac{1}{2\sqrt2}=0.35355\) ✓.
+  The first ratio is off because the early iterates are still far from the root, where the quadratic model of
+  the error is not yet accurate.</p>
+
+  <p><strong>3.</strong> \(f'(w)=w^3-2w+0.3\) and \(f''(w)=3w^2-2\). At \(w_0=0.1\), \(f''(0.1)=0.03-2=-1.97\),
+  which is <strong>negative</strong>. The quadratic model \(q(h)=f+f'h+\frac12 f''h^2\) therefore opens
+  <em>downwards</em>: its critical point is a maximum, not a minimum. Newton dutifully jumps to it, moving
+  <em>uphill</em>.</p>
+  <p>Concretely, \(f'(0.1)=0.001-0.2+0.3=0.101\), so the step is \(-0.101/(-1.97)=+0.0513\) — a step in the
+  <em>positive</em> gradient direction, i.e. increasing \(f\). From there behaviour is erratic: the iterates
+  wander in the negative-curvature region, and where \(f''\) passes through zero (at \(w=\pm\sqrt{2/3}\approx
+  \pm0.8165\)) the step size blows up.</p>
+  <p><strong>The general lesson.</strong> Newton finds <em>critical points</em>, not minima. It is attracted to
+  maxima and saddle points just as readily. In high dimensions almost all critical points of a deep network's
+  loss are saddles, which makes raw Newton actively harmful. Practical second-order methods therefore modify
+  the curvature — trust regions, damping \((\mathbf{H}+\lambda \mI)^{-1}\), or Gauss–Newton approximations that
+  are positive semi-definite by construction. Every one of those is a fix for the failure you just observed.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> Lecture 7 makes optimisation in one dimension complete and rigorous —
+critical points, the second-derivative test, convexity, and the guarantee that separates a problem you can
+solve from one you can only attempt.</p>
+<div class="pagenav"><a href="05-rules-and-the-chain-rule.html" class="pv"><span class="dir">Previous</span><span class="nm">5 · Differentiation Rules and the Chain Rule</span></a><a href="07-optimisation-in-1d.html" class="nx"><span class="dir">Next</span><span class="nm">7 · Optimisation in One Dimension</span></a></div>
+</div>
+<script>initDone('06-taylor-series');</script>
+</body>
+</html>

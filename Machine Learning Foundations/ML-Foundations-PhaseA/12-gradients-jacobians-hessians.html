@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>12. Gradients, Jacobians, and Hessians — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 12 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('12-gradients-jacobians-hessians')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part IV — Multivariable Calculus · Lecture 12</div>
+  <h1>Gradients, Jacobians, and Hessians</h1>
+  <p class="dek">Calculus in one variable, plus linear algebra, equals the calculus that machine learning actually runs on. The gradient points uphill, the Jacobian is a derivative that is a matrix, the Hessian is curvature — and the multivariable chain rule is backpropagation.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Compute partial derivatives and assemble a gradient, with correct shapes</li><li>Prove that \(\grad f\) is the direction of steepest ascent and is perpendicular to level sets</li><li>Use the multivariable chain rule, and see it as the backpropagation recursion</li><li>Derive the matrix-calculus identities used on credit in Lecture 10</li><li>Classify a critical point in \(d\) dimensions using the eigenvalues of the Hessian</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lectures 4–7: derivatives, chain rule, Taylor, optimisation</li><li>Lectures 8–11: vectors, matrices, quadratic forms, eigenvalues</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Partial derivatives</h2>
+<p>A loss depends on millions of parameters at once. The trick is to change one at a time.</p>
+<div class="box defn"><span class="lbl">Definition — partial derivative</span><p>For \(f:\RR^d\to\RR\), the
+<strong>partial derivative</strong> with respect to \(x_i\) is</p>
+\[ \frac{\partial f}{\partial x_i}(\vx) = \lim_{h\to0}\frac{f(\vx+h\ve_i)-f(\vx)}{h}, \]
+<p>where \(\ve_i\) is the \(i\)-th standard basis vector. In practice: <em>differentiate with respect to
+\(x_i\), treating every other variable as a constant.</em></p></div>
+<p>It is Lecture 4's definition verbatim, with the increment restricted to one axis. Every rule
+from Lecture 5 applies unchanged. For \(f(x,y)=x^2y+3y\):</p>
+<p>\[\frac{\partial f}{\partial x} = 2xy, \qquad \frac{\partial f}{\partial y} = x^2+3.\]</p>
+<div class="box defn"><span class="lbl">Definition — gradient</span><p>The <strong>gradient</strong> collects all the partials
+into one vector:</p>
+\[ \grad f(\vx) = \begin{bmatrix}\partial f/\partial x_1 \\ \vdots \\ \partial f/\partial x_d\end{bmatrix} \in \RR^{d}. \]
+<p><strong>Shapes matter:</strong> \(f\) maps \(\RR^d\to\RR\), and \(\grad f\) maps \(\RR^d\to\RR^d\). The
+gradient of a scalar function has the same shape as its input — which is what makes
+\(\vw \leftarrow \vw - \eta\grad L\) type-check.</p></div>
+<h2 id="s2"><span class="secnum">2</span>Directional derivatives, and why the gradient points uphill</h2>
+<p>Partials tell you the rate of change along the axes. But you can move in any direction. Let
+\(\vu\) be a unit vector; the rate of change of \(f\) along \(\vu\) is</p>
+<p>\[D_{\vu}f(\vx) = \lim_{h\to0}\frac{f(\vx+h\vu)-f(\vx)}{h}.\]</p>
+<div class="deriv" id="d104"><div class="deriv-head"><span class="t">D_u f = ∇f · u, and the steepest-ascent theorem</span><span class="ct">0 / 6</span></div><div class="dstep">\[g(h) = f(\vx + h\vu), \qquad D_{\vu}f(\vx) = g'(0)\]<div class="why"><b>Reduce to one variable.</b> Walking along a straight line through \(\vx\) in direction \(\vu\) makes \(f\) a function of the single parameter \(h\). The directional derivative is just \(g'(0)\), an ordinary Lecture-4 derivative.</div></div><div class="dstep">\[g'(h) = \sum_{i=1}^{d} \frac{\partial f}{\partial x_i}\big(\vx+h\vu\big)\cdot \frac{d}{dh}\big(x_i+hu_i\big) = \sum_{i=1}^{d}\frac{\partial f}{\partial x_i}\,u_i\]<div class="why"><b>Multivariable chain rule.</b> \(f\)'s input changes in every coordinate simultaneously, so the total rate is the sum of (sensitivity to coordinate \(i\)) × (rate of change of coordinate \(i\)). We state and use this rule properly in the next section; here it is the natural generalisation of Lecture 5.</div></div><div class="dstep">\[D_{\vu}f(\vx) = \grad f(\vx)\cdot\vu\]<div class="why"><b>Recognise the dot product.</b> The sum \(\sum_i (\partial f/\partial x_i) u_i\) is precisely \(\grad f\cdot\vu\). So the gradient is exactly the object that converts a direction into a rate of change.</div></div><div class="dstep">\[D_{\vu}f = \grad f\cdot\vu = \|\grad f\|\,\|\vu\|\cos\theta = \|\grad f\|\cos\theta\]<div class="why"><b>Apply Lecture 8's geometric formula</b>, using \(\|\vu\|=1\). Now everything is decided by the angle \(\theta\) between the direction of travel and the gradient.</div></div><div class="dstep">\[\max_{\|\vu\|=1} D_{\vu}f = \|\grad f\| \quad\text{attained at}\quad \vu = \frac{\grad f}{\|\grad f\|}\]<div class="why"><b>The steepest-ascent theorem.</b> \(\cos\theta\) is maximised at \(\theta=0\), i.e. pointing along the gradient. So: <strong>\(\grad f\) points in the direction of steepest ascent, and its length is the rate of ascent in that direction.</strong> Correspondingly \(-\grad f\) is steepest <em>descent</em> — which is the entire justification for the name and for the update rule \(\vw\leftarrow\vw-\eta\grad L\). ∎</div></div><div class="dstep">\[\theta = 90^\circ \;\Rightarrow\; D_{\vu}f = 0 \;\Rightarrow\; \grad f \perp \text{level set}\]<div class="why"><b>A free corollary.</b> Moving perpendicular to the gradient changes \(f\) at rate zero — that is, it keeps you on a level set. So the gradient is always perpendicular to the contour through the point. This is why gradient descent on a long thin valley zig-zags: it steps perpendicular to the contours, which is <em>across</em> the valley rather than along it.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d104')">Next step</button><button class="btn ghost" onclick="dall('d104')">Show all</button><button class="btn ghost" onclick="dreset('d104')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Contours, the gradient field, and the directional derivative<span class="tag">Interactive</span></div><canvas id="f12grad" data-h="450"></canvas><div class="legend"><span><i style="background:var(--c3)"></i>level sets of f</span><span><i style="background:var(--c1)"></i>∇f at the probe point</span><span><i style="background:var(--c2)"></i>your direction u</span><span><i style="background:var(--c5)"></i>gradient field</span></div><div class="fig-read" id="f12grad-read"></div><div class="ctrls"><div class="ctrl"><label>0 = bowl · 1 = valley · 2 = saddle · 3 = two wells</label><input type="range" min="0" max="3" step="1" value="1" data-fmt="0" oninput="figSlide('f12grad','which',this)"><output>1</output></div><div class="ctrl"><label>probe x</label><input type="range" min="-2.6" max="2.6" step="0.02" value="-1.6" data-fmt="2" oninput="figSlide('f12grad','px',this)"><output>-1.60</output></div><div class="ctrl"><label>probe y</label><input type="range" min="-2.6" max="2.6" step="0.02" value="1.2" data-fmt="2" oninput="figSlide('f12grad','py',this)"><output>1.20</output></div><div class="ctrl"><label>direction u (degrees)</label><input type="range" min="0" max="359" step="1" value="0" data-fmt="0" oninput="figSlide('f12grad','ang',this)"><output>0</output></div></div><div class="fig-cap">Rotate u and watch the readout. The directional derivative peaks exactly when u lines up with the blue gradient arrow, hits zero when u is tangent to the contour, and is most negative pointing straight downhill. Notice on the 'valley' surface how the gradient points across the valley rather than along it — that mismatch, quantified by the condition number in Lecture 11, is what makes narrow valleys slow.</div></div><script>makeFig("f12grad",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,2.9);
+var k=Math.round(p.which);
+var F=[
+ {f:function(x,y){return x*x+y*y;},
+  g:function(x,y){return [2*x,2*y];}, n:'f = x² + y²',
+  lv:[0.25,1,2,3.5,5.5,8,11]},
+ {f:function(x,y){return 6*x*x+0.4*y*y;},
+  g:function(x,y){return [12*x,0.8*y];}, n:'f = 6x² + 0.4y²',
+  lv:[0.2,0.8,2,4,7,11,16]},
+ {f:function(x,y){return x*x-y*y;},
+  g:function(x,y){return [2*x,-2*y];}, n:'f = x² − y²',
+  lv:[-6,-3,-1.2,-0.3,0,0.3,1.2,3,6]},
+ {f:function(x,y){return (x*x-1)*(x*x-1)+y*y;},
+  g:function(x,y){return [4*x*(x*x-1),2*y];}, n:'f = (x²−1)² + y²',
+  lv:[0.05,0.25,0.7,1.4,2.5,4,6]}
+][k];
+vp.contour(F.f,F.lv,'--c3',{w:1.5,alpha:0.75,N:110});
+// gradient field
+var cc=vp.ctx; cc.save(); cc.globalAlpha=0.30;
+for(var i=-2;i<=2;i++) for(var j=-2;j<=2;j++){
+  var x=i*1.2, y=j*1.2, g=F.g(x,y), n=Math.hypot(g[0],g[1]);
+  if(n<1e-6) continue;
+  var s=0.42/Math.max(1,n/4);
+  vp.arrow(x,y,x+g[0]*s/Math.max(1,n)*1.6,y+g[1]*s/Math.max(1,n)*1.6,'--c5',{w:1.6,head:7});
+}
+cc.restore();
+vp.axes({stepx:1,stepy:1});
+var x0=p.px, y0=p.py, g=F.g(x0,y0), ng=Math.hypot(g[0],g[1]);
+var t=p.ang*Math.PI/180, u=[Math.cos(t),Math.sin(t)];
+var Du=g[0]*u[0]+g[1]*u[1];
+if(ng>1e-9) vp.arrow(x0,y0,x0+g[0]/ng*1.1,y0+g[1]/ng*1.1,'--c1',{w:3.2});
+vp.arrow(x0,y0,x0+u[0]*1.1,y0+u[1]*1.1,'--c2',{w:2.6});
+vp.dot(x0,y0,'--c1',6);
+vp.label(-2.8,2.8,F.n,'--ink2',{halo:true,bold:true});
+var cosang = ng>1e-9 ? Du/ng : 0;
+figRead('f12grad','at (' +x0.toFixed(2)+', '+y0.toFixed(2)+'):  ∇f = (<b>'+g[0].toFixed(3)+', '+g[1].toFixed(3)
+ +'</b>),  ‖∇f‖ = <b>'+ng.toFixed(4)+'</b>'
+ +'<br>D_u f = ∇f · u = <b>'+Du.toFixed(4)+'</b> = ‖∇f‖cos θ,  cos θ = '+cosang.toFixed(4)
+ +'   '+(Math.abs(cosang-1)<0.004?'<b style="color:var(--ok)">← u is aligned with ∇f: steepest ASCENT</b>'
+        :(Math.abs(cosang+1)<0.004?'<b style="color:var(--c2)">← steepest DESCENT direction</b>'
+        :(Math.abs(cosang)<0.004?'<b style="color:var(--c3)">← u is tangent to the contour: f does not change</b>':''))));
+},[{"name": "which", "label": "0 = bowl \u00b7 1 = valley \u00b7 2 = saddle \u00b7 3 = two wells", "min": 0, "max": 3, "step": 1, "value": 1, "dp": 0}, {"name": "px", "label": "probe x", "min": -2.6, "max": 2.6, "step": 0.02, "value": -1.6, "dp": 2}, {"name": "py", "label": "probe y", "min": -2.6, "max": 2.6, "step": 0.02, "value": 1.2, "dp": 2}, {"name": "ang", "label": "direction u (degrees)", "min": 0, "max": 359, "step": 1, "value": 0, "dp": 0}]);window["FIG_f12grad"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>Jacobians, and the multivariable chain rule</h2>
+<div class="box defn"><span class="lbl">Definition — Jacobian</span><p>For a vector-valued \(\vf:\RR^n\to\RR^m\), the
+<strong>Jacobian</strong> is the \(m\times n\) matrix of all partials:</p>
+\[ \mJ_{\vf}(\vx) = \frac{\partial \vf}{\partial \vx} =
+\begin{bmatrix}
+\partial f_1/\partial x_1 & \cdots & \partial f_1/\partial x_n\\
+\vdots & \ddots & \vdots\\
+\partial f_m/\partial x_1 & \cdots & \partial f_m/\partial x_n
+\end{bmatrix}, \qquad (\mJ)_{ij} = \frac{\partial f_i}{\partial x_j}. \]
+<p>Row \(i\) is \(\grad f_i^\top\). When \(m=1\) the Jacobian is a single row — the gradient, transposed. That
+row-versus-column distinction is a notational nuisance and the source of endless sign-and-shape confusion; the
+rule to hold on to is <em>the Jacobian has as many rows as outputs and as many columns as inputs</em>.</p></div>
+<div class="box intuition"><span class="lbl">Intuition</span><p>The Jacobian is the <em>best linear approximation</em> to \(\vf\) near \(\vx\):
+\(\;\vf(\vx+\vh) \approx \vf(\vx) + \mJ\vh\). Compare Lecture 4's \(f(x+h)\approx f(x)+f'(x)h\) — the derivative
+was a number that multiplied the nudge; now it is a matrix that multiplies the nudge vector. Same idea, richer
+type.</p></div>
+<div class="box thm"><span class="lbl">Theorem — multivariable chain rule</span><p>If \(\vf:\RR^n\to\RR^m\) and
+\(\vg:\RR^m\to\RR^p\), then for \(\vh = \vg\circ\vf\),</p>
+\[ \mJ_{\vh}(\vx) = \mJ_{\vg}\big(\vf(\vx)\big)\;\mJ_{\vf}(\vx). \]
+<p>Shapes: \((p\times m)(m\times n) = (p\times n)\) ✓. <strong>The chain rule is matrix multiplication.</strong>
+In coordinates,</p>
+\[ \frac{\partial h_i}{\partial x_k} = \sum_{j=1}^{m}\frac{\partial g_i}{\partial u_j}\,\frac{\partial f_j}{\partial x_k}, \]
+<p>summing over every path from input \(k\) to output \(i\) through the intermediate layer.</p></div>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>Now look at a network. With \(\vz^{(\ell)} = f_\ell(\vz^{(\ell-1)})\) and a scalar loss \(L\)
+at the end, the chain rule gives</p>
+\[ \frac{\partial L}{\partial \vz^{(0)}} = \frac{\partial L}{\partial \vz^{(L)}}\,\mJ_{L}\,\mJ_{L-1}\cdots\mJ_{1}. \]
+<p>A product of Jacobians, exactly as Lecture 5's scalar chain rule was a product of derivatives. Two
+observations that explain the entire design of a deep learning framework:</p>
+<ul>
+<li><strong>Association order decides the cost.</strong> Multiply left-to-right and every intermediate is a
+<em>row vector</em> times a matrix — cheap. Multiply right-to-left and you build full \(d\times d\) Jacobians —
+ruinously expensive. Left-to-right is <strong>reverse mode</strong>, also known as backpropagation; right-to-left
+is forward mode, the <code>Dual</code> class from Lecture 5. Reverse mode wins whenever there is one output and
+many inputs, which is exactly the shape of a loss function.</li>
+<li><strong>Nobody forms the Jacobians.</strong> For a layer \(\vz=\mW\va\), the Jacobian with respect to \(\va\)
+is \(\mW\) itself, and the vector-Jacobian product \(\vg^\top\mW\) is one matrix-vector multiply. Frameworks
+implement <em>vjp</em> functions, never matrices. That is why memory scales with activations, not with
+\(d^2\).</li>
+</ul></div>
+<h2 id="s4"><span class="secnum">4</span>The matrix-calculus identities we owe you</h2>
+<p>Lecture 10 used two gradient rules on credit. Here they are, proved by writing out coordinates —
+which is always the safe way to settle a matrix-calculus question you are unsure about.</p>
+<div class="deriv" id="d105"><div class="deriv-head"><span class="t">∇(aᵀx) = a  and  ∇(xᵀAx) = (A + Aᵀ)x</span><span class="ct">0 / 6</span></div><div class="dstep">\[f(\vx) = \va^\top\vx = \sum_{j=1}^{d} a_j x_j\]<div class="why"><b>Write it as a sum.</b> Whenever matrix calculus feels slippery, drop to indices. Every identity below is elementary once you do.</div></div><div class="dstep">\[\frac{\partial f}{\partial x_i} = \frac{\partial}{\partial x_i}\sum_j a_jx_j = a_i \quad\Longrightarrow\quad \grad f = \va\]<div class="why"><b>Differentiate one coordinate.</b> Every term with \(j\neq i\) is constant with respect to \(x_i\) and dies; the \(j=i\) term contributes \(a_i\). Stacking gives \(\va\). This is the analogue of \(\frac{d}{dx}(ax)=a\). ∎</div></div><div class="dstep">\[q(\vx) = \vx^\top\mA\vx = \sum_{j}\sum_{k} A_{jk}\,x_jx_k\]<div class="why"><b>The quadratic form in indices.</b> A double sum over all pairs of coordinates.</div></div><div class="dstep">\[\frac{\partial q}{\partial x_i} = \sum_{k}A_{ik}x_k \;+\; \sum_{j}A_{ji}x_j\]<div class="why"><b>Product rule on each term.</b> \(x_i\) appears in two places: as \(x_j\) with \(j=i\) (giving \(\sum_k A_{ik}x_k\), i.e. row \(i\) of \(\mA\) dotted with \(\vx\)) and as \(x_k\) with \(k=i\) (giving \(\sum_j A_{ji}x_j\), i.e. <em>column</em> \(i\)). The diagonal term \(A_{ii}x_i^2\) is correctly counted twice, giving \(2A_{ii}x_i\).</div></div><div class="dstep">\[\grad q = \mA\vx + \mA^\top\vx = (\mA+\mA^\top)\vx\]<div class="why"><b>Reassemble.</b> The first sum is entry \(i\) of \(\mA\vx\); the second is entry \(i\) of \(\mA^\top\vx\). ∎</div></div><div class="dstep">\[\mA \text{ symmetric} \;\Longrightarrow\; \grad(\vx^\top\mA\vx) = 2\mA\vx\]<div class="why"><b>The case we needed.</b> Exactly analogous to \(\frac{d}{dx}(ax^2)=2ax\). In Lecture 10, \(\mA=\mX^\top\mX\) is symmetric, so \(\grad(\vw^\top\mX^\top\mX\vw)=2\mX^\top\mX\vw\) ✓ — the step we deferred.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d105')">Next step</button><button class="btn ghost" onclick="dall('d105')">Show all</button><button class="btn ghost" onclick="dreset('d105')">Reset</button></div></div>
+<div class="rev"><div class="rlbl">Now derive the least-squares gradient yourself</div><p>Using the two identities above, differentiate</p>
+ \[ J(\vw) = \|\mX\vw-\vy\|^2 \]
+ <p>with respect to \(\vw\), and confirm you recover the normal equations. Check the shape of every term as you
+ go.</p><div style="margin-top:12px"><button class="btn ghost" data-show="Show it" onclick="rev('r106',this)">Show it</button></div><div class="rev-body" id="r106"><p>Expand (as in Lecture 10):</p>
+ \[J(\vw) = \vw^\top\underbrace{(\mX^\top\mX)}_{d\times d,\ \text{symmetric}}\vw
+   \;-\;2\,\vw^\top\underbrace{(\mX^\top\vy)}_{d\times 1}\;+\;\|\vy\|^2 .\]
+ <p>Differentiate term by term, using linearity:</p>
+ <ul>
+ <li>First term: \(\grad(\vw^\top\mA\vw)=2\mA\vw = 2\mX^\top\mX\vw\). Shape \(d\times1\) ✓.</li>
+ <li>Second term: \(\grad(-2\vw^\top\vb) = -2\vb = -2\mX^\top\vy\). Shape \(d\times1\) ✓.</li>
+ <li>Third term: constant in \(\vw\), gradient \(\vzero\).</li>
+ </ul>
+ \[ \grad J = 2\mX^\top\mX\vw - 2\mX^\top\vy \;\stackrel{!}{=}\;\vzero
+   \quad\Longrightarrow\quad \mX^\top\mX\vw = \mX^\top\vy. \qquad\blacksquare\]
+ <p><strong>Alternative route, worth knowing.</strong> Treat it as a composition: \(\vr(\vw)=\mX\vw-\vy\) with
+ Jacobian \(\mJ_{\vr}=\mX\) (\(n\times d\)), and \(J=\vr^\top\vr\) with \(\grad_{\vr}J = 2\vr\) (\(n\times1\)).
+ The chain rule for a scalar output reads \(\grad_{\vw}J = \mJ_{\vr}^\top\,\grad_{\vr}J = \mX^\top(2\vr)
+ = 2\mX^\top(\mX\vw-\vy)\) ✓. Same answer, and note the <em>transpose</em>: pulling a gradient backwards
+ through a linear map multiplies by \(\mJ^\top\), which is exactly what a backward pass does.</p></div></div>
+<h2 id="s5"><span class="secnum">5</span>The Hessian</h2>
+<div class="box defn"><span class="lbl">Definition — Hessian</span><p>For \(f:\RR^d\to\RR\), the <strong>Hessian</strong> is the
+\(d\times d\) matrix of second partials:</p>
+\[ \mH = \grad^2 f, \qquad H_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}. \]
+<p>It is the Jacobian of the gradient. <strong>Clairaut's theorem:</strong> if the second partials are
+continuous then \(\frac{\partial^2 f}{\partial x_i\partial x_j} = \frac{\partial^2 f}{\partial x_j\partial x_i}\),
+so \(\mH\) is <strong>symmetric</strong> — and therefore everything from Lecture 11 applies to it: real
+eigenvalues, orthogonal eigenvectors, a definiteness classification.</p></div>
+<p>The second-order Taylor expansion in \(d\) dimensions is exactly what you would guess:</p>
+<p>\[f(\vx+\vh) \;\approx\; f(\vx) + \grad f(\vx)^\top\vh + \tfrac12\,\vh^\top\mH(\vx)\,\vh.\]</p>
+<p>Three terms: a number, a linear form, a quadratic form. Compare Lecture 6's
+\(f+f'h+\tfrac12 f''h^2\) — identical, with the scalars promoted to a vector and a matrix. And now the
+second-derivative test writes itself, using Lecture 11's classification.</p>
+<div class="box thm"><span class="lbl">Theorem — second derivative test in d dimensions</span><p>Let \(\grad f(\vx^\star)=\vzero\)
+and let \(\mH=\grad^2f(\vx^\star)\), with eigenvalues \(\lambda_1,\dots,\lambda_d\).</p>
+<ul>
+<li>All \(\lambda_i>0\) (\(\mH\succ0\)) → strict local <strong>minimum</strong>. Locally a bowl.</li>
+<li>All \(\lambda_i&lt;0\) (\(\mH\prec0\)) → strict local <strong>maximum</strong>. Locally a dome.</li>
+<li>Mixed signs (\(\mH\) indefinite) → <strong>saddle point</strong>. Down along some eigen-directions, up along
+others.</li>
+<li>Some \(\lambda_i=0\) → inconclusive, as in one dimension.</li>
+</ul>
+<p><strong>Why:</strong> at a critical point the linear term vanishes, so \(f(\vx^\star+\vh)-f(\vx^\star)
+\approx \tfrac12\vh^\top\mH\vh\), and Lecture 11 showed the sign of that quadratic form is decided entirely by
+the signs of the eigenvalues.</p></div>
+<div class="fig"><div class="fig-head">Gradient descent in two dimensions — and what the Hessian says about where it lands<span class="tag">Interactive</span></div><canvas id="f12hess" data-h="460"></canvas><div class="legend"><span><i style="background:var(--c3)"></i>contours</span><span><i style="background:var(--c2)"></i>descent path</span><span><i style="background:var(--c1)"></i>start</span><span><i style="background:var(--c5)"></i>end</span></div><div class="fig-read" id="f12hess-read"></div><div class="ctrls"><div class="ctrl"><label>0 = bowl · 1 = narrow valley · 2 = saddle · 3 = two wells</label><input type="range" min="0" max="3" step="1" value="1" data-fmt="0" oninput="figSlide('f12hess','which',this)"><output>1</output></div><div class="ctrl"><label>start x</label><input type="range" min="-2.6" max="2.6" step="0.02" value="-2.2" data-fmt="2" oninput="figSlide('f12hess','sx',this)"><output>-2.20</output></div><div class="ctrl"><label>start y</label><input type="range" min="-2.6" max="2.6" step="0.02" value="2.2" data-fmt="2" oninput="figSlide('f12hess','sy',this)"><output>2.20</output></div><div class="ctrl"><label>learning rate  η</label><input type="range" min="0.005" max="0.3" step="0.005" value="0.08" data-fmt="3" oninput="figSlide('f12hess','eta',this)"><output>0.080</output></div><div class="ctrl"><label>steps</label><input type="range" min="0" max="150" step="1" value="40" data-fmt="0" oninput="figSlide('f12hess','steps',this)"><output>40</output></div></div><div class="fig-cap">Try the saddle: start almost exactly on the y-axis and descent slides towards the origin, hovers there where the gradient is nearly zero, then eventually escapes along the negative-curvature direction. In high dimensions this is the typical situation — critical points of a deep network's loss are overwhelmingly saddles, not local minima, which is why 'stuck in a local minimum' is usually the wrong diagnosis.</div></div><script>makeFig("f12hess",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,2.9);
+var k=Math.round(p.which);
+var F=[
+ {f:function(x,y){return x*x+y*y;}, g:function(x,y){return [2*x,2*y];},
+  H:function(x,y){return [[2,0],[0,2]];}, n:'x² + y²', lv:[0.25,1,2,3.5,5.5,8,11]},
+ {f:function(x,y){return 8*x*x+0.3*y*y;}, g:function(x,y){return [16*x,0.6*y];},
+  H:function(x,y){return [[16,0],[0,0.6]];}, n:'8x² + 0.3y²', lv:[0.15,0.6,1.5,3,5,8,12]},
+ {f:function(x,y){return x*x-0.7*y*y;}, g:function(x,y){return [2*x,-1.4*y];},
+  H:function(x,y){return [[2,0],[0,-1.4]];}, n:'x² − 0.7y²', lv:[-5,-2.5,-1,-0.25,0,0.25,1,2.5,5]},
+ {f:function(x,y){return (x*x-1)*(x*x-1)+0.7*y*y;}, g:function(x,y){return [4*x*(x*x-1),1.4*y];},
+  H:function(x,y){return [[12*x*x-4,0],[0,1.4]];}, n:'(x²−1)² + 0.7y²', lv:[0.05,0.25,0.7,1.4,2.5,4,6]}
+][k];
+vp.contour(F.f,F.lv,'--c3',{w:1.4,alpha:0.7,N:110});
+vp.axes({stepx:1,stepy:1});
+var x=p.sx, y=p.sy, n=Math.round(p.steps), eta=p.eta, path=[[x,y]], div=false;
+for(var i=0;i<n;i++){
+  var g=F.g(x,y); x-=eta*g[0]; y-=eta*g[1];
+  if(!isFinite(x)||Math.abs(x)>1e4||Math.abs(y)>1e4){div=true;break;}
+  path.push([x,y]);
+}
+for(var i=1;i<path.length;i++){
+  if(Math.abs(path[i][0])>4||Math.abs(path[i][1])>4) break;
+  vp.seg(path[i-1][0],path[i-1][1],path[i][0],path[i][1],'--c2',{w:1.8});
+  vp.dot(path[i][0],path[i][1],'--c2',3.2);
+}
+vp.dot(path[0][0],path[0][1],'--c1',7);
+var last=path[path.length-1];
+vp.dot(last[0],last[1],'--c5',7);
+var H=F.H(last[0],last[1]);
+var tr=H[0][0]+H[1][1], dt=H[0][0]*H[1][1]-H[0][1]*H[1][0], ds=Math.sqrt(Math.max(0,tr*tr-4*dt));
+var e1=(tr+ds)/2, e2=(tr-ds)/2;
+var g=F.g(last[0],last[1]), ng=Math.hypot(g[0],g[1]);
+var kind = (e1>1e-9&&e2>1e-9)?'<b style="color:var(--ok)">both λ &gt; 0 → local MINIMUM</b>'
+        : (e1<-1e-9&&e2<-1e-9)?'<b style="color:var(--c2)">both λ &lt; 0 → local MAXIMUM</b>'
+        : (e1*e2<0)?'<b style="color:var(--bad)">mixed signs → SADDLE POINT</b>' : 'degenerate (a zero eigenvalue)';
+var kappa=Math.abs(e1)>Math.abs(e2)?Math.abs(e1/e2):Math.abs(e2/e1);
+figRead('f12hess', (div?'<b style="color:var(--bad)">DIVERGED</b> — η exceeds 2/λmax. ':'')
+ +'f = '+F.n+'   after '+n+' steps: (x, y) = (<b>'+last[0].toFixed(4)+', '+last[1].toFixed(4)+'</b>),  ‖∇f‖ = <b>'
+ +ng.toExponential(2)+'</b>'
+ +'<br>Hessian eigenvalues there: <b>'+e1.toFixed(3)+', '+e2.toFixed(3)+'</b>   '+kind
+ +'   |   κ = '+kappa.toFixed(1)+',  stability needs η &lt; 2/λmax = '+(2/Math.max(e1,e2,1e-9)).toFixed(4));
+},[{"name": "which", "label": "0 = bowl \u00b7 1 = narrow valley \u00b7 2 = saddle \u00b7 3 = two wells", "min": 0, "max": 3, "step": 1, "value": 1, "dp": 0}, {"name": "sx", "label": "start x", "min": -2.6, "max": 2.6, "step": 0.02, "value": -2.2, "dp": 2}, {"name": "sy", "label": "start y", "min": -2.6, "max": 2.6, "step": 0.02, "value": 2.2, "dp": 2}, {"name": "eta", "label": "learning rate  \u03b7", "min": 0.005, "max": 0.3, "step": 0.005, "value": 0.08, "dp": 3}, {"name": "steps", "label": "steps", "min": 0, "max": 150, "step": 1, "value": 40, "dp": 0}]);window["FIG_f12hess"].run();</script>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p><strong>Saddle points dominate in high dimensions.</strong> Here is a counting argument
+that is worth internalising. At a critical point of a random smooth function in \(\RR^d\), think of each of the
+\(d\) Hessian eigenvalues as being positive or negative roughly independently. For a local <em>minimum</em> you
+need <em>all \(d\)</em> to be positive — probability about \(2^{-d}\). For \(d=10^6\) that number is
+indistinguishable from zero.</p>
+<p>So essentially every critical point of a large network's loss is a saddle. Consequences:</p>
+<ul>
+<li>"Training got stuck in a local minimum" is almost always the wrong explanation. Plateaus around saddles,
+where \(\|\grad L\|\) is tiny but the point is not a minimum, are far more likely.</li>
+<li>Plain gradient descent escapes saddles, but slowly — it must find the negative-curvature direction by
+accident. Noise from stochastic mini-batches actually <em>helps</em> here, which is one reason SGD often
+generalises and converges better than full-batch descent.</li>
+<li>Raw Newton's method is <em>attracted</em> to saddles, since it seeks critical points of any kind. That is
+the multi-dimensional version of the failure you saw in Lecture 6.</li>
+</ul></div>
+<div class="quiz" id="q107"><div class="qlbl">Check yourself</div><div class="qq">For \(f(x,y) = x^2 - y^2\) at the origin: \(\grad f = (2x,-2y)\) vanishes there. What kind of point
+is it?</div><button class="qopt" data-ok="1" onclick="pick('q107',0,true)">A saddle: \(\mH = \operatorname{diag}(2,-2)\) has one positive and one negative eigenvalue.</button><button class="qopt" data-ok="0" onclick="pick('q107',1,false)">A local minimum, because both partials are zero and the function is a sum of squares.</button><button class="qopt" data-ok="0" onclick="pick('q107',2,false)">A local maximum.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct. Along the \(x\)-axis, \(f(x,0)=x^2\) has a minimum at 0; along the \(y\)-axis,
+    \(f(0,y)=-y^2\) has a maximum. Both statements are true simultaneously, which is precisely what a saddle
+    is.<br><br>
+    Note that examining a few directions is not enough in general — you could check the \(x\) and \(y\) axes of
+    some function and see minima in both while a diagonal direction descends. The eigenvalue test is
+    exhaustive because the eigenvectors span every direction, and Lecture 11's Rayleigh bound says nothing can
+    be worse than \(\lambda_{\min}\).</div><div class="qwhy" data-i="1"><b>Not quite.</b> It is not a sum of squares — the second term is \(-y^2\), which is negative for every
+    \(y\neq0\). Check the value: \(f(0,0)=0\) but \(f(0,0.1)=-0.01&lt;0\), so points arbitrarily close have
+    <em>smaller</em> values. Not a minimum. Vanishing gradient tells you it is critical; only the Hessian tells
+    you which kind.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Same objection in the other direction: \(f(0.1,0)=+0.01>0\), so nearby points have larger values.
+    It is neither. When a critical point is neither a max nor a min, "saddle" is the name.</div></div>
+<div class="pyb" id="py108" data-orig="import numpy as np
+np.set_printoptions(precision=5, suppress=True)
+
+def num_grad(f, x, h=1e-6):
+    &quot;&quot;&quot;Central differences, one coordinate at a time. O(d) function evaluations.&quot;&quot;&quot;
+    x = np.asarray(x, float); g = np.zeros_like(x)
+    for i in range(x.size):
+        e = np.zeros_like(x); e[i] = h
+        g[i] = (f(x + e) - f(x - e)) / (2*h)
+    return g
+
+def num_jac(F, x, h=1e-6):
+    x = np.asarray(x, float); f0 = np.asarray(F(x), float)
+    J = np.zeros((f0.size, x.size))
+    for j in range(x.size):
+        e = np.zeros_like(x); e[j] = h
+        J[:, j] = (np.asarray(F(x+e)) - np.asarray(F(x-e))) / (2*h)
+    return J
+
+def num_hess(f, x, h=1e-4):
+    return num_jac(lambda z: num_grad(f, z, h), x, h)
+
+# ---------- check the identities we proved ----------
+rng = np.random.default_rng(0)
+d = 4
+a = rng.normal(size=d)
+A = rng.normal(size=(d, d))
+Asym = (A + A.T) / 2
+x = rng.normal(size=d)
+
+print(&quot;grad(a^T x)      : numeric&quot;, num_grad(lambda z: a @ z, x))
+print(&quot;                   analytic&quot;, a)
+print()
+print(&quot;grad(x^T A x), A general:&quot;)
+print(&quot;  numeric &quot;, num_grad(lambda z: z @ A @ z, x))
+print(&quot;  (A+A^T)x&quot;, (A + A.T) @ x)
+print()
+print(&quot;grad(x^T A x), A symmetric:&quot;)
+print(&quot;  numeric &quot;, num_grad(lambda z: z @ Asym @ z, x))
+print(&quot;  2 A x   &quot;, 2 * Asym @ x)
+print()
+
+# ---------- least squares gradient, the Lecture 10 debt ----------
+n = 12
+X = rng.normal(size=(n, d)); y = rng.normal(size=n)
+J  = lambda w: np.sum((X @ w - y)**2)
+w  = rng.normal(size=d)
+print(&quot;grad ||Xw - y||^2:&quot;)
+print(&quot;  numeric        &quot;, num_grad(J, w))
+print(&quot;  2 X^T (Xw - y) &quot;, 2 * X.T @ (X @ w - y))
+print()
+print(&quot;Hessian:&quot;)
+print(&quot;  numeric\n&quot;, num_hess(J, w))
+print(&quot;  2 X^T X\n&quot;, 2 * X.T @ X)
+print(&quot;  match?&quot;, np.allclose(num_hess(J, w), 2*X.T@X, atol=1e-4))
+print()
+
+# ---------- the Hessian tells you the learning-rate ceiling ----------
+H = 2 * X.T @ X
+ev = np.linalg.eigvalsh(H)
+eta_max = 2 / ev.max()
+print(f&quot;Hessian eigenvalues: {ev}&quot;)
+print(f&quot;kappa = {ev.max()/ev.min():.2f}   eta must be &lt; 2/lambda_max = {eta_max:.6f}&quot;)
+w_star = np.linalg.lstsq(X, y, rcond=None)[0]
+for eta in [0.5*eta_max, 0.95*eta_max, 1.05*eta_max]:
+    v = np.zeros(d)
+    for _ in range(4000):
+        v = v - eta * 2 * X.T @ (X @ v - y)
+        if not np.isfinite(v).all() or np.abs(v).max() &gt; 1e12: break
+    ok = np.isfinite(v).all() and np.abs(v).max() &lt; 1e12
+    err = np.linalg.norm(v - w_star) if ok else np.inf
+    print(f&quot;  eta = {eta:.6f} ({eta/eta_max:4.2f} x ceiling)  -&gt; &quot;
+          f&quot;{&#x27;converged, err &#x27; + f&#x27;{err:.2e}&#x27; if ok else &#x27;DIVERGED&#x27;}&quot;)
+print()
+
+# ---------- classify a saddle ----------
+f_saddle = lambda z: z[0]**2 - 0.7*z[1]**2
+Hs = num_hess(f_saddle, np.zeros(2))
+print(&quot;Hessian of x^2 - 0.7y^2 at the origin:\n&quot;, Hs)
+print(&quot;eigenvalues:&quot;, np.linalg.eigvalsh(Hs), &quot; -&gt; mixed signs -&gt; SADDLE&quot;)
+"><div class="pyb-head"><span class="t">Numerical gradients, Jacobians, Hessians — and how to gradcheck</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py108')">Run</button><button class="btn ghost" onclick="resetPy('py108')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+np.set_printoptions(precision=5, suppress=True)
+
+def num_grad(f, x, h=1e-6):
+    &quot;&quot;&quot;Central differences, one coordinate at a time. O(d) function evaluations.&quot;&quot;&quot;
+    x = np.asarray(x, float); g = np.zeros_like(x)
+    for i in range(x.size):
+        e = np.zeros_like(x); e[i] = h
+        g[i] = (f(x + e) - f(x - e)) / (2*h)
+    return g
+
+def num_jac(F, x, h=1e-6):
+    x = np.asarray(x, float); f0 = np.asarray(F(x), float)
+    J = np.zeros((f0.size, x.size))
+    for j in range(x.size):
+        e = np.zeros_like(x); e[j] = h
+        J[:, j] = (np.asarray(F(x+e)) - np.asarray(F(x-e))) / (2*h)
+    return J
+
+def num_hess(f, x, h=1e-4):
+    return num_jac(lambda z: num_grad(f, z, h), x, h)
+
+# ---------- check the identities we proved ----------
+rng = np.random.default_rng(0)
+d = 4
+a = rng.normal(size=d)
+A = rng.normal(size=(d, d))
+Asym = (A + A.T) / 2
+x = rng.normal(size=d)
+
+print(&quot;grad(a^T x)      : numeric&quot;, num_grad(lambda z: a @ z, x))
+print(&quot;                   analytic&quot;, a)
+print()
+print(&quot;grad(x^T A x), A general:&quot;)
+print(&quot;  numeric &quot;, num_grad(lambda z: z @ A @ z, x))
+print(&quot;  (A+A^T)x&quot;, (A + A.T) @ x)
+print()
+print(&quot;grad(x^T A x), A symmetric:&quot;)
+print(&quot;  numeric &quot;, num_grad(lambda z: z @ Asym @ z, x))
+print(&quot;  2 A x   &quot;, 2 * Asym @ x)
+print()
+
+# ---------- least squares gradient, the Lecture 10 debt ----------
+n = 12
+X = rng.normal(size=(n, d)); y = rng.normal(size=n)
+J  = lambda w: np.sum((X @ w - y)**2)
+w  = rng.normal(size=d)
+print(&quot;grad ||Xw - y||^2:&quot;)
+print(&quot;  numeric        &quot;, num_grad(J, w))
+print(&quot;  2 X^T (Xw - y) &quot;, 2 * X.T @ (X @ w - y))
+print()
+print(&quot;Hessian:&quot;)
+print(&quot;  numeric\n&quot;, num_hess(J, w))
+print(&quot;  2 X^T X\n&quot;, 2 * X.T @ X)
+print(&quot;  match?&quot;, np.allclose(num_hess(J, w), 2*X.T@X, atol=1e-4))
+print()
+
+# ---------- the Hessian tells you the learning-rate ceiling ----------
+H = 2 * X.T @ X
+ev = np.linalg.eigvalsh(H)
+eta_max = 2 / ev.max()
+print(f&quot;Hessian eigenvalues: {ev}&quot;)
+print(f&quot;kappa = {ev.max()/ev.min():.2f}   eta must be &lt; 2/lambda_max = {eta_max:.6f}&quot;)
+w_star = np.linalg.lstsq(X, y, rcond=None)[0]
+for eta in [0.5*eta_max, 0.95*eta_max, 1.05*eta_max]:
+    v = np.zeros(d)
+    for _ in range(4000):
+        v = v - eta * 2 * X.T @ (X @ v - y)
+        if not np.isfinite(v).all() or np.abs(v).max() &gt; 1e12: break
+    ok = np.isfinite(v).all() and np.abs(v).max() &lt; 1e12
+    err = np.linalg.norm(v - w_star) if ok else np.inf
+    print(f&quot;  eta = {eta:.6f} ({eta/eta_max:4.2f} x ceiling)  -&gt; &quot;
+          f&quot;{&#x27;converged, err &#x27; + f&#x27;{err:.2e}&#x27; if ok else &#x27;DIVERGED&#x27;}&quot;)
+print()
+
+# ---------- classify a saddle ----------
+f_saddle = lambda z: z[0]**2 - 0.7*z[1]**2
+Hs = num_hess(f_saddle, np.zeros(2))
+print(&quot;Hessian of x^2 - 0.7y^2 at the origin:\n&quot;, Hs)
+print(&quot;eigenvalues:&quot;, np.linalg.eigvalsh(Hs), &quot; -&gt; mixed signs -&gt; SADDLE&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s6"><span class="secnum">6</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Compute \(\grad f\) and \(\mH\) for each, and classify every critical point:</p>
+  <p>(a) \(f(x,y)=x^2+3y^2-4x+6y\) &nbsp;&nbsp;
+  (b) \(f(x,y)=x^3-3xy+y^3\) &nbsp;&nbsp;
+  (c) \(f(x,y)=e^{-(x^2+y^2)}\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex109',this)">Show solution</button></div><div class="rev-body" id="ex109"><p><strong>(a)</strong> \(\grad f = (2x-4,\ 6y+6)\), zero at \((2,-1)\).
+  \(\mH=\begin{bmatrix}2&0\\0&6\end{bmatrix}\), constant. Eigenvalues \(2,6\), both positive →
+  <strong>strict local (and, since \(\mH\) is constant and positive definite, global) minimum</strong>, value
+  \(f(2,-1)=4+3-8-6=-7\).</p>
+
+  <p><strong>(b)</strong> \(\grad f = (3x^2-3y,\ -3x+3y^2)\). Setting both to zero: \(y=x^2\) and \(x=y^2\).
+  Substituting, \(x=x^4\), so \(x(x^3-1)=0\), giving \(x=0\) or \(x=1\). Critical points \((0,0)\) and
+  \((1,1)\).<br>
+  \(\mH=\begin{bmatrix}6x&-3\\-3&6y\end{bmatrix}\).<br>
+  At \((0,0)\): \(\begin{bmatrix}0&-3\\-3&0\end{bmatrix}\), \(\det=-9&lt;0\). A negative determinant in 2D means
+  \(\lambda_1\lambda_2&lt;0\), hence mixed signs → <strong>saddle</strong>. (Eigenvalues \(\pm3\).)<br>
+  At \((1,1)\): \(\begin{bmatrix}6&-3\\-3&6\end{bmatrix}\), \(\tr=12>0\) and \(\det=36-9=27>0\), so both
+  eigenvalues are positive (\(3\) and \(9\)) → <strong>local minimum</strong>, value \(1-3+1=-1\).<br>
+  <em>Useful 2×2 shortcut: \(\det&lt;0\) ⟹ saddle; \(\det>0\) with \(\tr>0\) ⟹ minimum; \(\det>0\) with
+  \(\tr&lt;0\) ⟹ maximum.</em></p>
+
+  <p><strong>(c)</strong> \(\grad f = -2e^{-(x^2+y^2)}(x,y)\), zero only at \((0,0)\) since the exponential
+  never vanishes.<br>
+  At the origin, \(\mH = \begin{bmatrix}-2&0\\0&-2\end{bmatrix}\) (differentiate again and evaluate; the
+  cross terms vanish by symmetry). Both eigenvalues negative → <strong>local maximum</strong>, value 1. It is
+  also global, since \(0&lt;f\le1\) everywhere.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that \(\grad f(\vx^\star)=\vzero\) is <em>necessary</em> for \(\vx^\star\) to be a local
+  minimum of a differentiable \(f:\RR^d\to\RR\).</p>
+  <p><em>Hint:</em> reduce to the one-dimensional case using \(g(t)=f(\vx^\star+t\vu)\) and Lecture 7's
+  Fermat rule.</p>
+  <p>Then explain why the converse fails in a way that is <em>worse</em> in high dimensions than in one.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex110',this)">Show solution</button></div><div class="rev-body" id="ex110"><p><strong>Proof.</strong> Suppose \(\vx^\star\) is a local minimum, so \(f(\vx^\star)\le f(\vx)\) for
+  all \(\vx\) within some \(\delta\). Fix any unit direction \(\vu\) and define \(g(t)=f(\vx^\star+t\vu)\), a
+  function of one real variable, differentiable at 0 with \(g'(0)=D_{\vu}f(\vx^\star)=\grad f(\vx^\star)^\top\vu\)
+  by the directional-derivative theorem.</p>
+  <p>For \(|t|&lt;\delta\) the point \(\vx^\star+t\vu\) is within \(\delta\) of \(\vx^\star\), so
+  \(g(t)\ge g(0)\): the point \(t=0\) is a local minimum of \(g\), and it is interior. By Fermat's rule
+  (Lecture 7), \(g'(0)=0\), i.e.</p>
+  \[\grad f(\vx^\star)^\top\vu = 0.\]
+  <p>This holds for <em>every</em> unit \(\vu\). Take \(\vu=\ve_i\) for each \(i\): every component of the
+  gradient is zero. Hence \(\grad f(\vx^\star)=\vzero\). ∎</p>
+  <p>(Equivalently: a vector orthogonal to every vector must be the zero vector — take \(\vu\) parallel to the
+  gradient itself and you get \(\|\grad f\|^2=0\).)</p>
+
+  <p><strong>Why the converse fails worse in high dimensions.</strong> In one dimension a critical point is a
+  minimum, a maximum, or an inflection — and generically (with \(f''\neq0\)) it is one of the first two, so a
+  critical point has roughly a 50% chance of being a minimum.</p>
+  <p>In \(d\) dimensions the classification is by the sign pattern of \(d\) eigenvalues. A minimum needs
+  <em>all</em> of them positive. If the signs were independent and equally likely, minima would have probability
+  \(2^{-d}\), while saddles — anything with at least one sign of each — would have probability
+  \(1-2^{-d+1}\).</p>
+  <p>The independence assumption is crude, and random-matrix theory sharpens it considerably (the semicircle
+  law, and results of Bray–Dean and Dauphin et al. on spin glasses and neural losses), but the qualitative
+  conclusion survives and is well supported empirically: <strong>in high dimensions almost all critical points
+  are saddles, and the ones with low loss are overwhelmingly the ones that are minima</strong>. This reframes
+  what optimisation is fighting. It is not searching a landscape littered with bad local minima; it is
+  navigating long flat plateaus around saddles.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Derive the gradient of the logistic regression loss</p>
+  \[ L(\vw) = -\sum_{i=1}^{n}\Big[y_i\log\sigma(\vw^\top\vx_i) + (1-y_i)\log\big(1-\sigma(\vw^\top\vx_i)\big)\Big] \]
+  <p>and show it simplifies to \(\;\grad L = \mX^\top(\hat{\vp}-\vy)\), where \(\hat p_i = \sigma(\vw^\top\vx_i)\).</p>
+  <p>Comment on the resemblance to the least-squares gradient.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex111',this)">Show solution</button></div><div class="rev-body" id="ex111"><p>Work with one term. Write \(z=\vw^\top\vx\), \(p=\sigma(z)\), and
+  \(\ell = -[y\log p + (1-y)\log(1-p)]\).</p>
+  <p><strong>Step 1 — differentiate the loss with respect to \(p\):</strong></p>
+  \[\frac{\partial \ell}{\partial p} = -\frac{y}{p} + \frac{1-y}{1-p} = \frac{-y(1-p)+p(1-y)}{p(1-p)} = \frac{p-y}{p(1-p)}.\]
+  <p><strong>Step 2 — the sigmoid derivative</strong> (Lecture 5): \(\dfrac{dp}{dz} = p(1-p)\).</p>
+  <p><strong>Step 3 — chain rule, and the beautiful cancellation:</strong></p>
+  \[\frac{\partial \ell}{\partial z} = \frac{p-y}{p(1-p)}\cdot p(1-p) = p - y.\]
+  <p><strong>Step 4 — chain rule again</strong>, with \(\dfrac{\partial z}{\partial \vw}=\vx\):</p>
+  \[\grad_{\vw}\ell = (p-y)\,\vx.\]
+  <p>Summing over the dataset and stacking, \(\grad L = \sum_i (\hat p_i-y_i)\vx_i = \mX^\top(\hat{\vp}-\vy)\). ∎</p>
+
+  <p><strong>The resemblance.</strong> Least squares gave \(\grad J = 2\mX^\top(\mX\vw-\vy) = 2\mX^\top
+  (\hat{\vy}-\vy)\). Both are <em>design matrix transposed, times prediction error</em>. This is not a
+  coincidence: both losses are negative log-likelihoods of exponential-family models with a canonical link
+  function (identity for the Gaussian, logit for the Bernoulli), and for that whole family the gradient always
+  takes this form. It is why the same optimiser code works for both, and why the update rule
+  \(\vw \leftarrow \vw - \eta\mX^\top(\hat{\vy}-\vy)\) feels like the natural thing to write.</p>
+  <p>Note also that the messy \(p(1-p)\) cancelled exactly. Had we used squared error on top of a sigmoid
+  instead, it would not have — the gradient would carry a factor of \(\sigma'\), which vanishes when the model
+  is confidently wrong. That is a concrete reason cross-entropy trains better than squared error for
+  classification: <em>it removes the saturation from the gradient</em>.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Implement reverse-mode automatic differentiation for a two-layer network
+  and verify it against numerical gradients.</p>
+  <ol>
+  <li>Forward: \(\vz_1=\mW_1\vx+\vb_1\), \(\va_1=\tanh(\vz_1)\), \(\vz_2=\mW_2\va_1+\vb_2\),
+  \(L=\tfrac12\|\vz_2-\vy\|^2\).</li>
+  <li>Derive and implement the backward pass by hand, using the chain rule as a product of vector-Jacobian
+  products. Recall \(\tanh'=1-\tanh^2\).</li>
+  <li>Check every gradient against <code>num_grad</code> to at least \(10^{-7}\) relative error.</li>
+  <li>Count the operations. How does the cost of the backward pass compare with the forward pass, and how would
+  it compare if you had used forward mode instead?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex112',this)">Show solution</button></div><div class="rev-body" id="ex112"><p><strong>2. The backward pass.</strong> Work from the loss backwards, carrying
+  \(\bar{\vv} := \partial L/\partial \vv\) at each node. Each step is a vector-Jacobian product.</p>
+  \[\bar{\vz}_2 = \vz_2-\vy, \qquad
+    \bar{\mW}_2 = \bar{\vz}_2\va_1^\top, \qquad \bar{\vb}_2 = \bar{\vz}_2,\]
+  \[\bar{\va}_1 = \mW_2^\top\bar{\vz}_2, \qquad
+    \bar{\vz}_1 = \bar{\va}_1 \odot (1-\va_1^2), \]
+  \[\bar{\mW}_1 = \bar{\vz}_1\vx^\top, \qquad \bar{\vb}_1 = \bar{\vz}_1.\]
+  <p>Two patterns to notice, and they are the whole of backpropagation. Pulling a gradient back through a
+  <em>linear</em> map multiplies by the <strong>transpose</strong> of the weight matrix. Pulling it back through
+  an <em>elementwise</em> map multiplies <strong>elementwise</strong> by the local derivative. The gradient with
+  respect to a weight matrix is always an outer product of (incoming gradient) and (stored input).</p>
+
+  <pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+din, dh, dout = 5, 7, 3
+W1 = rng.normal(size=(dh, din))*0.5;  b1 = rng.normal(size=dh)*0.1
+W2 = rng.normal(size=(dout, dh))*0.5; b2 = rng.normal(size=dout)*0.1
+x  = rng.normal(size=din);            y  = rng.normal(size=dout)
+
+def forward(W1, b1, W2, b2):
+    z1 = W1 @ x + b1;  a1 = np.tanh(z1)
+    z2 = W2 @ a1 + b2
+    return 0.5*np.sum((z2 - y)**2), (z1, a1, z2)
+
+def backward(W1, b1, W2, b2):
+    _, (z1, a1, z2) = forward(W1, b1, W2, b2)
+    gz2 = z2 - y                       # dL/dz2
+    gW2 = np.outer(gz2, a1);  gb2 = gz2
+    ga1 = W2.T @ gz2                   # transpose: linear layer
+    gz1 = ga1 * (1 - a1**2)            # elementwise: tanh
+    gW1 = np.outer(gz1, x);   gb1 = gz1
+    return gW1, gb1, gW2, gb2
+
+def num_grad(f, p, h=1e-6):
+    g = np.zeros_like(p); it = np.nditer(p, flags=['multi_index'])
+    while not it.finished:
+        i = it.multi_index; old = p[i]
+        p[i] = old + h; fp = f()
+        p[i] = old - h; fm = f()
+        p[i] = old;     g[i] = (fp - fm)/(2*h)
+        it.iternext()
+    return g
+
+gW1, gb1, gW2, gb2 = backward(W1, b1, W2, b2)
+for name, param, ana in [("W1",W1,gW1), ("b1",b1,gb1), ("W2",W2,gW2), ("b2",b2,gb2)]:
+    num = num_grad(lambda: forward(W1,b1,W2,b2)[0], param)
+    rel = np.abs(num-ana).max() / max(np.abs(ana).max(), 1e-12)
+    print(f"{name}: max abs diff {np.abs(num-ana).max():.3e}   rel {rel:.3e}"
+          f"   {'OK' if rel &lt; 1e-7 else 'MISMATCH'}")</code></pre>
+  <p><strong>3.</strong> All four should report relative error around \(10^{-9}\) or better. If one is wrong and
+  the others are right, the error is almost always a missing transpose or a missing elementwise factor — the
+  two patterns above.</p>
+
+  <p><strong>4. Cost.</strong> The forward pass does two matrix-vector products: \(d_h d_{in} + d_{out}d_h\)
+  multiply-adds. The backward pass does two matrix-vector products (\(\mW_2^\top\bar{\vz}_2\), and the analogous
+  one if there were more layers) plus two outer products of the same total size. So the backward pass costs
+  roughly <strong>two forward passes</strong>, independent of the number of parameters. This is the central
+  fact that makes deep learning possible: you obtain <em>all</em> \(P\) partial derivatives for the price of a
+  small constant number of forward evaluations.</p>
+  <p><strong>Forward mode</strong> (the <code>Dual</code> class from Lecture 5) propagates one perturbation
+  direction at a time, so it needs \(P\) sweeps to get \(P\) partials — here \(P = d_hd_{in}+d_h+d_{out}d_h+
+  d_{out} = 35+7+21+3 = 66\), so about \(66\times\) the work. For a model with \(10^9\) parameters the ratio
+  becomes \(10^9\). Reverse mode wins whenever outputs are few and inputs are many; forward mode wins in the
+  opposite case (for example, sensitivity of many outputs to one hyperparameter). Both are the same chain rule,
+  associated in opposite orders.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> Part V. Everything so far has been deterministic. Real data is noisy,
+losses are expectations, and generalisation is a probabilistic claim. Lecture 13 builds random variables,
+expectation and variance from the ground up.</p>
+<div class="pagenav"><a href="11-eigenvalues-quadratic-forms.html" class="pv"><span class="dir">Previous</span><span class="nm">11 · Eigenvalues, Eigenvectors, and Quadratic Forms</span></a><a href="13-random-variables-expectation.html" class="nx"><span class="dir">Next</span><span class="nm">13 · Random Variables, Expectation, and Variance</span></a></div>
+</div>
+<script>initDone('12-gradients-jacobians-hessians');</script>
+</body>
+</html>

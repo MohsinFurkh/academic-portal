@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>8. Vectors, Span, and Geometry — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 8 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('08-vectors-span-geometry')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part III — Linear Algebra · Lecture 8</div>
+  <h1>Vectors, Span, and Geometry</h1>
+  <p class="dek">A data point is a vector. A model's weights are a vector. A gradient is a vector. This lecture builds the object and its geometry — length, angle, projection — because every later result in the course is a geometric statement wearing algebraic clothes.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>State the vector space axioms and check them for \(\RR^d\)</li><li>Compute a span and decide whether a set of vectors is linearly independent</li><li>Derive \(\vu\cdot\vv = \|\vu\|\|\vv\|\cos\theta\) from the law of cosines</li><li>Derive the orthogonal projection formula and interpret it as 'best approximation'</li><li>Explain cosine similarity, and why embeddings are normalised</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lectures 1–7 (the calculus half). No prior linear algebra assumed.</li><li>Pythagoras' theorem</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Data lives in ℝᵈ</h2>
+<p>One house: 120 square metres, 3 bedrooms, 15 years old, 2 km from the station. Write it as an
+ordered list:</p>
+<p>\[\vx = \begin{bmatrix} 120 \\ 3 \\ 15 \\ 2\end{bmatrix} \in \RR^4.\]</p>
+<p>That is a <strong>vector</strong>: a point in a four-dimensional space, one axis per feature.
+A dataset of \(n\) houses is \(n\) such points. Stack them as rows and you have the <strong>design matrix</strong>
+\(\mX\in\RR^{n\times d}\), the object every supervised learning algorithm takes as input.</p>
+<p>We cannot picture \(\RR^4\), let alone \(\RR^{784}\). But nearly everything we need is
+<em>two-dimensional geometry that happens to be written in a way that does not care about the dimension</em>.
+Learn it in the plane, where you can see it; the algebra then carries it anywhere.</p>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p>Two conventions to fix now, because mismatching them causes more bugs than any other single
+thing in ML code. <strong>Vectors are columns</strong> by default: \(\vx\in\RR^d\) means a \(d\times1\) object.
+<strong>Data matrices are rows-as-samples</strong>: \(\mX\in\RR^{n\times d}\) has one <em>row</em> per data
+point. So the \(i\)-th sample is the column vector \(\vx_i = \mX[i,:]^\top\). This is why you constantly see
+\(\mX\vw\) (an \(n\)-vector of predictions) rather than \(\vw^\top\mX\).</p></div>
+<h2 id="s2"><span class="secnum">2</span>What a vector space is</h2>
+<p>A vector is not "a thing with magnitude and direction" — that is a description of one example.
+The real definition is <em>behavioural</em>: a vector is an element of a set on which you can add and scale,
+subject to rules.</p>
+<div class="box defn"><span class="lbl">Definition — vector space</span><p>A <strong>vector space</strong> over \(\RR\) is a set
+\(V\) with two operations, addition \(\vu+\vv\) and scalar multiplication \(\alpha\vu\), satisfying, for all
+\(\vu,\vv,\vw\in V\) and \(\alpha,\beta\in\RR\):</p>
+<ol>
+<li>\(\vu+\vv = \vv+\vu\) &nbsp;(commutativity)</li>
+<li>\((\vu+\vv)+\vw = \vu+(\vv+\vw)\) &nbsp;(associativity)</li>
+<li>There is \(\vzero\in V\) with \(\vu+\vzero=\vu\) &nbsp;(zero vector)</li>
+<li>For each \(\vu\) there is \(-\vu\) with \(\vu+(-\vu)=\vzero\) &nbsp;(inverses)</li>
+<li>\(\alpha(\vu+\vv)=\alpha\vu+\alpha\vv\) and \((\alpha+\beta)\vu = \alpha\vu+\beta\vu\) &nbsp;(distributivity)</li>
+<li>\(\alpha(\beta\vu)=(\alpha\beta)\vu\) and \(1\vu=\vu\)</li>
+</ol></div>
+<p>\(\RR^d\) with componentwise operations satisfies all of them — each axiom reduces to the
+corresponding property of real numbers, applied one coordinate at a time. But so do many other things, and that
+is the payoff of abstraction:</p>
+<ul><li>The set of all polynomials of degree \(\le n\). (Add two polynomials, scale a polynomial.)</li><li>The set of all \(m\times n\) matrices.</li><li>The set of all continuous functions on \([0,1]\). Infinite-dimensional — and the home of kernel methods and Gaussian processes.</li><li>The set of all solutions to a homogeneous linear differential equation.</li></ul>
+<p>Every theorem we prove using only the axioms applies to all of them at once. That is why
+"function space" methods in machine learning are not an analogy: they are the same theorems.</p>
+<h2 id="s3"><span class="secnum">3</span>Linear combinations and span</h2>
+<div class="box defn"><span class="lbl">Definition — linear combination, span</span><p>A <strong>linear combination</strong> of
+\(\vv_1,\dots,\vv_k\) is any vector of the form</p>
+\[ \alpha_1\vv_1 + \alpha_2\vv_2 + \cdots + \alpha_k\vv_k, \qquad \alpha_i\in\RR. \]
+<p>Their <strong>span</strong> is the set of <em>all</em> such combinations:</p>
+\[ \operatorname{span}\{\vv_1,\dots,\vv_k\} = \left\{\textstyle\sum_i \alpha_i\vv_i \;:\; \alpha_i\in\RR\right\}. \]
+<p>It is always itself a vector space — a <em>subspace</em> of the ambient one.</p></div>
+<div class="fig"><div class="fig-head">Span of two vectors — drag the coefficients, and watch what happens when the vectors align<span class="tag">Interactive</span></div><canvas id="f8span" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>v₁</span><span><i style="background:var(--c5)"></i>v₂</span><span><i style="background:var(--c2)"></i>α₁v₁ + α₂v₂</span><span><i style="background:var(--c3)"></i>reachable set (the span)</span></div><div class="fig-read" id="f8span-read"></div><div class="ctrls"><div class="ctrl"><label>α₁</label><input type="range" min="-3" max="3" step="0.05" value="1.2" data-fmt="2" oninput="figSlide('f8span','a1',this)"><output>1.20</output></div><div class="ctrl"><label>α₂</label><input type="range" min="-3" max="3" step="0.05" value="0.8" data-fmt="2" oninput="figSlide('f8span','a2',this)"><output>0.80</output></div><div class="ctrl"><label>angle of v₂ (degrees)</label><input type="range" min="0" max="180" step="1" value="70" data-fmt="0" oninput="figSlide('f8span','th',this)"><output>70</output></div><div class="ctrl"><label>length of v₂</label><input type="range" min="0.3" max="3" step="0.05" value="1.6" data-fmt="2" oninput="figSlide('f8span','len2',this)"><output>1.60</output></div></div><div class="fig-cap">The shaded region is everything reachable by some choice of α₁, α₂. With v₁ and v₂ pointing in different directions the span is the whole plane. Slide the angle to 0 or 180 degrees: the two vectors become parallel, one is now redundant, and the span collapses to a single LINE — you have lost a dimension. That collapse is linear DEPENDENCE, and in machine learning it is what makes a design matrix rank-deficient and a least-squares problem ill-posed.</div></div><script>makeFig("f8span",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,4.2);
+var th=p.th*Math.PI/180, L=p.len2;
+var v1=[1.8,0.5], v2=[L*Math.cos(th)*1.8-0, L*Math.sin(th)*1.8];
+// rotate v2 relative to v1's direction for an intuitive control
+var b=Math.atan2(v1[1],v1[0]);
+v2=[L*1.4*Math.cos(b+th), L*1.4*Math.sin(b+th)];
+var det=v1[0]*v2[1]-v1[1]*v2[0], dep=Math.abs(det)<0.06;
+var c=vp.ctx;
+c.save(); c.globalAlpha=0.13; c.fillStyle=vp.css('--c3');
+if(dep){ // span is a line
+  c.restore();
+  vp.seg(-8*v1[0],-8*v1[1],8*v1[0],8*v1[1],'--c3',{w:9});
+}else{
+  c.fillRect(vp.pad.l,vp.pad.t,vp.pw,vp.ph); c.restore();
+}
+vp.axes({stepx:1,stepy:1});
+var r=[p.a1*v1[0]+p.a2*v2[0], p.a1*v1[1]+p.a2*v2[1]];
+// parallelogram construction
+vp.seg(p.a1*v1[0],p.a1*v1[1],r[0],r[1],'--c5',{dash:[4,4],w:1.5});
+vp.seg(p.a2*v2[0],p.a2*v2[1],r[0],r[1],'--c1',{dash:[4,4],w:1.5});
+vp.arrow(0,0,p.a1*v1[0],p.a1*v1[1],'--c1',{w:1.8});
+vp.arrow(0,0,p.a2*v2[0],p.a2*v2[1],'--c5',{w:1.8});
+vp.arrow(0,0,v1[0],v1[1],'--c1',{w:3});
+vp.arrow(0,0,v2[0],v2[1],'--c5',{w:3});
+vp.arrow(0,0,r[0],r[1],'--c2',{w:3.2});
+vp.label(v1[0],v1[1],'v₁','--c1',{halo:true,bold:true,dx:6});
+vp.label(v2[0],v2[1],'v₂','--c5',{halo:true,bold:true,dx:6});
+vp.label(r[0],r[1],'α₁v₁+α₂v₂','--c2',{halo:true,bold:true,dx:6,dy:-4});
+figRead('f8span','v₁ = ('+v1[0].toFixed(2)+', '+v1[1].toFixed(2)+')   v₂ = ('+v2[0].toFixed(2)+', '+v2[1].toFixed(2)+')'
+ +'   result = (<b>'+r[0].toFixed(3)+', '+r[1].toFixed(3)+'</b>)<br>det[v₁ v₂] = <b>'+det.toFixed(4)+'</b>  →  '
+ +(dep?'<b style="color:var(--bad)">LINEARLY DEPENDENT — span is a 1-D line, not the plane</b>'
+      :'<b style="color:var(--ok)">independent — span is all of ℝ², dimension 2</b>'));
+},[{"name": "a1", "label": "\u03b1\u2081", "min": -3, "max": 3, "step": 0.05, "value": 1.2, "dp": 2}, {"name": "a2", "label": "\u03b1\u2082", "min": -3, "max": 3, "step": 0.05, "value": 0.8, "dp": 2}, {"name": "th", "label": "angle of v\u2082 (degrees)", "min": 0, "max": 180, "step": 1, "value": 70, "dp": 0}, {"name": "len2", "label": "length of v\u2082", "min": 0.3, "max": 3, "step": 0.05, "value": 1.6, "dp": 2}]);window["FIG_f8span"].run();</script>
+<div class="box defn"><span class="lbl">Definition — independence, basis, dimension</span><p>\(\vv_1,\dots,\vv_k\) are
+<strong>linearly independent</strong> if the only way to write the zero vector as a combination of them is the
+trivial way:</p>
+\[ \alpha_1\vv_1+\cdots+\alpha_k\vv_k = \vzero \quad\Longrightarrow\quad \alpha_1=\cdots=\alpha_k=0. \]
+<p>They are <strong>dependent</strong> otherwise — meaning at least one of them is a combination of the rest,
+and therefore redundant.</p>
+<p>A <strong>basis</strong> for a space \(V\) is a set that is both independent and spans \(V\). Every basis of
+\(V\) has the same number of elements; that number is the <strong>dimension</strong> of \(V\).</p></div>
+<div class="quiz" id="q70"><div class="qlbl">Check yourself</div><div class="qq">Are \(\vv_1 = \begin{bmatrix}1\\2\\3\end{bmatrix}\), \(\vv_2 = \begin{bmatrix}2\\4\\6\end{bmatrix}\),
+\(\vv_3 = \begin{bmatrix}0\\1\\1\end{bmatrix}\) linearly independent? What is their span?</div><button class="qopt" data-ok="1" onclick="pick('q70',0,true)">Dependent, because \(\vv_2 = 2\vv_1\). The span is a 2-dimensional plane in \(\RR^3\).</button><button class="qopt" data-ok="0" onclick="pick('q70',1,false)">Independent, because they are three different vectors.</button><button class="qopt" data-ok="0" onclick="pick('q70',2,false)">Dependent, and the span is a line.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct on both counts. \(2\vv_1 - \vv_2 + 0\vv_3 = \vzero\) is a non-trivial combination giving
+    zero, which is exactly the definition of dependence. Since \(\vv_2\) adds nothing that \(\vv_1\) did not
+    already provide, the span is \(\operatorname{span}\{\vv_1,\vv_3\}\) — and those two <em>are</em> independent
+    (neither is a multiple of the other), so the span is a 2-dimensional plane through the origin.<br><br>
+    Three vectors in \(\RR^3\) that only span a plane means any matrix built from them has <strong>rank 2</strong>,
+    not 3, and is therefore singular. This is exactly what happens when a dataset contains a duplicated or
+    perfectly-correlated feature — say, one column in metres and another in centimetres.</div><div class="qwhy" data-i="1"><b>Not quite.</b> Being different is not enough — independence is about whether any one is <em>reachable</em> from the
+    others. Here \(\vv_2\) is literally \(2\vv_1\), so it lies on the same line through the origin and contributes
+    no new direction. Test independence by solving \(\sum\alpha_i\vv_i=\vzero\), not by inspecting for
+    duplicates.</div><div class="qwhy" data-i="2"><b>Not quite.</b> The dependence part is right, but only \(\vv_2\) is redundant. \(\vv_3=(0,1,1)\) is not a multiple of
+    \(\vv_1=(1,2,3)\) — the first coordinate would force the scalar to be 0, which fails elsewhere. So two
+    independent directions survive and the span is a plane, not a line.</div></div>
+<h2 id="s4"><span class="secnum">4</span>The dot product and what it measures</h2>
+<div class="box defn"><span class="lbl">Definition — dot product</span><p>For \(\vu,\vv\in\RR^d\),</p>
+\[ \vu\cdot\vv \;=\; \vu^\top\vv \;=\; \sum_{i=1}^{d}u_iv_i. \]
+<p>The <strong>Euclidean norm</strong> is \(\|\vu\| = \sqrt{\vu\cdot\vu} = \sqrt{\sum_i u_i^2}\), which is
+Pythagoras in \(d\) dimensions.</p></div>
+<p>Algebraically that is a sum of products, and it is not obvious it means anything. The following
+theorem says it means <em>everything</em>: it encodes both length and angle.</p>
+<div class="deriv" id="d71"><div class="deriv-head"><span class="t">Deriving u·v = ‖u‖‖v‖cos θ from the law of cosines</span><span class="ct">0 / 5</span></div><div class="dstep">\[\|\vu-\vv\|^2 = \|\vu\|^2 + \|\vv\|^2 - 2\|\vu\|\,\|\vv\|\cos\theta\]<div class="why"><b>The law of cosines.</b> Pure geometry, no dot products involved: in the triangle with sides \(\vu\), \(\vv\) and \(\vu-\vv\), with \(\theta\) the angle between \(\vu\) and \(\vv\). It generalises Pythagoras, which is the special case \(\theta=90^\circ\).</div></div><div class="dstep">\[\|\vu-\vv\|^2 = (\vu-\vv)\cdot(\vu-\vv)\]<div class="why"><b>Algebra side, step 1.</b> By definition of the norm. Now we expand this using only the definition of the dot product as a sum.</div></div><div class="dstep">\[= \vu\cdot\vu - \vu\cdot\vv - \vv\cdot\vu + \vv\cdot\vv = \|\vu\|^2 - 2\,\vu\cdot\vv + \|\vv\|^2\]<div class="why"><b>Expand.</b> The dot product distributes over addition, because \(\sum_i(u_i-v_i)(u_i-v_i)\) expands term by term. And it is symmetric, \(\vu\cdot\vv=\vv\cdot\vu\), since \(u_iv_i=v_iu_i\). Both facts are immediate from the coordinate definition.</div></div><div class="dstep">\[\|\vu\|^2 - 2\,\vu\cdot\vv + \|\vv\|^2 = \|\vu\|^2+\|\vv\|^2-2\|\vu\|\|\vv\|\cos\theta\]<div class="why"><b>Equate the two expressions.</b> Both compute \(\|\vu-\vv\|^2\), so they are equal. The \(\|\vu\|^2\) and \(\|\vv\|^2\) terms cancel from both sides.</div></div><div class="dstep">\[\boxed{\;\vu\cdot\vv = \|\vu\|\,\|\vv\|\cos\theta\;}\]<div class="why"><b>Divide by \(-2\).</b> The algebraic definition and the geometric one coincide. Immediate consequences: \(\vu\cdot\vv=0\) exactly when \(\cos\theta=0\), i.e. the vectors are <strong>perpendicular</strong>; the dot product is positive when the angle is acute and negative when obtuse. In \(\RR^{784}\) you cannot see the angle, but this formula still <em>defines</em> it.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d71')">Next step</button><button class="btn ghost" onclick="dall('d71')">Show all</button><button class="btn ghost" onclick="dreset('d71')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Dot product, angle, and projection<span class="tag">Interactive</span></div><canvas id="f8dot" data-h="430"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>u</span><span><i style="background:var(--c5)"></i>v</span><span><i style="background:var(--c3)"></i>proj of v onto u</span><span><i style="background:var(--c4)"></i>residual (⊥ to u)</span></div><div class="fig-read" id="f8dot-read"></div><div class="ctrls"><div class="ctrl"><label>angle of v (degrees)</label><input type="range" min="0" max="359" step="1" value="50" data-fmt="0" oninput="figSlide('f8dot','ang',this)"><output>50</output></div><div class="ctrl"><label>‖v‖</label><input type="range" min="0.3" max="3.5" step="0.05" value="2.4" data-fmt="2" oninput="figSlide('f8dot','lv',this)"><output>2.40</output></div><div class="ctrl"><label>‖u‖</label><input type="range" min="0.3" max="3.5" step="0.05" value="2.0" data-fmt="2" oninput="figSlide('f8dot','lu',this)"><output>2.00</output></div></div><div class="fig-cap">The green vector is the shadow v casts on the line through u. The pink residual joins the tip of v to that shadow, and it is always perpendicular to u — check the readout, the residual's dot product with u is zero to machine precision. Rotate v past 90 degrees and the dot product goes negative, and the projection flips to the other side of the origin.</div></div><script>makeFig("f8dot",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,4.0);
+vp.axes({stepx:1,stepy:1});
+var a=p.ang*Math.PI/180;
+var u=[p.lu,0], v=[p.lv*Math.cos(a),p.lv*Math.sin(a)];
+var dot=u[0]*v[0]+u[1]*v[1], nu=Math.hypot(u[0],u[1]), nv=Math.hypot(v[0],v[1]);
+var k=dot/(nu*nu), pr=[k*u[0],k*u[1]], res=[v[0]-pr[0],v[1]-pr[1]];
+vp.seg(-4*u[0]/nu,0,4*u[0]/nu,0,'--ink3',{dash:[3,5],w:1.2});
+vp.arrow(0,0,u[0],u[1],'--c1',{w:3.2});
+vp.arrow(0,0,v[0],v[1],'--c5',{w:3.2});
+vp.arrow(0,0,pr[0],pr[1],'--c3',{w:3});
+vp.seg(pr[0],pr[1],v[0],v[1],'--c4',{w:2.2,dash:[5,4]});
+// right-angle marker
+if(Math.hypot(res[0],res[1])>0.15){
+  var s=0.18, ux=u[0]/nu, uy=u[1]/nu, rx=res[0]/Math.hypot(res[0],res[1]), ry=res[1]/Math.hypot(res[0],res[1]);
+  vp.seg(pr[0]+s*ux,pr[1]+s*uy, pr[0]+s*ux+s*rx, pr[1]+s*uy+s*ry,'--ink3',{w:1.3});
+  vp.seg(pr[0]+s*rx,pr[1]+s*ry, pr[0]+s*ux+s*rx, pr[1]+s*uy+s*ry,'--ink3',{w:1.3});
+}
+vp.label(u[0],u[1],'u','--c1',{halo:true,bold:true,dx:6,dy:-4});
+vp.label(v[0],v[1],'v','--c5',{halo:true,bold:true,dx:6,dy:-4});
+var cs=dot/(nu*nv);
+figRead('f8dot','u·v = <b>'+dot.toFixed(4)+'</b>   ‖u‖‖v‖cos θ = '+(nu*nv).toFixed(4)+'×'+cs.toFixed(4)+' = <b>'
+ +(nu*nv*cs).toFixed(4)+'</b> ✓   |   θ = '+(Math.acos(Math.max(-1,Math.min(1,cs)))*180/Math.PI).toFixed(1)+'°'
+ +'   cosine similarity = <b>'+cs.toFixed(4)+'</b><br>projection = ((u·v)/‖u‖²) u = <b>('+pr[0].toFixed(3)+', '+pr[1].toFixed(3)+')</b>'
+ +'   |   residual·u = <b>'+(res[0]*u[0]+res[1]*u[1]).toExponential(2)+'</b> (zero → perpendicular ✓)');
+},[{"name": "ang", "label": "angle of v (degrees)", "min": 0, "max": 359, "step": 1, "value": 50, "dp": 0}, {"name": "lv", "label": "\u2016v\u2016", "min": 0.3, "max": 3.5, "step": 0.05, "value": 2.4, "dp": 2}, {"name": "lu", "label": "\u2016u\u2016", "min": 0.3, "max": 3.5, "step": 0.05, "value": 2.0, "dp": 2}]);window["FIG_f8dot"].run();</script>
+<h2 id="s5"><span class="secnum">5</span>Projection: the single most useful formula in the course</h2>
+<p>Given \(\vv\), what is the closest point to it on the line through \(\vu\)? Answering that gives
+least squares, PCA, Fourier analysis and Gram–Schmidt. Let us derive it two ways, because they give different
+insights.</p>
+<div class="deriv" id="d72"><div class="deriv-head"><span class="t">The projection formula, derived by orthogonality</span><span class="ct">0 / 5</span></div><div class="dstep">\[\vp = k\,\vu \quad\text{for some scalar } k\]<div class="why"><b>Parameterise.</b> Any point on the line through \(\vu\) (and the origin) is a scalar multiple of \(\vu\). So the whole problem is to find one number, \(k\).</div></div><div class="dstep">\[\vr = \vv - \vp = \vv - k\vu \qquad\text{(the residual)}\]<div class="why"><b>Name the error.</b> The residual is what is left over. Intuition: the closest point should make the error <em>perpendicular</em> to the line — if the error had any component along \(\vu\), you could slide \(\vp\) in that direction and do better.</div></div><div class="dstep">\[\vr\cdot\vu = 0 \quad\Longrightarrow\quad (\vv-k\vu)\cdot\vu = 0\]<div class="why"><b>Impose orthogonality.</b> This is the modelling step, and it is exactly the intuition made algebraic. It is called the <em>normal equation</em>, and in Lecture 10 the matrix version of this single line becomes \(\mX^\top(\vy - \mX\vw)=\vzero\).</div></div><div class="dstep">\[\vv\cdot\vu - k\,(\vu\cdot\vu) = 0 \quad\Longrightarrow\quad k = \frac{\vu\cdot\vv}{\vu\cdot\vu} = \frac{\vu\cdot\vv}{\|\vu\|^2}\]<div class="why"><b>Solve for k.</b> Distribute and rearrange. Division is legal as long as \(\vu\neq\vzero\).</div></div><div class="dstep">\[\boxed{\;\operatorname{proj}_{\vu}(\vv) = \frac{\vu\cdot\vv}{\|\vu\|^{2}}\,\vu \;=\; \left(\hat{\vu}\cdot\vv\right)\hat{\vu}, \quad \hat{\vu}=\frac{\vu}{\|\vu\|}\;}\]<div class="why"><b>The formula.</b> The second form is worth internalising: <em>project by dotting with the unit vector, then scaling that unit vector by the result</em>. If \(\vu\) is already a unit vector the whole thing is just \((\vu\cdot\vv)\vu\), which is why orthonormal bases are so pleasant to work with. <em>Compare with Lecture 7's least-squares answer \(\hat w = \frac{\sum x_iy_i}{\sum x_i^2}\)</em> — it is literally this formula, with \(\vu=\vx\) and \(\vv=\vy\). The one-parameter regression <em>was</em> a projection.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d72')">Next step</button><button class="btn ghost" onclick="dall('d72')">Show all</button><button class="btn ghost" onclick="dreset('d72')">Reset</button></div></div>
+<div class="rev"><div class="rlbl">The other derivation — try it</div><p>Derive the same formula by <em>minimising</em> instead of imposing orthogonality. Define</p>
+\[g(k) = \|\vv - k\vu\|^2\]
+<p>and minimise it over \(k\) using Lecture 7's machinery. You should get the same \(k\), and you should also be
+able to confirm it is a minimum rather than a maximum.</p><div style="margin-top:12px"><button class="btn ghost" data-show="Show it" onclick="rev('r73',this)">Show it</button></div><div class="rev-body" id="r73"><p>Expand using bilinearity of the dot product:</p>
+\[ g(k) = (\vv-k\vu)\cdot(\vv-k\vu) = \|\vv\|^2 - 2k\,(\vu\cdot\vv) + k^2\|\vu\|^2. \]
+<p>This is a <strong>quadratic in \(k\)</strong> — the norms and the dot product are just numbers. Differentiate:</p>
+\[ g'(k) = -2(\vu\cdot\vv) + 2k\|\vu\|^2 \;\stackrel{!}{=}\;0 \quad\Longrightarrow\quad k = \frac{\vu\cdot\vv}{\|\vu\|^2}. \]
+<p>Same answer ✓. And \(g''(k)=2\|\vu\|^2>0\) whenever \(\vu\neq\vzero\), so \(g\) is strictly convex and this
+critical point is the unique <em>global</em> minimum, by Lecture 7's convexity theorem.</p>
+<p><strong>Why two derivations matter.</strong> The orthogonality route says <em>the best approximation leaves a
+perpendicular error</em> — a geometric fact you can see. The minimisation route says <em>the best approximation
+minimises squared distance</em> — an optimisation fact you can compute. They are the same theorem, and the
+equivalence is precisely why least squares has a clean geometric interpretation. Every appearance of
+\((\mX^\top\mX)^{-1}\mX^\top\) in statistics is this equivalence in matrix form.</p></div></div>
+<h2 id="s6"><span class="secnum">6</span>Norms: more than one notion of length</h2>
+<p>The Euclidean norm is one choice among a family:</p>
+<p>\[\|\vx\|_p = \left(\sum_{i=1}^{d}|x_i|^p\right)^{1/p}, \qquad p\ge 1;
+ \qquad \|\vx\|_\infty = \max_i |x_i|.\]</p>
+<ul><li>\(p=1\): the <strong>Manhattan</strong> or taxicab norm, \(\sum|x_i|\). Used in L1 regularisation (LASSO).</li><li>\(p=2\): <strong>Euclidean</strong>. Used in L2 regularisation (ridge / weight decay), and in squared error.</li><li>\(p=\infty\): the largest single coordinate. Used in adversarial robustness — an \(\ell_\infty\) attack budget means &ldquo;no pixel changes by more than \(\epsilon\)&rdquo;.</li></ul>
+<div class="fig"><div class="fig-head">Unit balls  {x : ‖x‖ₚ = 1}  — the shape of a regulariser<span class="tag">Interactive</span></div><canvas id="f8norm" data-h="400"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>‖x‖ₚ = 1</span><span><i style="background:var(--c5)"></i>a level set of the data-fit loss</span><span><i style="background:var(--c3)"></i>where they first touch</span></div><div class="fig-read" id="f8norm-read"></div><div class="ctrls"><div class="ctrl"><label>p   (1 = diamond, 2 = circle, large = square)</label><input type="range" min="1" max="8" step="0.05" value="2" data-fmt="2" oninput="figSlide('f8norm','lp',this)"><output>2.00</output></div></div><div class="fig-cap">At p = 1 the ball is a diamond with sharp corners ON THE AXES. At p = 2 it is a smooth circle. Now watch the green contact point: the purple ellipse is a loss contour being inflated until it first touches the ball, which is what constrained regularisation does. For p = 1 the touch happens at a corner, where one coordinate is exactly ZERO — that is why L1 produces sparse solutions. For p = 2 the touch is at a generic point with both coordinates nonzero. The geometry IS the explanation.</div></div><script>makeFig("f8norm",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,2.2);
+vp.axes({stepx:1,stepy:1});
+var q=p.lp, c=vp.ctx;
+function ballPt(t){ // parametrise the p-ball
+  var cx=Math.cos(t), sy=Math.sin(t);
+  var s=Math.pow(Math.pow(Math.abs(cx),q)+Math.pow(Math.abs(sy),q),1/q);
+  return [cx/s, sy/s];
+}
+c.save(); c.strokeStyle=vp.css('--c1'); c.lineWidth=2.8; c.beginPath();
+for(var i=0;i<=400;i++){ var pt=ballPt(i/400*6.2832);
+  if(i===0)c.moveTo(vp.X(pt[0]),vp.Y(pt[1])); else c.lineTo(vp.X(pt[0]),vp.Y(pt[1])); }
+c.closePath(); c.stroke();
+c.globalAlpha=0.08; c.fillStyle=vp.css('--c1'); c.fill(); c.restore();
+// loss contours: ellipse centred at (1.5, 0.55), find smallest that touches the ball
+var cxx=1.55, cyy=0.5, A=1.0, B=2.6, rot=0.5;
+function loss(x,y){var dx=x-cxx, dy=y-cyy;
+  var u=dx*Math.cos(rot)+dy*Math.sin(rot), v=-dx*Math.sin(rot)+dy*Math.cos(rot);
+  return A*u*u+B*v*v;}
+var best=1e9, bp=null;
+for(var i=0;i<2000;i++){ var pt=ballPt(i/2000*6.2832); var L=loss(pt[0],pt[1]);
+  if(L<best){best=L;bp=pt;} }
+// draw a few contours
+for(var lv=0.35;lv<=2.2;lv+=0.55){
+  var R=Math.sqrt(best)*0+Math.sqrt(lv);
+  c.save(); c.strokeStyle=vp.css('--c5'); c.globalAlpha=0.55; c.lineWidth=1.5; c.beginPath();
+  for(var i=0;i<=200;i++){ var t=i/200*6.2832;
+    var u=R/Math.sqrt(A)*Math.cos(t), v=R/Math.sqrt(B)*Math.sin(t);
+    var x=cxx+u*Math.cos(rot)-v*Math.sin(rot), y=cyy+u*Math.sin(rot)+v*Math.cos(rot);
+    if(i===0)c.moveTo(vp.X(x),vp.Y(y)); else c.lineTo(vp.X(x),vp.Y(y)); }
+  c.closePath(); c.stroke(); c.restore();
+}
+// the touching contour
+var R=Math.sqrt(best);
+c.save(); c.strokeStyle=vp.css('--c3'); c.lineWidth=2.4; c.beginPath();
+for(var i=0;i<=300;i++){ var t=i/300*6.2832;
+  var u=R/Math.sqrt(A)*Math.cos(t), v=R/Math.sqrt(B)*Math.sin(t);
+  var x=cxx+u*Math.cos(rot)-v*Math.sin(rot), y=cyy+u*Math.sin(rot)+v*Math.cos(rot);
+  if(i===0)c.moveTo(vp.X(x),vp.Y(y)); else c.lineTo(vp.X(x),vp.Y(y)); }
+c.closePath(); c.stroke(); c.restore();
+vp.dot(bp[0],bp[1],'--c3',7);
+vp.dot(cxx,cyy,'--c5',4.5);
+var sparse = Math.abs(bp[0])<0.02 || Math.abs(bp[1])<0.02;
+figRead('f8norm','p = '+q.toFixed(2)+'   solution = (<b>'+bp[0].toFixed(4)+', '+bp[1].toFixed(4)+'</b>)   '
+ +(sparse?'<b style="color:var(--ok)">← one coordinate is ZERO: a sparse solution</b>'
+         :'both coordinates nonzero — dense solution'));
+},[{"name": "lp", "label": "p   (1 = diamond, 2 = circle, large = square)", "min": 1, "max": 8, "step": 0.05, "value": 2, "dp": 2}]);window["FIG_f8norm"].run();</script>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p><strong>Cosine similarity.</strong> Rearranging the angle formula,</p>
+\[\cos\theta = \frac{\vu\cdot\vv}{\|\vu\|\,\|\vv\|} = \hat{\vu}\cdot\hat{\vv} \in[-1,1].\]
+<p>This is how similarity between embeddings is measured in essentially every retrieval, recommendation and
+RAG system. Two reasons it is preferred over raw Euclidean distance:</p>
+<ul>
+<li>It is <strong>scale-invariant</strong> — doubling a vector's length does not change its direction, and for
+text embeddings, length often encodes something uninteresting like document length.</li>
+<li>Once vectors are L2-normalised, \(\|\hat{\vu}-\hat{\vv}\|^2 = 2-2\hat{\vu}\cdot\hat{\vv}\), so ranking by
+cosine similarity and ranking by Euclidean distance give <em>identical</em> orderings. That identity (prove it —
+it is one line of expansion) is why vector databases normalise on ingest and then use a plain dot product: it is
+the cheapest operation on the hardware, and after normalisation it is exact.</li>
+</ul></div>
+<div class="pyb" id="py74" data-orig="import numpy as np, time
+
+rng = np.random.default_rng(0)
+u = rng.normal(size=1_000_000)
+v = rng.normal(size=1_000_000)
+
+def dot_loop(a, b):
+    total = 0.0
+    for i in range(len(a)):
+        total += a[i] * b[i]
+    return total
+
+t0 = time.perf_counter(); d1 = dot_loop(u[:200_000], v[:200_000]); t1 = time.perf_counter()
+t2 = time.perf_counter(); d2 = u[:200_000] @ v[:200_000];          t3 = time.perf_counter()
+
+print(f&quot;python loop : {d1:14.6f}   {(t1-t0)*1000:8.1f} ms&quot;)
+print(f&quot;numpy   @   : {d2:14.6f}   {(t3-t2)*1000:8.1f} ms&quot;)
+print(f&quot;speedup     : {(t1-t0)/(t3-t2):.0f}x   (same answer to {abs(d1-d2):.1e})&quot;)
+print()
+
+# --- geometry, all from the dot product ---
+a = np.array([3.0, 4.0])
+b = np.array([1.0, 2.0])
+
+print(&quot;a =&quot;, a, &quot;  b =&quot;, b)
+print(&quot;a . b            =&quot;, a @ b)
+print(&quot;||a||            =&quot;, np.linalg.norm(a), &quot; (check: sqrt(9+16) = 5)&quot;)
+print(&quot;||b||            =&quot;, np.linalg.norm(b))
+cos = (a @ b) / (np.linalg.norm(a) * np.linalg.norm(b))
+print(&quot;cos(theta)       =&quot;, cos)
+print(&quot;theta (degrees)  =&quot;, np.degrees(np.arccos(cos)))
+
+proj = (a @ b) / (a @ a) * a
+resid = b - proj
+print(&quot;proj_a(b)        =&quot;, proj)
+print(&quot;residual         =&quot;, resid)
+print(&quot;residual . a     =&quot;, resid @ a, &quot; &lt;- zero: perpendicular, as the derivation requires&quot;)
+print()
+
+# --- the normalisation identity claimed above ---
+ah, bh = a/np.linalg.norm(a), b/np.linalg.norm(b)
+print(&quot;||ah - bh||^2    =&quot;, np.sum((ah-bh)**2))
+print(&quot;2 - 2*(ah . bh)  =&quot;, 2 - 2*(ah @ bh), &quot; &lt;- identical&quot;)
+print()
+
+# --- the three norms ---
+x = np.array([3.0, -4.0, 0.0, 1.0])
+print(&quot;x =&quot;, x)
+for pnorm, name in [(1, &quot;L1 (sum of |x_i|)&quot;), (2, &quot;L2 (Euclidean)&quot;), (np.inf, &quot;Linf (max |x_i|)&quot;)]:
+    print(f&quot;  ||x||_{str(pnorm):4s} = {np.linalg.norm(x, pnorm):8.4f}   {name}&quot;)
+"><div class="pyb-head"><span class="t">Vectors in NumPy — and why you should never write the loop</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py74')">Run</button><button class="btn ghost" onclick="resetPy('py74')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np, time
+
+rng = np.random.default_rng(0)
+u = rng.normal(size=1_000_000)
+v = rng.normal(size=1_000_000)
+
+def dot_loop(a, b):
+    total = 0.0
+    for i in range(len(a)):
+        total += a[i] * b[i]
+    return total
+
+t0 = time.perf_counter(); d1 = dot_loop(u[:200_000], v[:200_000]); t1 = time.perf_counter()
+t2 = time.perf_counter(); d2 = u[:200_000] @ v[:200_000];          t3 = time.perf_counter()
+
+print(f&quot;python loop : {d1:14.6f}   {(t1-t0)*1000:8.1f} ms&quot;)
+print(f&quot;numpy   @   : {d2:14.6f}   {(t3-t2)*1000:8.1f} ms&quot;)
+print(f&quot;speedup     : {(t1-t0)/(t3-t2):.0f}x   (same answer to {abs(d1-d2):.1e})&quot;)
+print()
+
+# --- geometry, all from the dot product ---
+a = np.array([3.0, 4.0])
+b = np.array([1.0, 2.0])
+
+print(&quot;a =&quot;, a, &quot;  b =&quot;, b)
+print(&quot;a . b            =&quot;, a @ b)
+print(&quot;||a||            =&quot;, np.linalg.norm(a), &quot; (check: sqrt(9+16) = 5)&quot;)
+print(&quot;||b||            =&quot;, np.linalg.norm(b))
+cos = (a @ b) / (np.linalg.norm(a) * np.linalg.norm(b))
+print(&quot;cos(theta)       =&quot;, cos)
+print(&quot;theta (degrees)  =&quot;, np.degrees(np.arccos(cos)))
+
+proj = (a @ b) / (a @ a) * a
+resid = b - proj
+print(&quot;proj_a(b)        =&quot;, proj)
+print(&quot;residual         =&quot;, resid)
+print(&quot;residual . a     =&quot;, resid @ a, &quot; &lt;- zero: perpendicular, as the derivation requires&quot;)
+print()
+
+# --- the normalisation identity claimed above ---
+ah, bh = a/np.linalg.norm(a), b/np.linalg.norm(b)
+print(&quot;||ah - bh||^2    =&quot;, np.sum((ah-bh)**2))
+print(&quot;2 - 2*(ah . bh)  =&quot;, 2 - 2*(ah @ bh), &quot; &lt;- identical&quot;)
+print()
+
+# --- the three norms ---
+x = np.array([3.0, -4.0, 0.0, 1.0])
+print(&quot;x =&quot;, x)
+for pnorm, name in [(1, &quot;L1 (sum of |x_i|)&quot;), (2, &quot;L2 (Euclidean)&quot;), (np.inf, &quot;Linf (max |x_i|)&quot;)]:
+    print(f&quot;  ||x||_{str(pnorm):4s} = {np.linalg.norm(x, pnorm):8.4f}   {name}&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Let \(\vu=(2,-1,3)\), \(\vv=(1,4,-2)\).</p>
+  <ol><li>Compute \(\vu\cdot\vv\), \(\|\vu\|\), \(\|\vv\|\), and the angle between them.</li>
+  <li>Find \(\operatorname{proj}_{\vu}(\vv)\) and verify the residual is perpendicular to \(\vu\).</li>
+  <li>Find a nonzero vector perpendicular to both.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex75',this)">Show solution</button></div><div class="rev-body" id="ex75"><p><strong>1.</strong> \(\vu\cdot\vv = 2(1)+(-1)(4)+3(-2) = 2-4-6 = -8\).<br>
+  \(\|\vu\|=\sqrt{4+1+9}=\sqrt{14}\approx3.7417\), \(\|\vv\|=\sqrt{1+16+4}=\sqrt{21}\approx4.5826\).<br>
+  \(\cos\theta = \frac{-8}{\sqrt{14}\sqrt{21}} = \frac{-8}{\sqrt{294}} \approx -0.46657\), so
+  \(\theta\approx 117.8^\circ\). Obtuse, consistent with the negative dot product.</p>
+
+  <p><strong>2.</strong> \(k = \frac{\vu\cdot\vv}{\|\vu\|^2} = \frac{-8}{14} = -\frac47\).<br>
+  \(\operatorname{proj}_{\vu}(\vv) = -\frac47(2,-1,3) = \left(-\frac87,\frac47,-\frac{12}{7}\right)
+   \approx(-1.1429, 0.5714, -1.7143)\).<br>
+  Residual \(\vr = \vv - \vp = \left(1+\frac87,\ 4-\frac47,\ -2+\frac{12}{7}\right)
+   = \left(\frac{15}{7},\frac{24}{7},-\frac27\right)\).<br>
+  Check: \(\vr\cdot\vu = \frac{30}{7}-\frac{24}{7}-\frac{6}{7} = 0\) ✓.</p>
+
+  <p><strong>3.</strong> The cross product works in \(\RR^3\):
+  \(\vu\times\vv = \big((-1)(-2)-3(4),\ 3(1)-2(-2),\ 2(4)-(-1)(1)\big) = (2-12,\ 3+4,\ 8+1) = (-10,7,9)\).<br>
+  Check: \((-10)(2)+7(-1)+9(3) = -20-7+27=0\) ✓ and \((-10)(1)+7(4)+9(-2) = -10+28-18=0\) ✓.<br>
+  <em>Alternatively, without the cross product:</em> solve \(2a-b+3c=0\) and \(a+4b-2c=0\). Two equations, three
+  unknowns, so a one-dimensional family of solutions — which is what "perpendicular to a plane" means.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove the <strong>Cauchy–Schwarz inequality</strong>:</p>
+  \[ |\vu\cdot\vv| \le \|\vu\|\,\|\vv\| \quad\text{for all }\vu,\vv\in\RR^d,\]
+  <p>with equality if and only if \(\vu\) and \(\vv\) are parallel.</p>
+  <p><em>Hint:</em> consider \(g(t)=\|\vv-t\vu\|^2\ge0\) and use the fact that a non-negative quadratic has
+  non-positive discriminant.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex76',this)">Show solution</button></div><div class="rev-body" id="ex76"><p>Assume \(\vu\neq\vzero\) (if \(\vu=\vzero\) both sides are 0 and the inequality holds trivially).</p>
+  <p>Define \(g(t)=\|\vv-t\vu\|^2\). A squared norm is a sum of squares, so \(g(t)\ge0\) for every real \(t\).
+  Expanding as in the projection derivation:</p>
+  \[g(t) = \|\vu\|^2 t^2 - 2(\vu\cdot\vv)\,t + \|\vv\|^2 .\]
+  <p>This is a quadratic \(at^2+bt+c\) with \(a=\|\vu\|^2>0\), \(b=-2(\vu\cdot\vv)\), \(c=\|\vv\|^2\).</p>
+  <p>An upward parabola that is never negative has <strong>at most one real root</strong>, so its discriminant
+  satisfies \(b^2-4ac\le 0\):</p>
+  \[4(\vu\cdot\vv)^2 - 4\|\vu\|^2\|\vv\|^2 \le 0 \quad\Longrightarrow\quad (\vu\cdot\vv)^2 \le \|\vu\|^2\|\vv\|^2.\]
+  <p>Taking non-negative square roots gives \(|\vu\cdot\vv|\le\|\vu\|\|\vv\|\). ∎</p>
+  <p><strong>Equality.</strong> Equality in the discriminant means the parabola has exactly one real root
+  \(t_0\), i.e. \(g(t_0)=\|\vv-t_0\vu\|^2=0\), i.e. \(\vv=t_0\vu\) — the vectors are parallel. Conversely if
+  \(\vv=t_0\vu\) then \(|\vu\cdot\vv|=|t_0|\|\vu\|^2=\|\vu\|\|\vv\|\). ∎</p>
+  <p><strong>Why it matters.</strong> Cauchy–Schwarz is what guarantees \(\cos\theta\in[-1,1]\), so the angle is
+  well defined in any dimension. It also underlies the triangle inequality, the fact that correlation lies in
+  \([-1,1]\), and Chebyshev's inequality in Lecture 14.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>The vectors \(\vv_1=(1,1,0)\), \(\vv_2=(1,0,1)\), \(\vv_3=(0,1,1)\).</p>
+  <ol><li>Are they linearly independent? Prove your answer by solving \(\sum\alpha_i\vv_i=\vzero\).</li>
+  <li>Is \((2,3,4)\) in their span? If so, find the coefficients.</li>
+  <li>What is \(\operatorname{span}\{\vv_1,\vv_2,\vv_3\}\)?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex77',this)">Show solution</button></div><div class="rev-body" id="ex77"><p><strong>1.</strong> \(\alpha_1(1,1,0)+\alpha_2(1,0,1)+\alpha_3(0,1,1)=(0,0,0)\) gives</p>
+  \[\alpha_1+\alpha_2=0,\qquad \alpha_1+\alpha_3=0,\qquad \alpha_2+\alpha_3=0.\]
+  <p>From the first two, \(\alpha_2=-\alpha_1\) and \(\alpha_3=-\alpha_1\). Substituting into the third:
+  \(-2\alpha_1=0\), so \(\alpha_1=0\), and then \(\alpha_2=\alpha_3=0\). Only the trivial solution →
+  <strong>independent</strong> ✓.</p>
+
+  <p><strong>2.</strong> Solve \(\alpha_1+\alpha_2=2\), \(\alpha_1+\alpha_3=3\), \(\alpha_2+\alpha_3=4\).
+  Add all three: \(2(\alpha_1+\alpha_2+\alpha_3)=9\), so the total is \(4.5\). Subtracting each original
+  equation in turn: \(\alpha_3=4.5-2=2.5\), \(\alpha_2=4.5-3=1.5\), \(\alpha_1=4.5-4=0.5\).<br>
+  Check: \(0.5(1,1,0)+1.5(1,0,1)+2.5(0,1,1)=(0.5+1.5,\ 0.5+2.5,\ 1.5+2.5)=(2,3,4)\) ✓.</p>
+
+  <p><strong>3.</strong> Three independent vectors in \(\RR^3\) span a 3-dimensional subspace of \(\RR^3\),
+  which must be <strong>all of \(\RR^3\)</strong>. So they form a basis — and part 2 was guaranteed to succeed
+  before we did any arithmetic. Note also that the solution in part 2 was <em>unique</em>, which is exactly what
+  independence buys you: a basis gives every vector exactly one set of coordinates.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding + geometry.</strong> The curse of dimensionality, measured.</p>
+  <ol>
+  <li>Sample 1000 pairs of random vectors from the standard Gaussian in \(\RR^d\), for
+  \(d\in\{2,10,100,1000,10000\}\). Compute the distribution of the angle between each pair. What happens as
+  \(d\) grows, and why is it surprising?</li>
+  <li>Prove the trend: show \(\E[\hat{\vu}\cdot\hat{\vv}]=0\) and argue the variance shrinks like \(1/d\).</li>
+  <li>What does this imply for cosine similarity as a retrieval signal in high dimensions?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex78',this)">Show solution</button></div><div class="rev-body" id="ex78"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+for d in (2, 10, 100, 1000, 10000):
+    u = rng.normal(size=(1000, d)); v = rng.normal(size=(1000, d))
+    u /= np.linalg.norm(u, axis=1, keepdims=True)
+    v /= np.linalg.norm(v, axis=1, keepdims=True)
+    cos = np.sum(u*v, axis=1)
+    ang = np.degrees(np.arccos(np.clip(cos, -1, 1)))
+    print(f"d={d:6d}  mean angle {ang.mean():6.2f} deg   sd {ang.std():5.2f}"
+          f"   mean|cos| {np.abs(cos).mean():.4f}   1/sqrt(d) {1/np.sqrt(d):.4f}")</code></pre>
+
+  <p><strong>1.</strong> The mean angle sits at \(90^\circ\) for every \(d\), but the <em>spread</em> collapses:
+  at \(d=2\) the standard deviation is about \(52^\circ\), at \(d=100\) about \(5.7^\circ\), at \(d=10000\)
+  about \(0.57^\circ\). In high dimensions <strong>two random vectors are almost exactly orthogonal</strong>,
+  essentially always.</p>
+  <p>That is surprising because in the plane, random vectors are as likely to be nearly parallel as nearly
+  perpendicular. High-dimensional space has vastly more "sideways" directions than "along" ones, and almost all
+  of the volume sits near the equator relative to any fixed axis.</p>
+
+  <p><strong>2.</strong> Write \(\hat{\vu}\cdot\hat{\vv}=\sum_i \hat u_i\hat v_i\). Since \(\vu\) and \(\vv\)
+  are independent and each is symmetric about the origin, \(\E[\hat u_i\hat v_i]=\E[\hat u_i]\E[\hat v_i]=0\),
+  so \(\E[\hat{\vu}\cdot\hat{\vv}]=0\) by linearity of expectation (Lecture 13).</p>
+  <p>For the variance: condition on \(\hat{\vu}\). By rotational symmetry of the Gaussian we may take
+  \(\hat{\vu}=\ve_1\), so \(\hat{\vu}\cdot\hat{\vv}=\hat v_1\), the first coordinate of a uniformly random unit
+  vector. By symmetry \(\E[\hat v_i^2]\) is the same for all \(i\), and \(\sum_i \hat v_i^2 = 1\), so
+  \(\E[\hat v_1^2]=\frac1d\). Hence \(\Var(\hat{\vu}\cdot\hat{\vv})=\frac1d\) and the standard deviation is
+  \(1/\sqrt d\) ✓ — which is exactly the last column your code prints, matching \(\E|\cos|\) up to the constant
+  \(\sqrt{2/\pi}\approx0.8\).</p>
+
+  <p><strong>3.</strong> Two consequences pulling in opposite directions.</p>
+  <p><em>Good news:</em> a high-dimensional space has room for enormous numbers of nearly-orthogonal directions,
+  so unrelated concepts can be given essentially non-interfering embeddings. This is why embedding dimensions of
+  768 or 1536 work at all, and it is the intuition behind the Johnson–Lindenstrauss lemma.</p>
+  <p><em>Bad news:</em> the <em>baseline</em> similarity between unrelated items concentrates tightly around 0,
+  so the entire useful signal lives in a narrow band, and small numerical or estimation errors eat a large
+  fraction of it. It also means a raw cosine value is uninterpretable without a reference distribution — 0.3
+  might be a strong match in one embedding space and noise in another. This is why practical retrieval systems
+  compare <em>relative</em> rankings rather than absolute thresholds, and why re-ranking models exist.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> vectors are the data; matrices are what we do to it. Lecture 9 derives
+matrix multiplication from the requirement that it represent composition of linear maps — which explains, among
+other things, why the dimensions have to line up the way they do.</p>
+<div class="pagenav"><a href="07-optimisation-in-1d.html" class="pv"><span class="dir">Previous</span><span class="nm">7 · Optimisation in One Dimension</span></a><a href="09-matrices-as-linear-maps.html" class="nx"><span class="dir">Next</span><span class="nm">9 · Matrices as Linear Maps</span></a></div>
+</div>
+<script>initDone('08-vectors-span-geometry');</script>
+</body>
+</html>

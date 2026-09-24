@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>5. Logistic Regression and Softmax — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 5 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('05-logistic-regression')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part II — Linear Models · Lecture 5</div>
+  <h1>Logistic Regression and Softmax</h1>
+  <p class="dek">The workhorse classifier, and the one whose mathematics you must own completely — because the output layer of every classification network is exactly this, and its pathologies are the ones you will meet in every training run.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Explain why fitting a linear model to \(\{0,1\}\) labels with squared error is the wrong thing</li><li>Derive the gradient \(\mX^\top(\hat{\vp}-\vy)\) and the Hessian \(\mX^\top\mathbf{S}\mX\)</li><li>Prove the loss is convex, and say what that buys you</li><li>Diagnose the separable-data pathology and fix it</li><li>Separate the model's <em>probability</em> from the <em>decision threshold</em>, and calibrate both</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase A, Lecture 5: the chain rule and σ′ = σ(1−σ)</li><li>Phase A, Lecture 12: gradients, Hessians, the second derivative test</li><li>Phase B, Lecture 4: losses from likelihoods, the GLM gradient</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Why not just run linear regression on the labels?</h2>
+<p>You could. Code \(y\in\{0,1\}\) and fit \(\hat y=\vw^\top\vx\) by least squares. Three things
+go wrong, in increasing order of seriousness.</p>
+<ol><li><strong>The output leaves \([0,1]\).</strong> Nothing stops \(\hat y = 1.7\) or \(-0.4\). If you wanted a
+  probability you have not got one, and if you clip you have made the model non-differentiable.</li><li><strong>The noise model is wrong.</strong> \(y\) is Bernoulli, so \(\Var(y\mid\vx)=p(1-p)\) — largest at
+  \(p=\tfrac12\), vanishing at the extremes. Squared error assumes constant variance. Lecture 04's funnel,
+  guaranteed.</li><li><strong>Outlying <em>correct</em> points move the boundary.</strong> This is the one that really bites. A
+  point deep inside its own class, far from the boundary, has a large residual under squared error
+  (\(\hat y=3\) when \(y=1\)) and therefore a large gradient — so the fit contorts to reduce it, dragging the
+  decision boundary away from where it belongs. A confidently correct point <em>should</em> exert no force at
+  all.</li></ol>
+<div class="fig"><div class="fig-head">Least squares versus logistic on the same labels<span class="tag">Interactive</span></div><canvas id="b5why" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>least squares fit</span><span><i style="background:var(--c5)"></i>logistic fit</span><span><i style="background:var(--c2)"></i>data</span><span><i style="background:var(--c3)"></i>threshold 0.5</span></div><div class="fig-read" id="b5why-read"></div><div class="ctrls"><div class="ctrl"><label>move the far-right cluster further out</label><input type="range" min="2" max="16" step="0.1" value="3.0" data-fmt="1" oninput="figSlide('b5why','far',this)"><output>3.0</output></div><div class="ctrl"><label>how many points in it</label><input type="range" min="0" max="25" step="1" value="6" data-fmt="0" oninput="figSlide('b5why','nfar',this)"><output>6</output></div></div><div class="fig-cap">Both models see labels of 0 on the left and 1 on the right. Push the far cluster to the right: these are points the classifier already gets right, with total confidence. The logistic curve does not move. The least-squares line tilts to reduce their large residuals, and its 0.5 crossing — the implied decision boundary — slides right, eventually misclassifying points near the middle that it used to get correct.</div></div><script>makeFig("b5why",function(vp,p,F){
+vp.pads(48,16,14,30);
+var far=p.far, nf=Math.round(p.nfar);
+var xs=[],ys=[];
+for(var i=0;i<12;i++){ xs.push(-2.2+0.16*i); ys.push(0); }
+for(var i=0;i<12;i++){ xs.push(0.4+0.16*i); ys.push(1); }
+for(var i=0;i<nf;i++){ xs.push(far+0.12*i); ys.push(1); }
+var N=xs.length;
+// least squares line
+var Sx=0,Sy=0,Sxx=0,Sxy=0;
+for(var i=0;i<N;i++){Sx+=xs[i];Sy+=ys[i];Sxx+=xs[i]*xs[i];Sxy+=xs[i]*ys[i];}
+var b1=(N*Sxy-Sx*Sy)/(N*Sxx-Sx*Sx), b0=(Sy-b1*Sx)/N;
+// logistic by gradient descent
+var a0=0,a1=1;
+for(var it=0;it<8000;it++){
+  var g0=0,g1=0;
+  for(var i=0;i<N;i++){ var z=a0+a1*xs[i], pr=1/(1+Math.exp(-z)); g0+=(pr-ys[i]); g1+=(pr-ys[i])*xs[i]; }
+  a0-=0.03*g0/N; a1-=0.03*g1/N;
+}
+vp.frame(-3,Math.max(6,far+2.5),-0.45,1.5);
+vp.axes({stepx:1,stepy:0.5});
+vp.seg(-3,0.5,Math.max(6,far+2.5),0.5,'--c3',{w:1.6,dash:[4,4]});
+vp.curve(function(x){return b0+b1*x;},'--c1',{w:2.6});
+vp.curve(function(x){return 1/(1+Math.exp(-(a0+a1*x)));},'--c5',{w:2.8});
+for(var i=0;i<N;i++) vp.dot(xs[i],ys[i],'--c2',4.5);
+var lsB=(0.5-b0)/b1, lgB=-a0/a1;
+vp.seg(lsB,-0.45,lsB,1.5,'--c1',{w:1.6,dash:[3,3]});
+vp.seg(lgB,-0.45,lgB,1.5,'--c5',{w:1.6,dash:[3,3]});
+// count misclassifications
+function mis(f){ var m=0; for(var i=0;i<N;i++){ var pr=f(xs[i]); if((pr>=0.5?1:0)!==ys[i]) m++; } return m; }
+var mLS=mis(function(x){return b0+b1*x;}), mLG=mis(function(x){return 1/(1+Math.exp(-(a0+a1*x)));});
+figRead('b5why','far cluster at x = '+far.toFixed(1)+' with '+nf+' points'
+ +'<br>least squares: boundary at x = <b>'+lsB.toFixed(3)+'</b>,  <b>'+mLS+'</b> misclassified'
+ +'   |   logistic: boundary at x = <b>'+lgB.toFixed(3)+'</b>,  <b>'+mLG+'</b> misclassified'
+ +'<br><span style="color:var(--ink3)">the true boundary is near x = 0.2; only one of these stays there</span>');
+},[{"name": "far", "label": "move the far-right cluster further out", "min": 2, "max": 16, "step": 0.1, "value": 3.0, "dp": 1}, {"name": "nfar", "label": "how many points in it", "min": 0, "max": 25, "step": 1, "value": 6, "dp": 0}]);window["FIG_b5why"].run();</script>
+<h2 id="s2"><span class="secnum">2</span>The model</h2>
+<div class="box defn"><span class="lbl">Logistic regression</span><p>\[ P(y=1\mid\vx;\vw) = \hat p(\vx) = \sigma\big(\vw^\top\vx\big)
+ = \frac{1}{1+e^{-\vw^\top\vx}}, \qquad y\mid\vx \sim \text{Bernoulli}(\hat p). \]
+<p>Equivalently, and more revealingly, the <strong>log-odds are linear</strong>:</p>
+\[ \operatorname{logit}\hat p = \log\frac{\hat p}{1-\hat p} = \vw^\top\vx. \]
+<p>The negative log-likelihood is binary cross-entropy:</p>
+\[ \mathcal{L}(\vw) = -\sum_{i=1}^{n}\Big[y_i\log\hat p_i + (1-y_i)\log(1-\hat p_i)\Big]. \]</p></div>
+<p>The second form is the honest statement of the modelling assumption. It is not "probability is
+linear in \(\vx\)" — that would be impossible to keep in \([0,1]\). It is "<em>log-odds</em> are linear in
+\(\vx\)", and \(\sigma\), being the inverse of the logit (Phase A Lecture 2), converts back. Everything about
+the model follows from choosing that link.</p>
+<h2 id="s3"><span class="secnum">3</span>The decision boundary</h2>
+<p>Predict class 1 when \(\hat p\ge\tfrac12\). Since \(\sigma(z)\ge\tfrac12 \iff z\ge0\), the
+boundary is</p>
+<p>\[\{\vx : \vw^\top\vx = 0\}\]</p>
+<p>— a <strong>hyperplane</strong> through the origin (or, with a bias term, an affine hyperplane).
+Two immediate readings, both worth internalising because they recur in SVMs in Lecture 12:</p>
+<ul><li>\(\vw\) is the <strong>normal vector</strong> to the boundary: it points from the negative class towards
+  the positive one, perpendicular to the dividing surface (Phase A Lecture 8).</li><li>\(\vw^\top\vx\) is proportional to the <strong>signed distance</strong> from the boundary — precisely,
+  the distance is \(\vw^\top\vx/\|\vw\|\). So \(\|\vw\|\) controls how <em>sharply</em> the probability
+  transitions from 0 to 1 across the boundary. Doubling \(\vw\) leaves the boundary exactly where it was and
+  doubles the model's confidence everywhere. Remember that: it is the whole separability pathology, waiting.</li></ul>
+<div class="fig"><div class="fig-head">The boundary, the confidence gradient, and what ‖w‖ controls<span class="tag">Interactive</span></div><canvas id="b5bound" data-h="460"></canvas><div class="legend"><span><i style="background:var(--c4)"></i>class 0</span><span><i style="background:var(--c1)"></i>class 1</span><span><i style="background:var(--c3)"></i>decision boundary</span><span><i style="background:var(--c5)"></i>w (normal vector)</span></div><div class="fig-read" id="b5bound-read"></div><div class="ctrls"><div class="ctrl"><label>direction of w (degrees)</label><input type="range" min="0" max="359" step="1" value="30" data-fmt="0" oninput="figSlide('b5bound','ang',this)"><output>30</output></div><div class="ctrl"><label>‖w‖  (confidence sharpness)</label><input type="range" min="0.1" max="10" step="0.1" value="2.0" data-fmt="1" oninput="figSlide('b5bound','mag',this)"><output>2.0</output></div><div class="ctrl"><label>bias b (shifts the boundary)</label><input type="range" min="-4" max="4" step="0.05" value="0" data-fmt="2" oninput="figSlide('b5bound','b',this)"><output>0.00</output></div><div class="ctrl-check"><input type="checkbox" id="b5bound-fit"  onchange="figCheck('b5bound','fit',this)"><label for="b5bound-fit">snap to the fitted solution</label></div></div><div class="fig-cap">Background shading is the predicted probability. The boundary is where it passes through 0.5. Turn ‖w‖ down and the transition becomes a gentle gradient — an uncertain model. Turn it up and it becomes a hard edge — a confident one. The BOUNDARY DOES NOT MOVE. Direction sets where the line is, magnitude sets only how sure the model claims to be, and nothing in the accuracy metric can tell them apart.</div></div><script>makeFig("b5bound",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,3.4);
+var seed=13131;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var P=[], L=[];
+for(var i=0;i<70;i++){ P.push([-1.1+0.85*gauss(), -0.7+0.85*gauss()]); L.push(0); }
+for(var i=0;i<70;i++){ P.push([ 1.2+0.85*gauss(),  0.9+0.85*gauss()]); L.push(1); }
+var w0,w1,bb;
+if(p.fit){
+  w0=0;w1=0;bb=0;
+  for(var it=0;it<6000;it++){
+    var g0=0,g1=0,gb=0;
+    for(var i=0;i<P.length;i++){ var z=w0*P[i][0]+w1*P[i][1]+bb, pr=1/(1+Math.exp(-z));
+      g0+=(pr-L[i])*P[i][0]; g1+=(pr-L[i])*P[i][1]; gb+=(pr-L[i]); }
+    w0-=0.05*g0/P.length; w1-=0.05*g1/P.length; bb-=0.05*gb/P.length;
+  }
+}else{
+  var t=p.ang*Math.PI/180; w0=p.mag*Math.cos(t); w1=p.mag*Math.sin(t); bb=p.b;
+}
+// probability shading
+var c=vp.ctx, step=6;
+c.save();
+for(var px=vp.pad.l; px<vp.pad.l+vp.pw; px+=step)
+for(var py=vp.pad.t; py<vp.pad.t+vp.ph; py+=step){
+  var X=vp.invX(px), Y=vp.invY(py);
+  var pr=1/(1+Math.exp(-(w0*X+w1*Y+bb)));
+  c.globalAlpha=0.30*Math.abs(pr-0.5)*2;
+  c.fillStyle=vp.css(pr>0.5?'--c1':'--c4');
+  c.fillRect(px,py,step,step);
+}
+c.restore();
+vp.axes({stepx:1,stepy:1});
+// boundary line: w0 x + w1 y + b = 0
+var nn=Math.hypot(w0,w1);
+if(nn>1e-9){
+  var dx=-w1/nn, dy=w0/nn, cx=-bb*w0/(nn*nn), cy=-bb*w1/(nn*nn);
+  vp.seg(cx-8*dx,cy-8*dy,cx+8*dx,cy+8*dy,'--c3',{w:2.8});
+  vp.arrow(cx,cy,cx+w0/nn*1.2,cy+w1/nn*1.2,'--c5',{w:3});
+}
+for(var i=0;i<P.length;i++) vp.dot(P[i][0],P[i][1],L[i]?'--c1':'--c4',4);
+var acc=0, nll=0;
+for(var i=0;i<P.length;i++){
+  var z=w0*P[i][0]+w1*P[i][1]+bb, pr=1/(1+Math.exp(-z));
+  if((pr>=0.5?1:0)===L[i]) acc++;
+  nll -= L[i]*Math.log(Math.max(pr,1e-12)) + (1-L[i])*Math.log(Math.max(1-pr,1e-12));
+}
+figRead('b5bound','w = ('+w0.toFixed(3)+', '+w1.toFixed(3)+'),  b = '+bb.toFixed(3)+',  ‖w‖ = <b>'+nn.toFixed(3)+'</b>'
+ +'<br>accuracy = <b>'+(100*acc/P.length).toFixed(1)+'%</b>   mean cross-entropy = <b>'+(nll/P.length).toFixed(4)+'</b>'
+ +'<br><span style="color:var(--ink3)">Scale w up and down: accuracy is unchanged, cross-entropy is not. '
+ +'The loss cares about calibration; accuracy does not.</span>');
+},[{"name": "ang", "label": "direction of w (degrees)", "min": 0, "max": 359, "step": 1, "value": 30, "dp": 0}, {"name": "mag", "label": "\u2016w\u2016  (confidence sharpness)", "min": 0.1, "max": 10, "step": 0.1, "value": 2.0, "dp": 1}, {"name": "b", "label": "bias b (shifts the boundary)", "min": -4, "max": 4, "step": 0.05, "value": 0, "dp": 2}, {"name": "fit", "label": "snap to the fitted solution", "type": "check", "value": 0}]);window["FIG_b5bound"].run();</script>
+<h2 id="s4"><span class="secnum">4</span>The gradient and the Hessian</h2>
+<div class="deriv" id="d32"><div class="deriv-head"><span class="t">Differentiating cross-entropy — and the cancellation that makes it work</span><span class="ct">0 / 6</span></div><div class="dstep">\[\ell_i = -\big[y_i\log \hat p_i + (1-y_i)\log(1-\hat p_i)\big], \qquad \hat p_i=\sigma(z_i),\ z_i=\vw^\top\vx_i\]<div class="why"><b>One example at a time.</b> We will differentiate through the composition \(\vw\to z\to\hat p\to\ell\) using the chain rule (Phase A Lecture 5).</div></div><div class="dstep">\[\frac{\partial \ell_i}{\partial \hat p_i} = -\frac{y_i}{\hat p_i}+\frac{1-y_i}{1-\hat p_i} = \frac{\hat p_i-y_i}{\hat p_i(1-\hat p_i)}\]<div class="why"><b>Outer derivative.</b> Combine over the common denominator: \(-y(1-\hat p)+\hat p(1-y) = -y+y\hat p+\hat p-\hat p y = \hat p-y\). Note the denominator — it is about to be cancelled, and that cancellation is the reason this loss behaves so well.</div></div><div class="dstep">\[\frac{d\hat p_i}{dz_i} = \sigma'(z_i) = \hat p_i(1-\hat p_i)\]<div class="why"><b>Sigmoid derivative</b>, from Phase A Lecture 5. The same \(\hat p(1-\hat p)\) that appeared in the denominator above.</div></div><div class="dstep">\[\frac{\partial\ell_i}{\partial z_i} = \frac{\hat p_i-y_i}{\hat p_i(1-\hat p_i)}\cdot \hat p_i(1-\hat p_i) = \hat p_i - y_i\]<div class="why"><b>The cancellation.</b> Everything messy disappears and we are left with the raw prediction error. This is not luck — it is the exponential-family theorem of Lecture 04, and it happens precisely because the sigmoid is the <em>canonical</em> link for the Bernoulli.</div></div><div class="dstep">\[\grad_{\vw}\mathcal{L} = \sum_{i=1}^n (\hat p_i-y_i)\,\vx_i = \mX^\top(\hat{\vp}-\vy)\]<div class="why"><b>Chain rule once more</b>, with \(\partial z_i/\partial\vw = \vx_i\), and stack. Identical in form to the least-squares gradient. <em>Consequence worth noticing:</em> a confidently correct point has \(\hat p_i\approx y_i\), so it contributes essentially nothing to the gradient — exactly the behaviour that squared error failed to provide in the first figure.</div></div><div class="dstep">\[\mH = \grad^2\mathcal{L} = \sum_i \hat p_i(1-\hat p_i)\,\vx_i\vx_i^\top = \mX^\top\mathbf{S}\mX, \quad \mathbf{S}=\operatorname{diag}\big(\hat p_i(1-\hat p_i)\big)\]<div class="why"><b>Differentiate again.</b> \(\frac{\partial}{\partial\vw}(\hat p_i - y_i) = \sigma'(z_i)\vx_i^\top = \hat p_i(1-\hat p_i)\vx_i^\top\), and the outer \(\vx_i\) gives the outer product. Note \(\mathbf{S}\) depends on \(\vw\) — unlike least squares, where the Hessian was the constant \(2\mX^\top\mX\).</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d32')">Next step</button><button class="btn ghost" onclick="dall('d32')">Show all</button><button class="btn ghost" onclick="dreset('d32')">Reset</button></div></div>
+<div class="box thm"><span class="lbl">Theorem — the loss is convex</span><p>\(\mathcal{L}(\vw)\) is convex, and strictly convex
+if \(\rank(\mX)=d\) and \(0&lt;\hat p_i&lt;1\).</p>
+<p><strong>Proof.</strong> For any \(\vv\in\RR^d\),</p>
+\[ \vv^\top\mH\vv = \vv^\top\mX^\top\mathbf{S}\mX\vv = (\mX\vv)^\top\mathbf{S}(\mX\vv)
+ = \sum_i \hat p_i(1-\hat p_i)\,(\mX\vv)_i^2 \;\ge\; 0, \]
+<p>since \(\hat p_i\in(0,1)\) makes every weight \(\hat p_i(1-\hat p_i)>0\) and every square non-negative. So
+\(\mH\succeq0\) everywhere and by Phase A Lecture 12, \(\mathcal{L}\) is convex. If \(\mX\) has full column
+rank then \(\mX\vv\neq\vzero\) for \(\vv\neq\vzero\), making the sum strictly positive and the loss strictly
+convex. ∎</p></div>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>Convexity is why logistic regression is a <em>solved</em> problem in a sense that neural
+networks are not. There is one basin. Gradient descent with a sensible step size finds the global optimum, the
+answer does not depend on initialisation or random seed, and there is no "try more seeds".</p>
+<p>Note precisely where it comes from: the loss is convex in \(\vw\) because \(z=\vw^\top\vx\) is
+<em>linear</em> in \(\vw\) and cross-entropy is convex in \(z\). Replace the linear map with a neural network
+and the composition is no longer convex — composition does not preserve convexity (Phase A Lecture 7). The
+output layer of a classification network <em>is</em> logistic/softmax regression; it is everything underneath
+that destroys the guarantee.</p></div>
+<h2 id="s5"><span class="secnum">5</span>The separability pathology</h2>
+<p>Phase A Lecture 7's exercise 4 showed that for a single separable point the logistic loss has
+no minimiser. The same holds in general, and it is common enough in practice that you must recognise it.</p>
+<div class="box thm"><span class="lbl">Theorem — no MLE on separable data</span><p>If there exists \(\vw_0\) with
+\(\vw_0^\top\vx_i>0\) for every \(i\) with \(y_i=1\) and \(\vw_0^\top\vx_i&lt;0\) for every \(i\) with \(y_i=0\)
+(the classes are <em>linearly separable</em>), then \(\mathcal{L}\) has no finite minimiser.</p>
+<p><strong>Proof.</strong> Consider \(\vw = c\,\vw_0\) for \(c>0\). For a positive example,
+\(\hat p_i = \sigma(c\,\vw_0^\top\vx_i)\to1\) as \(c\to\infty\), since \(\vw_0^\top\vx_i>0\); for a negative
+example \(\hat p_i\to0\). Hence every term of \(\mathcal{L}\) tends to \(0\), so \(\mathcal{L}(c\vw_0)\to0\).
+But \(\mathcal{L}>0\) strictly for any finite \(\vw\), because \(\hat p_i\in(0,1)\) always. So the infimum \(0\)
+is approached and never attained: the optimiser drives \(\|\vw\|\to\infty\). ∎</p></div>
+<p>What you observe: training loss creeping towards zero while \(\|\vw\|\) grows without bound; the
+model reporting probabilities of 0.99999 for everything; wild sensitivity to a single data point near the
+boundary; and coefficients that are meaningless. Separability is <em>more</em> likely, not less, when \(d\) is
+large relative to \(n\) — in high dimensions almost any labelling is separable.</p>
+<div class="fig"><div class="fig-head">Watching ‖w‖ diverge — and regularisation stopping it<span class="tag">Interactive</span></div><canvas id="b5sep" data-h="440"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>‖w‖, unregularised</span><span><i style="background:var(--c5)"></i>‖w‖, with L2</span><span><i style="background:var(--c2)"></i>training loss, unregularised</span><span><i style="background:var(--c3)"></i>training loss, with L2</span></div><div class="fig-read" id="b5sep-read"></div><div class="ctrls"><div class="ctrl"><label>class gap (0 = overlapping, large = separable)</label><input type="range" min="-1.5" max="3" step="0.05" value="1.5" data-fmt="2" oninput="figSlide('b5sep','gap',this)"><output>1.50</output></div><div class="ctrl"><label>log₁₀ λ  for the regularised run</label><input type="range" min="-4" max="1" step="0.05" value="-2" data-fmt="2" oninput="figSlide('b5sep','llam',this)"><output>-2.00</output></div><div class="ctrl"><label>training steps</label><input type="range" min="50" max="4000" step="50" value="2000" data-fmt="0" oninput="figSlide('b5sep','T',this)"><output>2000</output></div></div><div class="fig-cap">With a positive gap the classes are separable and the blue ‖w‖ climbs without limit — it is still climbing at step 4000, and would still be climbing at step 4,000,000. Its loss approaches zero, which looks like success and is not. Drag the gap negative so the classes overlap and the blue curve settles: an MLE now exists. The purple regularised run always settles, whatever the gap.</div></div><script>makeFig("b5sep",function(vp,p,F){
+vp.pads(52,52,14,30);
+var gap=p.gap, lam=Math.pow(10,p.llam), T=Math.round(p.T);
+var seed=24680;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var X=[],Y=[];
+for(var i=0;i<40;i++){ X.push([-gap/2-0.45*Math.abs(gauss()), 0.6*gauss()]); Y.push(0); }
+for(var i=0;i<40;i++){ X.push([ gap/2+0.45*Math.abs(gauss()), 0.6*gauss()]); Y.push(1); }
+var N=X.length;
+function train(l2){
+  var w=[0,0,0], norms=[], losses=[], eta=0.6;
+  for(var t=0;t<T;t++){
+    var g=[0,0,0], loss=0;
+    for(var i=0;i<N;i++){
+      var z=w[0]*X[i][0]+w[1]*X[i][1]+w[2], pr=1/(1+Math.exp(-z));
+      var e=pr-Y[i];
+      g[0]+=e*X[i][0]; g[1]+=e*X[i][1]; g[2]+=e;
+      loss-= Y[i]*Math.log(Math.max(pr,1e-15))+(1-Y[i])*Math.log(Math.max(1-pr,1e-15));
+    }
+    loss/=N;
+    for(var k=0;k<3;k++) g[k]/=N;
+    g[0]+=l2*w[0]; g[1]+=l2*w[1];
+    for(var k=0;k<3;k++) w[k]-=eta*g[k];
+    if(t%Math.max(1,Math.floor(T/220))===0){ norms.push(Math.hypot(w[0],w[1])); losses.push(loss); }
+  }
+  return {w:w, norms:norms, losses:losses};
+}
+var A=train(0), B=train(lam);
+var nmax=Math.max(Math.max.apply(null,A.norms),Math.max.apply(null,B.norms))*1.12;
+vp.frame(0,A.norms.length,0,Math.max(nmax,0.5));
+vp.axes({});
+function trace(arr,col,dash){ var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css(col); cc.lineWidth=2.5;
+  if(dash)cc.setLineDash(dash); cc.beginPath();
+  for(var i=0;i<arr.length;i++){ if(i===0)cc.moveTo(vp.X(i),vp.Y(arr[i])); else cc.lineTo(vp.X(i),vp.Y(arr[i])); }
+  cc.stroke(); cc.restore(); }
+trace(A.norms,'--c1'); trace(B.norms,'--c5');
+// losses on a right axis
+var lmax=Math.max(A.losses[0],B.losses[0])*1.05;
+function traceL(arr,col){ var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css(col); cc.lineWidth=2; cc.setLineDash([5,4]);
+  cc.beginPath();
+  for(var i=0;i<arr.length;i++){ var Yv=vp.pad.t+vp.ph*(1-arr[i]/lmax);
+    if(i===0)cc.moveTo(vp.X(i),Yv); else cc.lineTo(vp.X(i),Yv); }
+  cc.stroke(); cc.restore(); }
+traceL(A.losses,'--c2'); traceL(B.losses,'--c3');
+var cc=vp.ctx; cc.save(); cc.fillStyle=vp.css('--c2'); cc.font='11px -apple-system,Segoe UI,sans-serif';
+cc.fillText(lmax.toFixed(2), vp.pad.l+vp.pw+6, vp.pad.t+8);
+cc.fillText('0', vp.pad.l+vp.pw+6, vp.pad.t+vp.ph);
+cc.fillText('loss', vp.pad.l+vp.pw+6, vp.pad.t+vp.ph/2); cc.restore();
+vp.label(2,nmax,'‖w‖','--c1',{halo:true,bold:true,dy:13});
+// is it separable?
+var sep=true;
+for(var i=0;i<N;i++){ var side=X[i][0]>0?1:0; if(side!==Y[i]) sep=false; }
+figRead('b5sep',(sep?'<b style="color:var(--bad)">classes ARE linearly separable</b>':'<b style="color:var(--ok)">classes overlap</b>')
+ +'   λ = '+lam.toExponential(2)+',  '+T+' steps'
+ +'<br>unregularised: ‖w‖ = <b>'+Math.hypot(A.w[0],A.w[1]).toFixed(3)+'</b>,  loss = <b>'+A.losses[A.losses.length-1].toExponential(3)+'</b>'
+ +'<br>with L2:       ‖w‖ = <b>'+Math.hypot(B.w[0],B.w[1]).toFixed(3)+'</b>,  loss = <b>'+B.losses[B.losses.length-1].toFixed(5)+'</b>'
+ +(sep?'<br><span style="color:var(--ink3)">Increase the step count and watch the blue ‖w‖ keep rising. It has no limit.</span>':''));
+},[{"name": "gap", "label": "class gap (0 = overlapping, large = separable)", "min": -1.5, "max": 3, "step": 0.05, "value": 1.5, "dp": 2}, {"name": "llam", "label": "log\u2081\u2080 \u03bb  for the regularised run", "min": -4, "max": 1, "step": 0.05, "value": -2, "dp": 2}, {"name": "T", "label": "training steps", "min": 50, "max": 4000, "step": 50, "value": 2000, "dp": 0}]);window["FIG_b5sep"].run();</script>
+<h2 id="s6"><span class="secnum">6</span>Probabilities and decisions are different things</h2>
+<p>The model outputs \(\hat p\). Turning that into an action requires a <strong>threshold</strong>,
+and \(0.5\) is a choice, not a law. It is the right choice only when false positives and false negatives cost
+the same and the classes are balanced — which is almost never.</p>
+<div class="deriv" id="d33"><div class="deriv-head"><span class="t">The cost-optimal threshold</span><span class="ct">0 / 3</span></div><div class="dstep">\[\text{cost of predicting 1} = (1-\hat p)\,C_{\text{FP}}, \qquad \text{cost of predicting 0} = \hat p\,C_{\text{FN}}\]<div class="why"><b>Expected cost of each action.</b> If we predict 1, we are wrong with probability \(1-\hat p\), incurring the false-positive cost. If we predict 0, we are wrong with probability \(\hat p\).</div></div><div class="dstep">\[\text{predict } 1 \iff (1-\hat p)C_{\text{FP}} &lt; \hat p\, C_{\text{FN}}\]<div class="why"><b>Choose the cheaper action.</b> This is decision theory in one line: minimise expected cost, not error rate.</div></div><div class="dstep">\[\boxed{\ \hat p \;>\; \frac{C_{\text{FP}}}{C_{\text{FP}}+C_{\text{FN}}}\ }\]<div class="why"><b>Rearrange.</b> Equal costs give the familiar \(0.5\). If missing a positive is 9× worse than a false alarm (\(C_{\text{FN}}=9C_{\text{FP}}\)) the threshold drops to \(0.1\) — you should act on much weaker evidence. <strong>The threshold depends only on the costs, not on the class balance.</strong> Class imbalance affects the <em>probabilities</em> the model outputs, not the threshold you should apply to them.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d33')">Next step</button><button class="btn ghost" onclick="dall('d33')">Show all</button><button class="btn ghost" onclick="dreset('d33')">Reset</button></div></div>
+<div class="box warn"><span class="lbl">Common trap</span><p>This is why <em>rebalancing your training data is usually the wrong fix for class
+imbalance</em>. Oversampling the minority class distorts \(\hat p\) away from the true posterior, so your model
+no longer outputs probabilities you can reason about. If you have a well-calibrated model, the imbalance
+problem is entirely handled by moving the threshold — a decision you make afterwards, at zero cost, and can
+change without retraining.</p>
+<p>(There are legitimate reasons to resample: extreme imbalance can make optimisation difficult, and some
+losses genuinely need it. But do it knowingly, and correct the probabilities afterwards — for a prior shift
+from \(\pi\) to \(\pi'\), the correction to the odds is a factor of
+\(\frac{\pi'/(1-\pi')}{\pi/(1-\pi)}\).)</p></div>
+<div class="quiz" id="q34"><div class="qlbl">Check yourself</div><div class="qq">Your fraud classifier has 99.2% accuracy. Fraud occurs in 0.5% of transactions. Is the model good?</div><button class="qopt" data-ok="1" onclick="pick('q34',0,true)">You cannot tell — and 99.2% is <em>worse</em> than the 99.5% you get by always predicting 'not fraud'.</button><button class="qopt" data-ok="0" onclick="pick('q34',1,false)">Yes — 99.2% accuracy is excellent by any standard.</button><button class="qopt" data-ok="0" onclick="pick('q34',2,false)">No — you should rebalance the training data until the classes are equal.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct, and the comparison to the trivial baseline is the first thing to compute for any
+    imbalanced problem. Predicting the majority class always gives 99.5% accuracy while catching zero fraud, so
+    99.2% means the model is actively worse than doing nothing <em>by that metric</em>.<br><br>
+    <strong>What to report instead:</strong> precision and recall at your operating threshold, the
+    precision-recall curve (not ROC — with 0.5% positives, ROC-AUC looks impressive while precision is
+    terrible), and expected cost using your actual \(C_{\text{FP}}\) and \(C_{\text{FN}}\).<br><br>
+    <strong>And note the base-rate connection.</strong> Phase A Lecture 14: even a very good detector produces
+    mostly false positives when the base rate is 0.5%, because the 99.5% of legitimate transactions vastly
+    outnumber the fraudulent ones. If your review team can handle 100 alerts a day, the question is not
+    "accuracy" but "what fraction of the top 100 scored transactions are actually fraud" — precision at
+    \(k\).</div><div class="qwhy" data-i="1"><b>Not quite.</b> Accuracy is meaningless without the base rate to compare it against. Always compute the
+    majority-class baseline first. Here it is 99.5%, so the model is below it. A metric that a constant function
+    beats is not measuring what you care about.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Rebalancing addresses a symptom and creates a new problem: the model's output probabilities are now
+    calibrated to a 50/50 world that does not exist, so \(\hat p = 0.6\) no longer means anything about the real
+    likelihood of fraud. The direct fix is to keep the true class balance, get calibrated probabilities, and
+    then <em>choose the threshold from the costs</em> — as derived above. Resampling is a tool for optimisation
+    difficulties, not a substitute for decision theory.</div></div>
+<div class="pyb" id="py35" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=4, suppress=True)
+
+def sigmoid(z):
+    # stable both directions: never exponentiate a large positive number
+    out = np.empty_like(z)
+    pos, neg = z &gt;= 0, z &lt; 0
+    out[pos] = 1/(1+np.exp(-z[pos]))
+    e = np.exp(z[neg]); out[neg] = e/(1+e)
+    return out
+
+def nll(X, y, w, lam=0.0):
+    z = X @ w
+    # log(1+e^z) computed stably = max(z,0) + log1p(exp(-|z|))
+    softplus = np.maximum(z, 0) + np.log1p(np.exp(-np.abs(z)))
+    return float(np.sum(softplus - y*z) + 0.5*lam*w[1:] @ w[1:])
+
+def grad(X, y, w, lam=0.0):
+    g = X.T @ (sigmoid(X @ w) - y)
+    g[1:] += lam * w[1:]                     # never regularise the intercept
+    return g
+
+def newton(X, y, lam=1e-6, T=25):
+    # Iteratively reweighted least squares == Newton&#x27;s method on this loss
+    w = np.zeros(X.shape[1])
+    for t in range(T):
+        p = sigmoid(X @ w)
+        S = p*(1-p) + 1e-10                  # the diagonal of the Hessian weight matrix
+        H = X.T @ (X * S[:, None])
+        H[1:, 1:] += lam*np.eye(X.shape[1]-1)
+        step = np.linalg.solve(H, grad(X, y, w, lam))
+        w = w - step
+        if np.linalg.norm(step) &lt; 1e-12: break
+    return w, t+1
+
+# ---------------- overlapping classes: everything behaves ----------------
+n, d = 800, 4
+X = np.column_stack([np.ones(n), rng.normal(size=(n, d))])
+w_true = np.array([0.3, 1.5, -2.0, 0.8, 0.0])
+y = (rng.random(n) &lt; sigmoid(X @ w_true)).astype(float)
+
+w_gd = np.zeros(d+1)
+for _ in range(8_000):
+    w_gd -= 0.005 * grad(X, y, w_gd)
+w_nt, iters = newton(X, y)
+print(&quot;true       :&quot;, w_true)
+print(&quot;grad desc  :&quot;, w_gd,  f&quot;   nll {nll(X,y,w_gd):.5f}   (8000 steps)&quot;)
+print(f&quot;Newton/IRLS:&quot;, w_nt, f&quot;   nll {nll(X,y,w_nt):.5f}   ({iters} steps)&quot;)
+print()
+print(&quot;Newton needs a handful of iterations because it uses the exact Hessian&quot;)
+print(&quot;X^T S X.  For d in the thousands that solve becomes too expensive and&quot;)
+print(&quot;gradient methods win -- exactly the tradeoff from Lecture 03.&quot;)
+print()
+
+# ---------------- separable data: the pathology ----------------
+print(&quot;--- SEPARABLE DATA ---&quot;)
+Xs = np.column_stack([np.ones(60), np.r_[rng.normal(-2, .5, 30), rng.normal(2, .5, 30)]])
+ys = np.r_[np.zeros(30), np.ones(30)]
+print(&quot;separable?&quot;, bool(np.all((Xs[:,1] &gt; 0) == (ys == 1))))
+w = np.zeros(2)
+print(f&quot;{&#x27;steps&#x27;:&gt;8} {&#x27;||w||&#x27;:&gt;12} {&#x27;loss&#x27;:&gt;14} {&#x27;max p&#x27;:&gt;10}&quot;)
+for T in (100, 1_000, 10_000, 40_000):
+    w = np.zeros(2)
+    for _ in range(T):
+        w -= 0.05 * grad(Xs, ys, w)
+    print(f&quot;{T:8d} {np.linalg.norm(w):12.4f} {nll(Xs,ys,w):14.6e} {sigmoid(Xs@w).max():10.8f}&quot;)
+print(&quot;  -&gt; no limit. Now with L2:&quot;)
+for lam in (0.01, 0.1, 1.0):
+    w = np.zeros(2)
+    for _ in range(20_000):
+        w -= 0.05 * grad(Xs, ys, w, lam)
+    print(f&quot;  lam={lam:5.2f}  ||w|| = {np.linalg.norm(w):8.4f}   converged&quot;)
+print()
+
+# ---------------- calibration ----------------
+print(&quot;--- IS THE MODEL CALIBRATED? ---&quot;)
+Xt = np.column_stack([np.ones(4000), rng.normal(size=(4000, d))])
+yt = (rng.random(4000) &lt; sigmoid(Xt @ w_true)).astype(float)
+pt = sigmoid(Xt @ w_nt)
+bins = np.linspace(0, 1, 11)
+idx = np.clip(np.digitize(pt, bins) - 1, 0, 9)
+print(f&quot;{&#x27;predicted&#x27;:&gt;18} {&#x27;observed&#x27;:&gt;10} {&#x27;count&#x27;:&gt;7}&quot;)
+ece = 0.0
+for b in range(10):
+    m = idx == b
+    if m.sum() &lt; 10: continue
+    pred, obs = pt[m].mean(), yt[m].mean()
+    ece += m.sum()/len(yt) * abs(pred-obs)
+    flag = &quot;&quot; if abs(pred-obs) &lt; 0.05 else &quot;  &lt;-- off&quot;
+    print(f&quot;  [{bins[b]:.1f},{bins[b+1]:.1f})  {pred:8.4f} {obs:10.4f} {m.sum():7d}{flag}&quot;)
+print(f&quot;\nexpected calibration error = {ece:.4f}&quot;)
+print(&quot;A well-specified logistic model is calibrated almost by construction:&quot;)
+print(&quot;the gradient X^T(p - y) = 0 at the optimum forces the average predicted&quot;)
+print(&quot;probability to match the average label, for every feature direction.&quot;)
+print()
+
+# ---------------- thresholds and costs ----------------
+print(&quot;--- THE THRESHOLD IS A SEPARATE DECISION ---&quot;)
+print(f&quot;{&#x27;C_FN/C_FP&#x27;:&gt;10} {&#x27;threshold&#x27;:&gt;10} {&#x27;precision&#x27;:&gt;10} {&#x27;recall&#x27;:&gt;8} {&#x27;exp. cost&#x27;:&gt;10}&quot;)
+for ratio in (1, 3, 9, 49):
+    thr = 1/(1+ratio)
+    pred = pt &gt;= thr
+    tp = float((pred &amp; (yt==1)).sum()); fp = float((pred &amp; (yt==0)).sum())
+    fn = float((~pred &amp; (yt==1)).sum())
+    prec = tp/max(tp+fp, 1); rec = tp/max(tp+fn, 1)
+    cost = (fp*1.0 + fn*ratio)/len(yt)
+    print(f&quot;{ratio:10d} {thr:10.3f} {prec:10.3f} {rec:8.3f} {cost:10.4f}&quot;)
+print(&quot;Same model, same probabilities. Only the decision rule changed.&quot;)
+"><div class="pyb-head"><span class="t">Logistic regression from scratch, with Newton's method and a calibration check</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py35')">Run</button><button class="btn ghost" onclick="resetPy('py35')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=4, suppress=True)
+
+def sigmoid(z):
+    # stable both directions: never exponentiate a large positive number
+    out = np.empty_like(z)
+    pos, neg = z &gt;= 0, z &lt; 0
+    out[pos] = 1/(1+np.exp(-z[pos]))
+    e = np.exp(z[neg]); out[neg] = e/(1+e)
+    return out
+
+def nll(X, y, w, lam=0.0):
+    z = X @ w
+    # log(1+e^z) computed stably = max(z,0) + log1p(exp(-|z|))
+    softplus = np.maximum(z, 0) + np.log1p(np.exp(-np.abs(z)))
+    return float(np.sum(softplus - y*z) + 0.5*lam*w[1:] @ w[1:])
+
+def grad(X, y, w, lam=0.0):
+    g = X.T @ (sigmoid(X @ w) - y)
+    g[1:] += lam * w[1:]                     # never regularise the intercept
+    return g
+
+def newton(X, y, lam=1e-6, T=25):
+    # Iteratively reweighted least squares == Newton&#x27;s method on this loss
+    w = np.zeros(X.shape[1])
+    for t in range(T):
+        p = sigmoid(X @ w)
+        S = p*(1-p) + 1e-10                  # the diagonal of the Hessian weight matrix
+        H = X.T @ (X * S[:, None])
+        H[1:, 1:] += lam*np.eye(X.shape[1]-1)
+        step = np.linalg.solve(H, grad(X, y, w, lam))
+        w = w - step
+        if np.linalg.norm(step) &lt; 1e-12: break
+    return w, t+1
+
+# ---------------- overlapping classes: everything behaves ----------------
+n, d = 800, 4
+X = np.column_stack([np.ones(n), rng.normal(size=(n, d))])
+w_true = np.array([0.3, 1.5, -2.0, 0.8, 0.0])
+y = (rng.random(n) &lt; sigmoid(X @ w_true)).astype(float)
+
+w_gd = np.zeros(d+1)
+for _ in range(8_000):
+    w_gd -= 0.005 * grad(X, y, w_gd)
+w_nt, iters = newton(X, y)
+print(&quot;true       :&quot;, w_true)
+print(&quot;grad desc  :&quot;, w_gd,  f&quot;   nll {nll(X,y,w_gd):.5f}   (8000 steps)&quot;)
+print(f&quot;Newton/IRLS:&quot;, w_nt, f&quot;   nll {nll(X,y,w_nt):.5f}   ({iters} steps)&quot;)
+print()
+print(&quot;Newton needs a handful of iterations because it uses the exact Hessian&quot;)
+print(&quot;X^T S X.  For d in the thousands that solve becomes too expensive and&quot;)
+print(&quot;gradient methods win -- exactly the tradeoff from Lecture 03.&quot;)
+print()
+
+# ---------------- separable data: the pathology ----------------
+print(&quot;--- SEPARABLE DATA ---&quot;)
+Xs = np.column_stack([np.ones(60), np.r_[rng.normal(-2, .5, 30), rng.normal(2, .5, 30)]])
+ys = np.r_[np.zeros(30), np.ones(30)]
+print(&quot;separable?&quot;, bool(np.all((Xs[:,1] &gt; 0) == (ys == 1))))
+w = np.zeros(2)
+print(f&quot;{&#x27;steps&#x27;:&gt;8} {&#x27;||w||&#x27;:&gt;12} {&#x27;loss&#x27;:&gt;14} {&#x27;max p&#x27;:&gt;10}&quot;)
+for T in (100, 1_000, 10_000, 40_000):
+    w = np.zeros(2)
+    for _ in range(T):
+        w -= 0.05 * grad(Xs, ys, w)
+    print(f&quot;{T:8d} {np.linalg.norm(w):12.4f} {nll(Xs,ys,w):14.6e} {sigmoid(Xs@w).max():10.8f}&quot;)
+print(&quot;  -&gt; no limit. Now with L2:&quot;)
+for lam in (0.01, 0.1, 1.0):
+    w = np.zeros(2)
+    for _ in range(20_000):
+        w -= 0.05 * grad(Xs, ys, w, lam)
+    print(f&quot;  lam={lam:5.2f}  ||w|| = {np.linalg.norm(w):8.4f}   converged&quot;)
+print()
+
+# ---------------- calibration ----------------
+print(&quot;--- IS THE MODEL CALIBRATED? ---&quot;)
+Xt = np.column_stack([np.ones(4000), rng.normal(size=(4000, d))])
+yt = (rng.random(4000) &lt; sigmoid(Xt @ w_true)).astype(float)
+pt = sigmoid(Xt @ w_nt)
+bins = np.linspace(0, 1, 11)
+idx = np.clip(np.digitize(pt, bins) - 1, 0, 9)
+print(f&quot;{&#x27;predicted&#x27;:&gt;18} {&#x27;observed&#x27;:&gt;10} {&#x27;count&#x27;:&gt;7}&quot;)
+ece = 0.0
+for b in range(10):
+    m = idx == b
+    if m.sum() &lt; 10: continue
+    pred, obs = pt[m].mean(), yt[m].mean()
+    ece += m.sum()/len(yt) * abs(pred-obs)
+    flag = &quot;&quot; if abs(pred-obs) &lt; 0.05 else &quot;  &lt;-- off&quot;
+    print(f&quot;  [{bins[b]:.1f},{bins[b+1]:.1f})  {pred:8.4f} {obs:10.4f} {m.sum():7d}{flag}&quot;)
+print(f&quot;\nexpected calibration error = {ece:.4f}&quot;)
+print(&quot;A well-specified logistic model is calibrated almost by construction:&quot;)
+print(&quot;the gradient X^T(p - y) = 0 at the optimum forces the average predicted&quot;)
+print(&quot;probability to match the average label, for every feature direction.&quot;)
+print()
+
+# ---------------- thresholds and costs ----------------
+print(&quot;--- THE THRESHOLD IS A SEPARATE DECISION ---&quot;)
+print(f&quot;{&#x27;C_FN/C_FP&#x27;:&gt;10} {&#x27;threshold&#x27;:&gt;10} {&#x27;precision&#x27;:&gt;10} {&#x27;recall&#x27;:&gt;8} {&#x27;exp. cost&#x27;:&gt;10}&quot;)
+for ratio in (1, 3, 9, 49):
+    thr = 1/(1+ratio)
+    pred = pt &gt;= thr
+    tp = float((pred &amp; (yt==1)).sum()); fp = float((pred &amp; (yt==0)).sum())
+    fn = float((~pred &amp; (yt==1)).sum())
+    prec = tp/max(tp+fp, 1); rec = tp/max(tp+fn, 1)
+    cost = (fp*1.0 + fn*ratio)/len(yt)
+    print(f&quot;{ratio:10d} {thr:10.3f} {prec:10.3f} {rec:8.3f} {cost:10.4f}&quot;)
+print(&quot;Same model, same probabilities. Only the decision rule changed.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>A logistic model gives \(\hat p = \sigma(0.5 + 1.2x_1 - 0.8x_2)\).</p>
+  <ol><li>Where is the decision boundary, as an equation in \(x_1,x_2\)?</li>
+  <li>Interpret the coefficient \(1.2\) precisely.</li>
+  <li>If \(x_1\) increases by 1 with \(x_2\) fixed, by what factor do the odds change?</li>
+  <li>At \(x_1=x_2=0\), what is \(\hat p\)? What if we double every coefficient?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex36',this)">Show solution</button></div><div class="rev-body" id="ex36"><p><strong>1.</strong> \(0.5+1.2x_1-0.8x_2=0\), i.e. \(x_2 = \frac{0.5+1.2x_1}{0.8} = 0.625+1.5x_1\).
+  A straight line with the normal vector \(\vw=(1.2,-0.8)\) pointing towards the positive class.</p>
+
+  <p><strong>2.</strong> Holding \(x_2\) fixed, a one-unit increase in \(x_1\) increases the
+  <strong>log-odds</strong> by 1.2. It does <em>not</em> increase the probability by any fixed amount — the
+  effect on \(\hat p\) depends on where you start, being largest near \(\hat p=0.5\) (where \(\sigma'\) peaks at
+  0.25) and negligible in the tails. This is why "a one-unit change in \(x_1\) raises the probability by 30%" is
+  almost always a misstatement.</p>
+
+  <p><strong>3.</strong> Log-odds increase by 1.2, so the odds multiply by \(e^{1.2}=3.32\). Odds ratios are the
+  natural currency of logistic regression precisely because they are constant across the range, unlike
+  probability differences. If the odds were 1:4 (\(\hat p = 0.2\)) they become 3.32:4, i.e. \(\hat p=0.454\).</p>
+
+  <p><strong>4.</strong> \(\hat p=\sigma(0.5)=0.6225\). Doubling everything gives \(\sigma(1.0)=0.7311\).</p>
+  <p><strong>The boundary does not move</strong> — \(2(0.5+1.2x_1-0.8x_2)=0\) has exactly the same solution set
+  — but every prediction becomes more extreme. Accuracy is unchanged; cross-entropy and calibration change
+  completely. That is the \(\|\vw\|\) effect from the second figure, and it is why regularisation on
+  \(\|\vw\|\) is a statement about <em>confidence</em>, not about the decision rule.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Show that at the optimum of unregularised logistic regression with an intercept, the average
+  predicted probability equals the observed base rate:
+  \(\frac1n\sum_i\hat p_i = \frac1n\sum_i y_i\).</p>
+  <p>What is the analogous statement for each non-intercept feature? Why does this make logistic regression
+  "self-calibrating", and why does adding L2 regularisation break it?</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex37',this)">Show solution</button></div><div class="rev-body" id="ex37"><p><strong>Proof.</strong> At the optimum \(\grad\mathcal{L}=\mX^\top(\hat{\vp}-\vy)=\vzero\), i.e.
+  the residual vector \(\hat{\vp}-\vy\) is orthogonal to every column of \(\mX\). Applying this to the intercept
+  column \(\mathbf{1}\):</p>
+  \[\mathbf{1}^\top(\hat{\vp}-\vy) = \sum_i(\hat p_i-y_i) = 0 \;\Longrightarrow\;
+    \frac1n\sum_i\hat p_i = \frac1n\sum_i y_i. \qquad\blacksquare\]
+  <p>Exactly the structure of "residuals sum to zero" for OLS (Lecture 02, exercise 2) — same normal equations,
+  same consequence.</p>
+
+  <p><strong>For a general feature \(j\):</strong> \(\sum_i x_{ij}\hat p_i = \sum_i x_{ij}y_i\). The
+  probability-weighted total of feature \(j\) matches its label-weighted total. For a binary feature this says
+  <em>within that subgroup, average predicted probability equals the observed rate</em> — calibration holds
+  within every group defined by a feature in the model.</p>
+
+  <p><strong>Why "self-calibrating".</strong> Calibration in the aggregate is not something you have to check
+  for — it is <em>forced by the first-order conditions</em>, on the training set, for every direction the model
+  can see. This is a real advantage of logistic regression over, say, an SVM or a boosted tree, whose raw scores
+  have no such guarantee and genuinely need a post-hoc Platt scaling or isotonic step.</p>
+  <p>Two caveats. It holds on <em>training</em> data, not automatically on test data — though for a
+  well-specified model with enough data the two agree. And it holds only in directions <em>spanned by the
+  features</em>: a subgroup not encoded as a feature can be badly miscalibrated while every aggregate looks
+  perfect. That is precisely the mechanism behind many fairness failures.</p>
+
+  <p><strong>Why L2 breaks it.</strong> The regularised optimality condition is
+  \(\mX^\top(\hat{\vp}-\vy) + \lambda\begin{bmatrix}0\\ \vw_{1:}\end{bmatrix} = \vzero\). The intercept row is
+  unpenalised, so \(\sum_i(\hat p_i - y_i)=0\) <em>survives</em> — aggregate calibration is preserved. But the
+  feature rows now read \(\sum_i x_{ij}(\hat p_i-y_i) = -\lambda w_j \neq 0\), so per-feature calibration is
+  deliberately sacrificed. The shrinkage pulls predictions towards \(\hat p = \sigma(w_0)\), making the model
+  systematically <em>under</em>-confident. Usually a good trade; worth knowing you made it.</p>
+  <p><em>This also explains why you should never regularise the intercept.</em> Doing so would break aggregate
+  calibration too, biasing every prediction towards \(0.5\) for no benefit.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Derive the softmax gradient. With \(\vz=\mW\vx\), \(\hat\pi_k = e^{z_k}/\sum_j e^{z_j}\) and
+  cross-entropy \(\ell=-\sum_k y_k\log\hat\pi_k\) for one-hot \(\vy\):</p>
+  <ol><li>Show \(\dfrac{\partial\hat\pi_k}{\partial z_m} = \hat\pi_k(\delta_{km}-\hat\pi_m)\).</li>
+  <li>Show \(\dfrac{\partial\ell}{\partial z_m} = \hat\pi_m - y_m\).</li>
+  <li>Show that adding any constant \(c\) to every \(z_k\) leaves \(\hat{\boldsymbol\pi}\) unchanged, and say
+  what that means for the number of free parameters.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex38',this)">Show solution</button></div><div class="rev-body" id="ex38"><p><strong>1.</strong> Write \(S=\sum_j e^{z_j}\), so \(\hat\pi_k = e^{z_k}/S\) and
+  \(\partial S/\partial z_m = e^{z_m}\). Quotient rule:</p>
+  \[\frac{\partial\hat\pi_k}{\partial z_m} = \frac{\delta_{km}e^{z_k}S - e^{z_k}e^{z_m}}{S^2}
+   = \frac{e^{z_k}}{S}\left(\delta_{km}-\frac{e^{z_m}}{S}\right) = \hat\pi_k(\delta_{km}-\hat\pi_m). \qquad\blacksquare\]
+  <p>(\(\delta_{km}=1\) if \(k=m\), else 0.) Note this is the softmax Jacobian
+  \(\operatorname{diag}(\hat{\boldsymbol\pi})-\hat{\boldsymbol\pi}\hat{\boldsymbol\pi}^\top\), which is
+  symmetric positive semi-definite with the all-ones vector in its null space — the redundancy of part 3, in
+  matrix form.</p>
+
+  <p><strong>2.</strong> Chain rule through every \(k\):</p>
+  \[\frac{\partial\ell}{\partial z_m} = -\sum_k \frac{y_k}{\hat\pi_k}\cdot\hat\pi_k(\delta_{km}-\hat\pi_m)
+   = -\sum_k y_k(\delta_{km}-\hat\pi_m) = -y_m + \hat\pi_m\sum_k y_k = \hat\pi_m - y_m,\]
+  <p>using \(\sum_k y_k=1\) for a one-hot target. ∎ The \(\hat\pi_k\) cancels exactly, as in the binary case,
+  and for the same exponential-family reason.</p>
+
+  <p><strong>3.</strong> Replacing \(z_k\) with \(z_k+c\):</p>
+  \[\frac{e^{z_k+c}}{\sum_j e^{z_j+c}} = \frac{e^c e^{z_k}}{e^c\sum_j e^{z_j}} = \hat\pi_k.\]
+  <p>Softmax is <strong>shift-invariant</strong>, hence not injective — the observation from Phase A Lecture 1,
+  now proved.</p>
+  <p><strong>Consequences.</strong> With \(K\) classes there are only \(K-1\) free directions: the loss has a
+  flat direction along \(\vw_1=\cdots=\vw_K\), so the Hessian is singular and the MLE is not unique. You can fix
+  the redundancy by setting \(\vw_K=\vzero\) (which recovers binary logistic regression exactly when \(K=2\)),
+  or simply leave it — L2 regularisation selects the minimum-norm representative, and gradient descent from
+  zero initialisation never leaves the identifiable subspace anyway.</p>
+  <p>The practical payoff is the numerical one: shift-invariance lets you subtract \(\max_k z_k\) before
+  exponentiating, which is exactly the log-sum-exp trick and is what makes softmax safe for large logits (Phase
+  A Lecture 2).</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Investigate calibration under three kinds of stress.</p>
+  <ol>
+  <li>Fit a well-specified logistic model and produce a reliability diagram plus the expected calibration
+  error (ECE). Confirm it is well calibrated.</li>
+  <li>Now misspecify: generate data with a quadratic true boundary and fit a linear model. What happens to
+  calibration, and is it worse than the accuracy drop would suggest?</li>
+  <li>Now over-regularise (\(\lambda = 100\)). Which direction does the miscalibration go, and why?</li>
+  <li>Implement Platt scaling — fit \(\hat q = \sigma(a\,\text{logit}(\hat p)+b)\) on a held-out set — and show
+  it repairs cases 2 and 3. What can it not repair?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex39',this)">Show solution</button></div><div class="rev-body" id="ex39"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+sig = lambda z: 1/(1+np.exp(-np.clip(z,-500,500)))
+
+def fit(X, y, lam=1e-6, T=30000, lr=0.05):
+    w = np.zeros(X.shape[1])
+    for _ in range(T):
+        g = X.T @ (sig(X@w) - y) / len(y)
+        g[1:] += lam*w[1:]
+        w -= lr*g
+    return w
+
+def ece(p, y, B=10):
+    e, idx = 0.0, np.clip(np.digitize(p, np.linspace(0,1,B+1))-1, 0, B-1)
+    for b in range(B):
+        m = idx==b
+        if m.sum(): e += m.sum()/len(y)*abs(p[m].mean()-y[m].mean())
+    return e
+
+def make(kind, n):
+    Z = rng.normal(size=(n,2))
+    X = np.column_stack([np.ones(n), Z])
+    z = 1.5*Z[:,0] - 2*Z[:,1] + 0.3 if kind=="linear" else 2.0*(Z[:,0]**2 + Z[:,1]**2 - 1.6)
+    return X, (rng.random(n) < sig(z)).astype(float)
+
+for kind in ("linear", "quadratic"):
+    Xtr, ytr = make(kind, 4000); Xte, yte = make(kind, 8000)
+    for lam, tag in ((1e-6, "unreg"), (100.0, "lam=100")):
+        w = fit(Xtr, ytr, lam)
+        p = sig(Xte@w)
+        acc = ((p&gt;=0.5)==yte).mean()
+        print(f"{kind:10s} {tag:8s} acc {acc:.4f}  ECE {ece(p,yte):.4f}  "
+              f"mean p {p.mean():.4f} vs base rate {yte.mean():.4f}  "
+              f"p range [{p.min():.3f},{p.max():.3f}]")
+
+# Platt scaling on a calibration split
+Xtr, ytr = make("quadratic", 4000); Xca, yca = make("quadratic", 4000)
+Xte, yte = make("quadratic", 8000)
+w = fit(Xtr, ytr)
+lg = lambda p: np.log(np.clip(p,1e-9,1-1e-9)/np.clip(1-p,1e-9,1))
+Zc = np.column_stack([np.ones(len(yca)), lg(sig(Xca@w))])
+ab = fit(Zc, yca, lam=1e-8)
+p_raw = sig(Xte@w)
+p_cal = sig(ab[0] + ab[1]*lg(p_raw))
+print(f"\\nquadratic, raw    ECE {ece(p_raw,yte):.4f}  acc {((p_raw&gt;=.5)==yte).mean():.4f}")
+print(f"quadratic, Platt  ECE {ece(p_cal,yte):.4f}  acc {((p_cal&gt;=.5)==yte).mean():.4f}")
+print("Platt parameters a, b =", np.round(ab[::-1], 4))</code></pre>
+
+  <p><strong>1.</strong> The well-specified linear case gives ECE around \(0.005\) — essentially perfect,
+  for the reason proved in exercise 2: the first-order conditions force it.</p>
+
+  <p><strong>2.</strong> The quadratic truth with a linear model is a disaster, and <em>much</em> worse than
+  accuracy suggests. The true boundary is a circle; the best linear separator is nearly useless, so accuracy
+  lands near the base rate. But the calibration failure is qualitatively different: the model has no direction
+  in which it can express the real structure, so its predicted probabilities collapse into a narrow band around
+  the base rate. It is <em>simultaneously</em> uninformative and, in the aggregate, still calibrated — because
+  the intercept condition still holds. <strong>Aggregate calibration and usefulness are independent
+  properties</strong>: a model that always outputs the base rate is perfectly calibrated and worthless. This is
+  why ECE alone is never sufficient; report a proper scoring rule (log loss or Brier score), which penalises
+  both miscalibration and lack of resolution.</p>
+
+  <p><strong>3.</strong> With \(\lambda=100\) the coefficients are crushed towards zero, so
+  \(\hat p\to\sigma(w_0)\approx\) the base rate, and the predicted range narrows drastically (something like
+  \([0.42,0.58]\) instead of \([0.01,0.99]\)). The model is <strong>under-confident</strong> — it never commits.
+  Aggregate ECE may still look small because the mean is right; the failure is in the <em>spread</em>.</p>
+
+  <p><strong>4.</strong> Platt scaling fits a one-dimensional logistic recalibration on the model's own logit,
+  using a <em>held-out</em> split (using the training split would fit \(a=1,b=0\) and do nothing). It repairs
+  case 3 essentially completely — the fitted \(a\) comes out well above 1, undoing the shrinkage — and improves
+  case 2's calibration.</p>
+  <p><strong>What it cannot repair:</strong> Platt scaling is a monotone transformation of the score, so it
+  cannot change the <em>ranking</em> of examples, and therefore cannot change accuracy, AUC, or which points
+  fall on which side of any given quantile. If the model's ordering is wrong — as it is for the quadratic case,
+  where the linear score is nearly uninformative — no post-hoc calibration can help. <strong>Calibration fixes
+  the numbers, never the model.</strong> The fix for case 2 is to add quadratic features, i.e. change the
+  inductive bias.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> we have used L2 regularisation three times now as a patch. Lecture 06
+gives it a proper treatment — ridge, LASSO and elastic net as MAP estimates, the geometry of sparsity, and the
+regularisation path.</p>
+<div class="pagenav"><a href="04-losses-from-likelihoods.html" class="pv"><span class="dir">Previous</span><span class="nm">4 · Where Loss Functions Come From</span></a><a href="06-regularisation.html" class="nx"><span class="dir">Next</span><span class="nm">6 · Regularisation: Ridge, LASSO, and Priors</span></a></div>
+</div>
+<script>initDone('05-logistic-regression');</script>
+</body>
+</html>

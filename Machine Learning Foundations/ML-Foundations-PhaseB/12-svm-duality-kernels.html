@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>12. Support Vector Machines: Margins, Duality, and Kernels — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 12 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('12-svm-duality-kernels')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part VI — Nonlinear Methods · Lecture 12</div>
+  <h1>Support Vector Machines: Margins, Duality, and Kernels</h1>
+  <p class="dek">Keep the linear boundary; change the space it lives in. Getting there requires the maximum-margin principle, Lagrangian duality, and the observation that the dual touches the data only through inner products — which is the whole kernel trick in one sentence.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive the distance from a point to a hyperplane, and turn 'maximise the margin' into a convex QP</li><li>Derive the soft-margin problem and show it is hinge loss plus \(L_2\) regularisation</li><li>Derive the Lagrangian dual, the representer form \(\vw=\sum_i\alpha_i y_i\vx_i\), and read the KKT conditions</li><li>Explain what a support vector is and why most \(\alpha_i\) are exactly zero</li><li>Derive the kernel trick from the dual, and construct the explicit feature map of a polynomial kernel</li><li>State Mercer's condition and check it numerically on a Gram matrix</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase A, Lecture 8: inner products, norms, projections, orthogonality</li><li>Phase A, Lecture 12: gradients, Lagrange multipliers, constrained optimisation</li><li>Phase B, Lecture 4: loss functions; Lecture 6: L2 regularisation</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Which separating hyperplane?</h2>
+<p>Take a linearly separable two-class dataset. There are infinitely many hyperplanes that
+separate it perfectly, and every one of them has zero training error. The perceptron returns whichever it
+stumbles into. Logistic regression, as Lecture 5 showed, does something worse: with perfect separation the
+likelihood has no finite maximiser and \(\|\vw\|\to\infty\).</p>
+<p>Empirical risk minimisation has run out of opinions. We need a second principle to choose among the
+zero-error solutions, and the one that turns out to be both geometrically natural and theoretically
+defensible is: <strong>pick the hyperplane that is as far as possible from the nearest point of either
+class</strong>.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>A boundary squeezed right up against the training data is a boundary that will
+change if one point moves slightly. A boundary sitting in the widest available corridor has room to be wrong
+about where the points are. Margin is a proxy for stability, and stability is a proxy for generalisation.</p>
+<p>Phase C makes this precise: generalisation bounds for linear classifiers depend on the margin, not on the
+dimension \(d\). That is why a maximum-margin classifier in a million-dimensional space is not absurd — and
+it is what lets the kernel trick work in an infinite-dimensional space without immediately overfitting.</p></div>
+<div class="deriv" id="d95"><div class="deriv-head"><span class="t">The distance from a point to a hyperplane</span><span class="ct">0 / 4</span></div><div class="dstep">\[\mathcal{H}=\{\vx : \vw^\top\vx + b = 0\}\]<div class="why"><b>The hyperplane.</b> Note \(\vw\) is normal to it: if \(\vx_1,\vx_2\in\mathcal H\) then \(\vw^\top(\vx_1-\vx_2)=0\), so \(\vw\) is orthogonal to every direction lying inside the plane. Phase A Lecture 8's orthogonality, doing the first piece of work.</div></div><div class="dstep">\[\vx = \vx_\perp + r\,\frac{\vw}{\|\vw\|}, \qquad \vx_\perp\in\mathcal{H}\]<div class="why"><b>Decompose any point.</b> Write \(\vx\) as its closest point on the plane plus a displacement along the unit normal. The signed distance is \(r\), and this decomposition is unique because \(\vw/\|\vw\|\) is orthogonal to the plane.</div></div><div class="dstep">\[\vw^\top\vx + b = \vw^\top\vx_\perp + b + r\frac{\vw^\top\vw}{\|\vw\|} = 0 + r\|\vw\|\]<div class="why"><b>Substitute and use \(\vw^\top\vx_\perp+b=0\).</b> The first two terms vanish because \(\vx_\perp\) is on the plane; \(\vw^\top\vw=\|\vw\|^2\), so the last term is \(r\|\vw\|\).</div></div><div class="dstep">\[\boxed{\ r = \frac{\vw^\top\vx+b}{\|\vw\|}\ }, \qquad \text{signed distance}\]<div class="why"><b>Solve for \(r\).</b> The sign tells you which side. Multiplying by the label, the <strong>geometric margin</strong> of a correctly classified point is \(\gamma_i = \frac{y_i(\vw^\top\vx_i+b)}{\|\vw\|} > 0\). The numerator alone, \(y_i(\vw^\top\vx_i+b)\), is called the <em>functional</em> margin — and it can be inflated arbitrarily by scaling \((\vw,b)\), which is exactly the loophole the next derivation has to close.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d95')">Next step</button><button class="btn ghost" onclick="dall('d95')">Show all</button><button class="btn ghost" onclick="dreset('d95')">Reset</button></div></div>
+<div class="deriv" id="d96"><div class="deriv-head"><span class="t">From 'maximise the margin' to a convex quadratic program</span><span class="ct">0 / 5</span></div><div class="dstep">\[\max_{\vw,b}\ \ \min_{i}\ \frac{y_i(\vw^\top\vx_i+b)}{\|\vw\|}\]<div class="why"><b>Write down what we want.</b> Maximise the distance to the closest point. As stated this is horrible: a max of a min, non-convex, and — worse — the objective is invariant under \((\vw,b)\to(c\vw,cb)\) for any \(c>0\), so the solution is a whole ray rather than a point.</div></div><div class="dstep">\[\text{normalise: } \ \min_i\ y_i(\vw^\top\vx_i+b) = 1\]<div class="why"><b>Use the scale invariance instead of fighting it.</b> Since we may rescale freely, <em>choose</em> the scale so that the closest point has functional margin exactly 1. This is not an assumption or an approximation — it picks one representative from each ray, and every hyperplane has exactly one such representative.</div></div><div class="dstep">\[\max_{\vw,b}\ \frac{1}{\|\vw\|} \quad\text{s.t.}\quad y_i(\vw^\top\vx_i+b)\ge 1 \ \ \forall i\]<div class="why"><b>Rewrite under that normalisation.</b> With \(\min_i y_i(\vw^\top\vx_i+b)=1\) the geometric margin is exactly \(1/\|\vw\|\). Replacing the equality by \(\ge 1\) is harmless: at the optimum it must be tight for at least one point, since otherwise you could scale \(\vw\) down and improve the objective.</div></div><div class="dstep">\[\boxed{\ \min_{\vw,b}\ \tfrac12\|\vw\|^2 \quad\text{s.t.}\quad y_i(\vw^\top\vx_i+b)\ge 1\ \ \forall i\ }\]<div class="why"><b>Maximising \(1/\|\vw\|\) is minimising \(\|\vw\|\), and minimising \(\|\vw\|\) is minimising \(\tfrac12\|\vw\|^2\)</b> — both by strict monotonicity, so the argmin is unchanged (Phase A Lecture 2's argmax theorem again). The \(\tfrac12\) and the square are for differentiability, nothing more. What we now have is a <em>convex quadratic objective under linear inequality constraints</em>: a convex QP, with a unique global minimum and no local minima to worry about. The margin is \(2/\|\vw\|\) counting both sides of the corridor.</div></div><div class="dstep">\[\text{total corridor width} = \frac{2}{\|\vw\|}\]<div class="why"><b>Sanity check the geometry.</b> The two supporting hyperplanes are \(\vw^\top\vx+b=\pm1\); by the distance formula they sit at \(\pm 1/\|\vw\|\) from the boundary. Small \(\|\vw\|\) means a wide corridor, so <em>minimising \(\|\vw\|^2\) is literally maximising the margin</em>. Notice that this is the same \(\|\vw\|^2\) that Lecture 6 introduced as a ridge penalty from a Gaussian prior — two completely different stories arriving at the same term.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d96')">Next step</button><button class="btn ghost" onclick="dall('d96')">Show all</button><button class="btn ghost" onclick="dreset('d96')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Every separating hyperplane has zero training error. Only one has the widest corridor.<span class="tag">Interactive</span></div><canvas id="b12margin" data-h="480"></canvas><div class="legend"><span><i style="background:var(--c5)"></i>class +1</span><span><i style="background:var(--c1)"></i>class −1</span><span><i style="background:var(--ink)"></i>your hyperplane</span><span><i style="background:var(--c2)"></i>maximum-margin solution</span></div><div class="fig-read" id="b12margin-read"></div><div class="ctrls"><div class="ctrl"><label>orientation of your hyperplane (degrees)</label><input type="range" min="-90" max="90" step="1" value="-14" data-fmt="0" oninput="figSlide('b12margin','ang',this)"><output>-14</output></div><div class="ctrl"><label>offset of your hyperplane</label><input type="range" min="-2.5" max="2.5" step="0.05" value="0.0" data-fmt="2" oninput="figSlide('b12margin','off',this)"><output>0.00</output></div><div class="ctrl-check"><input type="checkbox" id="b12margin-show" checked onchange="figCheck('b12margin','show',this)"><label for="b12margin-show">show the maximum-margin solution</label></div></div><div class="fig-cap">Rotate and shift your hyperplane. As long as it separates the classes, the training error stays at zero — ERM has nothing more to say. The readout tracks your corridor width against the widest one available. The optimum is determined by only a handful of points (ringed): move any other point and nothing changes at all.</div></div><script>makeFig("b12margin",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0.3,0.2,4.3);
+var th=p.ang*Math.PI/180, off=p.off;
+var PX=[ 1.4, 2.3, 1.1, 2.9, 2.0, 1.7, 3.1, 2.4,  -1.5,-2.2,-0.9,-2.6,-1.1,-2.0,-1.8,-2.9];
+var PY=[ 1.9, 0.7, 0.4, 1.8, 2.6, -0.4, 0.9, -1.2, -1.2,-0.4,-1.9, 0.6, 0.9,-2.2, 1.7,-1.5];
+var LB=[1,1,1,1,1,1,1,1, -1,-1,-1,-1,-1,-1,-1,-1];
+var N=PX.length;
+// ---- solve the max-margin QP by dual coordinate ascent (bias folded in) ----
+var A=[]; for(var i=0;i<N;i++) A.push([PX[i],PY[i],1]);
+var K=[]; for(var i=0;i<N;i++){ K.push([]); for(var j=0;j<N;j++) K[i].push(A[i][0]*A[j][0]+A[i][1]*A[j][1]+1); }
+var al=new Array(N).fill(0), fv=new Array(N).fill(0), C=1e5;
+for(var it=0; it<600; it++){
+  for(var i=0;i<N;i++){
+    var g=1-LB[i]*fv[i], d=K[i][i]||1e-9;
+    var an=Math.min(C, Math.max(0, al[i]+g/d));
+    if(Math.abs(an-al[i])>1e-13){ var dd=(an-al[i])*LB[i];
+      for(var j=0;j<N;j++) fv[j]+=dd*K[j][i]; al[i]=an; }
+  }
+}
+var wx=0, wy=0, wb=0;
+for(var i=0;i<N;i++){ wx+=al[i]*LB[i]*PX[i]; wy+=al[i]*LB[i]*PY[i]; wb+=al[i]*LB[i]; }
+var nrm=Math.hypot(wx,wy), bestM=2/nrm;
+// ---- user's hyperplane: normal (cos th, sin th), offset ----
+var ux=Math.cos(th), uy=Math.sin(th);
+var proj=[], minPos=1e9, maxNeg=-1e9, err=0;
+for(var i=0;i<N;i++){
+  var s=ux*PX[i]+uy*PY[i]-off;
+  if(LB[i]>0){ if(s<minPos) minPos=s; } else { if(s>maxNeg) maxNeg=s; }
+  if((s>0?1:-1)!==LB[i]) err++;
+}
+var myM = (err===0) ? (minPos-maxNeg) : 0;
+function drawPlane(nx,ny,c,col,w,dash){
+  // line  nx*x + ny*y = c
+  var pts=[];
+  [[vp.xmin,null],[vp.xmax,null],[null,vp.ymin],[null,vp.ymax]].forEach(function(q){
+    if(q[0]!==null && Math.abs(ny)>1e-9) pts.push([q[0],(c-nx*q[0])/ny]);
+    if(q[1]!==null && Math.abs(nx)>1e-9) pts.push([(c-ny*q[1])/nx,q[1]]);
+  });
+  var in_=pts.filter(function(q){ return q[0]>=vp.xmin-1e-6&&q[0]<=vp.xmax+1e-6&&q[1]>=vp.ymin-1e-6&&q[1]<=vp.ymax+1e-6; });
+  if(in_.length>=2) vp.seg(in_[0][0],in_[0][1],in_[1][0],in_[1][1],col,{w:w,dash:dash});
+}
+// shade the user's corridor
+if(err===0){
+  var cc=vp.ctx; cc.save(); cc.globalAlpha=0.10; cc.fillStyle=vp.css('--ink');
+  var steps=120;
+  cc.beginPath();
+  for(var k=0;k<=steps;k++){ var t=vp.xmin+(vp.xmax-vp.xmin)*k/steps;
+    var yy = Math.abs(uy)>1e-9 ? ((off+maxNeg)-ux*t)/uy : vp.ymin;
+    if(k===0) cc.moveTo(vp.X(t),vp.Y(yy)); else cc.lineTo(vp.X(t),vp.Y(yy)); }
+  for(var k=steps;k>=0;k--){ var t=vp.xmin+(vp.xmax-vp.xmin)*k/steps;
+    var yy = Math.abs(uy)>1e-9 ? ((off+minPos)-ux*t)/uy : vp.ymax;
+    cc.lineTo(vp.X(t),vp.Y(yy)); }
+  cc.closePath(); cc.fill(); cc.restore();
+}
+vp.axes({stepx:1,stepy:1});
+drawPlane(ux,uy,off,'--ink',2.8,null);
+drawPlane(ux,uy,off+minPos,'--ink3',1.2,[5,4]);
+drawPlane(ux,uy,off+maxNeg,'--ink3',1.2,[5,4]);
+if(p.show){
+  drawPlane(wx,wy,-wb,'--c2',2.8,null);
+  drawPlane(wx,wy,-wb+1,'--c2',1.2,[4,4]);
+  drawPlane(wx,wy,-wb-1,'--c2',1.2,[4,4]);
+}
+for(var i=0;i<N;i++){
+  vp.dot(PX[i],PY[i], LB[i]>0?'--c5':'--c1', 4.2);
+  if(al[i]>1e-6*C || al[i]>1e-7){
+    var cc2=vp.ctx; cc2.save(); cc2.strokeStyle=vp.css('--c2'); cc2.lineWidth=2;
+    cc2.beginPath(); cc2.arc(vp.X(PX[i]),vp.Y(PY[i]),8,0,6.2832); cc2.stroke(); cc2.restore();
+  }
+}
+var nsv=0; for(var i=0;i<N;i++) if(al[i]>1e-7) nsv++;
+figRead('b12margin', err>0
+ ? '<b style="color:var(--bad)">your hyperplane misclassifies '+err+' point'+(err>1?'s':'')+'</b>'
+ : 'training error <b>0</b> &nbsp;·&nbsp; your corridor width <b>'+myM.toFixed(4)+'</b>'
+   +' &nbsp;·&nbsp; widest possible <b>'+bestM.toFixed(4)+'</b>'
+   +' &nbsp;(<b>'+Math.min(100,100*myM/bestM).toFixed(1)+'%</b>)'
+   +'<br>the optimum is pinned by <b>'+nsv+'</b> support vectors out of '+N+' points;'
+   +' ‖w‖ = '+nrm.toFixed(4)+', so the margin is 2/‖w‖ = '+bestM.toFixed(4));
+},[{"name": "ang", "label": "orientation of your hyperplane (degrees)", "min": -90, "max": 90, "step": 1, "value": -14, "dp": 0}, {"name": "off", "label": "offset of your hyperplane", "min": -2.5, "max": 2.5, "step": 0.05, "value": 0.0, "dp": 2}, {"name": "show", "label": "show the maximum-margin solution", "type": "check", "value": 1}]);window["FIG_b12margin"].run();</script>
+<h2 id="s2"><span class="secnum">2</span>Soft margin: what to do when no corridor exists</h2>
+<p>Real data is not separable, and even when it is, one mislabelled point can collapse the margin
+to nothing. Introduce a slack \(\xi_i\ge0\) per point measuring how far it falls short of margin 1, and pay
+for it.</p>
+<div class="deriv" id="d97"><div class="deriv-head"><span class="t">The soft-margin problem is hinge loss plus ridge</span><span class="ct">0 / 4</span></div><div class="dstep">\[\min_{\vw,b,\vxi}\ \tfrac12\|\vw\|^2 + C\sum_{i=1}^n \xi_i \quad\text{s.t.}\quad y_i(\vw^\top\vx_i+b)\ge 1-\xi_i,\ \ \xi_i\ge0\]<div class="why"><b>The soft-margin QP.</b> \(\xi_i=0\) means the point is at or beyond margin 1; \(0&lt;\xi_i&lt;1\) means inside the corridor but correctly classified; \(\xi_i>1\) means misclassified. \(C\) is the price of a unit of violation.</div></div><div class="dstep">\[\text{for fixed }(\vw,b):\quad \xi_i^\star = \max\big(0,\ 1-y_i(\vw^\top\vx_i+b)\big)\]<div class="why"><b>Optimise out the slacks.</b> Each \(\xi_i\) appears in exactly one constraint pair and contributes \(C\xi_i\ge0\) to the objective, so we make it as small as the constraints allow: at least \(0\), and at least \(1-y_i(\vw^\top\vx_i+b)\). The larger of the two, which is the max. No calculus needed — just read the constraints.</div></div><div class="dstep">\[\boxed{\ \min_{\vw,b}\ \underbrace{\sum_{i=1}^{n}\max\big(0,\,1-y_i f(\vx_i)\big)}_{\text{hinge loss}} \;+\; \frac{1}{2C}\|\vw\|^2\ }\]<div class="why"><b>Substitute back and divide by \(C\).</b> The SVM is <em>not</em> a special kind of object: it is empirical risk minimisation with the hinge loss and an \(L_2\) penalty, exactly the template of Lectures 4 and 6. \(C\) is an inverse regularisation strength — large \(C\) means little regularisation and a hard margin; \(\lambda = \frac{1}{2C}\) in Lecture 6's notation. Everything you learnt about choosing \(\lambda\) transfers.</div></div><div class="dstep">\[\ell_{\text{hinge}}(m)=\max(0,1-m) \quad\text{vs}\quad \ell_{\text{log}}(m)=\log(1+e^{-m}), \qquad m=y f(\vx)\]<div class="why"><b>Compare to logistic regression.</b> Both are convex upper bounds on the 0–1 loss \(\mathbb{1}[m&lt;0]\), and both are decreasing in the margin. The difference is one property: hinge is <em>exactly zero</em> for \(m\ge1\), while logistic is positive everywhere. That single fact is the reason SVMs have sparse solutions and logistic regression does not — a point past the margin contributes no gradient, so it cannot influence \(\vw\). Everything about support vectors follows from the flat piece of the hinge.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d97')">Next step</button><button class="btn ghost" onclick="dall('d97')">Show all</button><button class="btn ghost" onclick="dreset('d97')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Margin losses: what each one charges for being right<span class="tag">Interactive</span></div><canvas id="b12loss" data-h="400"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>hinge  max(0, 1−m)</span><span><i style="background:var(--c5)"></i>logistic  log(1+e^−m)/log 2</span><span><i style="background:var(--c3)"></i>squared  (1−m)²</span><span><i style="background:var(--ink3)"></i>0–1 loss</span></div><div class="fig-read" id="b12loss-read"></div><div class="ctrls"><div class="ctrl"><label>margin  m = y·f(x)</label><input type="range" min="-2.5" max="3.0" step="0.05" value="1.6" data-fmt="2" oninput="figSlide('b12loss','m',this)"><output>1.60</output></div></div><div class="fig-cap">Only the hinge is exactly zero once m ≥ 1 — that flat piece is what makes most αᵢ vanish and the solution sparse. Logistic never quite reaches zero, so every point keeps a say. Squared loss grows again for m > 1: it penalises being TOO confidently right, which is why plain least squares is a poor classifier.</div></div><script>makeFig("b12loss",function(vp,p,F){
+vp.pads(50,18,16,34); vp.frame(-2.5,3.0,-0.1,3.2);
+var m=p.m;
+vp.axes({stepx:1,stepy:0.5});
+vp.label(0.25,-0.06,'margin  m = y f(x)','--ink3',{align:'center'});
+var cc=vp.ctx; cc.save(); cc.globalAlpha=0.07; cc.fillStyle=vp.css('--bad');
+cc.fillRect(vp.X(-2.5),vp.pad.t,vp.X(0)-vp.X(-2.5),vp.ph); cc.restore();
+vp.label(-1.25,3.0,'misclassified','--ink3',{align:'center',size:11.5});
+vp.curve(function(x){ return x<0?1:0; },'--ink3',{w:2.0});
+vp.curve(function(x){ return Math.max(0,1-x); },'--c1',{w:2.6});
+vp.curve(function(x){ return Math.log(1+Math.exp(-x))/Math.LN2; },'--c5',{w:2.6});
+vp.curve(function(x){ return Math.min(3.2,(1-x)*(1-x)); },'--c3',{w:2.6});
+vp.seg(1,-0.1,1,3.2,'--ink3',{dash:[4,4],w:1});
+vp.label(1.05,3.02,'m = 1','--ink3',{size:11.5});
+vp.seg(m,-0.1,m,3.2,'--c2',{w:1.6});
+var lh=Math.max(0,1-m), ll=Math.log(1+Math.exp(-m))/Math.LN2, ls=(1-m)*(1-m);
+vp.dot(m,lh,'--c1',5); vp.dot(m,ll,'--c5',5); vp.dot(m,Math.min(3.2,ls),'--c3',5);
+figRead('b12loss','m = '+m.toFixed(2)+' &nbsp;⟹&nbsp; hinge <b>'+lh.toFixed(4)+'</b>'
+ +' &nbsp;·&nbsp; logistic <b>'+ll.toFixed(4)+'</b> &nbsp;·&nbsp; squared <b>'+ls.toFixed(4)+'</b>'
+ +' &nbsp;·&nbsp; 0–1 <b>'+(m<0?1:0)+'</b>'
+ +(m>=1 ? '<br><span style="color:var(--ok)">hinge gradient is exactly 0 here — this point cannot move w at all,'
+        +' so its α is 0 and it is not a support vector</span>' : ''));
+},[{"name": "m", "label": "margin  m = y\u00b7f(x)", "min": -2.5, "max": 3.0, "step": 0.05, "value": 1.6, "dp": 2}]);window["FIG_b12loss"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>The dual, and why it is worth the trouble</h2>
+<p>We could stop here and minimise hinge-plus-ridge by subgradient descent. Almost nobody does,
+because the <em>dual</em> of this problem has a property the primal does not: the data appears only inside
+inner products. That is the door the kernel trick walks through, so the dual is not an optional detour —
+it is the whole point.</p>
+<div class="deriv" id="d98"><div class="deriv-head"><span class="t">The Lagrangian dual of the soft-margin SVM</span><span class="ct">0 / 6</span></div><div class="dstep">\[\mathcal{L}(\vw,b,\vxi,\valpha,\vm) = \tfrac12\|\vw\|^2 + C\sum_i \xi_i - \sum_i \alpha_i\big[y_i(\vw^\top\vx_i+b)-1+\xi_i\big] - \sum_i \mu_i\xi_i\]<div class="why"><b>Form the Lagrangian.</b> One multiplier \(\alpha_i\ge0\) per margin constraint, one \(\mu_i\ge0\) per non-negativity constraint on \(\xi_i\). Sign convention: constraints are written as \(\ge 0\) and subtracted, so that \(\mathcal L \le\) the primal objective for any feasible point. This is Phase A Lecture 12's Lagrange multiplier machinery, now with inequalities instead of equalities.</div></div><div class="dstep">\[\frac{\partial\mathcal L}{\partial\vw}=\vw-\sum_i\alpha_i y_i\vx_i = \vzero \;\Longrightarrow\; \boxed{\ \vw=\sum_i \alpha_i y_i \vx_i\ }\]<div class="why"><b>Stationarity in \(\vw\).</b> This is the single most consequential line in the lecture. The optimal weight vector is a <em>linear combination of the training points</em>, with the labels as signs and the multipliers as coefficients. It is a special case of the <strong>representer theorem</strong>: any \(L_2\)-penalised linear model has its solution in the span of the data. Anything orthogonal to the data adds to \(\|\vw\|^2\) and changes no prediction, so the optimum never uses it.</div></div><div class="dstep">\[\frac{\partial\mathcal L}{\partial b}=-\sum_i\alpha_i y_i = 0, \qquad \frac{\partial\mathcal L}{\partial\xi_i}=C-\alpha_i-\mu_i=0 \;\Longrightarrow\; 0\le\alpha_i\le C\]<div class="why"><b>The other two stationarity conditions.</b> The first is an equality constraint the dual must respect. The second, combined with \(\mu_i\ge0\), <em>box-constrains</em> the multipliers: \(\alpha_i\in[0,C]\). Notice how the soft-margin parameter \(C\) enters the dual — as a ceiling on how much influence any single point may have. That is a precise statement of robustness: no outlier can pull the boundary by more than \(C\).</div></div><div class="dstep">\[\boxed{\ \max_{\valpha}\ \sum_{i=1}^n \alpha_i - \tfrac12\sum_{i=1}^n\sum_{j=1}^n \alpha_i\alpha_j y_i y_j\, \vx_i^\top\vx_j \quad\text{s.t.}\quad 0\le\alpha_i\le C,\ \ \sum_i\alpha_i y_i=0\ }\]<div class="why"><b>Substitute all three conditions back.</b> The \(\xi\) terms cancel identically (\(C\xi_i-\alpha_i\xi_i-\mu_i\xi_i=(C-\alpha_i-\mu_i)\xi_i=0\)); the \(b\) term cancels by \(\sum_i\alpha_iy_i=0\); and \(\tfrac12\|\vw\|^2-\vw^\top\vw = -\tfrac12\|\vw\|^2\) supplies the quadratic term. What is left is a concave QP in \(\valpha\) alone. <strong>Read the boxed expression carefully: \(\vx_i\) appears only as \(\vx_i^\top\vx_j\).</strong> Nowhere else. Hold that thought.</div></div><div class="dstep">\[\alpha_i\big[y_i(\vw^\top\vx_i+b)-1+\xi_i\big]=0, \qquad \mu_i\xi_i=0\]<div class="why"><b>Complementary slackness (KKT).</b> For each \(i\), either the multiplier is zero or the constraint is tight. Three cases: (i) \(\alpha_i=0\) — the point is strictly outside the margin and is irrelevant; (ii) \(0&lt;\alpha_i&lt;C\) — then \(\mu_i>0\) so \(\xi_i=0\), and the point sits <em>exactly</em> on the margin, \(y_if(\vx_i)=1\); (iii) \(\alpha_i=C\) — the point is inside the margin or misclassified. Cases (ii) and (iii) are the <strong>support vectors</strong>, and only they appear in \(\vw=\sum_i\alpha_iy_i\vx_i\).</div></div><div class="dstep">\[b = y_k - \sum_i \alpha_i y_i \vx_i^\top\vx_k \quad\text{for any } k \text{ with } 0&lt;\alpha_k&lt;C\]<div class="why"><b>Recovering \(b\).</b> Case (ii) gives \(y_k f(\vx_k)=1\), and multiplying by \(y_k\) (using \(y_k^2=1\)) gives \(f(\vx_k)=y_k\). Solve for \(b\). In practice average over all such \(k\) for numerical stability. Note \(b\) is recovered from inner products too — the kernel trick will survive this step.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d98')">Next step</button><button class="btn ghost" onclick="dall('d98')">Show all</button><button class="btn ghost" onclick="dreset('d98')">Reset</button></div></div>
+<div class="box note"><span class="lbl">One thing we are quoting, not deriving</span><p>Substituting the stationarity
+conditions gives the dual, and <em>weak</em> duality (dual optimum \(\le\) primal optimum) follows in two
+lines from the construction. What we are using without proof is <strong>strong duality</strong>: for this
+problem the two optima are <em>equal</em>, so solving the dual solves the primal exactly. It holds because
+the objective is convex, the constraints are affine, and Slater's condition is satisfied.</p>
+<p><strong>Marked as deferred, not skipped.</strong> The general theorem belongs in a convex-optimisation
+treatment and Phase C covers it. Meanwhile the code block below computes both optima on a real problem and
+reports the gap, which comes out at \(10^{-14}\) — verification is not proof, but it is not nothing.</p></div>
+<h2 id="s4"><span class="secnum">4</span>The kernel trick</h2>
+<p>Here is the payoff. Suppose we want a nonlinear boundary. The old way (Lecture 2) is to choose
+a feature map \(\vphi:\RR^d\to\RR^{D}\) and fit a linear model in the new coordinates. That works, but \(D\)
+grows explosively — all monomials of degree \(\le p\) in \(d\) variables is \(\binom{d+p}{p}\) features, which
+for \(d=100,\ p=4\) is over four million.</p>
+<p>But the dual never touches \(\vphi(\vx_i)\) on its own. It touches only
+\(\vphi(\vx_i)^\top\vphi(\vx_j)\). If we can compute that inner product without ever forming
+\(\vphi\), the dimension \(D\) stops mattering — it can be four million, or infinite.</p>
+<div class="box defn"><span class="lbl">Kernel</span><p>A function \(k:\RR^d\times\RR^d\to\RR\) is a (positive semi-definite,
+or Mercer) kernel if for every finite set \(\vx_1,\dots,\vx_n\) the <strong>Gram matrix</strong>
+\(\mK_{ij}=k(\vx_i,\vx_j)\) is symmetric positive semi-definite.</p>
+<p><strong>Mercer's theorem:</strong> \(k\) is such a kernel if and only if there exists a feature map
+\(\vphi\) into some inner-product space with \(k(\vx,\vz)=\vphi(\vx)^\top\vphi(\vz)\). So "PSD Gram matrix
+for every finite sample" and "is secretly an inner product" are the same condition — you check the easy one
+and get the useful one.</p></div>
+<div class="deriv" id="d99"><div class="deriv-head"><span class="t">The polynomial kernel, with its feature map written out</span><span class="ct">0 / 5</span></div><div class="dstep">\[k(\vx,\vz) = (1+\vx^\top\vz)^2, \qquad \vx,\vz\in\RR^2\]<div class="why"><b>A kernel we can expand by hand.</b> Computing it costs one 2-dimensional dot product, one addition and one multiplication. Whatever feature space it corresponds to, we are paying \(O(d)\), not \(O(D)\).</div></div><div class="dstep">\[(1+x_1z_1+x_2z_2)^2 = 1 + x_1^2z_1^2 + x_2^2z_2^2 + 2x_1z_1 + 2x_2z_2 + 2x_1z_1x_2z_2\]<div class="why"><b>Expand \((a+b+c)^2=a^2+b^2+c^2+2ab+2ac+2bc\)</b> with \(a=1,\ b=x_1z_1,\ c=x_2z_2\). Every term factors into (something in \(\vx\)) × (the same thing in \(\vz\)) — which is exactly what an inner product looks like.</div></div><div class="dstep">\[\vphi(\vx) = \big(1,\ \sqrt2\,x_1,\ \sqrt2\,x_2,\ x_1^2,\ x_2^2,\ \sqrt2\,x_1x_2\big)^\top \in \RR^6\]<div class="why"><b>Read the feature map off the expansion.</b> Check: \(\vphi(\vx)^\top\vphi(\vz) = 1+2x_1z_1+2x_2z_2+x_1^2z_1^2+x_2^2z_2^2+2x_1x_2z_1z_2\), matching term for term. The \(\sqrt2\) factors split the cross-term coefficient of 2 evenly between the two vectors — that is where they come from, and the code block checks this to machine precision.</div></div><div class="dstep">\[\text{a linear boundary in } \RR^6 \ \longleftrightarrow\ \text{a general conic in } \RR^2\]<div class="why"><b>What we bought.</b> \(\vw^\top\vphi(\vx)+b=0\) with those six coordinates is \(w_4x_1^2+w_5x_2^2+\sqrt2 w_6 x_1x_2+\dots=0\): every ellipse, hyperbola and parabola in the plane. Circles and rings become linearly separable. We got all of it from one scalar formula, without ever building a 6-vector.</div></div><div class="dstep">\[\text{degree } p, \text{ dimension } d: \quad D=\binom{d+p}{p} \ \text{ features, } \ O(d) \ \text{ to evaluate } k\]<div class="why"><b>And the scaling is the real prize.</b> \(d=100,\ p=4\) gives \(D=4{,}598{,}126\) features but the kernel still costs 100 multiplications. The Gaussian RBF kernel \(k(\vx,\vz)=e^{-\gamma\|\vx-\vz\|^2}\) goes further: expanding the exponential in its power series produces monomials of <em>every</em> degree, so \(D=\infty\). You are fitting a linear classifier in an infinite-dimensional space, in finite time, and only the margin — not \(D\) — controls whether it generalises.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d99')">Next step</button><button class="btn ghost" onclick="dall('d99')">Show all</button><button class="btn ghost" onclick="dreset('d99')">Reset</button></div></div>
+<div class="deriv" id="d100"><div class="deriv-head"><span class="t">Kernelising the dual: substitute and stop</span><span class="ct">0 / 3</span></div><div class="dstep">\[\max_{\valpha}\ \sum_i \alpha_i - \tfrac12\sum_{i,j}\alpha_i\alpha_j y_iy_j\,k(\vx_i,\vx_j), \qquad 0\le\alpha_i\le C,\ \ \sum_i\alpha_iy_i=0\]<div class="why"><b>Replace \(\vx_i^\top\vx_j\) with \(k(\vx_i,\vx_j)\).</b> That is the entire kernel trick. Not an approximation, not a heuristic: since \(k(\vx_i,\vx_j)=\vphi(\vx_i)^\top\vphi(\vx_j)\) for <em>some</em> \(\vphi\), this is literally the dual of a linear SVM in the feature space, written in coordinates we never compute.</div></div><div class="dstep">\[f(\vx) = \vw^\top\vphi(\vx)+b = \sum_{i\in SV}\alpha_i y_i\, k(\vx_i,\vx) + b\]<div class="why"><b>Prediction also kernelises.</b> Substitute \(\vw=\sum_i\alpha_iy_i\vphi(\vx_i)\) from the representer step and the \(\vphi\)'s pair up into kernels. Note that \(\vw\) itself may be infinite-dimensional and is never formed; the model <em>is</em> the list of support vectors and their \(\alpha_i\). This is a fundamentally different kind of object from a weight vector — it is nonparametric, and its size grows with the data.</div></div><div class="dstep">\[\text{cost: } \ O(n^2) \ \text{kernel evaluations to build } \mK, \ \ O(n^2)\!-\!O(n^3) \ \text{to solve, } \ O(n_{SV}) \ \text{per prediction}\]<div class="why"><b>And the bill.</b> Independent of \(D\) — but quadratic to cubic in \(n\). That is the trade we made: dimension became free, sample size became expensive. It is exactly why kernel SVMs dominated in the 1990s and 2000s, when \(n\) was in the thousands, and why they largely lost to boosted trees and neural networks once \(n\) reached millions. The mathematics did not get worse; the datasets got bigger.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d100')">Next step</button><button class="btn ghost" onclick="dall('d100')">Show all</button><button class="btn ghost" onclick="dreset('d100')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">A linear boundary in feature space, seen from the input space<span class="tag">Interactive</span></div><canvas id="b12kernel" data-h="500"></canvas><div class="legend"><span><i style="background:var(--c5)"></i>class +1</span><span><i style="background:var(--c1)"></i>class −1</span><span><i style="background:var(--ink)"></i>decision boundary</span><span><i style="background:var(--c2)"></i>support vectors</span></div><div class="fig-read" id="b12kernel-read"></div><div class="ctrls"><div class="ctrl"><label>kernel: 0 linear · 1 polynomial (deg 2) · 2 polynomial (deg 3) · 3 RBF</label><input type="range" min="0" max="3" step="1" value="3" data-fmt="0" oninput="figSlide('b12kernel','kern',this)"><output>3</output></div><div class="ctrl"><label>log₁₀ γ  (RBF width)</label><input type="range" min="-1.5" max="2.0" step="0.1" value="-0.3" data-fmt="1" oninput="figSlide('b12kernel','lg',this)"><output>-0.3</output></div><div class="ctrl"><label>log₁₀ C  (inverse regularisation)</label><input type="range" min="-2" max="3" step="0.25" value="0.0" data-fmt="2" oninput="figSlide('b12kernel','lC',this)"><output>0.00</output></div><div class="ctrl"><label>dataset: 0 rings · 1 two moons · 2 xor blobs</label><input type="range" min="0" max="2" step="1" value="0" data-fmt="0" oninput="figSlide('b12kernel','data',this)"><output>0</output></div></div><div class="fig-cap">The dashed contours are f = ±1, the margin in feature space bent back into the input space. Ringed points are the support vectors — everything else could be deleted without changing the model. Push γ up and the boundary fragments into islands around individual points, the support vector count climbs toward n, and you are memorising. Push C up with γ moderate and the boundary contorts to catch every point. Both knobs overfit, in visibly different ways.</div></div><script>makeFig("b12kernel",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,3.2);
+var KIND=Math.round(p.kern), gam=Math.pow(10,p.lg), C=Math.pow(10,p.lC), DS=Math.round(p.data);
+var seed=24680+DS*7919;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var PX=[],PY=[],LB=[],n=110;
+for(var i=0;i<n;i++){
+  var x,y,l;
+  if(DS===0){ var t=6.2832*rnd(), inr=(i%2===0); var r=(inr?0.9:2.3)+0.28*gauss();
+              x=r*Math.cos(t); y=r*Math.sin(t); l=inr?1:-1; }
+  else if(DS===1){ var t=Math.PI*rnd(), up=(i%2===0);
+              if(up){ x=1.7*Math.cos(t)-0.85; y=1.7*Math.sin(t)-0.5; l=1; }
+              else  { x=1.7*Math.cos(t)+0.85; y=-1.7*Math.sin(t)+0.5; l=-1; }
+              x+=0.30*gauss(); y+=0.30*gauss(); }
+  else { var qx=(i%2===0)?1:-1, qy=((i>>1)%2===0)?1:-1;
+         x=1.45*qx+0.42*gauss(); y=1.45*qy+0.42*gauss(); l=(qx*qy>0)?1:-1; }
+  PX.push(x); PY.push(y); LB.push(l);
+}
+function ker(ax,ay,bx,by){
+  var dp=ax*bx+ay*by;
+  if(KIND===0) return dp+1;
+  if(KIND===1) return (1+dp)*(1+dp);
+  if(KIND===2) return (1+dp)*(1+dp)*(1+dp);
+  var dx=ax-bx, dy=ay-by; return Math.exp(-gam*(dx*dx+dy*dy));
+}
+var K=[]; for(var i=0;i<n;i++){ K.push(new Float64Array(n));
+  for(var j=0;j<n;j++) K[i][j]=ker(PX[i],PY[i],PX[j],PY[j]); }
+var al=new Float64Array(n), fv=new Float64Array(n);
+for(var it=0; it<220; it++){
+  for(var i=0;i<n;i++){
+    var g=1-LB[i]*fv[i], d=K[i][i]; if(d<1e-12) d=1e-12;
+    var an=al[i]+g/d; if(an<0) an=0; if(an>C) an=C;
+    var dd=(an-al[i]); if(dd>1e-13||dd<-1e-13){ dd*=LB[i];
+      var Ki=K[i]; for(var j=0;j<n;j++) fv[j]+=dd*Ki[j]; al[i]=an; }
+  }
+}
+var idx=[]; for(var i=0;i<n;i++) if(al[i]>1e-8) idx.push(i);
+function F(x,y){ var s=0; for(var q=0;q<idx.length;q++){ var i=idx[q];
+  s+=al[i]*LB[i]*ker(PX[i],PY[i],x,y); } return s; }
+vp.contour(F,[0],'--ink',{N:56,w:2.8});
+vp.contour(F,[-1,1],'--ink3',{N:56,w:1.2,dash:[5,4]});
+vp.axes({stepx:1,stepy:1});
+for(var i=0;i<n;i++) vp.dot(PX[i],PY[i], LB[i]>0?'--c5':'--c1', 3.4);
+var cc=vp.ctx;
+for(var q=0;q<idx.length;q++){ var i=idx[q];
+  cc.save(); cc.strokeStyle=vp.css('--c2'); cc.lineWidth=1.6;
+  cc.beginPath(); cc.arc(vp.X(PX[i]),vp.Y(PY[i]),7,0,6.2832); cc.stroke(); cc.restore(); }
+var err=0; for(var i=0;i<n;i++) if((F(PX[i],PY[i])>0?1:-1)!==LB[i]) err++;
+var nm=['linear','polynomial degree 2','polynomial degree 3','RBF'][KIND];
+figRead('b12kernel', nm + (KIND===3?' with γ = '+gam.toFixed(3):'') + ',  C = '+C.toFixed(3)
+ +'<br>training error <b>'+(100*err/n).toFixed(1)+'%</b>'
+ +' &nbsp;·&nbsp; support vectors <b>'+idx.length+'</b> of '+n
+ +' (<b>'+(100*idx.length/n).toFixed(0)+'%</b> of the data is the model)'
+ +(idx.length>0.85*n ? '<br><span style="color:var(--bad)">almost every point is a support vector — the model '
+   +'is storing the training set rather than summarising it</span>'
+   : (err===0 ? '<br><span style="color:var(--ok)">separated in feature space, using only '+idx.length
+                +' points</span>' : '')));
+},[{"name": "kern", "label": "kernel: 0 linear \u00b7 1 polynomial (deg 2) \u00b7 2 polynomial (deg 3) \u00b7 3 RBF", "min": 0, "max": 3, "step": 1, "value": 3, "dp": 0}, {"name": "lg", "label": "log\u2081\u2080 \u03b3  (RBF width)", "min": -1.5, "max": 2.0, "step": 0.1, "value": -0.3, "dp": 1}, {"name": "lC", "label": "log\u2081\u2080 C  (inverse regularisation)", "min": -2, "max": 3, "step": 0.25, "value": 0.0, "dp": 2}, {"name": "data", "label": "dataset: 0 rings \u00b7 1 two moons \u00b7 2 xor blobs", "min": 0, "max": 2, "step": 1, "value": 0, "dp": 0}]);window["FIG_b12kernel"].run();</script>
+<div class="quiz" id="q101"><div class="qlbl">Check yourself</div><div class="qq"><p>You fit an RBF SVM and let \(\gamma\to\infty\) with \(C\) fixed and large. What happens?</p></div><button class="qopt" data-ok="0" onclick="pick('q101',0,false)">The boundary becomes linear, because the kernel flattens out.</button><button class="qopt" data-ok="1" onclick="pick('q101',1,true)">The Gram matrix tends to the identity: every point becomes its own island, training error goes to 0, every point becomes a support vector, and the model predicts the majority class everywhere away from the training data.</button><button class="qopt" data-ok="0" onclick="pick('q101',2,false)">The optimisation becomes infeasible because the Gram matrix is singular.</button><button class="qopt" data-ok="0" onclick="pick('q101',3,false)">Nothing much: γ only rescales the features, and SVMs are scale-invariant.</button><div class="qwhy" data-i="0"><b>Not quite.</b> That is the \(\gamma\to0\) limit. As \(\gamma\to0\), \(e^{-\gamma\|\vx-\vz\|^2}\approx 1-\gamma\|\vx-\vz\|^2\) and the kernel becomes affine in the inner product, so the boundary does tend to linear. Large \(\gamma\) does the opposite.</div><div class="qwhy" data-i="1"><b>Correct.</b> \(k(\vx_i,\vx_j)=e^{-\gamma\|\vx_i-\vx_j\|^2}\to 0\) for \(i\ne j\) and \(=1\) for \(i=j\), so \(\mK\to\mI\). The dual decouples into \(n\) independent problems with solution \(\alpha_i=\min(C,1)\), giving \(f(\vx)=\sum_i \alpha_iy_ik(\vx_i,\vx)\) — a sum of vanishingly narrow bumps. Perfect training accuracy, zero generalisation. Pure memorisation, and the figure above shows it happening.</div><div class="qwhy" data-i="2"><b>Not quite.</b> \(\mK\to\mI\) is the best-conditioned matrix there is. Numerically it is trivial; statistically it is a disaster. Do not confuse the two — this is a generalisation failure, not a numerical one.</div><div class="qwhy" data-i="3"><b>Not quite.</b> SVMs are emphatically <em>not</em> scale-invariant — that is why you standardise features before fitting one. And \(\gamma\) is not a rescaling: it changes the effective dimension of the feature space and the smoothness of every function the model can represent.</div></div>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p><strong>Using kernel SVMs in practice.</strong></p>
+<ul>
+<li><strong>Standardise your features.</strong> The RBF kernel uses a single \(\gamma\) for a Euclidean
+distance, so a feature measured in thousands drowns out a feature measured in units. This is not a nicety;
+an unstandardised RBF SVM is often catastrophically bad.</li>
+<li><strong>Tune \(C\) and \(\gamma\) jointly on a log grid</strong> — they interact strongly, so tuning one
+at a time finds the wrong optimum. Powers of ten first, then refine.</li>
+<li><strong>Know the scaling wall.</strong> The Gram matrix is \(n\times n\). At \(n=10^5\) that is 80 GB in
+double precision. Past a few tens of thousands of rows, use a linear SVM (LIBLINEAR, \(O(nd)\)) or an
+explicit random-feature approximation of the RBF kernel (Rahimi–Recht), which converts the kernel back into
+a finite feature map you can feed to any linear solver.</li>
+<li><strong>SVMs do not output probabilities.</strong> \(f(\vx)\) is a signed distance, not a log-odds.
+Platt scaling fits a logistic model to \(f\) on held-out data if you need calibrated probabilities — note
+that this is an admission that logistic regression was modelling the right thing all along.</li>
+<li><strong>Multiclass is bolted on.</strong> The derivation above is intrinsically binary. Libraries use
+one-vs-one (\(K(K-1)/2\) classifiers) or one-vs-rest. Compare with softmax regression in Lecture 5, which
+handles \(K\) classes from first principles.</li>
+</ul>
+<p><strong>Why SVMs faded, honestly.</strong> Not because the mathematics was wrong — it is some of the most
+beautiful in the subject, and the representer theorem and duality are permanently useful. They faded because
+\(O(n^2)\) memory is fatal at modern scale, because gradient-boosted trees beat them on tabular data with
+less tuning, and because neural networks learn the feature map instead of requiring you to choose it. That
+last point is the real one: a kernel is a feature map you commit to in advance. Phase D is about learning it
+instead.</p></div>
+<h2 id="s5"><span class="secnum">5</span>Solve the dual yourself</h2>
+<div class="pyb" id="py102" data-orig="
+import numpy as np, time
+np.set_printoptions(precision=4, suppress=True)
+_t0 = time.time()
+
+def dual_svm(K, y, C, iters=400):
+    &quot;&quot;&quot;Coordinate ascent on  max sum(a) - 1/2 a&#x27;Qa  subject to  0 &lt;= a_i &lt;= C,
+       where Q_ij = y_i y_j K_ij.  The bias is folded into the kernel (K + 1),
+       which drops the sum(a_i y_i) = 0 constraint -- the standard &#x27;penalised
+       intercept&#x27; variant.  Update:  a_i &lt;- clip(a_i + (1 - y_i f_i)/Q_ii).&quot;&quot;&quot;
+    n = len(y)
+    a = np.zeros(n); f = np.zeros(n)          # f_i = sum_j a_j y_j K_ij
+    d = np.diag(K).copy(); d[d &lt; 1e-12] = 1e-12
+    for _ in range(iters):
+        for i in range(n):
+            new = min(C, max(0.0, a[i] + (1 - y[i]*f[i])/d[i]))
+            if abs(new - a[i]) &gt; 1e-14:
+                f += (new - a[i])*y[i]*K[:, i]
+                a[i] = new
+    return a
+
+# ============ 1. a tiny separable problem: check every KKT condition =========
+X = np.array([[3., 4.], [1., 4.], [2., 3.], [6., -1.], [7., -1.], [5., -3.]])
+y = np.array([1., 1., 1., -1., -1., -1.])
+Xa = np.hstack([X, np.ones((len(X), 1))])     # bias as a constant feature
+K  = Xa @ Xa.T
+
+print(&quot;--- 1. HARD MARGIN: KKT CONDITIONS, POINT BY POINT ---&quot;)
+a  = dual_svm(K, y, C=1e6, iters=3000)
+wb = (a*y) @ Xa; w, b = wb[:2], wb[2]         # w = sum_i a_i y_i x_i  (representer)
+marg = y*(X@w + b)
+print(f&quot;  w = {w},  b = {b:.4f},  ||w|| = {np.linalg.norm(w):.4f}&quot;)
+print(f&quot;  geometric margin 1/||w|| = {1/np.linalg.norm(w):.4f}   corridor = {2/np.linalg.norm(w):.4f}&quot;)
+print(&quot;   i   alpha_i    y_i f(x_i)   status&quot;)
+for i in range(len(y)):
+    st = &quot;support vector (on the margin)&quot; if a[i] &gt; 1e-8 else &quot;inactive (alpha = 0)&quot;
+    print(f&quot;  {i}   {a[i]:8.4f}   {marg[i]:9.4f}   {st}&quot;)
+print(&quot;  Every alpha &gt; 0 sits at y_i f(x_i) = 1 exactly, and every alpha = 0 sits&quot;)
+print(&quot;  strictly beyond it. That is complementary slackness, verified.&quot;)
+
+# ============ 2. strong duality: the gap should be ~0 =======================
+print()
+print(&quot;--- 2. STRONG DUALITY (the one thing we quoted rather than proved) ---&quot;)
+for C in (1e6, 1.0, 0.1):
+    a  = dual_svm(K, y, C, iters=3000)
+    wb = (a*y) @ Xa
+    dual   = a.sum() - 0.5*a @ ((y[:, None]*y[None, :])*K) @ a
+    primal = 0.5*wb@wb + C*np.maximum(0, 1 - y*(Xa@wb)).sum()
+    print(f&quot;  C={C:&lt;8g} dual {dual:.10f}   primal {primal:.10f}   gap {abs(primal-dual):.2e}&quot;
+          f&quot;   #SV {int((a &gt; 1e-8).sum())}&quot;)
+print(&quot;  Gap at machine precision for every C. Solving the dual solves the primal.&quot;)
+
+# ============ 3. the representer theorem, made concrete =====================
+print()
+print(&quot;--- 3. THE REPRESENTER THEOREM: w LIVES IN THE SPAN OF THE DATA ---&quot;)
+a  = dual_svm(K, y, 1e6, iters=3000); wb = (a*y) @ Xa
+print(f&quot;  w (augmented) = {wb}&quot;)
+# Embed the same data in R^8 by padding with directions the data never uses.
+# If the theorem is right, w must be exactly zero in every padded coordinate.
+Xp = np.hstack([Xa, np.zeros((len(Xa), 5))])
+ap = dual_svm(Xp@Xp.T, y, 1e6, iters=3000); wp = (ap*y) @ Xp
+S  = np.linalg.svd(Xp, compute_uv=False)
+print(f&quot;  same data padded into R^8 (rank {int((S &gt; 1e-10).sum())}):&quot;)
+print(f&quot;    w on the 3 used directions   = {wp[:3]}&quot;)
+print(f&quot;    w on the 5 unused directions = {wp[3:]}   -&gt; max |.| = {np.abs(wp[3:]).max():.2e}&quot;)
+print(&quot;  Any component orthogonal to every x_i would add to ||w||^2 while changing&quot;)
+print(&quot;  no prediction (w.x_i is unaffected), so the optimum never contains one.&quot;)
+print(&quot;  This is the representer theorem, and it is what makes kernelisation possible:&quot;)
+print(&quot;  w is always a combination of the data, so w.phi(x) is always a sum of kernels.&quot;)
+
+# ============ 4. the kernel trick, checked against the explicit feature map ==
+def phi2(X):
+    &quot;&quot;&quot;The RR^6 feature map of  k(x,z) = (1 + x.z)^2  in two dimensions.&quot;&quot;&quot;
+    x1, x2 = X[:, 0], X[:, 1]
+    return np.column_stack([np.ones(len(X)), np.sqrt(2)*x1, np.sqrt(2)*x2,
+                            x1**2, x2**2, np.sqrt(2)*x1*x2])
+
+rgk = np.random.default_rng(0); Z = rgk.normal(size=(6, 2))
+print()
+print(&quot;--- 4. THE KERNEL TRICK IS AN IDENTITY, NOT AN APPROXIMATION ---&quot;)
+print(f&quot;  max |(1 + x.z)^2  -  phi(x).phi(z)|  =  &quot;
+      f&quot;{np.abs((1 + Z@Z.T)**2 - phi2(Z)@phi2(Z).T).max():.2e}&quot;)
+print(f&quot;  6 explicit features vs 1 scalar formula. In d=100 at degree 4 that is&quot;)
+print(f&quot;  {int(round(np.exp(sum(np.log(np.arange(101,105))) - sum(np.log(np.arange(1,5))))))}&quot;
+      f&quot; features vs 100 multiplications.&quot;)
+
+def rbf(A, B, g): return np.exp(-g*((A[:, None, :] - B[None, :, :])**2).sum(-1))
+W = rgk.normal(size=(80, 2))
+ev = np.linalg.eigvalsh(rbf(W, W, 0.8))
+print(f&quot;  RBF Gram matrix (80x80): smallest eigenvalue {ev.min():.3e} &gt;= 0  -&gt; PSD,&quot;)
+print(f&quot;  so by Mercer it IS an inner product in some space. Condition number {ev.max()/max(ev.min(),1e-300):.1e}&quot;)
+
+# ============ 5. linear vs kernel on data no line can separate ==============
+def rings(n, rg):
+    t = rg.uniform(0, 2*np.pi, n)
+    r = np.where(rg.random(n) &lt; 0.5, 1.0, 2.2)
+    return (np.column_stack([r*np.cos(t), r*np.sin(t)]) + rg.normal(0, 0.45, (n, 2)),
+            np.where(r &lt; 1.5, 1.0, -1.0))
+
+Xr, yr = rings(100, np.random.default_rng(1))
+Xs, ys = rings(2000, np.random.default_rng(2))
+Ra, Sa = np.hstack([Xr, np.ones((len(Xr), 1))]), np.hstack([Xs, np.ones((len(Xs), 1))])
+print()
+print(&quot;--- 5. LINEAR vs RBF ON CONCENTRIC RINGS ---&quot;)
+al = dual_svm(Ra@Ra.T, yr, 1.0, iters=400)
+print(f&quot;  linear kernel        test accuracy {float((np.sign(Sa@Ra.T@(al*yr)) == ys).mean()):.4f}&quot;
+      f&quot;   SVs {int((al &gt; 1e-8).sum())}/100&quot;)
+print(&quot;  gamma   train acc   test acc   support vectors&quot;)
+for g in (0.05, 0.2, 1.0, 5.0, 50.0, 300.0):
+    Kt = rbf(Xr, Xr, g); ak = dual_svm(Kt, yr, 1.0, iters=400)
+    tr = float((np.sign(Kt@(ak*yr)) == yr).mean())
+    te = float((np.sign(rbf(Xs, Xr, g)@(ak*yr)) == ys).mean())
+    print(f&quot;  {g:6g}    {tr:.4f}     {te:.4f}    {int((ak &gt; 1e-8).sum()):3d}/100&quot;)
+print(&quot;  Underfits at gamma=0.05, best near 0.2, and by gamma=300 the training&quot;)
+print(&quot;  accuracy is perfect while every point is a support vector: pure memorisation.&quot;)
+
+# ============ 6. Vapnik&#x27;s leave-one-out bound, tested =======================
+print()
+print(&quot;--- 6. LOO ERROR &lt;= (number of support vectors)/n  -- Vapnik&#x27;s bound ---&quot;)
+Xv, yv = rings(60, np.random.default_rng(1))
+Kv = rbf(Xv, Xv, 0.5); Cv = 1.0
+av = dual_svm(Kv, yv, Cv, iters=300); nsv = int((av &gt; 1e-8).sum())
+loo = 0
+for i in range(len(yv)):
+    m = np.ones(len(yv), bool); m[i] = False
+    ai = dual_svm(Kv[np.ix_(m, m)], yv[m], Cv, iters=300)
+    if np.sign(Kv[i, m] @ (ai*yv[m])) != yv[i]: loo += 1
+print(f&quot;  support vectors      {nsv}/60 = {nsv/60:.4f}&quot;)
+print(f&quot;  leave-one-out error  {loo}/60 = {loo/60:.4f}&quot;)
+print(f&quot;  bound satisfied: {loo/60 &lt;= nsv/60}&quot;)
+print(&quot;  Why it holds: deleting a NON-support vector cannot change the solution at all&quot;)
+print(&quot;  (it has alpha = 0 and does not appear in w), so that point is still classified&quot;)
+print(&quot;  correctly when held out. Only support vectors can possibly become LOO errors.&quot;)
+print()
+print(f&quot;total run time {time.time() - _t0:.1f} s&quot;)
+"><div class="pyb-head"><span class="t">Dual coordinate ascent, KKT verification, and the kernel trick checked numerically</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py102')">Run</button><button class="btn ghost" onclick="resetPy('py102')">Reset</button></div><textarea spellcheck="false" rows="34">
+import numpy as np, time
+np.set_printoptions(precision=4, suppress=True)
+_t0 = time.time()
+
+def dual_svm(K, y, C, iters=400):
+    &quot;&quot;&quot;Coordinate ascent on  max sum(a) - 1/2 a&#x27;Qa  subject to  0 &lt;= a_i &lt;= C,
+       where Q_ij = y_i y_j K_ij.  The bias is folded into the kernel (K + 1),
+       which drops the sum(a_i y_i) = 0 constraint -- the standard &#x27;penalised
+       intercept&#x27; variant.  Update:  a_i &lt;- clip(a_i + (1 - y_i f_i)/Q_ii).&quot;&quot;&quot;
+    n = len(y)
+    a = np.zeros(n); f = np.zeros(n)          # f_i = sum_j a_j y_j K_ij
+    d = np.diag(K).copy(); d[d &lt; 1e-12] = 1e-12
+    for _ in range(iters):
+        for i in range(n):
+            new = min(C, max(0.0, a[i] + (1 - y[i]*f[i])/d[i]))
+            if abs(new - a[i]) &gt; 1e-14:
+                f += (new - a[i])*y[i]*K[:, i]
+                a[i] = new
+    return a
+
+# ============ 1. a tiny separable problem: check every KKT condition =========
+X = np.array([[3., 4.], [1., 4.], [2., 3.], [6., -1.], [7., -1.], [5., -3.]])
+y = np.array([1., 1., 1., -1., -1., -1.])
+Xa = np.hstack([X, np.ones((len(X), 1))])     # bias as a constant feature
+K  = Xa @ Xa.T
+
+print(&quot;--- 1. HARD MARGIN: KKT CONDITIONS, POINT BY POINT ---&quot;)
+a  = dual_svm(K, y, C=1e6, iters=3000)
+wb = (a*y) @ Xa; w, b = wb[:2], wb[2]         # w = sum_i a_i y_i x_i  (representer)
+marg = y*(X@w + b)
+print(f&quot;  w = {w},  b = {b:.4f},  ||w|| = {np.linalg.norm(w):.4f}&quot;)
+print(f&quot;  geometric margin 1/||w|| = {1/np.linalg.norm(w):.4f}   corridor = {2/np.linalg.norm(w):.4f}&quot;)
+print(&quot;   i   alpha_i    y_i f(x_i)   status&quot;)
+for i in range(len(y)):
+    st = &quot;support vector (on the margin)&quot; if a[i] &gt; 1e-8 else &quot;inactive (alpha = 0)&quot;
+    print(f&quot;  {i}   {a[i]:8.4f}   {marg[i]:9.4f}   {st}&quot;)
+print(&quot;  Every alpha &gt; 0 sits at y_i f(x_i) = 1 exactly, and every alpha = 0 sits&quot;)
+print(&quot;  strictly beyond it. That is complementary slackness, verified.&quot;)
+
+# ============ 2. strong duality: the gap should be ~0 =======================
+print()
+print(&quot;--- 2. STRONG DUALITY (the one thing we quoted rather than proved) ---&quot;)
+for C in (1e6, 1.0, 0.1):
+    a  = dual_svm(K, y, C, iters=3000)
+    wb = (a*y) @ Xa
+    dual   = a.sum() - 0.5*a @ ((y[:, None]*y[None, :])*K) @ a
+    primal = 0.5*wb@wb + C*np.maximum(0, 1 - y*(Xa@wb)).sum()
+    print(f&quot;  C={C:&lt;8g} dual {dual:.10f}   primal {primal:.10f}   gap {abs(primal-dual):.2e}&quot;
+          f&quot;   #SV {int((a &gt; 1e-8).sum())}&quot;)
+print(&quot;  Gap at machine precision for every C. Solving the dual solves the primal.&quot;)
+
+# ============ 3. the representer theorem, made concrete =====================
+print()
+print(&quot;--- 3. THE REPRESENTER THEOREM: w LIVES IN THE SPAN OF THE DATA ---&quot;)
+a  = dual_svm(K, y, 1e6, iters=3000); wb = (a*y) @ Xa
+print(f&quot;  w (augmented) = {wb}&quot;)
+# Embed the same data in R^8 by padding with directions the data never uses.
+# If the theorem is right, w must be exactly zero in every padded coordinate.
+Xp = np.hstack([Xa, np.zeros((len(Xa), 5))])
+ap = dual_svm(Xp@Xp.T, y, 1e6, iters=3000); wp = (ap*y) @ Xp
+S  = np.linalg.svd(Xp, compute_uv=False)
+print(f&quot;  same data padded into R^8 (rank {int((S &gt; 1e-10).sum())}):&quot;)
+print(f&quot;    w on the 3 used directions   = {wp[:3]}&quot;)
+print(f&quot;    w on the 5 unused directions = {wp[3:]}   -&gt; max |.| = {np.abs(wp[3:]).max():.2e}&quot;)
+print(&quot;  Any component orthogonal to every x_i would add to ||w||^2 while changing&quot;)
+print(&quot;  no prediction (w.x_i is unaffected), so the optimum never contains one.&quot;)
+print(&quot;  This is the representer theorem, and it is what makes kernelisation possible:&quot;)
+print(&quot;  w is always a combination of the data, so w.phi(x) is always a sum of kernels.&quot;)
+
+# ============ 4. the kernel trick, checked against the explicit feature map ==
+def phi2(X):
+    &quot;&quot;&quot;The RR^6 feature map of  k(x,z) = (1 + x.z)^2  in two dimensions.&quot;&quot;&quot;
+    x1, x2 = X[:, 0], X[:, 1]
+    return np.column_stack([np.ones(len(X)), np.sqrt(2)*x1, np.sqrt(2)*x2,
+                            x1**2, x2**2, np.sqrt(2)*x1*x2])
+
+rgk = np.random.default_rng(0); Z = rgk.normal(size=(6, 2))
+print()
+print(&quot;--- 4. THE KERNEL TRICK IS AN IDENTITY, NOT AN APPROXIMATION ---&quot;)
+print(f&quot;  max |(1 + x.z)^2  -  phi(x).phi(z)|  =  &quot;
+      f&quot;{np.abs((1 + Z@Z.T)**2 - phi2(Z)@phi2(Z).T).max():.2e}&quot;)
+print(f&quot;  6 explicit features vs 1 scalar formula. In d=100 at degree 4 that is&quot;)
+print(f&quot;  {int(round(np.exp(sum(np.log(np.arange(101,105))) - sum(np.log(np.arange(1,5))))))}&quot;
+      f&quot; features vs 100 multiplications.&quot;)
+
+def rbf(A, B, g): return np.exp(-g*((A[:, None, :] - B[None, :, :])**2).sum(-1))
+W = rgk.normal(size=(80, 2))
+ev = np.linalg.eigvalsh(rbf(W, W, 0.8))
+print(f&quot;  RBF Gram matrix (80x80): smallest eigenvalue {ev.min():.3e} &gt;= 0  -&gt; PSD,&quot;)
+print(f&quot;  so by Mercer it IS an inner product in some space. Condition number {ev.max()/max(ev.min(),1e-300):.1e}&quot;)
+
+# ============ 5. linear vs kernel on data no line can separate ==============
+def rings(n, rg):
+    t = rg.uniform(0, 2*np.pi, n)
+    r = np.where(rg.random(n) &lt; 0.5, 1.0, 2.2)
+    return (np.column_stack([r*np.cos(t), r*np.sin(t)]) + rg.normal(0, 0.45, (n, 2)),
+            np.where(r &lt; 1.5, 1.0, -1.0))
+
+Xr, yr = rings(100, np.random.default_rng(1))
+Xs, ys = rings(2000, np.random.default_rng(2))
+Ra, Sa = np.hstack([Xr, np.ones((len(Xr), 1))]), np.hstack([Xs, np.ones((len(Xs), 1))])
+print()
+print(&quot;--- 5. LINEAR vs RBF ON CONCENTRIC RINGS ---&quot;)
+al = dual_svm(Ra@Ra.T, yr, 1.0, iters=400)
+print(f&quot;  linear kernel        test accuracy {float((np.sign(Sa@Ra.T@(al*yr)) == ys).mean()):.4f}&quot;
+      f&quot;   SVs {int((al &gt; 1e-8).sum())}/100&quot;)
+print(&quot;  gamma   train acc   test acc   support vectors&quot;)
+for g in (0.05, 0.2, 1.0, 5.0, 50.0, 300.0):
+    Kt = rbf(Xr, Xr, g); ak = dual_svm(Kt, yr, 1.0, iters=400)
+    tr = float((np.sign(Kt@(ak*yr)) == yr).mean())
+    te = float((np.sign(rbf(Xs, Xr, g)@(ak*yr)) == ys).mean())
+    print(f&quot;  {g:6g}    {tr:.4f}     {te:.4f}    {int((ak &gt; 1e-8).sum()):3d}/100&quot;)
+print(&quot;  Underfits at gamma=0.05, best near 0.2, and by gamma=300 the training&quot;)
+print(&quot;  accuracy is perfect while every point is a support vector: pure memorisation.&quot;)
+
+# ============ 6. Vapnik&#x27;s leave-one-out bound, tested =======================
+print()
+print(&quot;--- 6. LOO ERROR &lt;= (number of support vectors)/n  -- Vapnik&#x27;s bound ---&quot;)
+Xv, yv = rings(60, np.random.default_rng(1))
+Kv = rbf(Xv, Xv, 0.5); Cv = 1.0
+av = dual_svm(Kv, yv, Cv, iters=300); nsv = int((av &gt; 1e-8).sum())
+loo = 0
+for i in range(len(yv)):
+    m = np.ones(len(yv), bool); m[i] = False
+    ai = dual_svm(Kv[np.ix_(m, m)], yv[m], Cv, iters=300)
+    if np.sign(Kv[i, m] @ (ai*yv[m])) != yv[i]: loo += 1
+print(f&quot;  support vectors      {nsv}/60 = {nsv/60:.4f}&quot;)
+print(f&quot;  leave-one-out error  {loo}/60 = {loo/60:.4f}&quot;)
+print(f&quot;  bound satisfied: {loo/60 &lt;= nsv/60}&quot;)
+print(&quot;  Why it holds: deleting a NON-support vector cannot change the solution at all&quot;)
+print(&quot;  (it has alpha = 0 and does not appear in w), so that point is still classified&quot;)
+print(&quot;  correctly when held out. Only support vectors can possibly become LOO errors.&quot;)
+print()
+print(f&quot;total run time {time.time() - _t0:.1f} s&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s6"><span class="secnum">6</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Three points in \(\RR^2\): \(\vx_1=(1,1),\ y_1=+1\); \(\vx_2=(2,2),\ y_2=+1\);
+  \(\vx_3=(0,0),\ y_3=-1\).</p>
+  <ol><li>Find the maximum-margin hyperplane by inspection and geometry — do not use the dual.</li>
+  <li>What is \(\|\vw\|\) and the corridor width?</li>
+  <li>Which points are support vectors? What must \(\alpha_2\) be, and why?</li>
+  <li>Verify \(\vw=\sum_i\alpha_iy_i\vx_i\) and \(\sum_i\alpha_iy_i=0\) by solving for the \(\alpha_i\).</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex103',this)">Show solution</button></div><div class="rev-body" id="ex103"><p><strong>1.</strong> The closest opposite-class pair is \(\vx_1=(1,1)\) and \(\vx_3=(0,0)\), at
+  distance \(\sqrt2\). The maximum-margin hyperplane is the perpendicular bisector of that segment: it passes
+  through the midpoint \((0.5,0.5)\) with normal along \(\vx_1-\vx_3=(1,1)\). So the boundary is
+  \(x_1+x_2=1\).</p>
+  <p><strong>2.</strong> Normalise so the functional margins are \(\pm1\). Try \(\vw=(c,c),\ b=-c\):
+  \(y_1(\vw^\top\vx_1+b)=2c-c=c\) and \(y_3(\vw^\top\vx_3+b)=-(0-c)=c\). Setting \(c=1\) gives
+  \(\vw=(1,1),\ b=-1\), \(\|\vw\|=\sqrt2\). Corridor width \(2/\|\vw\|=\sqrt2\approx1.4142\) — which equals
+  the distance between \(\vx_1\) and \(\vx_3\), as it must, since those two points lie on opposite margin
+  hyperplanes and the segment joining them is perpendicular to both.</p>
+  <p><strong>3.</strong> Check \(\vx_2\): \(y_2(\vw^\top\vx_2+b)=4-1=3>1\), strictly outside the margin. By
+  complementary slackness \(\alpha_2=0\): it is not a support vector, and deleting it changes nothing.
+  \(\vx_1\) and \(\vx_3\) both have margin exactly 1 and are the support vectors.</p>
+  <p><strong>4.</strong> \(\sum_i\alpha_iy_i=0\) gives \(\alpha_1-\alpha_3=0\), so \(\alpha_1=\alpha_3=\alpha\).
+  Then \(\vw=\alpha(1,1)-\alpha(0,0)=(\alpha,\alpha)\). Matching \(\vw=(1,1)\) gives \(\alpha=1\). So
+  \(\valpha=(1,0,1)\). Check the dual objective:
+  \(\sum\alpha_i-\tfrac12\|\vw\|^2 = 2-\tfrac12(2)=1\), and the primal is \(\tfrac12\|\vw\|^2=1\).
+  Equal — strong duality, on a problem you can do by hand. ∎</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that the RBF kernel \(k(\vx,\vz)=e^{-\gamma\|\vx-\vz\|^2}\) is a valid Mercer kernel, and
+  show its feature space is infinite-dimensional.</p>
+  <p><em>Hints:</em> expand \(\|\vx-\vz\|^2\); the class of PSD kernels is closed under products, sums and
+  positive scalar multiples, and under \(k(\vx,\vz)\mapsto g(\vx)k(\vx,\vz)g(\vz)\) for any function
+  \(g\).</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex104',this)">Show solution</button></div><div class="rev-body" id="ex104"><p><strong>Step 1 — split off the norms.</strong>
+  \(\|\vx-\vz\|^2=\|\vx\|^2-2\vx^\top\vz+\|\vz\|^2\), so</p>
+  \[ k(\vx,\vz)=\underbrace{e^{-\gamma\|\vx\|^2}}_{g(\vx)}\; e^{2\gamma\,\vx^\top\vz}\;
+     \underbrace{e^{-\gamma\|\vz\|^2}}_{g(\vz)}. \]
+  <p>By the last closure property it suffices to show \(e^{2\gamma\vx^\top\vz}\) is PSD.</p>
+  <p><strong>Step 2 — the exponential of a kernel is a kernel.</strong>
+  \(e^{2\gamma\vx^\top\vz}=\sum_{m=0}^{\infty}\frac{(2\gamma)^m}{m!}(\vx^\top\vz)^m\). The linear kernel
+  \(\vx^\top\vz\) is PSD (its Gram matrix is \(\mX\mX^\top\), and \(\vv^\top\mX\mX^\top\vv=\|\mX^\top\vv\|^2\ge0\)).
+  Products of PSD kernels are PSD (the Gram matrix of a product is the Schur/Hadamard product of the Gram
+  matrices, and the Schur product theorem says that is PSD), so \((\vx^\top\vz)^m\) is PSD for every \(m\).
+  Non-negative combinations of PSD kernels are PSD, and a pointwise limit of PSD matrices is PSD (each
+  \(\vv^\top\mK_N\vv\ge0\) and the limit of non-negatives is non-negative). Hence the series is PSD. ∎</p>
+  <p><strong>Step 3 — infinite dimension.</strong> The term \((\vx^\top\vz)^m\) has, as in the lecture's
+  degree-2 expansion, a feature map consisting of all degree-\(m\) monomials. The series includes every
+  \(m\ge0\) with a strictly positive coefficient \(\frac{(2\gamma)^m}{m!}\), so the concatenated feature map
+  contains monomials of <em>every</em> degree, scaled by \(g(\vx)\). That is a countably infinite set of
+  linearly independent features.</p>
+  <p><em>Concretely:</em> for distinct points the RBF Gram matrix is strictly positive definite (full rank)
+  for every \(n\) — you can check this numerically in the code block. A finite \(D\)-dimensional feature map
+  would force rank \(\le D\), so no finite \(D\) can work.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Take the soft-margin dual and consider the effect of \(C\).</p>
+  <ol><li>What happens to the solution as \(C\to\infty\)? As \(C\to0\)?</li>
+  <li>Show that no single training point can shift \(\vw\) by more than \(C\|\vx_i\|\), and explain why this
+  makes the soft-margin SVM robust to outliers in a way that least squares is not.</li>
+  <li>A point has \(\alpha_i=C\) exactly. What do you know about it? What do you <em>not</em> know?</li>
+  <li>You double every feature (\(\vx\to2\vx\)). How must \(C\) change for the solution to be equivalent?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex105',this)">Show solution</button></div><div class="rev-body" id="ex105"><p><strong>1.</strong> \(C\to\infty\) removes the box constraint, recovering the hard-margin
+  problem — which is infeasible if the data is not separable, so the solver diverges or the margin collapses
+  to nothing chasing one bad point. \(C\to0\) drives every \(\alpha_i\to0\), hence \(\vw\to\vzero\): the
+  regularisation term \(\frac{1}{2C}\|\vw\|^2\) dominates and the model degenerates to a constant. \(C\) is
+  \(1/(2\lambda)\) from Lecture 6, and both limits behave exactly as \(\lambda\to0\) and \(\lambda\to\infty\)
+  there.</p>
+  <p><strong>2.</strong> From \(\vw=\sum_i\alpha_iy_i\vx_i\), point \(i\) contributes
+  \(\alpha_iy_i\vx_i\), whose norm is \(\alpha_i\|\vx_i\|\le C\|\vx_i\|\) since \(\alpha_i\le C\). So a single
+  point's total influence is capped, no matter how badly it is misclassified. Compare least squares: the
+  contribution of point \(i\) to \(\vw\) is proportional to its residual, which is unbounded — one point at
+  \(y=10^6\) moves the fit arbitrarily far. The cap comes from the hinge loss growing only <em>linearly</em>
+  in the violation, and the box constraint \(\alpha_i\le C\) is that linearity showing up in the dual. This is
+  the same robustness argument as Huber and absolute loss in Lecture 4.</p>
+  <p><strong>3.</strong> \(\alpha_i=C\) means \(\mu_i=C-\alpha_i=0\), so \(\xi_i\) is unconstrained by
+  complementary slackness and the margin constraint is tight: \(y_if(\vx_i)=1-\xi_i\) with \(\xi_i\ge0\). So
+  you know the point is at or inside the margin. You do <em>not</em> know whether it is correctly classified:
+  \(\xi_i&lt;1\) means correct but inside the corridor, \(\xi_i>1\) means misclassified, and both give
+  \(\alpha_i=C\). To distinguish them you must evaluate \(f(\vx_i)\).</p>
+  <p><strong>4.</strong> With \(\vx\to2\vx\), taking \(\vw\to\vw/2,\ b\to b\) leaves every \(y_if(\vx_i)\)
+  unchanged, so the hinge term is identical while \(\|\vw\|^2\) falls by a factor of 4. To keep the same
+  balance in \(\sum_i\ell_i+\frac{1}{2C}\|\vw\|^2\) we need \(\frac{1}{2C}\) four times larger, i.e.
+  \(C\to C/4\). In general scaling features by \(s\) requires \(C\to C/s^2\) — which is precisely why an
+  unstandardised SVM is so sensitive, and why the good value of \(C\) found on one preprocessing pipeline is
+  meaningless on another.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p>Kernelise <em>ridge regression</em> and compare with the SVM.</p>
+  <ol><li>Starting from \(\min_{\vw}\|\vy-\mX\vw\|^2+\lambda\|\vw\|^2\), prove the identity
+  \((\mX^\top\mX+\lambda\mI)^{-1}\mX^\top = \mX^\top(\mX\mX^\top+\lambda\mI)^{-1}\).</li>
+  <li>Use it to write the prediction using only inner products, and kernelise.</li>
+  <li>When is the right-hand form cheaper?</li>
+  <li>Kernel ridge regression uses all \(n\) training points at prediction time, while a kernel SVM uses
+  only the support vectors. Where exactly does that difference come from?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex106',this)">Show solution</button></div><div class="rev-body" id="ex106"><p><strong>1.</strong> Start from the identity \(\mX^\top(\mX\mX^\top+\lambda\mI) =
+  (\mX^\top\mX+\lambda\mI)\mX^\top\) — expand both sides and each equals
+  \(\mX^\top\mX\mX^\top+\lambda\mX^\top\). Both bracketed matrices are invertible for \(\lambda>0\) (they are
+  positive definite: \(\vv^\top(\mX^\top\mX+\lambda\mI)\vv=\|\mX\vv\|^2+\lambda\|\vv\|^2>0\)). Left-multiply
+  by \((\mX^\top\mX+\lambda\mI)^{-1}\) and right-multiply by \((\mX\mX^\top+\lambda\mI)^{-1}\):</p>
+  \[(\mX^\top\mX+\lambda\mI)^{-1}\mX^\top = \mX^\top(\mX\mX^\top+\lambda\mI)^{-1}. \ \blacksquare\]
+  <p><strong>2.</strong> The ridge solution (Lecture 6) is \(\hat\vw=(\mX^\top\mX+\lambda\mI)^{-1}\mX^\top\vy
+  = \mX^\top(\mX\mX^\top+\lambda\mI)^{-1}\vy = \mX^\top\valpha\) with
+  \(\valpha=(\mK+\lambda\mI)^{-1}\vy\) and \(\mK=\mX\mX^\top\). So
+  \(\hat\vw=\sum_i\alpha_i\vx_i\) — the representer theorem again, arrived at by pure linear algebra rather
+  than by Lagrangian duality. Prediction:</p>
+  \[\hat f(\vx)=\hat\vw^\top\vx = \sum_{i=1}^n \alpha_i\,\vx_i^\top\vx
+   \ \longrightarrow\ \sum_{i=1}^n \alpha_i\, k(\vx_i,\vx), \qquad \valpha=(\mK+\lambda\mI)^{-1}\vy.\]
+  <p><strong>3.</strong> The left form inverts a \(d\times d\) matrix, the right an \(n\times n\) one. Use
+  the right when \(n&lt;d\) — and always when kernelising, since \(d\) may be infinite while \(n\) is whatever
+  you collected. Cost \(O(n^3)\) versus \(O(d^3)\).</p>
+  <p><strong>4.</strong> From the loss. Squared loss has a non-zero derivative at every point except where
+  the residual is exactly zero, so \(\alpha_i=r_i/\lambda\ne0\) for essentially every \(i\) and the whole
+  training set is retained. The hinge loss is <em>flat</em> for \(m\ge1\), so points beyond the margin have
+  zero derivative, contribute nothing, and get \(\alpha_i=0\) exactly. Sparsity in kernel methods comes from
+  a loss with a flat region — nothing else. The same reasoning explains why LASSO is sparse (a kink at zero
+  in the <em>penalty</em>) and ridge is not: in both cases sparsity traces back to non-differentiability or
+  flatness at the right place, which is a satisfying thing to notice across two very different models.</p></div></div></div>
+<div class="box note"><span class="lbl">End of Phase B</span><p>That is the classical canon: the learning problem itself,
+linear and logistic regression, regularisation, honest evaluation, PCA and clustering, generative models,
+trees and ensembles, and kernel methods. You can now derive every one of them from a loss and a prior, fit
+them from scratch in NumPy, and say what each assumes and where each fails.</p>
+<p>Two threads have run through all twelve lectures and are worth naming before you leave. First: almost
+every model is <em>a loss plus a penalty</em>, and the interesting content is in which loss and which
+penalty. Second: every capacity knob you have met — polynomial degree, \(\lambda\), \(k\), tree depth,
+number of boosting rounds, \(C\), \(\gamma\) — is the same bias–variance dial wearing a different hat.</p>
+<p>Phase C asks the question all of this has been quietly assuming an answer to: <em>why does minimising
+training error tell us anything about unseen data at all?</em> That is statistical learning theory —
+concentration inequalities, VC dimension, Rademacher complexity, and margin bounds — and it will justify
+the several results this phase had to quote. Phase D then stops choosing feature maps by hand.</p></div>
+<div class="pagenav"><a href="11-trees-forests-boosting.html" class="pv"><span class="dir">Previous</span><span class="nm">11 · Decision Trees, Random Forests, and Gradient Boosting</span></a><span style="flex:1"></span></div>
+</div>
+<script>initDone('12-svm-duality-kernels');</script>
+</body>
+</html>

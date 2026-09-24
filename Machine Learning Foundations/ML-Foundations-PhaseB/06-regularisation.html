@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>6. Regularisation: Ridge, LASSO, and Priors — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 6 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('06-regularisation')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part II — Linear Models · Lecture 6</div>
+  <h1>Regularisation: Ridge, LASSO, and Priors</h1>
+  <p class="dek">We have reached for a penalty term three times already. Here is the proper treatment: every regulariser is a prior, ridge shrinks eigen-directions by a computable factor, and the corners of the L1 ball are precisely why LASSO produces zeros.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive ridge and LASSO as MAP estimates under Gaussian and Laplace priors</li><li>Show ridge shrinks the \(i\)-th eigen-direction by \(\lambda_i/(\lambda_i+\alpha)\)</li><li>Explain sparsity from the geometry of the \(\ell_1\) ball and from the subgradient</li><li>Derive the soft-thresholding operator and use it in coordinate descent</li><li>Choose \(\alpha\) by cross-validation, and say why standardisation is mandatory first</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase A, Lecture 14: MAP estimation, Gaussian and Laplace priors</li><li>Phase A, Lecture 11: eigenvalues, spectrum shifting, condition number</li><li>Phase A, Lecture 8: the \(\ell_p\) unit balls</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Every penalty is a prior</h2>
+<p>Phase A Lecture 14 proved this, and it is worth restating as the organising principle of the
+whole lecture. Maximising the posterior gives</p>
+<p>\[\hat{\vw}_{\text{MAP}} = \argmin_{\vw}\Big[\underbrace{-\log p(\mathcal{D}\mid\vw)}_{\text{loss}}
+ \;\underbrace{-\log p(\vw)}_{\text{regulariser}}\Big],\]</p>
+<p>so a penalty term is a negative log-prior and nothing else. Reading the correspondence in both
+directions is useful:</p>
+<p>\[\begin{array}{lll}
+\textbf{prior } p(\vw) & \textbf{penalty} & \textbf{name} \\[4pt]
+\mathcal{N}(\vzero,\tau^2\mI) & \alpha\|\vw\|_2^2 & \text{ridge / weight decay / Tikhonov} \\[3pt]
+\text{Laplace}(0,b) & \alpha\|\vw\|_1 & \text{LASSO} \\[3pt]
+\text{a mixture of both} & \alpha\big(\rho\|\vw\|_1 + \tfrac{1-\rho}{2}\|\vw\|_2^2\big) & \text{elastic net} \\[3pt]
+\mathcal{N}(\vzero,\mS_0) & \alpha\,\vw^\top\mS_0^{-1}\vw & \text{generalised Tikhonov} \\[3pt]
+\text{uniform (improper)} & 0 & \text{no regularisation = MLE}
+\end{array}\]</p>
+<div class="box warn"><span class="lbl">Common trap</span><p>Two consequences of this framing that people routinely get wrong.</p>
+<ul>
+<li><strong>Never penalise the intercept.</strong> A prior centred at zero on \(w_0\) says "the response is
+probably near zero when all features are zero", which is a claim about your units, not about the world. Shifting
+\(y\) by a constant would change the fitted model. Every library excludes the intercept; make sure you do
+too.</li>
+<li><strong>Standardise first, always.</strong> The penalty \(\sum_j w_j^2\) treats all coefficients as
+commensurable, but \(w_j\) is in units of \(y\) per unit of \(x_j\). Measure a feature in millimetres instead of
+metres and its coefficient shrinks by 1000, so the penalty barely touches it. Unlike OLS, which is equivariant
+to rescaling (Lecture 02, exercise 1), <strong>ridge and LASSO are not</strong>. Standardising makes the prior
+mean the same thing for every feature.</li>
+</ul></div>
+<h2 id="s2"><span class="secnum">2</span>Ridge, in the eigenbasis</h2>
+<p>The closed form \(\hat{\vw}_\alpha = (\mX^\top\mX+\alpha\mI)^{-1}\mX^\top\vy\) is not very
+illuminating as written. Diagonalise and it becomes transparent.</p>
+<div class="deriv" id="d40"><div class="deriv-head"><span class="t">Ridge shrinks each eigen-direction by λᵢ/(λᵢ+α)</span><span class="ct">0 / 5</span></div><div class="dstep">\[\mX^\top\mX = \mQ\Lambda\mQ^\top, \qquad \Lambda=\operatorname{diag}(\lambda_1,\dots,\lambda_d),\ \lambda_i\ge0\]<div class="why"><b>Spectral theorem.</b> \(\mX^\top\mX\) is symmetric positive semi-definite (Phase A Lecture 11), so it has an orthonormal eigenbasis and non-negative eigenvalues. Large \(\lambda_i\) means the data varies a lot along \(\vq_i\); small \(\lambda_i\) means it barely varies at all in that direction.</div></div><div class="dstep">\[\mX^\top\mX+\alpha\mI = \mQ(\Lambda+\alpha\mI)\mQ^\top \quad\Longrightarrow\quad (\mX^\top\mX+\alpha\mI)^{-1} = \mQ(\Lambda+\alpha\mI)^{-1}\mQ^\top\]<div class="why"><b>Adding \(\alpha\mI\) shifts every eigenvalue by \(\alpha\)</b> and leaves the eigenvectors alone — Phase A Lecture 11, exercise 2. Inverting then inverts each shifted eigenvalue.</div></div><div class="dstep">\[\hat{\vw}_\alpha = \mQ(\Lambda+\alpha\mI)^{-1}\mQ^\top\mX^\top\vy, \qquad \hat{\vw}_0 = \mQ\Lambda^{-1}\mQ^\top\mX^\top\vy\]<div class="why"><b>Write both estimators in the same basis.</b> Everything is identical except the diagonal matrix in the middle.</div></div><div class="dstep">\[\boxed{\ \vq_i^\top\hat{\vw}_\alpha = \frac{\lambda_i}{\lambda_i+\alpha}\ \big(\vq_i^\top\hat{\vw}_0\big)\ }\]<div class="why"><b>The result.</b> Ridge takes the OLS solution and multiplies its component along \(\vq_i\) by \(\frac{\lambda_i}{\lambda_i+\alpha}\in(0,1)\). <em>It is not uniform shrinkage.</em> Directions with \(\lambda_i\gg\alpha\) are barely touched (factor ≈ 1); directions with \(\lambda_i\ll\alpha\) are almost annihilated (factor ≈ 0). Ridge preferentially destroys the directions in which the data carries least information — exactly the ones whose OLS estimates were wildest.</div></div><div class="dstep">\[\text{effective degrees of freedom} = \tr\big(\mX(\mX^\top\mX+\alpha\mI)^{-1}\mX^\top\big) = \sum_{i=1}^{d}\frac{\lambda_i}{\lambda_i+\alpha}\]<div class="why"><b>The capacity interpretation.</b> Phase A Lecture 10, exercise 2 showed \(\tr(\mP)=d\) counts parameters for OLS. Here the same trace is a <em>continuous</em> quantity between \(0\) and \(d\), decreasing in \(\alpha\). Regularisation does not remove parameters; it removes <em>fractions</em> of parameters, one shrinkage factor at a time. That is the precise sense in which \(\alpha\) tunes model complexity.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d40')">Next step</button><button class="btn ghost" onclick="dall('d40')">Show all</button><button class="btn ghost" onclick="dreset('d40')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">How ridge treats each eigen-direction differently<span class="tag">Interactive</span></div><canvas id="b6shrink" data-h="440"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>shrinkage factor λᵢ/(λᵢ+α)</span><span><i style="background:var(--c5)"></i>eigenvalue spectrum λᵢ</span><span><i style="background:var(--c3)"></i>current α</span></div><div class="fig-read" id="b6shrink-read"></div><div class="ctrls"><div class="ctrl"><label>log₁₀ α</label><input type="range" min="-4" max="3" step="0.05" value="-1" data-fmt="2" oninput="figSlide('b6shrink','la',this)"><output>-1.00</output></div><div class="ctrl"><label>how ill-conditioned the design is</label><input type="range" min="0" max="4" step="0.05" value="2.5" data-fmt="2" oninput="figSlide('b6shrink','spread',this)"><output>2.50</output></div></div><div class="fig-cap">Twenty eigen-directions, ordered from most to least informative. Blue is the factor ridge applies to each. Slide α up and watch the cut sweep from right to left: the low-eigenvalue directions — the ones the data barely constrains — are killed first, while the well-determined directions survive almost untouched. That selectivity is why ridge helps rather than simply degrading everything.</div></div><script>makeFig("b6shrink",function(vp,p,F){
+vp.pads(52,52,14,32);
+var alpha=Math.pow(10,p.la), sp=p.spread, d=20;
+var lam=[]; for(var i=0;i<d;i++) lam.push(Math.pow(10, -sp*i/(d-1)));
+vp.frame(-0.5,d-0.5,-0.06,1.12);
+vp.axes({stepx:2});
+// shrinkage bars
+for(var i=0;i<d;i++){
+  var f=lam[i]/(lam[i]+alpha);
+  var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css('--c1'); cc.lineWidth=Math.max(4,vp.pw/(d*2.2));
+  cc.beginPath(); cc.moveTo(vp.X(i),vp.Y(0)); cc.lineTo(vp.X(i),vp.Y(f)); cc.stroke(); cc.restore();
+  vp.dot(i,f,'--c1',3.6);
+}
+// eigenvalue spectrum on a log scale mapped into [0,1]
+var lmin=Math.log10(lam[d-1]), lmax=Math.log10(lam[0]), rng=Math.max(1e-9,lmax-lmin);
+var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css('--c5'); cc.lineWidth=2.2; cc.setLineDash([5,4]);
+cc.beginPath();
+for(var i=0;i<d;i++){ var Y=vp.Y((Math.log10(lam[i])-lmin)/rng);
+  if(i===0)cc.moveTo(vp.X(i),Y); else cc.lineTo(vp.X(i),Y); }
+cc.stroke(); cc.restore();
+// where alpha sits on that spectrum
+var la=Math.log10(alpha);
+if(la>=lmin&&la<=lmax){ var Ya=(la-lmin)/rng;
+  vp.seg(-0.5,Ya,d-0.5,Ya,'--c3',{w:2,dash:[3,4]});
+  vp.label(-0.4,Ya,'α','--c3',{halo:true,bold:true,dy:-6}); }
+vp.seg(-0.5,0.5,d-0.5,0.5,'--ink3',{w:1.1,dash:[2,5]});
+vp.label(0,1.12,'shrinkage factor (left axis) · eigenvalue, log scale (dashed)','--ink3',{halo:true,dy:12});
+var edf=0; for(var i=0;i<d;i++) edf+=lam[i]/(lam[i]+alpha);
+var kap0=lam[0]/lam[d-1], kapA=(lam[0]+alpha)/(lam[d-1]+alpha);
+figRead('b6shrink','α = <b>'+alpha.toExponential(2)+'</b>,  eigenvalues from '+lam[0].toExponential(1)+' down to '+lam[d-1].toExponential(1)
+ +'<br>effective degrees of freedom = Σ λᵢ/(λᵢ+α) = <b>'+edf.toFixed(2)+'</b> of '+d+' parameters'
+ +'<br>condition number: unregularised <b>'+kap0.toExponential(2)+'</b>  →  with ridge <b>'+kapA.toFixed(2)+'</b>'
+ +'   <span style="color:var(--ink3)">— regularising and preconditioning are the same operation</span>');
+},[{"name": "la", "label": "log\u2081\u2080 \u03b1", "min": -4, "max": 3, "step": 0.05, "value": -1, "dp": 2}, {"name": "spread", "label": "how ill-conditioned the design is", "min": 0, "max": 4, "step": 0.05, "value": 2.5, "dp": 2}]);window["FIG_b6shrink"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>LASSO and the geometry of zero</h2>
+<p>Swap the Gaussian prior for a Laplace one and the penalty becomes \(\alpha\|\vw\|_1\). There is
+no closed form — \(\|\vw\|_1\) is not differentiable at zero — and that non-differentiability is not an
+inconvenience, it is the entire mechanism.</p>
+<div class="deriv" id="d41"><div class="deriv-head"><span class="t">Soft-thresholding: why coefficients become exactly zero</span><span class="ct">0 / 6</span></div><div class="dstep">\[\min_{w}\ \tfrac12(w-z)^2 + \alpha|w|\]<div class="why"><b>The one-dimensional LASSO problem.</b> This is the subproblem that coordinate descent solves for each coefficient in turn, holding the others fixed; \(z\) is the OLS answer for that coordinate given the current residual. Solve it and you have solved LASSO.</div></div><div class="dstep">\[\partial|w| = \begin{cases}\{+1\} & w>0\\ [-1,+1] & w=0\\ \{-1\} & w&lt;0\end{cases}\]<div class="why"><b>The subdifferential.</b> At a kink there is no single tangent line, but there is a <em>set</em> of slopes of lines lying below the function — Phase A Lecture 4's \(|x|\) figure, now put to work. Optimality means \(0\) belongs to the subdifferential of the objective.</div></div><div class="dstep">\[0 \in (w-z) + \alpha\,\partial|w|\]<div class="why"><b>The optimality condition.</b> The generalisation of \(f'=0\) to non-smooth convex functions. It is necessary and sufficient here because the objective is strictly convex.</div></div><div class="dstep">\[w>0:\ w = z-\alpha \ \text{(needs } z>\alpha); \qquad w&lt;0:\ w = z+\alpha \ \text{(needs } z&lt;-\alpha)\]<div class="why"><b>The two smooth branches.</b> If \(w>0\) the subdifferential is the single value \(+1\), giving \(w-z+\alpha=0\). For consistency we need the answer to actually be positive, i.e. \(z>\alpha\). Symmetrically for \(w&lt;0\).</div></div><div class="dstep">\[w=0:\ 0\in -z+\alpha[-1,1] \iff |z|\le\alpha\]<div class="why"><b>The kink branch — this is the whole point.</b> At \(w=0\) the subdifferential is an entire <em>interval</em>, so the condition \(0\in -z+\alpha[-1,1]\) is satisfied for a whole <em>range</em> of \(z\), not just one value. A set of positive measure maps to exactly zero. A smooth penalty like \(w^2\) has a single subgradient \(2w=0\) at the origin, so only \(z=0\) exactly gives \(w=0\) — probability zero.</div></div><div class="dstep">\[\boxed{\ w^\star = S_\alpha(z) = \operatorname{sign}(z)\,\max\big(|z|-\alpha,\ 0\big)\ }\]<div class="why"><b>The soft-thresholding operator.</b> Move \(z\) towards zero by \(\alpha\); if that would overshoot, stop at zero. Compare the ridge solution to the same subproblem, \(w=\frac{z}{1+\alpha}\), which is a <em>proportional</em> shrink and never reaches zero. Proportional shrinkage cannot produce sparsity; constant shrinkage with a floor can. ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d41')">Next step</button><button class="btn ghost" onclick="dall('d41')">Show all</button><button class="btn ghost" onclick="dreset('d41')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Regularisation paths: ridge shrinks, LASSO selects<span class="tag">Interactive</span></div><canvas id="b6path" data-h="460"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>coefficients (ridge)</span><span><i style="background:var(--c5)"></i>coefficients (LASSO)</span><span><i style="background:var(--c3)"></i>current α</span></div><div class="fig-read" id="b6path-read"></div><div class="ctrls"><div class="ctrl"><label>0 = ridge · 1 = LASSO · 2 = both, overlaid</label><input type="range" min="0" max="2" step="1" value="2" data-fmt="0" oninput="figSlide('b6path','which',this)"><output>2</output></div><div class="ctrl"><label>log₁₀ α</label><input type="range" min="-3" max="1.5" step="0.02" value="-2" data-fmt="2" oninput="figSlide('b6path','la',this)"><output>-2.00</output></div><div class="ctrl"><label>correlation between features</label><input type="range" min="0" max="0.95" step="0.01" value="0.3" data-fmt="2" oninput="figSlide('b6path','corr',this)"><output>0.30</output></div></div><div class="fig-cap">Ten features, of which only three genuinely matter. Every curve is one coefficient traced as α grows. Ridge shrinks everything smoothly towards zero and arrives there only in the limit. LASSO drives coefficients to EXACTLY zero one at a time, and the order in which they drop out is a feature-selection ranking. Raise the correlation and watch LASSO become erratic — with correlated features it picks one arbitrarily and zeroes its twin.</div></div><script>makeFig("b6path",function(vp,p,F){
+vp.pads(52,16,14,32);
+var mode=Math.round(p.which), rho=p.corr, d=10, n=60;
+var seed=1234567;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var wtrue=[3,-2,1.5,0,0,0,0,0,0,0];
+var X=[],y=[];
+for(var i=0;i<n;i++){
+  var base=gauss(), row=[];
+  for(var j=0;j<d;j++) row.push(rho*base+Math.sqrt(1-rho*rho)*gauss());
+  X.push(row);
+  var t=0; for(var j=0;j<d;j++) t+=wtrue[j]*row[j];
+  y.push(t+0.6*gauss());
+}
+// standardise
+for(var j=0;j<d;j++){ var m=0; for(var i=0;i<n;i++) m+=X[i][j]; m/=n;
+  var s=0; for(var i=0;i<n;i++) s+=(X[i][j]-m)*(X[i][j]-m); s=Math.sqrt(s/n)||1;
+  for(var i=0;i<n;i++) X[i][j]=(X[i][j]-m)/s; }
+var ym=0; for(var i=0;i<n;i++) ym+=y[i]; ym/=n;
+for(var i=0;i<n;i++) y[i]-=ym;
+// Gram
+var G=[],b=[];
+for(var j=0;j<d;j++){ G.push(new Array(d).fill(0)); b.push(0); }
+for(var i=0;i<n;i++) for(var j=0;j<d;j++){ b[j]+=X[i][j]*y[i]; for(var k=0;k<d;k++) G[j][k]+=X[i][j]*X[i][k]; }
+function ridgeSolve(al){
+  var A=[]; for(var j=0;j<d;j++){ A.push(G[j].slice()); A[j][j]+=al*n; }
+  var bb=b.slice();
+  for(var c2=0;c2<d;c2++){
+    var piv=c2; for(var r=c2+1;r<d;r++) if(Math.abs(A[r][c2])>Math.abs(A[piv][c2])) piv=r;
+    var t=A[c2];A[c2]=A[piv];A[piv]=t; var tb=bb[c2];bb[c2]=bb[piv];bb[piv]=tb;
+    if(Math.abs(A[c2][c2])<1e-13) continue;
+    for(var r=0;r<d;r++){ if(r===c2)continue; var f=A[r][c2]/A[c2][c2];
+      for(var k=c2;k<d;k++) A[r][k]-=f*A[c2][k]; bb[r]-=f*bb[c2]; }
+  }
+  var w=[]; for(var j=0;j<d;j++) w.push(Math.abs(A[j][j])<1e-13?0:bb[j]/A[j][j]);
+  return w;
+}
+function lassoSolve(al){
+  var w=new Array(d).fill(0);
+  for(var it=0;it<400;it++) for(var j=0;j<d;j++){
+    var r=b[j]; for(var k=0;k<d;k++) if(k!==j) r-=G[j][k]*w[k];
+    var z=r/G[j][j], t=al*n/G[j][j];
+    w[j]=Math.sign(z)*Math.max(Math.abs(z)-t,0);
+  }
+  return w;
+}
+var NA=70, alphas=[];
+for(var i=0;i<NA;i++) alphas.push(Math.pow(10,-3+4.5*i/(NA-1)));
+var R=[],L=[];
+for(var i=0;i<NA;i++){ R.push(ridgeSolve(alphas[i])); L.push(lassoSolve(alphas[i])); }
+var lo=0,hi=0;
+for(var i=0;i<NA;i++) for(var j=0;j<d;j++){ lo=Math.min(lo,R[i][j],L[i][j]); hi=Math.max(hi,R[i][j],L[i][j]); }
+var pad=(hi-lo)*0.1;
+vp.frame(-3,1.5,lo-pad,hi+pad);
+vp.axes({stepx:1});
+vp.seg(-3,0,1.5,0,'--ink3',{w:1.2,dash:[2,5]});
+function drawPath(P,col,w2,dash){
+  for(var j=0;j<d;j++){
+    var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css(col); cc.lineWidth=w2;
+    if(dash)cc.setLineDash(dash);
+    cc.globalAlpha= (wtrue[j]!==0)?1.0:0.42;
+    cc.beginPath();
+    for(var i=0;i<NA;i++){ var Xp=vp.X(Math.log10(alphas[i])), Yp=vp.Y(P[i][j]);
+      if(i===0)cc.moveTo(Xp,Yp); else cc.lineTo(Xp,Yp); }
+    cc.stroke(); cc.restore();
+  }
+}
+if(mode!==1) drawPath(R,'--c1',2.2,null);
+if(mode!==0) drawPath(L,'--c5',2.4,[6,4]);
+var al=Math.pow(10,p.la);
+vp.seg(p.la,lo-pad,p.la,hi+pad,'--c3',{w:2,dash:[4,4]});
+var wr=ridgeSolve(al), wl=lassoSolve(al);
+var nzR=0,nzL=0; for(var j=0;j<d;j++){ if(Math.abs(wr[j])>1e-8) nzR++; if(Math.abs(wl[j])>1e-8) nzL++; }
+function fmt(w){ return w.map(function(v){return (Math.abs(v)<1e-8?'0':v.toFixed(2));}).join(', '); }
+figRead('b6path','α = <b>'+al.toExponential(2)+'</b>,  feature correlation = '+rho.toFixed(2)
+ +'   <span style="color:var(--ink3)">(true weights: 3, −2, 1.5, then seven zeros)</span>'
+ +'<br>ridge: <b>'+nzR+'</b>/10 nonzero — ['+fmt(wr)+']'
+ +'<br>LASSO: <b>'+nzL+'</b>/10 nonzero — ['+fmt(wl)+']');
+},[{"name": "which", "label": "0 = ridge \u00b7 1 = LASSO \u00b7 2 = both, overlaid", "min": 0, "max": 2, "step": 1, "value": 2, "dp": 0}, {"name": "la", "label": "log\u2081\u2080 \u03b1", "min": -3, "max": 1.5, "step": 0.02, "value": -2, "dp": 2}, {"name": "corr", "label": "correlation between features", "min": 0, "max": 0.95, "step": 0.01, "value": 0.3, "dp": 2}]);window["FIG_b6path"].run();</script>
+<div class="quiz" id="q42"><div class="qlbl">Check yourself</div><div class="qq">Why does LASSO produce exact zeros while ridge does not, geometrically?</div><button class="qopt" data-ok="1" onclick="pick('q42',0,true)">The \(\ell_1\) ball has corners on the coordinate axes, and a loss contour expanding until it first touches the ball is most likely to touch at a corner.</button><button class="qopt" data-ok="0" onclick="pick('q42',1,false)">Because \(|w|\) is smaller than \(w^2\) for small \(w\), so L1 penalises small coefficients more.</button><button class="qopt" data-ok="0" onclick="pick('q42',2,false)">Because LASSO is solved by coordinate descent, and that algorithm sets coefficients to zero.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct — this is Phase A Lecture 8's unit-ball figure, now with a purpose. Write the penalised
+    problem in constrained form: minimise \(\|\mX\vw-\vy\|^2\) subject to \(\|\vw\|_1\le t\). The solution is
+    where the growing elliptical contour first touches the feasible ball.<br><br>
+    The \(\ell_1\) ball is a diamond (a cross-polytope in \(d\) dimensions) whose vertices lie <em>on the
+    axes</em>, where all but one coordinate is zero. A convex body touches a smooth expanding contour at a
+    vertex for a whole <em>cone</em> of contour orientations — a set of positive measure. So sparsity is not a
+    coincidence; it is generic.<br><br>
+    The \(\ell_2\) ball is a sphere: smooth everywhere, no distinguished points. The touching point is a
+    generic point of the sphere, with every coordinate nonzero with probability 1.<br><br>
+    The algebraic version is the soft-thresholding derivation above: the subdifferential of \(|w|\) at zero is
+    an <em>interval</em>, so an interval of \(z\) values maps to exactly zero. Geometry and algebra are saying
+    the same thing — corners are where subdifferentials are set-valued.</div><div class="qwhy" data-i="1"><b>Not quite.</b> The observation is true (\(|w|>w^2\) for \(0&lt;w&lt;1\)) and is a real part of the intuition, but it is
+    not the mechanism. Consider \(\|\vw\|_1^{1.5}\), which also exceeds \(w^2\) near zero but is
+    <em>differentiable</em> at the origin — and produces no exact zeros. What matters is the <em>kink</em>: a
+    discontinuous derivative at zero, so that a range of gradients is compatible with staying there. Relative
+    magnitude is not enough; non-smoothness is.</div><div class="qwhy" data-i="2"><b>Not quite.</b> This reverses cause and effect. Sparsity is a property of the <em>optimisation problem</em>, not of
+    the algorithm — the LASSO optimum is sparse whichever solver you use (LARS, proximal gradient, ADMM, an
+    interior-point method). Coordinate descent is popular for LASSO <em>because</em> the one-dimensional
+    subproblem has the closed-form soft-threshold solution, which is a consequence of the sparsity structure,
+    not its cause.</div></div>
+<h2 id="s4"><span class="secnum">4</span>Elastic net, and when to use which</h2>
+<p>\[\mathcal{L}(\vw) = \|\mX\vw-\vy\|^2 + \alpha\Big(\rho\|\vw\|_1 + \tfrac{1-\rho}{2}\|\vw\|_2^2\Big)\]</p>
+<p>The elastic net mixes both penalties, and it exists to fix a specific LASSO failure you can see
+in the figure above: with correlated features, LASSO picks one essentially at random and zeroes the rest, and
+which one it picks is unstable across resamples. The \(\ell_2\) component makes the objective strictly convex
+and encourages correlated features to be selected <em>together</em> with similar coefficients — the
+<em>grouping effect</em>.</p>
+<p>\[\begin{array}{lll}
+\textbf{situation} & \textbf{use} & \textbf{why} \\[4pt]
+d \ll n,\ \text{features all plausibly relevant} & \text{ridge} & \text{keeps everything, controls variance} \\[3pt]
+d \gg n,\ \text{expect few relevant features} & \text{LASSO} & \text{selects; note it picks at most } n \\[3pt]
+\text{correlated groups of features} & \text{elastic net} & \text{selects groups, stable} \\[3pt]
+\text{you need to report coefficients} & \text{ridge or elastic net} & \text{LASSO's choice is unstable} \\[3pt]
+\text{you need a small model to deploy} & \text{LASSO} & \text{exact zeros can be dropped}
+\end{array}\]</p>
+<div class="pyb" id="py43" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=3, suppress=True)
+
+# ---------------- sparse truth, correlated features, few samples ----------------
+n, d, k = 80, 40, 5
+base = rng.normal(size=(n, 1))
+X = 0.5*base + np.sqrt(1-0.25)*rng.normal(size=(n, d))     # all features share a factor
+w_true = np.zeros(d); w_true[:k] = [3.0, -2.5, 2.0, -1.5, 1.0]
+y = X @ w_true + 1.0*rng.normal(size=n)
+
+# ---------------- standardise: MANDATORY before any penalty -------------------
+mu, sd = X.mean(0), X.std(0)
+Z = (X - mu)/sd
+ybar = y.mean(); yc = y - ybar
+
+def ridge(Z, yc, a):
+    d = Z.shape[1]
+    return np.linalg.solve(Z.T@Z + a*len(yc)*np.eye(d), Z.T@yc)
+
+def soft(z, t):
+    return np.sign(z) * np.maximum(np.abs(z) - t, 0.0)
+
+def lasso(Z, yc, a, T=500, tol=1e-10):
+    # cyclic coordinate descent with the soft-threshold update
+    n_, d_ = Z.shape
+    w = np.zeros(d_)
+    G = Z.T @ Z
+    b = Z.T @ yc
+    diag = np.diag(G).copy()
+    for _ in range(T):
+        w_old = w.copy()
+        for j in range(d_):
+            r = b[j] - G[j] @ w + G[j, j]*w[j]      # partial residual for coord j
+            w[j] = soft(r/diag[j], a*n_/diag[j])
+        if np.max(np.abs(w - w_old)) &lt; tol: break
+    return w
+
+# ---------------- k-fold cross-validation over alpha ----------------
+def kfold_mse(fitter, a, K=5, seed=0):
+    r = np.random.default_rng(seed)
+    idx = r.permutation(n); folds = np.array_split(idx, K)
+    errs = []
+    for f in folds:
+        tr = np.setdiff1d(idx, f)
+        m, s = Z[tr].mean(0), Z[tr].std(0) + 1e-12       # re-standardise per fold
+        yb = yc[tr].mean()
+        w = fitter((Z[tr]-m)/s, yc[tr]-yb, a)
+        pred = ((Z[f]-m)/s) @ w + yb
+        errs.append(np.mean((pred - yc[f])**2))
+    return float(np.mean(errs))
+
+alphas = np.logspace(-4, 1, 40)
+cv_r = [kfold_mse(ridge, a) for a in alphas]
+cv_l = [kfold_mse(lasso, a) for a in alphas]
+a_r, a_l = alphas[int(np.argmin(cv_r))], alphas[int(np.argmin(cv_l))]
+
+w_ols  = np.linalg.lstsq(Z, yc, rcond=None)[0]
+w_ridge = ridge(Z, yc, a_r)
+w_lasso = lasso(Z, yc, a_l)
+
+print(f&quot;n = {n}, d = {d}, truly nonzero = {k}&quot;)
+print(f&quot;chosen alpha:  ridge {a_r:.5f}   lasso {a_l:.5f}&quot;)
+print(f&quot;CV MSE:        ridge {min(cv_r):.4f}   lasso {min(cv_l):.4f}&quot;
+      f&quot;   OLS {kfold_mse(lambda Z,y,a: np.linalg.lstsq(Z,y,rcond=None)[0], 0.0):.4f}&quot;)
+print()
+print(f&quot;{&#x27;&#x27;:12s} {&#x27;||w||_2&#x27;:&gt;9s} {&#x27;nonzero&#x27;:&gt;9s} {&#x27;|w-w*| err&#x27;:&gt;11s} {&#x27;true pos&#x27;:&gt;9s} {&#x27;false pos&#x27;:&gt;10s}&quot;)
+for nm, w in ((&quot;OLS&quot;, w_ols), (&quot;ridge&quot;, w_ridge), (&quot;LASSO&quot;, w_lasso)):
+    nz = np.abs(w) &gt; 1e-8
+    print(f&quot;{nm:12s} {np.linalg.norm(w):9.3f} {nz.sum():9d} {np.linalg.norm(w-w_true):11.3f}&quot;
+          f&quot; {int(nz[:k].sum()):9d} {int(nz[k:].sum()):10d}&quot;)
+print()
+print(&quot;first 8 coefficients (true: 3.0 -2.5 2.0 -1.5 1.0 0 0 0)&quot;)
+print(&quot;  OLS  &quot;, w_ols[:8])
+print(&quot;  ridge&quot;, w_ridge[:8])
+print(&quot;  LASSO&quot;, w_lasso[:8])
+print()
+
+# ---------------- the eigen-shrinkage identity, verified ----------------
+print(&quot;--- RIDGE IN THE EIGENBASIS ---&quot;)
+lam, Q = np.linalg.eigh(Z.T @ Z)
+a = 5.0
+w_a = ridge(Z, yc, a/len(yc))                      # so the added term is exactly a*I
+w_0 = np.linalg.lstsq(Z, yc, rcond=None)[0]
+print(f&quot;{&#x27;lambda_i&#x27;:&gt;12} {&#x27;predicted factor&#x27;:&gt;18} {&#x27;actual ratio&#x27;:&gt;14}&quot;)
+for i in (-1, -2, -5, 0):
+    pred = lam[i]/(lam[i]+a)
+    act = (Q[:, i] @ w_a) / (Q[:, i] @ w_0)
+    print(f&quot;{lam[i]:12.4f} {pred:18.6f} {act:14.6f}&quot;)
+print(&quot;  -&gt; exact. Ridge is per-eigen-direction shrinkage, nothing more.&quot;)
+print()
+print(f&quot;effective dof = sum lam/(lam+a) = {np.sum(lam/(lam+a)):.3f}  of {d} parameters&quot;)
+print()
+
+# ---------------- soft-thresholding, directly ----------------
+print(&quot;--- SOFT vs PROPORTIONAL SHRINKAGE ---&quot;)
+print(f&quot;{&#x27;z&#x27;:&gt;7} {&#x27;soft_0.5(z)&#x27;:&gt;13} {&#x27;ridge z/(1+0.5)&#x27;:&gt;17}&quot;)
+for z in (-2.0, -0.7, -0.3, 0.0, 0.3, 0.7, 2.0):
+    print(f&quot;{z:7.2f} {soft(z, 0.5):13.4f} {z/1.5:17.4f}&quot;)
+print(&quot;  Soft-thresholding hits EXACTLY zero on a whole interval |z| &lt;= 0.5.&quot;)
+print(&quot;  Proportional shrinkage reaches zero only at z = 0 exactly.&quot;)
+print()
+
+# ---------------- why standardisation is not optional ----------------
+print(&quot;--- WHAT HAPPENS IF YOU DO NOT STANDARDISE ---&quot;)
+Xu = X.copy(); Xu[:, 0] *= 1000.0                  # feature 0 now in different units
+for tag, M in ((&quot;standardised&quot;, Z), (&quot;raw, feature 0 x1000&quot;, Xu - Xu.mean(0))):
+    w = ridge(M, yc, 0.05)
+    print(f&quot;  {tag:22s} coefficient on feature 0 = {w[0]:12.6f}&quot;
+          f&quot;   penalty share {w[0]**2/np.sum(w**2):8.2%}&quot;)
+print(&quot;  Rescaling a feature changes which coefficients the penalty attacks.&quot;)
+print(&quot;  OLS is invariant to this. Ridge and LASSO are not.&quot;)
+"><div class="pyb-head"><span class="t">Ridge and LASSO from scratch, with a cross-validated α</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py43')">Run</button><button class="btn ghost" onclick="resetPy('py43')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=3, suppress=True)
+
+# ---------------- sparse truth, correlated features, few samples ----------------
+n, d, k = 80, 40, 5
+base = rng.normal(size=(n, 1))
+X = 0.5*base + np.sqrt(1-0.25)*rng.normal(size=(n, d))     # all features share a factor
+w_true = np.zeros(d); w_true[:k] = [3.0, -2.5, 2.0, -1.5, 1.0]
+y = X @ w_true + 1.0*rng.normal(size=n)
+
+# ---------------- standardise: MANDATORY before any penalty -------------------
+mu, sd = X.mean(0), X.std(0)
+Z = (X - mu)/sd
+ybar = y.mean(); yc = y - ybar
+
+def ridge(Z, yc, a):
+    d = Z.shape[1]
+    return np.linalg.solve(Z.T@Z + a*len(yc)*np.eye(d), Z.T@yc)
+
+def soft(z, t):
+    return np.sign(z) * np.maximum(np.abs(z) - t, 0.0)
+
+def lasso(Z, yc, a, T=500, tol=1e-10):
+    # cyclic coordinate descent with the soft-threshold update
+    n_, d_ = Z.shape
+    w = np.zeros(d_)
+    G = Z.T @ Z
+    b = Z.T @ yc
+    diag = np.diag(G).copy()
+    for _ in range(T):
+        w_old = w.copy()
+        for j in range(d_):
+            r = b[j] - G[j] @ w + G[j, j]*w[j]      # partial residual for coord j
+            w[j] = soft(r/diag[j], a*n_/diag[j])
+        if np.max(np.abs(w - w_old)) &lt; tol: break
+    return w
+
+# ---------------- k-fold cross-validation over alpha ----------------
+def kfold_mse(fitter, a, K=5, seed=0):
+    r = np.random.default_rng(seed)
+    idx = r.permutation(n); folds = np.array_split(idx, K)
+    errs = []
+    for f in folds:
+        tr = np.setdiff1d(idx, f)
+        m, s = Z[tr].mean(0), Z[tr].std(0) + 1e-12       # re-standardise per fold
+        yb = yc[tr].mean()
+        w = fitter((Z[tr]-m)/s, yc[tr]-yb, a)
+        pred = ((Z[f]-m)/s) @ w + yb
+        errs.append(np.mean((pred - yc[f])**2))
+    return float(np.mean(errs))
+
+alphas = np.logspace(-4, 1, 40)
+cv_r = [kfold_mse(ridge, a) for a in alphas]
+cv_l = [kfold_mse(lasso, a) for a in alphas]
+a_r, a_l = alphas[int(np.argmin(cv_r))], alphas[int(np.argmin(cv_l))]
+
+w_ols  = np.linalg.lstsq(Z, yc, rcond=None)[0]
+w_ridge = ridge(Z, yc, a_r)
+w_lasso = lasso(Z, yc, a_l)
+
+print(f&quot;n = {n}, d = {d}, truly nonzero = {k}&quot;)
+print(f&quot;chosen alpha:  ridge {a_r:.5f}   lasso {a_l:.5f}&quot;)
+print(f&quot;CV MSE:        ridge {min(cv_r):.4f}   lasso {min(cv_l):.4f}&quot;
+      f&quot;   OLS {kfold_mse(lambda Z,y,a: np.linalg.lstsq(Z,y,rcond=None)[0], 0.0):.4f}&quot;)
+print()
+print(f&quot;{&#x27;&#x27;:12s} {&#x27;||w||_2&#x27;:&gt;9s} {&#x27;nonzero&#x27;:&gt;9s} {&#x27;|w-w*| err&#x27;:&gt;11s} {&#x27;true pos&#x27;:&gt;9s} {&#x27;false pos&#x27;:&gt;10s}&quot;)
+for nm, w in ((&quot;OLS&quot;, w_ols), (&quot;ridge&quot;, w_ridge), (&quot;LASSO&quot;, w_lasso)):
+    nz = np.abs(w) &gt; 1e-8
+    print(f&quot;{nm:12s} {np.linalg.norm(w):9.3f} {nz.sum():9d} {np.linalg.norm(w-w_true):11.3f}&quot;
+          f&quot; {int(nz[:k].sum()):9d} {int(nz[k:].sum()):10d}&quot;)
+print()
+print(&quot;first 8 coefficients (true: 3.0 -2.5 2.0 -1.5 1.0 0 0 0)&quot;)
+print(&quot;  OLS  &quot;, w_ols[:8])
+print(&quot;  ridge&quot;, w_ridge[:8])
+print(&quot;  LASSO&quot;, w_lasso[:8])
+print()
+
+# ---------------- the eigen-shrinkage identity, verified ----------------
+print(&quot;--- RIDGE IN THE EIGENBASIS ---&quot;)
+lam, Q = np.linalg.eigh(Z.T @ Z)
+a = 5.0
+w_a = ridge(Z, yc, a/len(yc))                      # so the added term is exactly a*I
+w_0 = np.linalg.lstsq(Z, yc, rcond=None)[0]
+print(f&quot;{&#x27;lambda_i&#x27;:&gt;12} {&#x27;predicted factor&#x27;:&gt;18} {&#x27;actual ratio&#x27;:&gt;14}&quot;)
+for i in (-1, -2, -5, 0):
+    pred = lam[i]/(lam[i]+a)
+    act = (Q[:, i] @ w_a) / (Q[:, i] @ w_0)
+    print(f&quot;{lam[i]:12.4f} {pred:18.6f} {act:14.6f}&quot;)
+print(&quot;  -&gt; exact. Ridge is per-eigen-direction shrinkage, nothing more.&quot;)
+print()
+print(f&quot;effective dof = sum lam/(lam+a) = {np.sum(lam/(lam+a)):.3f}  of {d} parameters&quot;)
+print()
+
+# ---------------- soft-thresholding, directly ----------------
+print(&quot;--- SOFT vs PROPORTIONAL SHRINKAGE ---&quot;)
+print(f&quot;{&#x27;z&#x27;:&gt;7} {&#x27;soft_0.5(z)&#x27;:&gt;13} {&#x27;ridge z/(1+0.5)&#x27;:&gt;17}&quot;)
+for z in (-2.0, -0.7, -0.3, 0.0, 0.3, 0.7, 2.0):
+    print(f&quot;{z:7.2f} {soft(z, 0.5):13.4f} {z/1.5:17.4f}&quot;)
+print(&quot;  Soft-thresholding hits EXACTLY zero on a whole interval |z| &lt;= 0.5.&quot;)
+print(&quot;  Proportional shrinkage reaches zero only at z = 0 exactly.&quot;)
+print()
+
+# ---------------- why standardisation is not optional ----------------
+print(&quot;--- WHAT HAPPENS IF YOU DO NOT STANDARDISE ---&quot;)
+Xu = X.copy(); Xu[:, 0] *= 1000.0                  # feature 0 now in different units
+for tag, M in ((&quot;standardised&quot;, Z), (&quot;raw, feature 0 x1000&quot;, Xu - Xu.mean(0))):
+    w = ridge(M, yc, 0.05)
+    print(f&quot;  {tag:22s} coefficient on feature 0 = {w[0]:12.6f}&quot;
+          f&quot;   penalty share {w[0]**2/np.sum(w**2):8.2%}&quot;)
+print(&quot;  Rescaling a feature changes which coefficients the penalty attacks.&quot;)
+print(&quot;  OLS is invariant to this. Ridge and LASSO are not.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s5"><span class="secnum">5</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>A ridge problem has \(\mX^\top\mX\) with eigenvalues \(\{100, 10, 1, 0.01\}\) and \(\alpha=1\).</p>
+  <ol><li>Compute the shrinkage factor for each eigen-direction.</li>
+  <li>What is the effective number of degrees of freedom?</li>
+  <li>What does \(\alpha=1\) do to the condition number?</li>
+  <li>Which direction is most affected, and why is that the right one to attack?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex44',this)">Show solution</button></div><div class="rev-body" id="ex44"><p><strong>1.</strong> \(\frac{\lambda}{\lambda+1}\) gives
+  \(\frac{100}{101}=0.9901\), \(\frac{10}{11}=0.9091\), \(\frac12=0.5\), \(\frac{0.01}{1.01}=0.0099\).</p>
+  <p><strong>2.</strong> \(0.9901+0.9091+0.5+0.0099 = 2.409\) of 4 parameters. The model behaves as though it
+  had about two and a half free parameters instead of four.</p>
+  <p><strong>3.</strong> Unregularised \(\kappa=100/0.01=10{,}000\). With ridge,
+  \(\kappa=\frac{101}{1.01}=100\) — a hundredfold improvement, and by Lecture 03 that is a hundredfold reduction
+  in the gradient-descent iteration count. Regularisation and preconditioning really are one operation.</p>
+  <p><strong>4.</strong> The \(\lambda=0.01\) direction, which retains only 1% of its OLS value. That is exactly
+  right. A small eigenvalue means the data barely varies along \(\vq_i\), so \(\vq_i^\top\hat{\vw}_0 =
+  \frac{\vq_i^\top\mX^\top\vy}{\lambda_i}\) divides by a tiny number and the OLS estimate in that direction is
+  dominated by noise. Ridge suppresses the directions whose estimates were least trustworthy and leaves the
+  well-determined ones essentially alone — which is why it reduces variance far more than it adds bias.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove the soft-thresholding formula from the subgradient condition, then show that ridge's
+  one-dimensional solution is \(w=\frac{z}{1+\alpha}\).</p>
+  <p>Use both to explain in one paragraph why LASSO is a <em>selection</em> method and ridge is a
+  <em>shrinkage</em> method, and why "LASSO shrinks more" is the wrong description.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex45',this)">Show solution</button></div><div class="rev-body" id="ex45"><p><strong>LASSO.</strong> Minimise \(g(w)=\tfrac12(w-z)^2+\alpha|w|\), strictly convex, so \(w^\star\)
+  is the unique point with \(0\in\partial g(w^\star)=(w^\star-z)+\alpha\,\partial|w^\star|\).</p>
+  <p><em>Case \(w^\star>0\):</em> \(\partial|w^\star|=\{1\}\), so \(w^\star=z-\alpha\), consistent only if
+  \(z>\alpha\).<br>
+  <em>Case \(w^\star&lt;0\):</em> \(w^\star=z+\alpha\), consistent only if \(z&lt;-\alpha\).<br>
+  <em>Case \(w^\star=0\):</em> need \(0\in -z+\alpha[-1,1]\), i.e. \(z\in[-\alpha,\alpha]\).</p>
+  <p>The three cases are exhaustive and mutually exclusive, giving
+  \(w^\star = \operatorname{sign}(z)\max(|z|-\alpha,0)\). ∎</p>
+
+  <p><strong>Ridge.</strong> \(h(w)=\tfrac12(w-z)^2+\tfrac{\alpha}{2}w^2\) is smooth, so
+  \(h'(w)=(w-z)+\alpha w=0\), giving \(w^\star=\frac{z}{1+\alpha}\). ∎</p>
+
+  <p><strong>The distinction.</strong> Ridge applies a <em>multiplicative</em> shrink of \(\frac{1}{1+\alpha}\)
+  — the same proportion to every coefficient, so a coefficient of 10 loses ten times as much as a coefficient of
+  1, and no coefficient ever reaches zero at finite \(\alpha\). LASSO applies an <em>additive</em> shrink of
+  \(\alpha\) with a floor at zero — every coefficient loses the same absolute amount, so small ones are wiped
+  out entirely while large ones are barely affected in relative terms.</p>
+  <p>So "LASSO shrinks more" is wrong in both directions. For a large coefficient (\(z=10\), \(\alpha=1\)):
+  LASSO gives 9, ridge gives 5 — <em>ridge shrinks more</em>. For a small one (\(z=0.5\)): LASSO gives 0, ridge
+  gives 0.33 — LASSO shrinks more. They are qualitatively different operations, not the same operation at
+  different strengths. LASSO makes a <em>discrete decision</em> about each coefficient (in or out); ridge makes
+  a <em>continuous adjustment</em> to all of them. That is why LASSO's answer is unstable under resampling
+  (small perturbations flip discrete decisions) while ridge's is smooth.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Show that ridge regression can be computed by <em>augmenting the data</em>: solving ordinary least
+  squares on</p>
+  \[ \tilde{\mX} = \begin{bmatrix}\mX\\ \sqrt{\alpha}\,\mI\end{bmatrix}\in\RR^{(n+d)\times d}, \qquad
+     \tilde{\vy} = \begin{bmatrix}\vy\\ \vzero\end{bmatrix}\in\RR^{n+d} \]
+  <p>gives exactly \(\hat{\vw}_\alpha\). Then say what this tells you about ridge as data augmentation, and why
+  it is numerically preferable to forming \(\mX^\top\mX+\alpha\mI\).</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex46',this)">Show solution</button></div><div class="rev-body" id="ex46"><p><strong>Proof.</strong> The OLS objective on the augmented data is</p>
+  \[\|\tilde{\mX}\vw-\tilde{\vy}\|^2 = \left\|\begin{bmatrix}\mX\vw-\vy\\ \sqrt\alpha\,\vw\end{bmatrix}\right\|^2
+   = \|\mX\vw-\vy\|^2 + \alpha\|\vw\|^2,\]
+  <p>because the squared norm of a stacked vector is the sum of the squared norms of its blocks. That is exactly
+  the ridge objective, so the minimisers coincide. ∎</p>
+  <p>Confirming via the normal equations:
+  \(\tilde{\mX}^\top\tilde{\mX} = \mX^\top\mX+\alpha\mI\) and \(\tilde{\mX}^\top\tilde{\vy}=\mX^\top\vy\), giving
+  precisely the ridge system.</p>
+
+  <p><strong>Ridge as data augmentation.</strong> The \(d\) extra rows are \(d\) fictitious observations, each
+  saying "feature \(j\) alone, scaled by \(\sqrt\alpha\), produces output 0". They are the prior, written as
+  data. This makes the strength of a prior directly comparable to an amount of evidence, which is a genuinely
+  useful mental model: \(\alpha\) large means "I have a lot of pseudo-observations telling me the weights are
+  small", and it explains why the prior's influence fades as \(n\) grows — the real rows come to outnumber the
+  fake ones.</p>
+  <p>It also generalises immediately. Replacing \(\sqrt\alpha\mI\) with \(\sqrt\alpha\mathbf{D}\) implements a
+  different penalty \(\alpha\|\mathbf{D}\vw\|^2\), which is how smoothing splines penalise curvature and how
+  graph-Laplacian regularisers encourage neighbouring coefficients to agree.</p>
+
+  <p><strong>Why it is numerically better.</strong> The condition number argument from Phase A Lecture 10:
+  forming \(\mX^\top\mX\) squares \(\kappa\), so a design with \(\kappa(\mX)=10^{8}\) gives
+  \(\kappa(\mX^\top\mX)=10^{16}\), exhausting float64 before \(\alpha\) is even added. The augmented matrix
+  \(\tilde{\mX}\) has \(\kappa(\tilde{\mX})=\sqrt{\kappa(\mX^\top\mX+\alpha\mI)}\) — the square root, not the
+  square. Running <code>lstsq</code> on \(\tilde{\mX}\) therefore loses about half as many digits.</p>
+  <p>This is what production ridge implementations do (scikit-learn's <code>solver='lsqr'</code> and
+  <code>'sparse_cg'</code> work on the augmented system), and it is also the trick that makes ridge feasible for
+  sparse \(\mX\), where forming the dense Gram matrix would be impossible.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Compare ridge, LASSO and elastic net on a hard problem, and investigate
+  selection stability.</p>
+  <ol>
+  <li>Generate \(n=100\), \(d=200\) (so \(d\gg n\)) with 10 truly nonzero coefficients arranged in two
+  correlated groups of five.</li>
+  <li>Fit all three with \(\alpha\) chosen by 5-fold CV. Report test MSE, number of nonzeros, and how many true
+  features were recovered.</li>
+  <li>Repeat the whole thing 50 times with fresh data and measure <em>selection stability</em>: for each
+  feature, the fraction of runs in which it was selected.</li>
+  <li>Which method is most stable, and what does that imply about reporting "the important features"?</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex47',this)">Show solution</button></div><div class="rev-body" id="ex47"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+
+def make(n=100, d=200, seed=None):
+    r = np.random.default_rng(seed)
+    g1, g2 = r.normal(size=(n,1)), r.normal(size=(n,1))
+    X = r.normal(size=(n,d))
+    X[:, :5]   = 0.9*g1 + 0.44*X[:, :5]        # correlated group A
+    X[:, 5:10] = 0.9*g2 + 0.44*X[:, 5:10]      # correlated group B
+    w = np.zeros(d); w[:10] = 1.5
+    return X, X@w + r.normal(size=n), w
+
+def enet(Z, y, a, rho, T=300):
+    n_, d_ = Z.shape
+    w = np.zeros(d_); G = Z.T@Z; b = Z.T@y; dg = np.diag(G).copy()
+    for _ in range(T):
+        for j in range(d_):
+            r_ = b[j] - G[j]@w + G[j,j]*w[j]
+            z = r_/(dg[j] + a*n_*(1-rho))
+            t = a*n_*rho/(dg[j] + a*n_*(1-rho))
+            w[j] = np.sign(z)*max(abs(z)-t, 0.0)
+    return w
+
+methods = {"ridge": lambda Z,y,a: enet(Z,y,a,0.0),
+           "lasso": lambda Z,y,a: enet(Z,y,a,1.0),
+           "enet":  lambda Z,y,a: enet(Z,y,a,0.5)}
+
+sel = {k: np.zeros(200) for k in methods}
+stats = {k: [] for k in methods}
+for rep in range(50):
+    X, y, wt = make(seed=rep); Xte, yte, _ = make(seed=1000+rep)
+    Z = (X - X.mean(0))/(X.std(0)+1e-12); yc = y - y.mean()
+    Zt = (Xte - X.mean(0))/(X.std(0)+1e-12)
+    for k, f in methods.items():
+        best = min(((np.mean((Zt@f(Z,yc,a) - (yte-y.mean()))**2), a)
+                    for a in np.logspace(-3, 0, 12)))
+        w = f(Z, yc, best[1])
+        nz = np.abs(w) &gt; 1e-8
+        sel[k] += nz
+        stats[k].append((best[0], nz.sum(), nz[:10].sum(), nz[10:].sum()))
+
+for k in methods:
+    s = np.array(stats[k])
+    print(f"{k:6s} test MSE {s[:,0].mean():7.3f}  nonzero {s[:,1].mean():6.1f}"
+          f"  true found {s[:,2].mean():5.2f}/10  false {s[:,3].mean():6.1f}")
+    freq = sel[k]/50
+    print(f"        selection frequency: true features {freq[:10].mean():.2f}, "
+          f"noise features {freq[10:].mean():.3f}, "
+          f"true features always chosen: {(freq[:10]==1).sum()}/10")</code></pre>
+
+  <p><strong>2.</strong> Ridge keeps all 200 coefficients (no zeros ever) and gets respectable test MSE. LASSO
+  selects roughly 20–40 features, recovering perhaps 5–7 of the 10 true ones — <em>note it typically picks only
+  one or two from each correlated group of five</em>, because once one is in, its correlated twins add little
+  and are thresholded away. Elastic net selects more (40–70), recovers 8–10 of the true ones, and usually has
+  the best or near-best test MSE.</p>
+
+  <p><strong>3 &amp; 4. Stability is the striking result.</strong> Across 50 resamples, LASSO's selection
+  frequency for the true features is erratic — a given member of a correlated group might be chosen in 30% of
+  runs, its twin in 25%, with essentially arbitrary allocation. Elastic net selects true features far more
+  consistently (frequencies often above 0.8), because the \(\ell_2\) term rewards spreading weight across
+  correlated features rather than concentrating it on one. Ridge is trivially "stable" only because it selects
+  everything.</p>
+  <p><strong>What this implies about reporting important features.</strong> A LASSO run gives you <em>a</em>
+  sparse model that predicts well; it does not give you <em>the</em> set of relevant variables. If a colleague
+  reruns your analysis on next quarter's data and gets a different feature set, that is expected behaviour, not
+  a bug. Three legitimate responses:</p>
+  <ul>
+  <li><strong>Stability selection:</strong> run LASSO on many bootstrap resamples and report features selected
+  in, say, over 60% of them. This has genuine false-discovery guarantees and is what you should do if the
+  feature list is the deliverable.</li>
+  <li><strong>Elastic net</strong> if correlated features should be reported as a group.</li>
+  <li><strong>Say what you mean.</strong> "These 12 features suffice for prediction" is a defensible claim.
+  "These 12 features are the causally relevant ones" is not — and no regularisation path can make it so.</li>
+  </ul></div></div></div>
+<hr>
+<p><strong>Next:</strong> we have been choosing \(\alpha\) by cross-validation without examining
+what cross-validation actually estimates. Lecture 07 derives the bias–variance decomposition, builds the
+evaluation toolkit properly, and is blunt about which metrics mislead.</p>
+<div class="pagenav"><a href="05-logistic-regression.html" class="pv"><span class="dir">Previous</span><span class="nm">5 · Logistic Regression and Softmax</span></a><a href="07-bias-variance-evaluation.html" class="nx"><span class="dir">Next</span><span class="nm">7 · Bias, Variance, and Honest Evaluation</span></a></div>
+</div>
+<script>initDone('06-regularisation');</script>
+</body>
+</html>

@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2. Exponentials and Logarithms — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 2 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('02-exponentials-and-logarithms')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part I — The Language of Functions · Lecture 2</div>
+  <h1>Exponentials and Logarithms</h1>
+  <p class="dek">Machine learning is addicted to logarithms. Log-likelihood, cross-entropy, logits, log-sum-exp, perplexity, KL divergence. This lecture builds the logarithm from its definition so that every one of those is transparent — and so that you never again wonder what log(−2) is.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Prove that \(a^x > 0\) for every real \(x\), and derive the domain of \(\log_b\) from it</li><li>Derive all four logarithm laws from the exponent laws rather than memorising them</li><li>Explain why \(e\) is the natural base, in terms of the derivative</li><li>Diagnose and fix numerical underflow using logs and the log-sum-exp trick</li><li>Read \(\text{logit}\), \(\text{sigmoid}\), and cross-entropy as inverse-function statements</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lecture 1: domain, injectivity, inverse functions</li><li>Index laws for integer exponents</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Why logarithms are everywhere in machine learning</h2>
+<p>Before the mathematics, the motive. Three facts about probabilities force logs on us whether
+we like them or not.</p>
+<ol><li><strong>Probabilities of independent events multiply.</strong> The likelihood of a dataset of \(n\)
+  points is \(\prod_{i=1}^n p(y_i \mid \vx_i)\). With \(n=10{,}000\) and typical values around \(0.5\), that
+  product is about \(10^{-3010}\) — which is not a number your computer can hold. It rounds to exactly zero,
+  and then every gradient is zero, and training silently does nothing.</li><li><strong>Logs turn products into sums.</strong> \(\log \prod p_i = \sum \log p_i\). The sum is around
+  \(-6931\), a perfectly ordinary number.</li><li><strong>Logs are strictly increasing.</strong> So maximising \(\prod p_i\) and maximising
+  \(\sum \log p_i\) have <em>exactly the same solution</em>. We change the objective to something numerically
+  sane without changing the answer.</li></ol>
+<p>That third point is doing real work, and we will prove it. It is why "maximum likelihood" and
+"minimum negative log-likelihood" are the same procedure. But none of it is safe unless you know precisely
+where \(\log\) is defined, so we start there.</p>
+<h2 id="s2"><span class="secnum">2</span>Building the exponential</h2>
+<p>Fix a base \(a>0\), \(a \neq 1\). What does \(a^x\) mean? The honest answer is that it is built
+in four stages, each extending the last, and each forced by the requirement that one law keep holding.</p>
+<div class="deriv" id="d13"><div class="deriv-head"><span class="t">Constructing aˣ, stage by stage</span><span class="ct">0 / 4</span></div><div class="dstep">\[a^n = \underbrace{a \cdot a \cdots a}_{n \text{ times}}, \qquad n \in \{1,2,3,\dots\}\]<div class="why"><b>Stage 1: positive integers.</b> Repeated multiplication. From this definition alone, counting factors gives the fundamental law \(a^{m+n}=a^m a^n\): stack \(m\) copies next to \(n\) copies and you have \(m+n\) copies. Every stage below is chosen to <em>preserve this one law</em>.</div></div><div class="dstep">\[a^0 = 1, \qquad a^{-n} = \frac{1}{a^n}\]<div class="why"><b>Stage 2: zero and negatives — forced, not chosen.</b> We want \(a^{m+n}=a^ma^n\) to survive. Put \(n=0\): \(a^m = a^m a^0\), and since \(a^m \neq 0\) we may divide, giving \(a^0=1\). Put \(n=-m\): \(a^0 = a^m a^{-m}\), so \(1 = a^m a^{-m}\), so \(a^{-m}=1/a^m\). Notice we did not <em>decide</em> that \(a^0=1\); the law decided for us. Note also that \(a>0\) is what makes \(1/a^n\) legal — division by zero never arises.</div></div><div class="dstep">\[a^{1/q} = \sqrt[q]{a}, \qquad a^{p/q} = \big(\sqrt[q]{a}\big)^{p}\]<div class="why"><b>Stage 3: rationals.</b> Again forced. If the law holds then \(\big(a^{1/q}\big)^q = a^{q \cdot (1/q)} = a^1 = a\), so \(a^{1/q}\) must be a number whose \(q\)-th power is \(a\) — a \(q\)-th root. <em>This is where \(a>0\) becomes essential.</em> If \(a=-4\) then \(a^{1/2}\) would need \((-4)^{1/2}\), and no real number squares to \(-4\). Negative bases break immediately, which is why we required \(a>0\) at the start.</div></div><div class="dstep">\[a^x = \lim_{\substack{r \to x \\ r \in \mathbb{Q}}} a^r, \qquad x \in \RR\]<div class="why"><b>Stage 4: all reals.</b> The rationals are dense in \(\RR\): every real is a limit of rationals. We define \(a^x\) as the limit of \(a^r\) along any sequence of rationals \(r \to x\). Proving that this limit exists and does not depend on the sequence chosen requires the machinery of Lecture 3, so I am flagging it as <em>genuinely deferred</em> rather than hand-waved. What matters now: the result is a continuous function defined on all of \(\RR\), and it still obeys \(a^{x+y}=a^xa^y\).</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d13')">Next step</button><button class="btn ghost" onclick="dall('d13')">Show all</button><button class="btn ghost" onclick="dreset('d13')">Reset</button></div></div>
+<div class="box thm"><span class="lbl">Theorem — the exponential is strictly positive</span><p>For every base \(a>0\) and every
+real \(x\), \(\;a^x > 0\).</p>
+<p><strong>Proof.</strong> Take any real \(x\). Then</p>
+\[ a^x = a^{\frac{x}{2}+\frac{x}{2}} = a^{x/2} \cdot a^{x/2} = \left(a^{x/2}\right)^2 . \]
+<p>A real number squared is \(\ge 0\), so \(a^x \ge 0\). It cannot equal \(0\): if \(a^x = 0\) then
+\(1 = a^0 = a^{x}a^{-x} = 0 \cdot a^{-x} = 0\), a contradiction. Hence \(a^x>0\). ∎</p></div>
+<p>Look at how little that proof needed: the addition law and the fact that squares are non-negative.
+It holds for <em>every</em> real \(x\), no matter how large and negative. As \(x \to -\infty\) the value shrinks
+towards zero, but it is a strict inequality at every finite \(x\), and the limit is never attained.</p>
+<div class="fig"><div class="fig-head">y = aˣ  —  drag the base and watch the output stay strictly positive<span class="tag">Interactive</span></div><canvas id="f2exp" data-h="360"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>y = aˣ</span><span><i style="background:var(--ink3)"></i>y = 0 (never touched)</span></div><div class="fig-read" id="f2exp-read"></div><div class="ctrls"><div class="ctrl"><label>base  a</label><input type="range" min="0.2" max="4" step="0.05" value="2" data-fmt="2" oninput="figSlide('f2exp','a',this)"><output>2.00</output></div><div class="ctrl"><label>evaluate at  x</label><input type="range" min="-10" max="4" step="0.05" value="-4" data-fmt="2" oninput="figSlide('f2exp','x0',this)"><output>-4.00</output></div></div><div class="fig-cap">Push x as far left as the slider allows and read the value. It gets small — 2⁻¹⁰ ≈ 0.00098 — but it is positive, and it would still be positive at x = −10⁶. When a < 1 the curve decreases instead of increasing, but it still never touches or crosses the axis. At a = 1 it is the constant 1, which is why a = 1 is excluded: a constant is not injective and so has no inverse.</div></div><script>makeFig("f2exp",function(vp,p,F){
+vp.pads(52,16,14,30); vp.frame(-4.2,4.2,-0.8,6);
+vp.axes({stepx:1,stepy:1});
+var a=p.a,x0=p.x0;
+vp.curve(function(x){return Math.pow(a,x);},'--c1',{w:2.8});
+var y0=Math.pow(a,x0);
+if(x0>=-4.2){ vp.seg(x0,0,x0,y0,'--c2',{dash:[3,3],w:1.5}); vp.dot(x0,y0,'--c2',6); }
+vp.label(3.2,Math.min(5.4,Math.pow(a,3.2)),'a = '+a.toFixed(2),'--c1',{halo:true,bold:true,dy:-8});
+var s='a = '+a.toFixed(2)+',  x = '+x0.toFixed(2)+'   →   a^x = <b>'+y0.toExponential(4)+'</b>';
+s += (y0>0 ? '   <b style="color:var(--ok)">&gt; 0 ✓</b>' : '   underflowed to 0 in floating point (the true value is still positive)');
+figRead('f2exp',s);
+},[{"name": "a", "label": "base  a", "min": 0.2, "max": 4, "step": 0.05, "value": 2, "dp": 2}, {"name": "x0", "label": "evaluate at  x", "min": -10, "max": 4, "step": 0.05, "value": -4, "dp": 2}]);window["FIG_f2exp"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>The logarithm is the inverse — and that fixes its domain</h2>
+<p>For \(a>0,\ a\neq 1\), the function \(x \mapsto a^x\) is strictly monotone (increasing if
+\(a>1\), decreasing if \(a&lt;1\)), hence <strong>injective</strong>. Its image is exactly \((0,\infty)\): every
+positive number is achieved, and nothing else is. So as a map</p>
+<p>\[\exp_a : \RR \longrightarrow (0,\infty)\]</p>
+<p>it is a bijection. By the theorem of Lecture 1, it has an inverse. We name it.</p>
+<div class="box defn"><span class="lbl">Definition — logarithm</span><p>For \(a>0,\ a\neq 1\), the <strong>logarithm base
+\(a\)</strong> is the inverse of \(x\mapsto a^x\):</p>
+\[ \log_a : (0,\infty) \longrightarrow \RR, \qquad \boxed{\;\log_a(y) = c \iff a^c = y\;} \]
+<p>Domain \((0,\infty)\). Codomain \(\RR\). The two are swapped relative to the exponential, exactly as the
+inverse-function theory demands.</p></div>
+<div class="box warn"><span class="lbl">Common trap</span><p>Now we can settle the question directly, and I want you to see that it needs no rules at all —
+only the definition.</p>
+<p>The claim "\(\log_2(-2) = -1\)" unpacks to the claim \(2^{-1} = -2\). But \(2^{-1} = \tfrac12\). So the claim
+is false.</p>
+<p>Could <em>some other</em> exponent work? "\(\log_2(-2) = c\)" means \(2^c = -2\). The theorem above says
+\(2^c > 0\) for every real \(c\). A positive number is never \(-2\). So there is no \(c\), and
+\(\log_2(-2)\) does not name a real number at all. It is not \(-1\), not \(0\), not any value — it is
+<strong>undefined</strong>, in the same way \(1/0\) is undefined.</p>
+<p><strong>Where negative outputs really come from.</strong> \(\log_2\) is negative exactly when its input is
+strictly between \(0\) and \(1\): \(\log_2(0.5)=-1\) because \(2^{-1}=0.5\). Small positive input, negative
+output. It is the <em>input</em> being a fraction, never the input being negative.</p></div>
+<div class="fig"><div class="fig-head">exp and log are mirror images across  y = x<span class="tag">Interactive</span></div><canvas id="f2log" data-h="400"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>y = 2ˣ</span><span><i style="background:var(--c3)"></i>y = log₂ x</span><span><i style="background:var(--ink3)"></i>y = x</span><span><i style="background:var(--bad)"></i>x ≤ 0: log undefined</span></div><div class="fig-read" id="f2log-read"></div><div class="ctrls"><div class="ctrl"><label>input to log₂</label><input type="range" min="-3" max="6" step="0.02" value="0.5" data-fmt="2" oninput="figSlide('f2log','x0',this)"><output>0.50</output></div></div><div class="fig-cap">The green log curve is the blue exponential reflected in the diagonal. Because the blue curve never reaches the region left of the vertical axis, the green curve never reaches the region below the horizontal axis — reflected, that is exactly the statement that log has no output for x ≤ 0. Drag the slider into the red zone and read what the definition says.</div></div><script>makeFig("f2log",function(vp,p,F){
+vp.pads(40,16,14,30); vp.frame(-3.4,6.4,-3.4,6.4);
+var c=vp.ctx;
+c.save(); c.globalAlpha=0.10; c.fillStyle=vp.css('--bad');
+c.fillRect(vp.X(-3.4),vp.pad.t,vp.X(0)-vp.X(-3.4),vp.ph); c.restore();
+vp.axes({stepx:2,stepy:2});
+vp.seg(-3.4,-3.4,6.4,6.4,'--ink3',{dash:[5,5],w:1.4});
+vp.label(5.4,5.7,'y = x','--ink3',{halo:true});
+vp.curve(function(x){return Math.pow(2,x);},'--c1',{w:2.6});
+vp.curve(function(x){return x>0?Math.log2(x):NaN;},'--c3',{w:2.6});
+vp.label(2.0,4.4,'y = 2ˣ','--c1',{halo:true,bold:true});
+vp.label(4.4,2.0,'y = log₂ x','--c3',{halo:true,bold:true,dy:18});
+var x0=p.x0, s;
+if(x0>0){
+  var y0=Math.log2(x0);
+  vp.seg(x0,0,x0,y0,'--c2',{dash:[3,3],w:1.5}); vp.dot(x0,y0,'--c2',6);
+  vp.dot(y0,x0,'--c1',5);   // mirrored point on the exponential
+  vp.seg(x0,y0,y0,x0,'--ink3',{dash:[2,4],w:1.1});
+  s='log₂('+x0.toFixed(2)+') = <b>'+y0.toFixed(4)+'</b>'
+   +'   because   2^('+y0.toFixed(4)+') = '+Math.pow(2,y0).toFixed(4)
+   +(y0<0?'   ← negative OUTPUT, from an input between 0 and 1':'');
+}else{
+  vp.seg(x0,-3.4,x0,6.4,'--bad',{dash:[4,4],w:1.8});
+  s='log₂('+x0.toFixed(2)+') asks: for which real c is 2^c = '+x0.toFixed(2)+' ?  '
+   +'<b style="color:var(--bad)">There is none — 2^c is always &gt; 0. UNDEFINED.</b>';
+}
+figRead('f2log',s);
+},[{"name": "x0", "label": "input to log\u2082", "min": -3, "max": 6, "step": 0.02, "value": 0.5, "dp": 2}]);window["FIG_f2log"].run();</script>
+<div class="quiz" id="q14"><div class="qlbl">Check yourself</div><div class="qq">Which of these is a correct reading of \(\log_5(125)=3\)?</div><button class="qopt" data-ok="1" onclick="pick('q14',0,true)">\(5^3 = 125\).</button><button class="qopt" data-ok="0" onclick="pick('q14',1,false)">\(125^3 = 5\).</button><button class="qopt" data-ok="0" onclick="pick('q14',2,false)">\(3^5 = 125\).</button><div class="qwhy" data-i="0"><b>Correct.</b> Exactly. \(\log_a(y)=c\) and \(a^c=y\) are two ways of writing the same sentence. Whenever a log
+    confuses you, rewrite it as an exponential immediately — the exponential form is almost always the easier
+    one to reason about. Check: \(5^3=5\cdot5\cdot5=125\) ✓.</div><div class="qwhy" data-i="1"><b>Not quite.</b> This swaps the base and the argument. \(125^3\) is about two million. The base of the log
+    (\(5\), the subscript) becomes the base of the power; the argument of the log (\(125\)) becomes the
+    <em>result</em> of the power; the value of the log (\(3\)) becomes the exponent.</div><div class="qwhy" data-i="2"><b>Not quite.</b> \(3^5 = 243\), not 125. The subscript on the log is the base of the exponential; here the subscript
+    is \(5\), so the base must be \(5\).</div></div>
+<h2 id="s4"><span class="secnum">4</span>Every log law is an exponent law in disguise</h2>
+<p>You already used \(\log m + \log n = \log(mn)\) correctly. Now let us see where it comes from,
+because deriving it takes thirty seconds and it means you will never misremember its cousins.</p>
+<div class="deriv" id="d15"><div class="deriv-head"><span class="t">The product law: log(mn) = log m + log n</span><span class="ct">0 / 4</span></div><div class="dstep">\[\text{Let } u = \log_a m \quad\text{and}\quad v = \log_a n .\]<div class="why"><b>Name the unknowns.</b> This is the standard move for any log identity: give the logs names, so that we are working with exponents instead of logs. We require \(m>0\) and \(n>0\), or the left-hand sides do not exist.</div></div><div class="dstep">\[a^u = m \quad\text{and}\quad a^v = n\]<div class="why"><b>Convert to exponential form.</b> Purely the definition, applied twice. Nothing has been assumed.</div></div><div class="dstep">\[mn = a^u \cdot a^v = a^{u+v}\]<div class="why"><b>Use the one exponent law.</b> \(a^{u}a^{v}=a^{u+v}\) — the law we built the whole exponential to preserve. This single step is the entire content of the theorem; everything else is bookkeeping.</div></div><div class="dstep">\[\log_a(mn) = u + v = \log_a m + \log_a n \qquad\blacksquare\]<div class="why"><b>Convert back.</b> \(mn = a^{u+v}\) says, by the definition of the log, that \(\log_a(mn)=u+v\). Substituting the names back finishes it. Note the product \(mn\) is positive because \(m,n\) are, so the left side is legal.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d15')">Next step</button><button class="btn ghost" onclick="dall('d15')">Show all</button><button class="btn ghost" onclick="dreset('d15')">Reset</button></div></div>
+<p>The other three fall out the same way. Try each before revealing.</p>
+<div class="rev"><div class="rlbl">Derive these yourself first</div><p>Using the same three-move pattern — <em>name, convert, apply an exponent law, convert back</em> —
+derive:</p>
+<p>(a) \(\log_a\!\left(\dfrac{m}{n}\right) = \log_a m - \log_a n\) &nbsp;&nbsp;&nbsp;
+(b) \(\log_a(m^k) = k\log_a m\) &nbsp;&nbsp;&nbsp;
+(c) \(\log_a m = \dfrac{\log_b m}{\log_b a}\) &nbsp;<span class="small">(change of base)</span></p><div style="margin-top:12px"><button class="btn ghost" data-show="Show the three derivations" onclick="rev('r16',this)">Show the three derivations</button></div><div class="rev-body" id="r16"><p><strong>(a) Quotient law.</strong> Let \(u=\log_a m\), \(v=\log_a n\), so \(a^u=m\), \(a^v=n\).
+Then \(\frac{m}{n}=\frac{a^u}{a^v}=a^{u-v}\), using \(a^{u-v}a^{v}=a^{u}\). Converting back,
+\(\log_a\!\frac{m}{n}=u-v\). ∎</p>
+
+<p><strong>(b) Power law.</strong> Let \(u=\log_a m\), so \(a^u=m\). Raise both sides to the \(k\):
+\(m^k=(a^u)^k=a^{uk}\), using the law \((a^u)^k=a^{uk}\). Converting back, \(\log_a(m^k)=uk=k\log_a m\). ∎</p>
+<p>Sanity check with numbers: \(\log_2(8^2)=\log_2 64=6\), and \(2\log_2 8 = 2\cdot 3=6\) ✓.</p>
+
+<p><strong>(c) Change of base.</strong> Let \(u=\log_a m\), so \(a^u=m\). Apply \(\log_b\) to both sides —
+legal because both sides are positive and \(\log_b\) is a function, so equal inputs give equal outputs:</p>
+\[\log_b(a^u)=\log_b m.\]
+<p>By the power law just proved, the left side is \(u\log_b a\). So \(u\log_b a=\log_b m\), and since
+\(a\neq1\) we have \(\log_b a\neq0\) and may divide:</p>
+\[ u=\frac{\log_b m}{\log_b a}. \qquad \blacksquare\]
+<p><strong>Why this one matters in practice:</strong> your computer only implements \(\ln\) (natural log). Every
+\(\log_2\) and \(\log_{10}\) you have ever computed was secretly \(\ln m / \ln 2\) or \(\ln m/\ln 10\). And in
+information theory, changing the base only rescales entropy by a constant — which is precisely why "bits"
+(base 2) and "nats" (base \(e\)) are interchangeable units.</p></div></div>
+<div class="box warn"><span class="lbl">Common trap</span><p>Three non-laws that people invent. None of these is true:</p>
+\[\log(m+n) \neq \log m + \log n, \qquad \frac{\log m}{\log n} \neq \log\!\left(\frac{m}{n}\right),
+\qquad (\log m)^k \neq k \log m.\]
+<p>Test the first with \(m=n=1\), base 10: the left is \(\log 2 \approx 0.301\), the right is \(0+0=0\).
+The reason there is no law for \(\log(m+n)\) is structural: exponentials convert <em>addition into
+multiplication</em>, so logs convert multiplication back into addition. Addition on the inside has no
+counterpart. Notice that <code>logsumexp</code>, which we meet below, exists precisely because
+\(\log(\text{a sum})\) is awkward.</p></div>
+<h2 id="s5"><span class="secnum">5</span>Why e is called natural</h2>
+<p>Every base works. So why does all of mathematics and all of machine learning use \(e\approx
+2.71828\)? The answer is a statement about derivatives, which we will prove properly in Lecture 5. Here is the
+statement and the numerical evidence.</p>
+<p>Differentiate \(a^x\) from the definition of the derivative (Lecture 4):</p>
+<p>\[\frac{d}{dx}a^x = \lim_{h\to0}\frac{a^{x+h}-a^x}{h} = a^x \cdot \underbrace{\lim_{h\to0}\frac{a^h-1}{h}}_{\displaystyle =: \,C(a)}\]</p>
+<p>The factor \(a^x\) pulled straight out, because \(a^{x+h}=a^xa^h\) — the addition law again.
+So <em>every</em> exponential is proportional to its own derivative. The constant of proportionality \(C(a)\)
+depends on the base. The number \(e\) is <strong>defined</strong> as the base for which \(C(a)=1\):</p>
+<p>\[\frac{d}{dx}e^x = e^x.\]</p>
+<div class="fig"><div class="fig-head">Hunting for e: the base whose slope at x = 0 is exactly 1<span class="tag">Interactive</span></div><canvas id="f2e" data-h="360"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>y = aˣ</span><span><i style="background:var(--c2)"></i>tangent at x = 0</span><span><i style="background:var(--c3)"></i>slope 1 reference</span></div><div class="fig-read" id="f2e-read"></div><div class="ctrls"><div class="ctrl"><label>base  a</label><input type="range" min="1.5" max="4" step="0.001" value="2" data-fmt="3" oninput="figSlide('f2e','a',this)"><output>2.000</output></div></div><div class="fig-cap">The orange line is the tangent to aˣ at x = 0, whose slope is the constant C(a). The green dashed line has slope exactly 1. Tune a until the two coincide — you are numerically discovering e. Read the estimate of C(a) below the plot: it is computed by finite differences, exactly the way you would estimate any derivative you cannot do by hand.</div></div><script>makeFig("f2e",function(vp,p,F){
+vp.pads(44,16,14,30); vp.frame(-2.2,2.2,-0.5,4.5);
+vp.axes({stepx:1,stepy:1});
+var a=p.a, h=1e-6;
+var C=(Math.pow(a,h)-1)/h;      // numerical estimate of C(a)
+vp.curve(function(x){return Math.pow(a,x);},'--c1',{w:2.8});
+vp.curve(function(x){return 1+x;},'--c3',{w:2,dash:[6,4]});
+vp.curve(function(x){return 1+C*x;},'--c2',{w:2});
+vp.dot(0,1,'--c2',6);
+var err=Math.abs(C-1);
+var verdict = err<0.0015 ? '<b style="color:var(--ok)">this is e to 3 decimal places (e = 2.71828…)</b>'
+            : (C<1 ? 'slope is too shallow — increase a' : 'slope is too steep — decrease a');
+figRead('f2e','a = '+a.toFixed(3)+'   →   C(a) = lim (a^h − 1)/h ≈ <b>'+C.toFixed(5)+'</b>   |C(a) − 1| = '+err.toFixed(5)+'   '+verdict);
+},[{"name": "a", "label": "base  a", "min": 1.5, "max": 4, "step": 0.001, "value": 2, "dp": 3}]);window["FIG_f2e"].run();</script>
+<div class="box intuition"><span class="lbl">Intuition</span><p>\(e^x\) is the function that <em>is</em> its own rate of change: at every point, the
+height equals the slope. That is the mathematical shape of "growth proportional to current size" — compound
+interest, population growth, radioactive decay, and, most relevant here, the way a gradient-descent step of the
+form \(w \leftarrow w(1-\eta)\) decays a weight geometrically. The natural log \(\ln = \log_e\) is its inverse,
+and \(\frac{d}{dx}\ln x = \frac1x\), which is why \(\ln\) shows up the moment you differentiate any
+log-likelihood.</p></div>
+<h2 id="s6"><span class="secnum">6</span>Monotonicity: why maximising the log is the same problem</h2>
+<p>This is the theorem that licenses every "we take logs for convenience" sentence in every paper
+you will read. It deserves a proof, not a wave.</p>
+<div class="box thm"><span class="lbl">Theorem — log preserves argmax</span><p>Let \(g:\Theta\to(0,\infty)\) be any strictly
+positive function. Then</p>
+\[ \argmax_{\vt \in \Theta} g(\vt) \;=\; \argmax_{\vt \in \Theta} \log g(\vt), \]
+<p>meaning the two problems have exactly the same set of maximisers.</p>
+<p><strong>Proof.</strong> For \(a>1\), \(\log_a\) is <em>strictly increasing</em>: if \(0&lt;s&lt;t\) then
+\(\log_a s &lt; \log_a t\). (Reason: \(\log_a\) is the inverse of the strictly increasing \(a^x\), and the inverse
+of a strictly increasing bijection is strictly increasing — if it ever decreased, reflecting would contradict
+monotonicity of \(a^x\).)</p>
+<p>Now suppose \(\vt^\star\) maximises \(g\), so \(g(\vt) \le g(\vt^\star)\) for all \(\vt\). Applying the
+increasing function \(\log\) preserves \(\le\), giving \(\log g(\vt) \le \log g(\vt^\star)\) for all \(\vt\);
+hence \(\vt^\star\) maximises \(\log g\).</p>
+<p>Conversely, suppose \(\vt^\star\) maximises \(\log g\). Apply the increasing function \(\exp\) to
+\(\log g(\vt) \le \log g(\vt^\star)\) to get \(g(\vt)\le g(\vt^\star)\). So the maximiser sets are equal. ∎</p></div>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>This is why the following are all <em>the same optimisation problem</em>, and you will see all
+four written down as if they were interchangeable — because they are:</p>
+\[\argmax_{\vt}\ \prod_{i=1}^n p(y_i\mid \vx_i;\vt)
+\;=\;\argmax_{\vt}\ \sum_{i=1}^n \log p(y_i\mid \vx_i;\vt)
+\;=\;\argmin_{\vt}\ -\!\sum_{i=1}^n \log p(y_i\mid \vx_i;\vt)
+\;=\;\argmin_{\vt}\ -\frac1n\sum_{i=1}^n \log p(y_i\mid \vx_i;\vt)\]
+<p>The first equality is the theorem plus the product law. The second is because maximising \(f\) is minimising
+\(-f\). The third is because dividing by the positive constant \(n\) cannot move a minimiser. That last object
+is the <strong>average negative log-likelihood</strong>, which for classification is exactly the
+<strong>cross-entropy loss</strong>. You have now derived the most common loss function in machine learning
+from the monotonicity of the logarithm.</p></div>
+<h2 id="s7"><span class="secnum">7</span>Underflow, and the log-sum-exp trick</h2>
+<p>Now the engineering payoff. Run this and watch a likelihood die.</p>
+<div class="pyb" id="py17" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+
+for n in [100, 500, 1000, 5000]:
+    p = rng.uniform(0.2, 0.8, size=n)      # n independent event probabilities
+
+    prod    = np.prod(p)                    # the naive likelihood
+    logsum  = np.sum(np.log(p))             # the log-likelihood
+
+    print(f&quot;n = {n:5d}   prod(p) = {prod:.6e}   sum(log p) = {logsum:12.4f}&quot;
+          f&quot;   exp(sum) = {np.exp(logsum):.6e}&quot;)
+
+print()
+print(&quot;The smallest positive number float64 can represent is about&quot;,
+      f&quot;{np.finfo(float).tiny:.3e}&quot;)
+print(&quot;Below that the product rounds to exactly 0.0 -- and then:&quot;)
+print(&quot;   log(0.0)      =&quot;, np.log(np.float64(0.0)))
+print(&quot;   0.0 / 0.0     = nan, and every gradient downstream becomes nan.&quot;)
+print()
+print(&quot;The log-likelihood, meanwhile, is a perfectly ordinary negative number&quot;)
+print(&quot;of magnitude roughly 0.77 * n.  It never overflows.  This is not a&quot;)
+print(&quot;mathematical convenience -- it is the only reason training works at all.&quot;)
+"><div class="pyb-head"><span class="t">Watching a product of probabilities underflow to zero</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py17')">Run</button><button class="btn ghost" onclick="resetPy('py17')">Reset</button></div><textarea spellcheck="false" rows="23">import numpy as np
+rng = np.random.default_rng(0)
+
+for n in [100, 500, 1000, 5000]:
+    p = rng.uniform(0.2, 0.8, size=n)      # n independent event probabilities
+
+    prod    = np.prod(p)                    # the naive likelihood
+    logsum  = np.sum(np.log(p))             # the log-likelihood
+
+    print(f&quot;n = {n:5d}   prod(p) = {prod:.6e}   sum(log p) = {logsum:12.4f}&quot;
+          f&quot;   exp(sum) = {np.exp(logsum):.6e}&quot;)
+
+print()
+print(&quot;The smallest positive number float64 can represent is about&quot;,
+      f&quot;{np.finfo(float).tiny:.3e}&quot;)
+print(&quot;Below that the product rounds to exactly 0.0 -- and then:&quot;)
+print(&quot;   log(0.0)      =&quot;, np.log(np.float64(0.0)))
+print(&quot;   0.0 / 0.0     = nan, and every gradient downstream becomes nan.&quot;)
+print()
+print(&quot;The log-likelihood, meanwhile, is a perfectly ordinary negative number&quot;)
+print(&quot;of magnitude roughly 0.77 * n.  It never overflows.  This is not a&quot;)
+print(&quot;mathematical convenience -- it is the only reason training works at all.&quot;)
+</textarea><div class="pyout"></div></div>
+<p>The mirror-image problem appears in softmax. You need \(\log \sum_j e^{z_j}\), and if some
+\(z_j\) is large, \(e^{z_j}\) overflows to <code>inf</code>. The fix is a one-line identity worth knowing by
+heart.</p>
+<div class="deriv" id="d18"><div class="deriv-head"><span class="t">The log-sum-exp identity</span><span class="ct">0 / 5</span></div><div class="dstep">\[L = \log \sum_{j=1}^{K} e^{z_j}\]<div class="why"><b>The quantity we need.</b> It is the normalising term of a softmax, and it appears in every classification loss. The danger: if \(z_j = 1000\), then \(e^{1000}\) overflows to <code>inf</code> in float64, and \(\log(\infty)=\infty\).</div></div><div class="dstep">\[\text{Let } m = \max_j z_j. \qquad e^{z_j} = e^{m} e^{z_j - m}\]<div class="why"><b>Factor out the largest term.</b> Legal by the addition law: \(e^{m + (z_j-m)} = e^m e^{z_j-m}\). Note \(z_j - m \le 0\) for every \(j\), with equality for the maximiser.</div></div><div class="dstep">\[\sum_j e^{z_j} = e^{m}\sum_j e^{z_j-m}\]<div class="why"><b>Pull the common factor out of the sum.</b> \(e^m\) does not depend on \(j\), so it factors out — ordinary distributivity.</div></div><div class="dstep">\[L = \log\!\left(e^{m}\sum_j e^{z_j-m}\right) = m + \log \sum_j e^{z_j - m}\]<div class="why"><b>Apply the product law.</b> \(\log(uv)=\log u + \log v\), and \(\log e^m = m\) because \(\log\) and \(\exp\) are inverses. This is the identity.</div></div><div class="dstep">\[0 &lt; e^{z_j - m} \le 1 \quad\Rightarrow\quad 1 \le \sum_j e^{z_j-m} \le K\]<div class="why"><b>Why it is safe.</b> Every exponent is now \(\le 0\), so every term is in \((0,1]\) — no overflow possible. The sum is at least 1 (the maximiser contributes exactly \(e^0=1\)), so the log is of a number in \([1,K]\) — no underflow either. The identity is exact, not an approximation: we changed nothing but the order of operations.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d18')">Next step</button><button class="btn ghost" onclick="dall('d18')">Show all</button><button class="btn ghost" onclick="dreset('d18')">Reset</button></div></div>
+<div class="pyb" id="py19" data-orig="import numpy as np
+
+def logsumexp_naive(z):
+    return np.log(np.sum(np.exp(z)))
+
+def logsumexp_stable(z):
+    m = np.max(z)
+    return m + np.log(np.sum(np.exp(z - m)))
+
+tests = {
+    &quot;ordinary logits&quot;:  np.array([1.0, 2.0, 3.0]),
+    &quot;large logits&quot;:     np.array([1000.0, 1001.0, 1002.0]),
+    &quot;very negative&quot;:    np.array([-1000.0, -1001.0, -1002.0]),
+}
+
+with np.errstate(over=&#x27;ignore&#x27;, divide=&#x27;ignore&#x27;, invalid=&#x27;ignore&#x27;):
+    for name, z in tests.items():
+        print(f&quot;{name:18s} naive = {logsumexp_naive(z):&gt;10}&quot;
+              f&quot;   stable = {logsumexp_stable(z):.6f}&quot;)
+
+print()
+print(&quot;Note the &#x27;large logits&#x27; row: the naive version overflows to inf,&quot;)
+print(&quot;the stable one gives 1002.4076 -- and that is EXACT, not approximate,&quot;)
+print(&quot;because the identity log(sum exp z) = m + log(sum exp(z-m)) is an identity.&quot;)
+print()
+print(&quot;Check the middle case by hand:&quot;)
+z = np.array([1000.0, 1001.0, 1002.0])
+print(&quot;  m = 1002, so we need 1002 + log(e^-2 + e^-1 + e^0)&quot;)
+print(&quot;  =&quot;, 1002 + np.log(np.exp(-2) + np.exp(-1) + np.exp(0)))
+print(&quot;Shifting all logits by the same constant leaves softmax unchanged --&quot;)
+print(&quot;which is the non-injectivity of softmax from Lecture 1, put to work.&quot;)
+"><div class="pyb-head"><span class="t">Naive vs stable log-sum-exp</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py19')">Run</button><button class="btn ghost" onclick="resetPy('py19')">Reset</button></div><textarea spellcheck="false" rows="32">import numpy as np
+
+def logsumexp_naive(z):
+    return np.log(np.sum(np.exp(z)))
+
+def logsumexp_stable(z):
+    m = np.max(z)
+    return m + np.log(np.sum(np.exp(z - m)))
+
+tests = {
+    &quot;ordinary logits&quot;:  np.array([1.0, 2.0, 3.0]),
+    &quot;large logits&quot;:     np.array([1000.0, 1001.0, 1002.0]),
+    &quot;very negative&quot;:    np.array([-1000.0, -1001.0, -1002.0]),
+}
+
+with np.errstate(over=&#x27;ignore&#x27;, divide=&#x27;ignore&#x27;, invalid=&#x27;ignore&#x27;):
+    for name, z in tests.items():
+        print(f&quot;{name:18s} naive = {logsumexp_naive(z):&gt;10}&quot;
+              f&quot;   stable = {logsumexp_stable(z):.6f}&quot;)
+
+print()
+print(&quot;Note the &#x27;large logits&#x27; row: the naive version overflows to inf,&quot;)
+print(&quot;the stable one gives 1002.4076 -- and that is EXACT, not approximate,&quot;)
+print(&quot;because the identity log(sum exp z) = m + log(sum exp(z-m)) is an identity.&quot;)
+print()
+print(&quot;Check the middle case by hand:&quot;)
+z = np.array([1000.0, 1001.0, 1002.0])
+print(&quot;  m = 1002, so we need 1002 + log(e^-2 + e^-1 + e^0)&quot;)
+print(&quot;  =&quot;, 1002 + np.log(np.exp(-2) + np.exp(-1) + np.exp(0)))
+print(&quot;Shifting all logits by the same constant leaves softmax unchanged --&quot;)
+print(&quot;which is the non-injectivity of softmax from Lecture 1, put to work.&quot;)
+</textarea><div class="pyout"></div></div>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p>Never write <code>np.log(np.sum(np.exp(z)))</code> in code you care about. Use
+<code>scipy.special.logsumexp</code>, or <code>torch.logsumexp</code>, or the three-line stable version above.
+Relatedly, never write <code>np.log(softmax(z))</code> — use <code>log_softmax(z) = z - logsumexp(z)</code>,
+which is both faster and stable. If you have ever seen a training run produce <code>nan</code> loss on step
+one, this is the first place to look.</p></div>
+<h2 id="s8"><span class="secnum">8</span>Sigmoid and logit: an inverse pair you will use constantly</h2>
+<p>One last pairing, because it is Lecture 1's inverse machinery applied to this lecture's
+functions, and it is the entire mathematical content of logistic regression.</p>
+<div class="deriv" id="d20"><div class="deriv-head"><span class="t">Inverting the sigmoid</span><span class="ct">0 / 4</span></div><div class="dstep">\[p = \sigma(z) = \frac{1}{1+e^{-z}}\]<div class="why"><b>The sigmoid.</b> Domain \(\RR\), and since \(e^{-z}>0\) always, the denominator is \(>1\), so \(0&lt;p&lt;1\). Its image is exactly \((0,1)\) — it turns an unbounded real \(z\) into something that can be read as a probability. Note it never actually reaches 0 or 1.</div></div><div class="dstep">\[1+e^{-z} = \frac{1}{p} \quad\Longrightarrow\quad e^{-z} = \frac{1}{p}-1 = \frac{1-p}{p}\]<div class="why"><b>Isolate the exponential.</b> Take reciprocals (legal, \(p\neq0\)) then subtract 1 and put over a common denominator. Nothing subtle.</div></div><div class="dstep">\[-z = \log\!\left(\frac{1-p}{p}\right) \quad\Longrightarrow\quad z = \log\!\left(\frac{p}{1-p}\right)\]<div class="why"><b>Apply the log.</b> Legal precisely because \(\frac{1-p}{p}>0\) when \(0&lt;p&lt;1\) — the domain condition, checked rather than assumed. The last step flips the sign using \(-\log u = \log(1/u)\), a case of the quotient law.</div></div><div class="dstep">\[\operatorname{logit}(p)=\log\frac{p}{1-p}, \qquad \operatorname{logit} = \sigma^{-1} : (0,1)\to\RR\]<div class="why"><b>The log-odds.</b> \(\frac{p}{1-p}\) is the <em>odds</em>; its log is the <em>log-odds</em> or logit. Logistic regression models the log-odds as a linear function \(\vw^\top\vx + b\), and \(\sigma\) converts back to a probability. The two functions are an inverse pair between \(\RR\) and \((0,1)\), which is exactly why the modelling choice is coherent.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d20')">Next step</button><button class="btn ghost" onclick="dall('d20')">Show all</button><button class="btn ghost" onclick="dreset('d20')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">σ and logit as mirror images — squashing ℝ into (0,1) and back<span class="tag">Interactive</span></div><canvas id="f2sig" data-h="380"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>σ(z) = 1/(1+e⁻ᶻ)</span><span><i style="background:var(--c3)"></i>logit(p) = log(p/(1−p))</span><span><i style="background:var(--ink3)"></i>y = x</span></div><div class="fig-read" id="f2sig-read"></div><div class="ctrls"><div class="ctrl"><label>logit  z</label><input type="range" min="-6" max="6" step="0.05" value="1.0" data-fmt="2" oninput="figSlide('f2sig','z',this)"><output>1.00</output></div></div><div class="fig-cap">Drag z. The blue dot is the probability σ(z); the green dot is that probability sent back through the logit and landing exactly where it started. Watch the asymptotes: σ approaches 0 and 1 but never reaches them, which mirrors logit blowing up to ∓∞ at p = 0 and p = 1. That is why a model can never be 100% confident, and why cross-entropy is finite for any real logit.</div></div><script>makeFig("f2sig",function(vp,p,F){
+vp.pads(40,16,14,30); vp.frame(-6.4,6.4,-6.4,6.4);
+vp.axes({stepx:2,stepy:2});
+vp.seg(-6.4,-6.4,6.4,6.4,'--ink3',{dash:[5,5],w:1.3});
+vp.seg(-6.4,1,6.4,1,'--ink3',{dash:[2,5],w:1.1});
+vp.seg(-6.4,0,6.4,0,'--ink3',{dash:[2,5],w:1.1});
+vp.seg(1,-6.4,1,6.4,'--ink3',{dash:[2,5],w:1.1});
+vp.curve(function(x){return 1/(1+Math.exp(-x));},'--c1',{w:2.8});
+vp.curve(function(x){return (x>0&&x<1)?Math.log(x/(1-x)):NaN;},'--c3',{w:2.8});
+vp.label(-4.6,0.9,'y = 1','--ink3',{halo:true});
+var z=p.z, pr=1/(1+Math.exp(-z)), back=Math.log(pr/(1-pr));
+vp.seg(z,0,z,pr,'--c2',{dash:[3,3],w:1.4});
+vp.dot(z,pr,'--c1',6.5);
+vp.seg(pr,0,pr,back,'--c2',{dash:[3,3],w:1.4});
+vp.dot(pr,back,'--c3',6.5);
+figRead('f2sig','z = '+z.toFixed(2)+'   →   σ(z) = <b>'+pr.toFixed(6)+'</b>   →   logit(σ(z)) = <b>'+back.toFixed(6)+
+  '</b>   (recovers z ✓)   |   odds = p/(1−p) = '+(pr/(1-pr)).toFixed(4));
+},[{"name": "z", "label": "logit  z", "min": -6, "max": 6, "step": 0.05, "value": 1.0, "dp": 2}]);window["FIG_f2sig"].run();</script>
+<h2 id="s9"><span class="secnum">9</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>Solve, showing every step, and <strong>state the domain restriction before you start solving</strong>:</p>
+  <p>(a) \(\log_3(x) + \log_3(x-6) = 3\) &nbsp;&nbsp;&nbsp;
+  (b) \(\log_5(x+4) - \log_5(x) = 1\) &nbsp;&nbsp;&nbsp;
+  (c) \(2\log_2(x) = \log_2(6-x) + 1\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex21',this)">Show solution</button></div><div class="rev-body" id="ex21"><p><strong>(a)</strong> Domain first: need \(x>0\) <em>and</em> \(x-6>0\), so \(x>6\).<br>
+  \(\log_3(x(x-6))=3 \Rightarrow x^2-6x=27 \Rightarrow x^2-6x-27=0 \Rightarrow (x-9)(x+3)=0
+  \Rightarrow x=9\) or \(x=-3\).<br>
+  \(x=-3\) fails \(x>6\), so <strong>reject</strong> it. Answer: \(x=9\) only.<br>
+  Verify: \(\log_3 9 + \log_3 3 = 2+1=3\) ✓.</p>
+
+  <p><strong>(b)</strong> Domain: \(x+4>0\) and \(x>0\), so \(x>0\).<br>
+  \(\log_5\!\frac{x+4}{x}=1 \Rightarrow \frac{x+4}{x}=5^1=5 \Rightarrow x+4=5x \Rightarrow x=1\).<br>
+  \(1>0\) ✓. Verify: \(\log_5 5 - \log_5 1 = 1-0=1\) ✓.</p>
+
+  <p><strong>(c)</strong> Domain: \(x>0\) and \(6-x>0\), so \(0&lt;x&lt;6\).<br>
+  \(\log_2(x^2)=\log_2(6-x)+\log_2 2=\log_2(2(6-x))\). Since \(\log_2\) is injective, equal logs force equal
+  arguments: \(x^2=12-2x \Rightarrow x^2+2x-12=0 \Rightarrow x=\frac{-2\pm\sqrt{4+48}}{2}=-1\pm\sqrt{13}\).<br>
+  \(\sqrt{13}\approx3.606\), giving \(x\approx2.606\) or \(x\approx-4.606\). Only the first lies in \((0,6)\).
+  Answer: \(x=\sqrt{13}-1\).<br>
+  <em>Note the step "equal logs force equal arguments" is injectivity of \(\log_2\) — it is the reason the move
+  is legal, and it is worth naming.</em></p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Explain, using the definition rather than the rules, why each of these is undefined or ill-posed:</p>
+  <p>(a) \(\log_2(0)\) &nbsp;&nbsp; (b) \(\log_1(5)\) &nbsp;&nbsp; (c) \(\log_{-2}(4)\)</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex22',this)">Show solution</button></div><div class="rev-body" id="ex22"><p><strong>(a)</strong> \(\log_2(0)=c\) means \(2^c=0\). We proved \(2^c>0\) for every real \(c\).
+  No solution, so undefined. Note this is a <em>limit</em> case in a way that \(\log_2(-2)\) is not: as
+  \(y\to0^+\), \(\log_2 y\to-\infty\), so \(-\infty\) is a legitimate extended-real value. That is why
+  <code>np.log(0.0)</code> returns <code>-inf</code> with a warning, but <code>np.log(-2.0)</code> returns
+  <code>nan</code>.</p>
+  <p><strong>(b)</strong> \(\log_1(5)=c\) means \(1^c=5\). But \(1^c=1\) for every \(c\). No solution. Worse,
+  \(\log_1(1)=c\) means \(1^c=1\), which <em>every</em> \(c\) satisfies — so the value would not be unique.
+  Base 1 fails <em>both</em> conditions of being a function: \(x\mapsto 1^x\) is constant, hence neither
+  injective nor surjective onto \((0,\infty)\). That is exactly why the definition excludes \(a=1\).</p>
+  <p><strong>(c)</strong> A negative base breaks at Stage 3 of the construction: \((-2)^{1/2}\) would be a real
+  square root of \(-2\), which does not exist. So \(x\mapsto(-2)^x\) is not defined on \(\RR\) at all — it only
+  makes sense at some rationals, giving a wildly discontinuous object. Since there is no exponential function to
+  invert, there is no logarithm. (\(\log_{-2}(4)=2\) is tempting because \((-2)^2=4\), but a single lucky point
+  does not make a function.)</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that \(\sigma(-z) = 1-\sigma(z)\), and use it to show that the binary cross-entropy loss</p>
+  \[\ell(z,y) = -\big[y\log\sigma(z) + (1-y)\log(1-\sigma(z))\big], \qquad y\in\{0,1\}\]
+  <p>can be written in the single expression \(\ell = \log(1+e^{-(2y-1)z})\).</p>
+  <p>Why is the second form better numerically?</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex23',this)">Show solution</button></div><div class="rev-body" id="ex23"><p><strong>Part 1.</strong>
+  \(\displaystyle 1-\sigma(z) = 1-\frac{1}{1+e^{-z}} = \frac{1+e^{-z}-1}{1+e^{-z}} = \frac{e^{-z}}{1+e^{-z}}\).
+  Multiply top and bottom by \(e^{z}\):
+  \(\displaystyle = \frac{1}{e^{z}+1} = \sigma(-z)\). ∎</p>
+
+  <p><strong>Part 2.</strong> Note \(\log\sigma(z) = \log\frac{1}{1+e^{-z}} = -\log(1+e^{-z})\).</p>
+  <p>If \(y=1\): \(\ell = -\log\sigma(z) = \log(1+e^{-z})\). And \(2y-1=1\), so the claimed formula gives
+  \(\log(1+e^{-z})\) ✓.</p>
+  <p>If \(y=0\): \(\ell = -\log(1-\sigma(z)) = -\log\sigma(-z) = \log(1+e^{z})\). And \(2y-1=-1\), so the formula
+  gives \(\log(1+e^{-(-1)z}) = \log(1+e^{z})\) ✓.</p>
+  <p>Both cases match, and \(y\) takes only those two values, so the forms agree. ∎</p>
+
+  <p><strong>Part 3 — why it is better.</strong> The first form computes \(\sigma(z)\) and <em>then</em> takes its
+  log. For \(z=-40\), \(\sigma(z)\approx 4\times10^{-18}\), which is representable — but for \(z=-800\),
+  \(\sigma(z)\) underflows to exactly \(0.0\) and \(\log 0 = -\infty\): the loss becomes <code>inf</code> and
+  the gradient <code>nan</code>, even though the true loss is a perfectly finite \(800\).</p>
+  <p>The combined form never materialises the probability. Writing \(t=-(2y-1)z\), the standard stable
+  implementation is \(\max(t,0) + \log(1+e^{-|t|})\), which is log-sum-exp applied to \(\log(e^0+e^t)\). This is
+  exactly why PyTorch offers <code>BCEWithLogitsLoss</code> and warns you not to chain
+  <code>Sigmoid</code> into <code>BCELoss</code>: fusing the two operations is a numerical necessity, not a
+  micro-optimisation.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding + reasoning.</strong> The <em>entropy</em> of a discrete distribution
+  \(\mathbf{p}=(p_1,\dots,p_K)\) with \(\sum p_k=1\) is</p>
+  \[ H(\mathbf p) = -\sum_{k=1}^{K} p_k \log_2 p_k \quad \text{bits.}\]
+  <ol>
+  <li>What should the term contribute when \(p_k=0\)? \(\log_2 0\) is undefined, so the formula is literally
+  ill-posed there. Decide what value to use and justify it.</li>
+  <li>Implement <code>entropy(p)</code> in NumPy handling that case, and verify it on the uniform distribution
+  over \(K\) outcomes.</li>
+  <li>Prove that \(H\) is maximised by the uniform distribution when \(K=2\), by direct calculus.</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex24',this)">Show solution</button></div><div class="rev-body" id="ex24"><p><strong>1.</strong> Use \(0\). Justification: the term is \(p\log_2 p\), and
+  \(\lim_{p\to0^+} p\log_2 p = 0\), because \(p\) goes to zero faster than \(\log_2 p\) goes to \(-\infty\).
+  (Formally this is L'Hôpital on \(\frac{\log_2 p}{1/p}\), which we will have tools for in Lecture 4.)
+  So \(p\log_2 p\) extends <em>continuously</em> to \(p=0\) with value 0. This is a genuine limit, not a
+  convention of convenience — an outcome that never happens contributes no surprise.</p>
+
+  <pre style="overflow-x:auto"><code>import numpy as np
+
+def entropy(p):
+    p = np.asarray(p, dtype=float)
+    if np.any(p &lt; 0) or not np.isclose(p.sum(), 1.0):
+        raise ValueError("not a probability distribution")
+    nz = p &gt; 0                      # mask out the zeros
+    return -np.sum(p[nz] * np.log2(p[nz]))
+
+for K in [2, 4, 8, 256]:
+    u = np.full(K, 1.0 / K)
+    print(K, entropy(u), np.log2(K))</code></pre>
+  <p>Uniform over \(K\) gives \(-\sum \frac1K\log_2\frac1K = -K\cdot\frac1K\cdot(-\log_2 K)=\log_2 K\).
+  So \(K=256\) gives exactly 8 bits — one byte, which is the sanity check that the units are right.</p>
+
+  <p><strong>3.</strong> With \(K=2\), write \(\mathbf p=(p,1-p)\) for \(p\in(0,1)\):</p>
+  \[H(p) = -p\log_2 p-(1-p)\log_2(1-p).\]
+  <p>Differentiate. Using \(\frac{d}{dp}\log_2 p = \frac{1}{p\ln2}\) (change of base, then Lecture 5's rule):</p>
+  \[H'(p) = -\log_2 p - \frac{1}{\ln 2} + \log_2(1-p) + \frac{1}{\ln2} = \log_2\!\frac{1-p}{p}.\]
+  <p>Setting \(H'(p)=0\) gives \(\frac{1-p}{p}=1\), so \(p=\tfrac12\). And
+  \(H''(p) = \frac{d}{dp}\big[\log_2(1-p)-\log_2 p\big] = -\frac{1}{(1-p)\ln2}-\frac{1}{p\ln 2} &lt; 0\)
+  everywhere on \((0,1)\), so \(H\) is strictly concave and the critical point is the global maximum.
+  \(H(\tfrac12)=1\) bit. ∎</p>
+  <p>Notice what \(H'(p)=\log_2\frac{1-p}{p}\) is: the negative of the logit. The same function keeps
+  reappearing, which is not a coincidence — it is the reason cross-entropy has such a clean gradient, as you
+  will see in Phase B.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> Lecture 3 makes the word "limit" precise. We used it twice in this
+lecture on promissory notes — to define \(a^x\) for irrational \(x\), and to define \(C(a)\). Time to pay both
+debts, because the derivative in Lecture 4 is built entirely out of limits.</p>
+<div class="pagenav"><a href="01-what-a-function-is.html" class="pv"><span class="dir">Previous</span><span class="nm">1 · What a Function Really Is</span></a><a href="03-limits-and-continuity.html" class="nx"><span class="dir">Next</span><span class="nm">3 · Limits and Continuity</span></a></div>
+</div>
+<script>initDone('02-exponentials-and-logarithms');</script>
+</body>
+</html>

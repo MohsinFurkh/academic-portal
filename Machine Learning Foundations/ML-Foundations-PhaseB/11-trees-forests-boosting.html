@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>11. Decision Trees, Random Forests, and Gradient Boosting — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 11 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('11-trees-forests-boosting')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part VI — Nonlinear Methods · Lecture 11</div>
+  <h1>Decision Trees, Random Forests, and Gradient Boosting</h1>
+  <p class="dek">Leave the hyperplane behind. A tree carves the input space into boxes; a forest averages many de-correlated trees; boosting fits each new tree to what the ensemble still gets wrong. Two of these are still the best thing to run on tabular data.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Derive the optimal leaf value for a fixed partition, and see why finding the best tree is intractable</li><li>Derive why misclassification error fails as a splitting criterion and Gini and entropy do not</li><li>Derive \(\Var\!\left(\bar f\right)=\rho\sigma^2+\frac{1-\rho}{B}\sigma^2\) and read random forests off it</li><li>Derive gradient boosting as gradient descent in function space</li><li>Derive the second-order leaf value \(w^\star=-G/(H+\lambda)\) and the split-gain formula behind XGBoost</li><li>Say precisely which of bias and variance each ensemble method attacks</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase B, Lecture 7: bias–variance decomposition, cross-validation</li><li>Phase B, Lecture 3: gradient descent, step sizes, why small steps can beat large ones</li><li>Phase A, Lecture 13: variance of a sum, covariance</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>A completely different way to be nonlinear</h2>
+<p>Everything in Part II fitted a function of the form \(f(\vx)=\vw^\top\phi(\vx)\): you choose
+the basis \(\phi\) up front and the model chooses the weights. Trees abandon that entirely. A tree makes no
+smoothness assumption, has no coefficients, and is invariant to any monotone transformation of any individual
+feature — take logs of half your columns and the tree is unchanged.</p>
+<div class="box intuition"><span class="lbl">Intuition</span><p>A tree is a game of twenty questions. Each internal node asks one question of the
+form "is \(x_j \le t\)?", and after a few questions you land in a leaf and answer with whatever the training
+points in that leaf averaged to.</p>
+<p>Geometrically: each question is an axis-aligned cut, and the questions together carve \(\RR^d\) into
+rectangular boxes. The fitted function is constant on each box. That is the entire model class — piecewise
+constant on axis-aligned boxes.</p></div>
+<div class="box defn"><span class="lbl">Regression tree</span><p>A partition of the input space into \(M\) disjoint regions
+\(R_1,\dots,R_M\) formed by axis-aligned splits, together with a value per region:</p>
+\[ f(\vx) \;=\; \sum_{m=1}^{M} c_m \,\mathbb{1}[\vx \in R_m]. \]
+<p>For classification the leaf holds a class distribution \(\hat p_{mk}\) instead of a single number, and
+predicts \(\argmax_k \hat p_{mk}\).</p></div>
+<div class="deriv" id="d84"><div class="deriv-head"><span class="t">Given the boxes, the leaf values are immediate</span><span class="ct">0 / 4</span></div><div class="dstep">\[\hat R(f)=\sum_{i=1}^{n}\big(y_i-f(\vx_i)\big)^2 = \sum_{m=1}^{M}\ \sum_{i:\,\vx_i\in R_m}\big(y_i-c_m\big)^2\]<div class="why"><b>The objective splits over regions.</b> Because the regions are disjoint and cover everything, each training point contributes to exactly one inner sum. So the \(M\) leaf values are \(M\) completely independent one-parameter problems — no coupling at all, unlike the normal equations where every coefficient depends on every other.</div></div><div class="dstep">\[\frac{\partial}{\partial c_m}\sum_{i\in R_m}(y_i-c_m)^2 = -2\sum_{i\in R_m}(y_i-c_m)=0 \;\Longrightarrow\; \hat c_m = \frac{1}{|R_m|}\sum_{i\in R_m} y_i\]<div class="why"><b>Each leaf is the mean.</b> Phase A Lecture 13's result again: the constant minimising squared deviation is the mean. The second derivative is \(2|R_m|>0\), so it is a minimum.</div></div><div class="dstep">\[\text{0–1 loss} \Rightarrow \hat c_m = \text{majority class}, \qquad \text{absolute loss} \Rightarrow \hat c_m = \text{median}\]<div class="why"><b>The leaf value is decided by the loss, not by the tree.</b> Exactly the correspondence from Lecture 4: squared loss → mean, absolute loss → median, 0–1 loss → mode. Change the loss and only this step changes; the partition machinery is untouched.</div></div><div class="dstep">\[\text{but choosing } \{R_m\} \text{ optimally is NP-hard}\]<div class="why"><b>The hard half.</b> The number of distinct binary trees over \(n\) points with \(d\) features is astronomically large, and finding the partition that minimises \(\hat R\) is NP-hard (Hyafil & Rivest, 1976). So every tree algorithm in existence is greedy: choose the single best split now, recurse, never reconsider. Nothing guarantees the result is close to optimal — it is a heuristic, and calling it one is more honest than most textbooks are.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d84')">Next step</button><button class="btn ghost" onclick="dall('d84')">Show all</button><button class="btn ghost" onclick="dreset('d84')">Reset</button></div></div>
+<h2 id="s2"><span class="secnum">2</span>Choosing a split: impurity, and a criterion that quietly fails</h2>
+<p>For regression, "best split" means the one that most reduces the sum of squared errors, and the
+code below shows the \(O(n\log n)\) prefix-sum trick that makes it fast. For classification we need a measure
+of how mixed a node is. Three candidates, all functions of the class proportions \(p_k\) in a node:</p>
+<div class="box defn"><span class="lbl">Impurity measures</span><p>\[
+\text{misclassification: } \ I_{\text{err}} = 1-\max_k p_k, \qquad
+\text{Gini: } \ I_G = \sum_k p_k(1-p_k), \qquad
+\text{entropy: } \ I_H = -\sum_k p_k\log_2 p_k.
+\]
+<p>All three are zero for a pure node and maximal at the uniform distribution. The <strong>gain</strong> of a
+split is the parent impurity minus the size-weighted average of the children's:</p>
+\[ \Delta = I(\text{parent}) - \frac{n_L}{n}I(\text{left}) - \frac{n_R}{n}I(\text{right}). \]</p></div>
+<div class="deriv" id="d85"><div class="deriv-head"><span class="t">Why misclassification error is the wrong criterion</span><span class="ct">0 / 5</span></div><div class="dstep">\[\Delta \;=\; I(\bar p) - \Big[\tfrac{n_L}{n}I(p_L)+\tfrac{n_R}{n}I(p_R)\Big], \qquad \bar p=\tfrac{n_L}{n}p_L+\tfrac{n_R}{n}p_R\]<div class="why"><b>Set up the geometry.</b> First check the identity \(\bar p = \frac{n_L}{n}p_L+\frac{n_R}{n}p_R\): the parent's class-1 proportion is the size-weighted average of the children's, because the counts simply add. So the gain compares the height of \(I\) <em>at</em> a weighted average against the weighted average <em>of</em> the heights.</div></div><div class="dstep">\[\Delta \ge 0 \ \text{ for all splits} \iff I \text{ is concave}\]<div class="why"><b>That is exactly Jensen's inequality.</b> \(I(\text{weighted average}) \ge \text{weighted average of } I\) is the definition of concavity. So any concave impurity gives non-negative gain, and the gain is the vertical gap between the curve and the chord joining \((p_L,I(p_L))\) to \((p_R,I(p_R))\). Draw that chord in the figure below — it is the whole story in one picture.</div></div><div class="dstep">\[I_{\text{err}}(p)=\min(p,1-p) \ \text{ is concave but } \textbf{piecewise linear}\]<div class="why"><b>Here is the defect.</b> Concave, so the gain is never negative — but only <em>weakly</em> concave. On either side of \(p=\tfrac12\) it is a straight line, and a chord between two points on a straight line lies exactly on it. Gain zero.</div></div><div class="dstep">\[p_L,p_R \ \text{ on the same side of } \tfrac12 \ \Longrightarrow\ \Delta_{\text{err}}=0\]<div class="why"><b>The consequence.</b> Any split whose two children still have the same majority class scores <em>exactly zero</em> under misclassification error, no matter how much it purifies them. The greedy search sees a flat landscape and stops. Concretely: a parent with 400/400 split into (300,100) and (100,300) and split into (200,0) and (200,400) both score \(\Delta_{\text{err}}=0.25\) — indistinguishable, although the second produces a perfectly pure leaf.</div></div><div class="dstep">\[I_G(p)=2p(1-p) \ \text{ and } \ I_H(p) \ \text{ are } \textbf{strictly} \text{ concave}\]<div class="why"><b>The fix.</b> \(I_G''(p)=-4&lt;0\) everywhere and \(I_H''(p)=-\frac{1}{\ln 2}\big(\frac1p+\frac1{1-p}\big)&lt;0\) everywhere. Strict concavity means the chord is <em>strictly</em> below the curve whenever \(p_L\neq p_R\), so every non-trivial split gets strictly positive credit and the greedy search always has a gradient to follow. This is why sklearn offers <code>gini</code> and <code>entropy</code> and not <code>error</code> — and why you still use misclassification error for <em>pruning</em>, where you are comparing whole trees rather than searching for a split.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d85')">Next step</button><button class="btn ghost" onclick="dall('d85')">Show all</button><button class="btn ghost" onclick="dreset('d85')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Impurity as a concave function — and the gain as the gap to the chord<span class="tag">Interactive</span></div><canvas id="b11imp" data-h="440"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>Gini  2p(1−p)</span><span><i style="background:var(--c5)"></i>entropy (÷2)</span><span><i style="background:var(--c3)"></i>misclassification min(p,1−p)</span><span><i style="background:var(--c2)"></i>chord = weighted child impurity</span></div><div class="fig-read" id="b11imp-read"></div><div class="ctrls"><div class="ctrl"><label>class-1 proportion in the LEFT child</label><input type="range" min="0.0" max="1.0" step="0.02" value="0.2" data-fmt="2" oninput="figSlide('b11imp','pL',this)"><output>0.20</output></div><div class="ctrl"><label>class-1 proportion in the RIGHT child</label><input type="range" min="0.0" max="1.0" step="0.02" value="0.44" data-fmt="2" oninput="figSlide('b11imp','pR',this)"><output>0.44</output></div><div class="ctrl"><label>fraction of points going left</label><input type="range" min="0.05" max="0.95" step="0.05" value="0.5" data-fmt="2" oninput="figSlide('b11imp','wL',this)"><output>0.50</output></div><div class="ctrl"><label>show chord for: 0 Gini · 1 entropy · 2 misclassification</label><input type="range" min="0" max="2" step="1" value="2" data-fmt="0" oninput="figSlide('b11imp','which',this)"><output>2</output></div></div><div class="fig-cap">The gain of a split is the vertical distance from the curve down to the chord, measured at the parent's proportion p̄. Set both children to the same side of ½ and switch the chord to misclassification: the chord lies flat on the curve and the gain is exactly zero, while Gini and entropy still register a real improvement. That is the whole argument for strict concavity.</div></div><script>makeFig("b11imp",function(vp,p,F){
+vp.pads(50,18,16,42); vp.frame(0,1,0,0.56);
+var pL=p.pL, pR=p.pR, wL=p.wL, wh=Math.round(p.which);
+var pbar=wL*pL+(1-wL)*pR;
+function G(x){ return 2*x*(1-x); }
+function H(x){ if(x<=0||x>=1) return 0; return -(x*Math.log2(x)+(1-x)*Math.log2(1-x))/2; }
+function Mi(x){ return Math.min(x,1-x); }
+vp.axes({stepx:0.2,stepy:0.1});
+vp.label(0.5,-0.048,'proportion of class 1 in a node,  p','--ink3',{align:'center'});
+vp.curve(G,'--c1',{w:2.5}); vp.curve(H,'--c5',{w:2.5}); vp.curve(Mi,'--c3',{w:2.5});
+var f = wh===0?G : (wh===1?H:Mi);
+var col = wh===0?'--c1':(wh===1?'--c5':'--c3');
+vp.seg(pL,f(pL),pR,f(pR),'--c2',{w:2.4,dash:[6,4]});
+var chord = wL*f(pL)+(1-wL)*f(pR);
+vp.dot(pL,f(pL),'--c2',5); vp.dot(pR,f(pR),'--c2',5);
+vp.dot(pbar,f(pbar),col,6.5); vp.dot(pbar,chord,'--c2',6.5);
+vp.seg(pbar,chord,pbar,f(pbar),'--ok',{w:3.2});
+vp.seg(pbar,0,pbar,Math.min(chord,f(pbar)),'--ink3',{dash:[3,3],w:1});
+vp.label(pbar+0.012,0.012,'p̄','--ink3',{size:11.5});
+var gG=G(pbar)-(wL*G(pL)+(1-wL)*G(pR));
+var gH=2*(H(pbar)-(wL*H(pL)+(1-wL)*H(pR)));
+var gM=Mi(pbar)-(wL*Mi(pL)+(1-wL)*Mi(pR));
+figRead('b11imp','p_L = '+pL.toFixed(2)+',  p_R = '+pR.toFixed(2)+',  w_L = '+wL.toFixed(2)
+ +' &nbsp;⟹&nbsp; parent p̄ = <b>'+pbar.toFixed(3)+'</b>'
+ +'<br>gain — Gini <b>'+gG.toFixed(4)+'</b> &nbsp;·&nbsp; entropy <b>'+gH.toFixed(4)+'</b>'
+ +' &nbsp;·&nbsp; misclassification <b>'+gM.toFixed(4)+'</b>'
+ +(Math.abs(gM)<1e-9 && gG>1e-6
+   ? '<br><span style="color:var(--bad)">misclassification gain is exactly 0 while Gini says '
+     +gG.toFixed(4)+' — this split is invisible to it</span>' : ''));
+},[{"name": "pL", "label": "class-1 proportion in the LEFT child", "min": 0.0, "max": 1.0, "step": 0.02, "value": 0.2, "dp": 2}, {"name": "pR", "label": "class-1 proportion in the RIGHT child", "min": 0.0, "max": 1.0, "step": 0.02, "value": 0.44, "dp": 2}, {"name": "wL", "label": "fraction of points going left", "min": 0.05, "max": 0.95, "step": 0.05, "value": 0.5, "dp": 2}, {"name": "which", "label": "show chord for: 0 Gini \u00b7 1 entropy \u00b7 2 misclassification", "min": 0, "max": 2, "step": 1, "value": 2, "dp": 0}]);window["FIG_b11imp"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>Growing, and then not growing too far</h2>
+<p>The recursion is: find the best split by scanning every feature and every candidate threshold,
+apply it, recurse on both children, stop at a depth limit or a minimum leaf size. A fully grown tree with
+\(n\) distinct points has \(n\) leaves and interpolates the training data exactly — training error zero, test
+error terrible. Depth is the capacity knob, and Lecture 7's U-shaped test curve appears in its cleanest
+form.</p>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p><strong>Pre-pruning vs post-pruning.</strong> Stopping early on a depth or
+minimum-leaf-size rule (pre-pruning) is fast but short-sighted: a split that looks useless can enable an
+excellent split beneath it — the XOR pattern is the standard example, where <em>neither</em> first split
+reduces impurity at all. Cost-complexity pruning (post-pruning) grows the tree fully and then prunes back to
+minimise \(\hat R(T)+\alpha|T|\) over subtrees, choosing \(\alpha\) by cross-validation. The penalty
+\(\alpha|T|\) is the same regularisation idea as Lecture 6, with the number of leaves playing the role of the
+norm.</p>
+<p>In practice, when a tree is going into an ensemble, people mostly skip pruning: the ensemble handles the
+variance. Pruning matters when you are shipping the single tree because someone wants to read it.</p></div>
+<div class="fig"><div class="fig-head">Grow a tree and watch it overfit<span class="tag">Interactive</span></div><canvas id="b11tree" data-h="480"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>class 0</span><span><i style="background:var(--c5)"></i>class 1</span><span><i style="background:var(--ink3)"></i>learned boundary (axis-aligned boxes)</span></div><div class="fig-read" id="b11tree-read"></div><div class="ctrls"><div class="ctrl"><label>maximum depth</label><input type="range" min="0" max="9" step="1" value="2" data-fmt="0" oninput="figSlide('b11tree','depth',this)"><output>2</output></div><div class="ctrl"><label>label noise</label><input type="range" min="0" max="0.3" step="0.02" value="0.1" data-fmt="2" oninput="figSlide('b11tree','noise',this)"><output>0.10</output></div><div class="ctrl"><label>minimum points per leaf</label><input type="range" min="1" max="20" step="1" value="1" data-fmt="0" oninput="figSlide('b11tree','minleaf',this)"><output>1</output></div><div class="ctrl"><label>rotate the true boundary (degrees)</label><input type="range" min="0" max="45" step="5" value="0" data-fmt="0" oninput="figSlide('b11tree','rot',this)"><output>0</output></div></div><div class="fig-cap">Every region is a rectangle — that is not a drawing convenience, it is the model class. Push the depth up and the shaded regions fragment into slivers that chase individual noisy points while the test error climbs. Then rotate the true boundary off the axes and watch the tree approximate a diagonal line with a staircase: the one thing an axis-aligned model cannot do gracefully.</div></div><script>makeFig("b11tree",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frameEq(0,0,2.35);
+var DEP=Math.round(p.depth), NL=p.noise, ML=Math.round(p.minleaf), rot=p.rot*Math.PI/180;
+var seed=987654321;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function truth(x,y){
+  var u=x*Math.cos(rot)+y*Math.sin(rot), v=-x*Math.sin(rot)+y*Math.cos(rot);
+  return (u*u*0.55 + v > 0.35) ? 1 : 0;
+}
+var N=220, PX=[], PY=[], LB=[];
+for(var i=0;i<N;i++){
+  var x=-2.25+4.5*rnd(), y=-1.45+2.9*rnd(), c=truth(x,y);
+  if(rnd()<NL) c=1-c;
+  PX.push(x); PY.push(y); LB.push(c);
+}
+var TN=600, TX=[],TY=[],TL=[];
+for(var i=0;i<TN;i++){ var x=-2.25+4.5*rnd(), y=-1.45+2.9*rnd(); TX.push(x);TY.push(y);TL.push(truth(x,y)); }
+// --- CART on Gini ---
+function gini(n1,n){ if(n===0) return 0; var q=n1/n; return 2*q*(1-q); }
+function build(idx, dep){
+  var n=idx.length, n1=0;
+  for(var i=0;i<n;i++) n1+=LB[idx[i]];
+  var node={leaf:true, val:(n1*2>=n)?1:0, p:n?n1/n:0.5};
+  if(dep===0 || n<2*ML || n1===0 || n1===n) return node;
+  var bestG=1e-12, bj=-1, bt=0;
+  for(var j=0;j<2;j++){
+    var arr=idx.slice().sort(function(a,b){ var va=(j?PY[a]:PX[a]), vb=(j?PY[b]:PX[b]); return va-vb; });
+    var c1=0;
+    for(var k=0;k<n-1;k++){
+      c1+=LB[arr[k]];
+      var vk=(j?PY[arr[k]]:PX[arr[k]]), vk1=(j?PY[arr[k+1]]:PX[arr[k+1]]);
+      if(vk1<=vk) continue;
+      var nl=k+1, nr=n-nl;
+      if(nl<ML||nr<ML) continue;
+      var g=gini(n1,n) - (nl/n)*gini(c1,nl) - (nr/n)*gini(n1-c1,nr);
+      if(g>bestG){ bestG=g; bj=j; bt=0.5*(vk+vk1); }
+    }
+  }
+  if(bj<0) return node;
+  var L=[],R=[];
+  for(var i=0;i<n;i++){ var v=(bj?PY[idx[i]]:PX[idx[i]]); (v<=bt?L:R).push(idx[i]); }
+  if(!L.length||!R.length) return node;
+  node.leaf=false; node.j=bj; node.t=bt;
+  node.lo=build(L,dep-1); node.hi=build(R,dep-1);
+  return node;
+}
+var all=[]; for(var i=0;i<N;i++) all.push(i);
+var root=build(all,DEP);
+function classify(nd,x,y){ while(!nd.leaf){ nd = ((nd.j? y : x) <= nd.t) ? nd.lo : nd.hi; } return nd; }
+// paint the boxes by walking the tree with a bounding rectangle
+var cc=vp.ctx;
+function paint(nd,x0,x1,y0,y1){
+  if(nd.leaf){
+    cc.save(); cc.globalAlpha=0.13+0.20*Math.abs(nd.p-0.5);
+    cc.fillStyle=vp.css(nd.val?'--c5':'--c1');
+    cc.fillRect(vp.X(x0),vp.Y(y1),vp.X(x1)-vp.X(x0),vp.Y(y0)-vp.Y(y1)); cc.restore();
+    return;
+  }
+  if(nd.j===0){ paint(nd.lo,x0,nd.t,y0,y1); paint(nd.hi,nd.t,x1,y0,y1);
+                vp.seg(nd.t,y0,nd.t,y1,'--ink3',{w:1.1}); }
+  else       { paint(nd.lo,x0,x1,y0,nd.t); paint(nd.hi,x0,x1,nd.t,y1);
+                vp.seg(x0,nd.t,x1,nd.t,'--ink3',{w:1.1}); }
+}
+paint(root,vp.xmin,vp.xmax,vp.ymin,vp.ymax);
+vp.axes({stepx:1,stepy:1});
+for(var i=0;i<N;i++) vp.dot(PX[i],PY[i], LB[i]?'--c5':'--c1', 3.1);
+var etr=0; for(var i=0;i<N;i++) if(classify(root,PX[i],PY[i]).val!==LB[i]) etr++;
+var ete=0; for(var i=0;i<TN;i++) if(classify(root,TX[i],TY[i]).val!==TL[i]) ete++;
+function count(nd){ return nd.leaf?1:count(nd.lo)+count(nd.hi); }
+figRead('b11tree','depth '+DEP+',  min leaf '+ML+',  label noise '+(100*NL).toFixed(0)+'%'
+ +' &nbsp;⟹&nbsp; <b>'+count(root)+'</b> leaves'
+ +'<br>training error <b>'+(100*etr/N).toFixed(1)+'%</b>'
+ +' &nbsp;·&nbsp; error against the NOISE-FREE truth <b>'+(100*ete/TN).toFixed(1)+'%</b>'
+ +(etr===0?'<br><span style="color:var(--bad)">zero training error — the tree has memorised the noise</span>':''));
+},[{"name": "depth", "label": "maximum depth", "min": 0, "max": 9, "step": 1, "value": 2, "dp": 0}, {"name": "noise", "label": "label noise", "min": 0, "max": 0.3, "step": 0.02, "value": 0.1, "dp": 2}, {"name": "minleaf", "label": "minimum points per leaf", "min": 1, "max": 20, "step": 1, "value": 1, "dp": 0}, {"name": "rot", "label": "rotate the true boundary (degrees)", "min": 0, "max": 45, "step": 5, "value": 0, "dp": 0}]);window["FIG_b11tree"].run();</script>
+<div class="box warn"><span class="lbl">Common trap</span><p><strong>Trees are unstable, and this is their defining flaw.</strong> Change one
+training point and the top split can change; if it does, the entire tree below it is rebuilt and the fitted
+function can be unrecognisable. In Lecture 7's terms: very low bias (a deep tree can fit anything), very high
+variance.</p>
+<p>Everything in the rest of this lecture is a response to that one sentence. Bagging averages the variance
+away. Boosting takes the opposite route — deliberately use <em>high-bias, low-variance</em> stumps and remove
+the bias by addition. Two opposite fixes for two opposite starting points, which is why you must know which
+problem you have before choosing.</p></div>
+<h2 id="s4"><span class="secnum">4</span>Bagging: averaging away the variance</h2>
+<p>If \(B\) independent estimators each have variance \(\sigma^2\), their average has variance
+\(\sigma^2/B\). We do not have \(B\) independent training sets, so we fake them: draw \(B\) bootstrap
+resamples of the training data (sample \(n\) rows <em>with</em> replacement), fit a tree to each, average the
+predictions. That is <strong>bagging</strong> — bootstrap aggregating.</p>
+<p>But the trees are not independent — they see overlapping data. The next derivation is the single most
+important formula in ensemble learning, because it tells you exactly what that dependence costs.</p>
+<div class="deriv" id="d86"><div class="deriv-head"><span class="t">The variance of an average of correlated estimators</span><span class="ct">0 / 6</span></div><div class="dstep">\[\Var\Big(\frac1B\sum_{b=1}^{B} f_b\Big) = \frac{1}{B^2}\Big[\sum_{b}\Var(f_b) + \sum_{b\ne b'}\Cov(f_b,f_{b'})\Big]\]<div class="why"><b>Expand the variance of a sum.</b> Phase A Lecture 13: \(\Var(\sum_b f_b)=\sum_b\Var(f_b)+\sum_{b\ne b'}\Cov(f_b,f_{b'})\), and the \(1/B\) outside squares to \(1/B^2\). The cross terms are the whole point — dropping them is the mistake that makes people expect \(\sigma^2/B\).</div></div><div class="dstep">\[\Var(f_b)=\sigma^2 \ \ \forall b, \qquad \Cov(f_b,f_{b'})=\rho\sigma^2 \ \ \forall b\ne b'\]<div class="why"><b>The exchangeability assumption.</b> The trees are built by an identical random procedure on the same training set, so they are exchangeable: same marginal variance \(\sigma^2\), same pairwise correlation \(\rho\). Reasonable, and the code below checks it holds well enough to predict the answer to a few percent.</div></div><div class="dstep">\[= \frac{1}{B^2}\Big[B\sigma^2 + B(B-1)\rho\sigma^2\Big]\]<div class="why"><b>Count the terms.</b> There are \(B\) diagonal terms and \(B(B-1)\) off-diagonal ordered pairs. The cross terms outnumber the diagonal ones by a factor of \(B-1\) — which is why they dominate for large \(B\).</div></div><div class="dstep">\[\boxed{\ \Var\Big(\frac1B\sum_b f_b\Big) \;=\; \rho\sigma^2 \;+\; \frac{1-\rho}{B}\,\sigma^2\ }\]<div class="why"><b>Simplify.</b> \(\frac{1}{B}\sigma^2+\frac{B-1}{B}\rho\sigma^2 = \rho\sigma^2+\frac{1-\rho}{B}\sigma^2\). Read the two terms: the second vanishes as \(B\to\infty\), the first does not.</div></div><div class="dstep">\[\lim_{B\to\infty}\Var = \rho\sigma^2 \;>\;0 \quad\text{whenever } \rho>0\]<div class="why"><b>The floor.</b> No number of trees ever gets you below \(\rho\sigma^2\). Adding trees past the point where \(\frac{1-\rho}{B}\sigma^2 \ll \rho\sigma^2\) — that is, past \(B\approx\frac{1-\rho}{\rho}\) — is wasted computation. This is why \"just use more trees\" stops helping, and it also tells you the only two ways forward: <strong>lower \(\rho\)</strong>, or lower \(\sigma^2\).</div></div><div class="dstep">\[\text{random forest: lower } \rho \text{ by choosing splits from a random subset of } m&lt;d \text{ features}\]<div class="why"><b>And that is a random forest.</b> Bagging alone leaves \(\rho\) high because every tree finds the same dominant feature and splits on it first. Restricting each node to a random subset of \(m\) features forces different trees down different paths, cutting \(\rho\). But it also makes each individual tree worse, raising \(\sigma^2\) — so \(m\) is a hyperparameter with an interior optimum, and the code below measures both effects separately instead of taking the usual \(m=\sqrt d\) on faith.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d86')">Next step</button><button class="btn ghost" onclick="dall('d86')">Show all</button><button class="btn ghost" onclick="dreset('d86')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">The variance floor: why more trees stop helping<span class="tag">Interactive</span></div><canvas id="b11var" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>ρ = 0.02</span><span><i style="background:var(--c5)"></i>ρ = 0.10</span><span><i style="background:var(--c3)"></i>ρ = 0.30</span><span><i style="background:var(--c2)"></i>selected ρ</span></div><div class="fig-read" id="b11var-read"></div><div class="ctrls"><div class="ctrl"><label>correlation between trees ρ</label><input type="range" min="0.0" max="0.6" step="0.01" value="0.1" data-fmt="2" oninput="figSlide('b11var','rho',this)"><output>0.10</output></div><div class="ctrl"><label>number of trees B</label><input type="range" min="1" max="500" step="1" value="50" data-fmt="0" oninput="figSlide('b11var','B',this)"><output>50</output></div></div><div class="fig-cap">Vertical axis is variance as a multiple of one tree's variance σ². The dashed line is the floor ρσ². Drag ρ toward zero and the curve keeps falling toward 1/B; push it up and the curve flattens almost immediately. The readout says how many trees actually buy you anything — past that point you are paying compute for nothing, and the only remaining lever is de-correlation.</div></div><script>makeFig("b11var",function(vp,p,F){
+vp.pads(54,18,16,34); vp.frame(1,500,0,0.62);
+var rho=p.rho, B=Math.round(p.B);
+vp.axes({stepx:100,stepy:0.1});
+vp.label(250,-0.062,'number of trees B','--ink3',{align:'center'});
+var cc=vp.ctx; cc.save(); cc.translate(14,vp.pad.t+vp.ph/2); cc.rotate(-Math.PI/2);
+cc.fillStyle=vp.css('--ink3'); cc.font='12px -apple-system,Segoe UI,Roboto,sans-serif';
+cc.textAlign='center'; cc.fillText('Var( average ) / σ²',0,0); cc.restore();
+function V(r,b){ return r + (1-r)/b; }
+[[0.02,'--c1'],[0.10,'--c5'],[0.30,'--c3']].forEach(function(pr){
+  vp.curve(function(b){ return V(pr[0],b); }, pr[1], {w:2.0});
+  vp.seg(1,pr[0],500,pr[0],pr[1],{dash:[4,4],w:1});
+});
+vp.curve(function(b){ return V(rho,b); }, '--c2', {w:3.0});
+vp.seg(1,rho,500,rho,'--c2',{dash:[6,4],w:1.4});
+vp.dot(B,V(rho,B),'--c2',6.5);
+var floor=rho, cur=V(rho,B);
+var Bstar = rho>0 ? Math.ceil((1-rho)/(0.1*rho)) : Infinity;   // within 10% of the floor
+figRead('b11var','ρ = '+rho.toFixed(2)+',  B = '+B
+ +'<br>Var/σ² = <b>'+cur.toFixed(4)+'</b> &nbsp;·&nbsp; floor ρ = <b>'+floor.toFixed(4)+'</b>'
+ +' &nbsp;·&nbsp; you are at <b>'+(100*floor/cur).toFixed(0)+'%</b> of the floor'
+ +'<br>'+(rho>0 ? 'trees needed to get within 10% of the floor: <b>'+Bstar+'</b>'
+                : 'with ρ = 0 the variance is exactly σ²/B and keeps falling forever')
+ +(rho>0&&B>3*Bstar?' &nbsp;<span style="color:var(--bad)">— you are well past the point of diminishing returns</span>':''));
+},[{"name": "rho", "label": "correlation between trees \u03c1", "min": 0.0, "max": 0.6, "step": 0.01, "value": 0.1, "dp": 2}, {"name": "B", "label": "number of trees B", "min": 1, "max": 500, "step": 1, "value": 50, "dp": 0}]);window["FIG_b11var"].run();</script>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p><strong>Out-of-bag error, free of charge.</strong> A bootstrap sample of size \(n\)
+omits each particular row with probability \((1-1/n)^n \to e^{-1}\approx 0.368\). So every training row is
+out-of-bag for about 37% of the trees, and you can predict it using exactly those trees. Averaging the error
+over all rows gives an almost-unbiased estimate of test error <em>with no held-out set and no
+cross-validation refits</em>. Lecture 7 spent a whole section on how to buy an honest error estimate; the
+bootstrap hands one over as a by-product.</p>
+<p>The caveat: OOB uses an ensemble of about \(0.37B\) trees rather than \(B\), so it is very slightly
+pessimistic. With \(B\) in the hundreds the difference is negligible.</p></div>
+<div class="quiz" id="q87"><div class="qlbl">Check yourself</div><div class="qq"><p>You bag 500 fully-grown decision trees and the test error barely improves over a single tree.
+Which explanation is most likely, and what should you try?</p></div><button class="qopt" data-ok="0" onclick="pick('q87',0,false)">B is too small. Go to 5000 trees.</button><button class="qopt" data-ok="1" onclick="pick('q87',1,true)">ρ is close to 1: the trees are nearly identical, so the floor ρσ² is nearly σ² and averaging cannot help. De-correlate them (random feature subsets, more aggressive resampling) or accept that bagging is the wrong tool here.</button><button class="qopt" data-ok="0" onclick="pick('q87',2,false)">The trees are underfitting; grow them deeper.</button><button class="qopt" data-ok="0" onclick="pick('q87',3,false)">The error is dominated by bias, so no amount of averaging will help — switch to boosting.</button><div class="qwhy" data-i="0"><b>Not quite.</b> The formula says variance is \(\rho\sigma^2+\frac{1-\rho}{B}\sigma^2\). At \(B=500\) the second term is already tiny for any realistic \(\rho\), so you are sitting on the floor. Ten times more trees changes essentially nothing — and the figure above lets you confirm that by eye.</div><div class="qwhy" data-i="1"><b>Correct.</b> This is the diagnosis the formula forces. High \(\rho\) usually means one feature dominates every split, so every tree starts the same way. Random feature selection at each node is the standard cure and is precisely what turns bagging into a random forest.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Fully-grown trees are already at maximum depth — they interpolate the training data. The problem is variance, not bias, and deeper is not available anyway.</div><div class="qwhy" data-i="3"><b>Not quite.</b> Possible, and worth checking — but implausible for <em>fully-grown</em> trees, which have almost no bias. Diagnose before switching: measure \(\rho\) as the code block does. If \(\rho\) is high, de-correlate; if the single tree's training error is also high, then and only then is bias the story.</div></div>
+<h2 id="s5"><span class="secnum">5</span>Boosting: fitting what the ensemble still gets wrong</h2>
+<p>Bagging builds its trees in parallel and independently. Boosting builds them
+<strong>sequentially</strong>, each one trained on the mistakes of everything built so far. The models are
+deliberately weak — depth-1 or depth-3 stumps with enormous bias — and the ensemble removes that bias by
+accumulation. Same ingredient, opposite recipe, opposite failure mode.</p>
+<div class="deriv" id="d88"><div class="deriv-head"><span class="t">Gradient boosting is gradient descent in function space</span><span class="ct">0 / 6</span></div><div class="dstep">\[\min_{F}\ \hat R(F) = \sum_{i=1}^{n} L\big(y_i, F(\vx_i)\big)\]<div class="why"><b>Change the variable we optimise over.</b> Until now we minimised over a parameter vector \(\vw\). Here the variable <em>is the function</em> \(F\). But \(\hat R\) only ever touches \(F\) through the \(n\) numbers \(F(\vx_1),\dots,F(\vx_n)\), so for the purpose of differentiating we can treat \(\vF=(F(\vx_1),\dots,F(\vx_n))\in\RR^n\) as an ordinary vector. That reduction is what makes the whole idea work.</div></div><div class="dstep">\[g_i \;=\; \frac{\partial L(y_i,F(\vx_i))}{\partial F(\vx_i)}, \qquad \vF \leftarrow \vF - \nu\,\vg\]<div class="why"><b>Take one gradient-descent step</b> in \(\RR^n\), with step size \(\nu\). Exactly Lecture 3, with the \(n\) function values as the parameters. For squared loss \(L=\tfrac12(y-F)^2\) we get \(g_i=F(\vx_i)-y_i\), so \(-g_i=y_i-F(\vx_i)\) is the <strong>residual</strong>. The famous \"fit the residual\" rule is not a heuristic — it is the negative gradient of squared loss, and nothing more.</div></div><div class="dstep">\[\text{problem: } -\vg \ \text{is defined only at the } n \text{ training points}\]<div class="why"><b>The obstacle.</b> A step in \(\RR^n\) tells us how to change \(F\) at the training inputs and says nothing about anywhere else. But we need a <em>function</em> we can evaluate on new data. Descent in \(\RR^n\) alone would just memorise the training set.</div></div><div class="dstep">\[h_m \;=\; \argmin_{h\in\mathcal{H}} \sum_{i=1}^{n}\big(-g_i - h(\vx_i)\big)^2\]<div class="why"><b>Project the gradient onto the model class.</b> Fit a small tree to the negative gradients by least squares — find the member of \(\mathcal H\) that best <em>approximates</em> the step we wanted to take. The tree generalises the direction to the whole input space. Note this is a least-squares fit regardless of what \(L\) is: the loss enters only through the targets \(-g_i\), which is exactly why one implementation handles every differentiable loss.</div></div><div class="dstep">\[F_m(\vx) \;=\; F_{m-1}(\vx) \;+\; \nu\, h_m(\vx), \qquad F_0 = \argmin_c \textstyle\sum_i L(y_i,c)\]<div class="why"><b>Take the step.</b> \(\nu\in(0,1]\) is the learning rate, called <em>shrinkage</em> here. It is Lecture 3's step size, and it plays the same role: small steps in a direction that is only approximately right end up ahead of large ones. Empirically \(\nu\approx0.1\) with many rounds beats \(\nu=1\) with few, and the code block measures the gap.</div></div><div class="dstep">\[F_M = F_0 + \nu\sum_{m=1}^{M} h_m \quad\text{— an additive model, fitted greedily, stage by stage}\]<div class="why"><b>What we have built.</b> \(M\) and \(\nu\) trade off against each other (roughly \(\nu M \approx\) constant), so tune one and fix the other. Unlike bagging, more rounds eventually <em>overfit</em>: the ensemble keeps chasing residuals that are pure noise, so \(M\) must be chosen by a validation set — early stopping is not optional here, it is the main regulariser.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d88')">Next step</button><button class="btn ghost" onclick="dall('d88')">Show all</button><button class="btn ghost" onclick="dreset('d88')">Reset</button></div></div>
+<div class="fig"><div class="fig-head">Gradient boosting on one dimension: watch the residual get eaten<span class="tag">Interactive</span></div><canvas id="b11boost" data-h="470"></canvas><div class="legend"><span><i style="background:var(--ink3)"></i>training points</span><span><i style="background:var(--c5)"></i>true function</span><span><i style="background:var(--c1)"></i>boosted fit F_M</span><span><i style="background:var(--c3)"></i>residuals y − F_M</span></div><div class="fig-read" id="b11boost-read"></div><div class="ctrls"><div class="ctrl"><label>boosting rounds M</label><input type="range" min="0" max="150" step="1" value="0" data-fmt="0" oninput="figSlide('b11boost','M',this)"><output>0</output></div><div class="ctrl"><label>learning rate ν</label><input type="range" min="0.05" max="1.0" step="0.05" value="0.3" data-fmt="2" oninput="figSlide('b11boost','nu',this)"><output>0.30</output></div><div class="ctrl"><label>depth of each tree</label><input type="range" min="1" max="3" step="1" value="1" data-fmt="0" oninput="figSlide('b11boost','dep',this)"><output>1</output></div><div class="ctrl"><label>noise level</label><input type="range" min="0.0" max="0.6" step="0.05" value="0.25" data-fmt="2" oninput="figSlide('b11boost','noise',this)"><output>0.25</output></div></div><div class="fig-cap">At M = 0 the model is a horizontal line at ȳ and the residuals are the data itself. Each round fits one small tree to the residuals and adds ν times it. Watch the residuals (lower band) collapse toward zero. Set ν = 1 and it lurches; set ν = 0.05 and it crawls but ends up smoother. Push M to 150 with ν = 1 and the fit starts tracking individual noise points — that is overfitting, and no amount of extra rounds undoes it.</div></div><script>makeFig("b11boost",function(vp,p,F){
+vp.pads(46,16,14,30); vp.frame(-3.15,3.15,-2.6,3.0);
+var M=Math.round(p.M), nu=p.nu, DEP=Math.round(p.dep), NS=p.noise;
+var seed=13579;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+function fstar(x){ return Math.sin(1.6*x) + 0.35*x; }
+var N=90, X=[], Y=[];
+for(var i=0;i<N;i++){ var x=-3+6*i/(N-1); X.push(x); Y.push(fstar(x)+NS*gauss()); }
+// grid for drawing the fitted function
+var NG=260, GX=[], GF=[];
+for(var i=0;i<NG;i++) GX.push(-3.1+6.2*i/(NG-1));
+// boosting on 1-D stumps/small trees (data already sorted in x)
+var F=new Array(N).fill(0), GFv=new Array(NG).fill(0);
+var m0=0; for(var i=0;i<N;i++) m0+=Y[i]; m0/=N;
+for(var i=0;i<N;i++) F[i]=m0;
+for(var i=0;i<NG;i++) GFv[i]=m0;
+function fitTree(idx, r, dep){
+  var n=idx.length, s=0;
+  for(var i=0;i<n;i++) s+=r[idx[i]];
+  var node={leaf:true, val:n?s/n:0};
+  if(dep===0 || n<6) return node;
+  var cs=0, tot=s, best=s*s/n, bk=-1;
+  for(var k=0;k<n-1;k++){
+    cs+=r[idx[k]];
+    var nl=k+1, nr=n-nl;
+    if(nl<3||nr<3) continue;
+    var sc=cs*cs/nl + (tot-cs)*(tot-cs)/nr;
+    if(sc>best){ best=sc; bk=k; }
+  }
+  if(bk<0) return node;
+  node.leaf=false; node.t=0.5*(X[idx[bk]]+X[idx[bk+1]]);
+  node.lo=fitTree(idx.slice(0,bk+1), r, dep-1);
+  node.hi=fitTree(idx.slice(bk+1),   r, dep-1);
+  return node;
+}
+function ev(nd,x){ while(!nd.leaf) nd = (x<=nd.t)?nd.lo:nd.hi; return nd.val; }
+var base=[]; for(var i=0;i<N;i++) base.push(i);
+for(var m=0;m<M;m++){
+  var r=new Array(N);
+  for(var i=0;i<N;i++) r[i]=Y[i]-F[i];
+  var T=fitTree(base, r, DEP);
+  for(var i=0;i<N;i++)  F[i]  += nu*ev(T,X[i]);
+  for(var i=0;i<NG;i++) GFv[i]+= nu*ev(T,GX[i]);
+}
+vp.axes({stepx:1,stepy:1});
+vp.seg(-3.15,-1.5,3.15,-1.5,'--line2',{w:1});
+vp.label(-3.05,-1.42,'residuals (offset to −2)','--ink3',{size:11});
+vp.curve(fstar,'--c5',{w:2.0,dash:[6,4]});
+for(var i=0;i<N;i++) vp.dot(X[i],Y[i],'--ink3',2.6);
+var cc=vp.ctx; cc.save(); cc.strokeStyle=vp.css('--c1'); cc.lineWidth=2.6; cc.beginPath();
+for(var i=0;i<NG;i++){ var px=vp.X(GX[i]), py=vp.Y(GFv[i]); if(i===0)cc.moveTo(px,py); else cc.lineTo(px,py); }
+cc.stroke(); cc.restore();
+vp.seg(-3.15,-2.0,3.15,-2.0,'--ink3',{w:1,dash:[3,3]});
+var mse=0, mx=0;
+for(var i=0;i<N;i++){ var e=Y[i]-F[i]; mse+=e*e; mx=Math.max(mx,Math.abs(e));
+  vp.dot(X[i], -2.0 + 0.55*e, '--c3', 2.4); }
+mse/=N;
+var bias=0; for(var i=0;i<N;i++){ var b=fstar(X[i])-F[i]; bias+=b*b; } bias/=N;
+figRead('b11boost','M = '+M+' rounds,  ν = '+nu.toFixed(2)+',  depth '+DEP
+ +'  ⟹ effective steps ν·M = <b>'+(nu*M).toFixed(1)+'</b>'
+ +'<br>training MSE <b>'+mse.toFixed(4)+'</b>'
+ +' &nbsp;·&nbsp; error against the TRUE function <b>'+bias.toFixed(4)+'</b>'
+ +' &nbsp;·&nbsp; noise variance '+(NS*NS).toFixed(4)
+ +(mse < 0.45*NS*NS && NS>0 ? '<br><span style="color:var(--bad)">training MSE is now below the noise '
+   +'variance — the ensemble is fitting noise</span>' : ''));
+},[{"name": "M", "label": "boosting rounds M", "min": 0, "max": 150, "step": 1, "value": 0, "dp": 0}, {"name": "nu", "label": "learning rate \u03bd", "min": 0.05, "max": 1.0, "step": 0.05, "value": 0.3, "dp": 2}, {"name": "dep", "label": "depth of each tree", "min": 1, "max": 3, "step": 1, "value": 1, "dp": 0}, {"name": "noise", "label": "noise level", "min": 0.0, "max": 0.6, "step": 0.05, "value": 0.25, "dp": 2}]);window["FIG_b11boost"].run();</script>
+<h2 id="s6"><span class="secnum">6</span>The second-order version: where XGBoost comes from</h2>
+<p>Gradient boosting takes a first-order step. If we keep the second-order term as well, we get
+a Newton step in function space — and out of that falls a closed form for the leaf values <em>and</em> a
+principled split criterion. This derivation is the core of XGBoost, LightGBM and CatBoost, and it is short.</p>
+<div class="deriv" id="d89"><div class="deriv-head"><span class="t">Newton boosting: the leaf value and the gain formula</span><span class="ct">0 / 6</span></div><div class="dstep">\[\hat R(F_{m-1}+h) \approx \sum_{i=1}^{n}\Big[L(y_i,F_{m-1}(\vx_i)) + g_i h(\vx_i) + \tfrac12 h_i\, h(\vx_i)^2\Big] + \Omega(h)\]<div class="why"><b>Second-order Taylor expansion in the function value</b>, Phase A Lecture 6 applied per point, with \(g_i=\partial_F L\) and \(h_i=\partial^2_F L\) evaluated at the current \(F_{m-1}(\vx_i)\). \(\Omega\) is a regulariser on the new tree. The constant first term does not involve \(h\), so drop it.</div></div><div class="dstep">\[\Omega(h)=\gamma T + \tfrac{\lambda}{2}\sum_{j=1}^{T} w_j^2, \qquad h(\vx)=\sum_{j=1}^{T} w_j\,\mathbb{1}[\vx\in R_j]\]<div class="why"><b>Say what the tree is and how we penalise it.</b> \(T\) leaves, value \(w_j\) in leaf \(j\); \(\gamma\) charges per leaf (complexity control, as in cost-complexity pruning) and \(\lambda\) is a ridge penalty on the leaf values (Lecture 6, now applied to leaves instead of coefficients).</div></div><div class="dstep">\[\text{obj} = \sum_{j=1}^{T}\Big[G_j w_j + \tfrac12 (H_j+\lambda) w_j^2\Big] + \gamma T, \qquad G_j=\!\!\sum_{i\in R_j}\!g_i,\ \ H_j=\!\!\sum_{i\in R_j}\!h_i\]<div class="why"><b>Regroup by leaf.</b> Every training point lies in exactly one leaf, so \(\sum_i\) becomes \(\sum_j\sum_{i\in R_j}\), and inside a leaf \(h(\vx_i)=w_j\) is constant and comes out of the sum. The \(T\) leaves are now decoupled — the same decoupling as in the very first derivation of this lecture, and the reason everything closes in one line.</div></div><div class="dstep">\[\frac{\partial}{\partial w_j}\Big[G_j w_j+\tfrac12(H_j+\lambda)w_j^2\Big]=G_j+(H_j+\lambda)w_j=0 \;\Longrightarrow\; \boxed{\,w_j^\star=-\frac{G_j}{H_j+\lambda}\,}\]<div class="why"><b>One-dimensional quadratic, minimised exactly.</b> Second derivative \(H_j+\lambda>0\) for a convex loss, so it is a minimum. Sanity-check with squared loss: \(g_i=F-y_i\), \(h_i=1\), so \(G_j=-\sum_{i\in R_j}(y_i-F_i)\) and \(H_j=|R_j|\), giving \(w_j^\star=\frac{\sum(y_i-F_i)}{|R_j|+\lambda}\) — the mean residual, shrunk. At \(\lambda=0\) it is exactly the mean residual, so this reduces to ordinary gradient boosting, as it must. The code block verifies this to machine precision.</div></div><div class="dstep">\[\text{obj}^\star = -\frac12\sum_{j=1}^{T}\frac{G_j^2}{H_j+\lambda} + \gamma T\]<div class="why"><b>Substitute \(w^\star\) back.</b> \(G w^\star+\tfrac12(H+\lambda)w^{\star2} = -\frac{G^2}{H+\lambda}+\frac12\frac{G^2}{H+\lambda} = -\frac12\frac{G^2}{H+\lambda}\). This is a <em>score for a tree structure</em> with the leaf values already optimised out — smaller is better.</div></div><div class="dstep">\[\text{Gain} = \frac12\left[\frac{G_L^2}{H_L+\lambda}+\frac{G_R^2}{H_R+\lambda}-\frac{(G_L{+}G_R)^2}{H_L{+}H_R+\lambda}\right]-\gamma\]<div class="why"><b>The split criterion, derived rather than chosen.</b> Difference of the structure scores before and after splitting one leaf. Two things to notice. First, \(-\gamma\): a split must improve the score by at least \(\gamma\) or it is rejected — pruning built into the search. Second, at \(\lambda=\gamma=0\) with squared loss this reduces to \(\frac{(\sum_L r)^2}{n_L}+\frac{(\sum_R r)^2}{n_R}-\frac{(\sum r)^2}{n}\), which is precisely the prefix-sum criterion coded in <code>best_split</code> below. Everything is consistent.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d89')">Next step</button><button class="btn ghost" onclick="dall('d89')">Show all</button><button class="btn ghost" onclick="dreset('d89')">Reset</button></div></div>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p><strong>What to actually do on a tabular problem in 2026.</strong></p>
+<ul>
+<li><strong>Start with gradient-boosted trees</strong> (XGBoost / LightGBM / CatBoost). On tabular data with
+mixed types and a few thousand to a few million rows, they still beat neural networks in most careful
+benchmarks. This is not nostalgia — it is the one large domain where deep learning did not take over.</li>
+<li><strong>Tune \(\nu\) and \(M\) together, with early stopping.</strong> Fix \(\nu=0.05\)–\(0.1\), set \(M\)
+large, and stop when validation error stops improving. Then tune depth (3–8), <code>min_child_weight</code>
+(that is \(H_j\), the leaf's total Hessian) and subsampling.</li>
+<li><strong>Random forests when you want robustness with no tuning.</strong> Defaults work, it is trivially
+parallel, and OOB gives a free error estimate. It will rarely be the best model and rarely be a bad one.</li>
+<li><strong>Distrust impurity-based feature importances.</strong> They are biased toward high-cardinality and
+continuous features, which get more candidate split points and so more chances to look good on noise. Use
+permutation importance on held-out data, or SHAP values, and remember both still describe <em>the
+model</em>, not the world.</li>
+<li><strong>Trees cannot extrapolate.</strong> Every prediction is an average of training labels, so a tree's
+output is bounded by \([\min y_i, \max y_i]\) forever. On a time series with a trend, a tree will predict a
+flat line beyond the training range. This is a hard structural limit, not a tuning problem.</li>
+</ul></div>
+<h2 id="s7"><span class="secnum">7</span>Build all of it</h2>
+<div class="pyb" id="py90" data-orig="
+import numpy as np, time
+np.set_printoptions(precision=3, suppress=True)
+_t0 = time.time()
+
+# ==================== a CART regression tree, from scratch ====================
+class Node:
+    __slots__ = (&quot;j&quot;, &quot;t&quot;, &quot;lo&quot;, &quot;hi&quot;, &quot;val&quot;)
+    def __init__(self): self.j = -1; self.t = 0.0; self.lo = self.hi = None; self.val = 0.0
+
+def best_split(X, y, min_leaf):
+    &quot;&quot;&quot;O(n log n) per feature: sort once, then prefix sums.
+       Minimising SSE == maximising  (sum_L)^2/n_L + (sum_R)^2/n_R  (see the gain
+       formula derivation with lambda = gamma = 0).&quot;&quot;&quot;
+    n, d = X.shape
+    if n &lt; 2*min_leaf: return None
+    best_score, bj, bt = y.sum()**2/n, -1, 0.0        # score of NOT splitting
+    for j in range(d):
+        o = np.argsort(X[:, j], kind=&quot;stable&quot;)
+        xs, ys = X[o, j], y[o]
+        cs = np.cumsum(ys); tot = cs[-1]
+        k  = np.arange(1, n)                           # size of the left child
+        ok = (xs[1:] &gt; xs[:-1]) &amp; (k &gt;= min_leaf) &amp; (n - k &gt;= min_leaf)
+        if not ok.any(): continue
+        score = np.where(ok, cs[:-1]**2/k + (tot - cs[:-1])**2/(n - k), -np.inf)
+        i = int(score.argmax())
+        if score[i] &gt; best_score:
+            best_score, bj, bt = score[i], j, 0.5*(xs[i] + xs[i+1])
+    return None if bj &lt; 0 else (bj, bt)
+
+def grow(X, y, depth, min_leaf=1, mtry=None, rg=None):
+    nd = Node(); nd.val = float(y.mean())              # leaf value = mean (derived above)
+    if depth == 0 or len(y) &lt; 2*min_leaf or np.all(y == y[0]): return nd
+    cols = np.arange(X.shape[1]) if mtry is None else rg.choice(X.shape[1], mtry, replace=False)
+    s = best_split(X[:, cols], y, min_leaf)
+    if s is None: return nd
+    j = int(cols[s[0]]); t = s[1]; m = X[:, j] &lt;= t
+    if m.sum() == 0 or (~m).sum() == 0: return nd
+    nd.j, nd.t = j, t
+    nd.lo = grow(X[m],  y[m],  depth-1, min_leaf, mtry, rg)
+    nd.hi = grow(X[~m], y[~m], depth-1, min_leaf, mtry, rg)
+    return nd
+
+def pred(nd, X):
+    out = np.empty(len(X)); stack = [(nd, np.arange(len(X)))]
+    while stack:
+        node, ii = stack.pop()
+        if node.j &lt; 0: out[ii] = node.val; continue
+        m = X[ii, node.j] &lt;= node.t
+        stack.append((node.lo, ii[m])); stack.append((node.hi, ii[~m]))
+    return out
+
+def nleaves(nd): return 1 if nd.j &lt; 0 else nleaves(nd.lo) + nleaves(nd.hi)
+
+def f_true(X): return np.sin(3*X[:,0]) + 0.6*X[:,1]**2 - 0.5*X[:,0]*X[:,1]
+rg  = np.random.default_rng(0)
+Xtr = rg.uniform(-2, 2, (400, 2));  ytr = f_true(Xtr) + rg.normal(0, 0.3, 400)
+Xte = rg.uniform(-2, 2, (1500, 2)); yte = f_true(Xte) + rg.normal(0, 0.3, 1500)
+
+print(&quot;--- 1. ONE TREE: depth is the capacity knob ---&quot;)
+print(&quot;  depth   leaves   train MSE   test MSE&quot;)
+for dep in (1, 2, 3, 5, 8, 12, 20):
+    T = grow(Xtr, ytr, dep)
+    print(f&quot;  {dep:5d}   {nleaves(T):6d}   {np.mean((pred(T,Xtr)-ytr)**2):9.4f}  &quot;
+          f&quot;{np.mean((pred(T,Xte)-yte)**2):9.4f}&quot;)
+print(&quot;  Irreducible noise = 0.09. Training MSE goes to 0; test MSE bottoms out&quot;)
+print(&quot;  around depth 8 and then rises. Lecture 7&#x27;s U-curve, with depth as capacity.&quot;)
+
+# ============ 2. the impurity criteria, on the classic 400/400 example ========
+def gini(p): return 2*p*(1-p)
+def ent(p):
+    p = np.clip(p, 1e-12, 1-1e-12); return -(p*np.log2(p) + (1-p)*np.log2(1-p))
+def mis(p):  return np.minimum(p, 1-p)
+
+print()
+print(&quot;--- 2. WHY MISCLASSIFICATION ERROR CANNOT CHOOSE A SPLIT ---&quot;)
+print(&quot;  parent: 400 of class 1, 400 of class 0   (impurity at p = 0.5)&quot;)
+for name, (a, b, c, e) in ((&quot;split A&quot;, (300, 100, 100, 300)),
+                           (&quot;split B&quot;, (200,   0, 200, 400))):
+    nl, nr = a+b, c+e
+    row = f&quot;  {name}  left {a}/{nl}, right {c}/{nr}   &quot;
+    for f, lab in ((mis, &quot;misclass&quot;), (gini, &quot;Gini&quot;), (ent, &quot;entropy&quot;)):
+        g = f(0.5) - (nl/800)*f(a/nl) - (nr/800)*f(c/nr)
+        row += f&quot;{lab} {g:.4f}   &quot;
+    print(row)
+print(&quot;  Identical misclassification gain, although split B produces a PURE leaf.&quot;)
+print(&quot;  Gini and entropy both prefer B. Strict concavity is doing that work.&quot;)
+
+# ==== 3. bagging: verify  Var(average) = rho*sigma^2 + (1-rho)*sigma^2/B ======
+# The correlation rho comes from the SHARED TRAINING SET, not from the bootstrap.
+# Two trees inside one forest are conditionally independent given the data, so
+# you cannot see rho at all without several independent training sets.
+print()
+print(&quot;--- 3. THE CORRELATED-AVERAGE VARIANCE FORMULA, VERIFIED ---&quot;)
+D = 10
+def g_true(X): return 2.0*np.sign(X[:,0]) + np.sin(3*X[:,1]) + 0.8*X[:,2]**2 + 0.7*X[:,3]
+Xq  = np.random.default_rng(77).uniform(-2, 2, (250, D))
+yq  = g_true(Xq) + np.random.default_rng(78).normal(0, 0.4, 250)
+R, B = 10, 10
+
+def forest_study(mtry):
+    Fb = np.zeros((R, B, len(Xq))); rgd = np.random.default_rng(0)
+    for r in range(R):                                   # R independent training sets
+        Xa = rgd.uniform(-2, 2, (200, D)); ya = g_true(Xa) + rgd.normal(0, 0.4, 200)
+        for b in range(B):                               # B bootstrap trees on each
+            idx = rgd.integers(0, 200, 200)
+            Fb[r, b] = pred(grow(Xa[idx], ya[idx], 6, 3, mtry, rgd), Xq)
+    s2 = float(Fb.reshape(R*B, -1).var(0, ddof=1).mean())
+    def paircorr(i, j):                                  # rho, from DISTINCT tree pairs
+        a = Fb[:, i, :] - Fb[:, i, :].mean(0)
+        b = Fb[:, j, :] - Fb[:, j, :].mean(0)
+        return ((a*b).mean(0)/np.sqrt((a*a).mean(0)*(b*b).mean(0) + 1e-30)).mean()
+    rho = float(np.mean([paircorr(i, j) for i in range(4) for j in range(4) if i &lt; j]))
+    return s2, rho, Fb
+
+study = {m: forest_study(m) for m in (None, 5, 2)}
+s2, rho, Fb = study[None]
+print(f&quot;  sigma^2 (variance of ONE tree&#x27;s prediction)            = {s2:.4f}&quot;)
+print(f&quot;  rho     (correlation of two trees in the same forest)  = {rho:.4f}&quot;)
+print(&quot;     B    formula rho*s2 + (1-rho)*s2/B      measured variance&quot;)
+for Bs in (1, 2, 4, 8, 10):
+    print(f&quot;  {Bs:4d}              {rho*s2 + (1-rho)*s2/Bs:8.4f}                {float(Fb[:, :Bs, :].mean(1).var(0, ddof=1).mean()):8.4f}&quot;)
+print(&quot;  TWO estimated numbers predict the whole curve. That is the derivation working.&quot;)
+print(f&quot;  Floor as B -&gt; infinity: rho*sigma^2 = {rho*s2:.4f}. At B=10 the variance is&quot;)
+print(f&quot;  {rho*s2 + (1-rho)*s2/10:.4f}, still {100*(rho*s2+(1-rho)*s2/10)/(rho*s2)-100:.0f}% ABOVE the floor, so here&quot;)
+print(f&quot;  more trees do still help. They stop helping past B = (1-rho)/(0.1*rho) = &quot;
+      f&quot;{int(np.ceil((1-rho)/(0.1*rho)))}, which is where the 1/B term drops to a tenth of the floor.&quot;)
+
+print()
+print(&quot;--- 4. FEATURE SUBSAMPLING LOWERS rho -- AND RAISES sigma^2 ---&quot;)
+print(&quot;  mtry   sigma^2     rho    floor rho*s2   bias^2   forest MSE (B=10)&quot;)
+for m in (None, 5, 2):
+    s2m, rhom, Fm = study[m]
+    bias2 = float(((Fm.reshape(R*B, -1).mean(0) - g_true(Xq))**2).mean())
+    print(f&quot;  {str(m):4s}   {s2m:7.3f}  {rhom:6.3f}   {rhom*s2m:10.4f}   {bias2:6.3f}&quot;
+          f&quot;   {float(np.mean((Fm.mean(1)-yq)**2)):10.3f}&quot;)
+print(&quot;  rho falls exactly as predicted -- that is the random-forest mechanism, measured.&quot;)
+print(&quot;  But on THIS problem only 4 of 10 features matter, so restricting the choice&quot;)
+print(&quot;  often excludes all of them: sigma^2 and bias^2 both rise, and mtry = d wins.&quot;)
+print(&quot;  m is a hyperparameter with an interior optimum, not a free improvement.&quot;)
+
+# ============ 5. bagging attacks variance; boosting attacks bias =============
+print()
+print(&quot;--- 5. BAGGING REDUCES VARIANCE; BOOSTING REDUCES BIAS ---&quot;)
+stump = grow(Xtr, ytr, 1, 5)
+print(f&quot;  one depth-1 stump                      test MSE {np.mean((pred(stump,Xte)-yte)**2):.4f}&quot;)
+rgs = np.random.default_rng(1); Pb = np.zeros(len(Xte))
+for b in range(200):
+    idx = rgs.integers(0, 400, 400); Pb += pred(grow(Xtr[idx], ytr[idx], 1, 5), Xte)
+print(f&quot;  200 BAGGED stumps                      test MSE {np.mean((Pb/200-yte)**2):.4f}&quot;)
+for dep in (1, 2):
+    F = np.full(400, ytr.mean()); Fv = np.full(len(Xte), ytr.mean())
+    for m in range(200):
+        T = grow(Xtr, ytr - F, dep, 5)                  # -gradient of squared loss = residual
+        F += 0.3*pred(T, Xtr); Fv += 0.3*pred(T, Xte)
+    print(f&quot;  200 BOOSTED depth-{dep} trees (nu=0.3)     test MSE {np.mean((Fv-yte)**2):.4f}&quot;)
+print(&quot;  Averaging models that share a bias cannot remove it: bagging stumps barely helps.&quot;)
+print(&quot;  Boosting attacks the bias directly. Note depth-1 boosting is an ADDITIVE model&quot;)
+print(&quot;  and cannot represent the x0*x1 interaction -- depth 2 buys exactly that.&quot;)
+
+# ==================== 6. the learning rate / rounds trade-off ===============
+print()
+print(&quot;--- 6. LEARNING RATE vs NUMBER OF ROUNDS (test MSE) ---&quot;)
+print(&quot;   nu      M=20      M=60      M=200&quot;)
+for nu in (1.0, 0.3, 0.1):
+    F = np.full(400, ytr.mean()); Fv = np.full(len(Xte), ytr.mean()); snap = {}
+    for m in range(1, 201):
+        T = grow(Xtr, ytr - F, 3, 5); F += nu*pred(T, Xtr); Fv += nu*pred(T, Xte)
+        if m in (20, 60, 200): snap[m] = np.mean((Fv - yte)**2)
+    print(f&quot;  {nu:4.2f}   {snap[20]:8.4f}  {snap[60]:8.4f}  {snap[200]:8.4f}&quot;)
+print(&quot;  nu=1 lands somewhere mediocre in 20 rounds and never improves: each step&quot;)
+print(&quot;  overshoots. Small nu is slower per round and better in the end -- Lecture 3&#x27;s&quot;)
+print(&quot;  step-size lesson, in function space.&quot;)
+
+# ==================== 7. the Newton leaf value, verified ====================
+print()
+print(&quot;--- 7. THE SECOND-ORDER LEAF VALUE  w* = -G/(H + lambda) ---&quot;)
+res = ytr - ytr.mean()
+T   = grow(Xtr, res, 3, 5)
+leaf_id = np.zeros(400, int); nxt = [0]
+def tag(nd, ii):
+    if nd.j &lt; 0:
+        leaf_id[ii] = nxt[0]; nxt[0] += 1; return
+    m = Xtr[ii, nd.j] &lt;= nd.t; tag(nd.lo, ii[m]); tag(nd.hi, ii[~m])
+tag(T, np.arange(400))
+K = leaf_id.max() + 1
+for lam in (0.0, 5.0, 50.0):
+    w_star, shrunk = [], []
+    for k in range(K):
+        mk = leaf_id == k
+        G = float((-res[mk]).sum())      # dL/dF for L = 0.5(y-F)^2 at F=0 is -res
+        H = float(mk.sum())              # d2L/dF2 = 1 per point
+        w_star.append(-G/(H + lam))
+        shrunk.append(res[mk].mean() * mk.sum()/(mk.sum() + lam))
+    w_star, shrunk = np.array(w_star), np.array(shrunk)
+    print(f&quot;  lambda={lam:5.1f}   max |w* - (shrunken mean residual)| = &quot;
+          f&quot;{np.abs(w_star - shrunk).max():.2e}    mean |w*| = {np.abs(w_star).mean():.4f}&quot;)
+print(&quot;  At lambda=0 the Newton value IS the mean residual, so second-order boosting&quot;)
+print(&quot;  reduces to first-order boosting exactly, as the derivation requires.&quot;)
+print(&quot;  Raising lambda shrinks SMALL leaves hardest (H_j is the leaf&#x27;s point count) --&quot;)
+print(&quot;  which is what you want, since small leaves are the least trustworthy.&quot;)
+print()
+print(f&quot;total run time {time.time() - _t0:.1f} s&quot;)
+"><div class="pyb-head"><span class="t">CART, bagging, the variance formula, and boosting — from scratch</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py90')">Run</button><button class="btn ghost" onclick="resetPy('py90')">Reset</button></div><textarea spellcheck="false" rows="34">
+import numpy as np, time
+np.set_printoptions(precision=3, suppress=True)
+_t0 = time.time()
+
+# ==================== a CART regression tree, from scratch ====================
+class Node:
+    __slots__ = (&quot;j&quot;, &quot;t&quot;, &quot;lo&quot;, &quot;hi&quot;, &quot;val&quot;)
+    def __init__(self): self.j = -1; self.t = 0.0; self.lo = self.hi = None; self.val = 0.0
+
+def best_split(X, y, min_leaf):
+    &quot;&quot;&quot;O(n log n) per feature: sort once, then prefix sums.
+       Minimising SSE == maximising  (sum_L)^2/n_L + (sum_R)^2/n_R  (see the gain
+       formula derivation with lambda = gamma = 0).&quot;&quot;&quot;
+    n, d = X.shape
+    if n &lt; 2*min_leaf: return None
+    best_score, bj, bt = y.sum()**2/n, -1, 0.0        # score of NOT splitting
+    for j in range(d):
+        o = np.argsort(X[:, j], kind=&quot;stable&quot;)
+        xs, ys = X[o, j], y[o]
+        cs = np.cumsum(ys); tot = cs[-1]
+        k  = np.arange(1, n)                           # size of the left child
+        ok = (xs[1:] &gt; xs[:-1]) &amp; (k &gt;= min_leaf) &amp; (n - k &gt;= min_leaf)
+        if not ok.any(): continue
+        score = np.where(ok, cs[:-1]**2/k + (tot - cs[:-1])**2/(n - k), -np.inf)
+        i = int(score.argmax())
+        if score[i] &gt; best_score:
+            best_score, bj, bt = score[i], j, 0.5*(xs[i] + xs[i+1])
+    return None if bj &lt; 0 else (bj, bt)
+
+def grow(X, y, depth, min_leaf=1, mtry=None, rg=None):
+    nd = Node(); nd.val = float(y.mean())              # leaf value = mean (derived above)
+    if depth == 0 or len(y) &lt; 2*min_leaf or np.all(y == y[0]): return nd
+    cols = np.arange(X.shape[1]) if mtry is None else rg.choice(X.shape[1], mtry, replace=False)
+    s = best_split(X[:, cols], y, min_leaf)
+    if s is None: return nd
+    j = int(cols[s[0]]); t = s[1]; m = X[:, j] &lt;= t
+    if m.sum() == 0 or (~m).sum() == 0: return nd
+    nd.j, nd.t = j, t
+    nd.lo = grow(X[m],  y[m],  depth-1, min_leaf, mtry, rg)
+    nd.hi = grow(X[~m], y[~m], depth-1, min_leaf, mtry, rg)
+    return nd
+
+def pred(nd, X):
+    out = np.empty(len(X)); stack = [(nd, np.arange(len(X)))]
+    while stack:
+        node, ii = stack.pop()
+        if node.j &lt; 0: out[ii] = node.val; continue
+        m = X[ii, node.j] &lt;= node.t
+        stack.append((node.lo, ii[m])); stack.append((node.hi, ii[~m]))
+    return out
+
+def nleaves(nd): return 1 if nd.j &lt; 0 else nleaves(nd.lo) + nleaves(nd.hi)
+
+def f_true(X): return np.sin(3*X[:,0]) + 0.6*X[:,1]**2 - 0.5*X[:,0]*X[:,1]
+rg  = np.random.default_rng(0)
+Xtr = rg.uniform(-2, 2, (400, 2));  ytr = f_true(Xtr) + rg.normal(0, 0.3, 400)
+Xte = rg.uniform(-2, 2, (1500, 2)); yte = f_true(Xte) + rg.normal(0, 0.3, 1500)
+
+print(&quot;--- 1. ONE TREE: depth is the capacity knob ---&quot;)
+print(&quot;  depth   leaves   train MSE   test MSE&quot;)
+for dep in (1, 2, 3, 5, 8, 12, 20):
+    T = grow(Xtr, ytr, dep)
+    print(f&quot;  {dep:5d}   {nleaves(T):6d}   {np.mean((pred(T,Xtr)-ytr)**2):9.4f}  &quot;
+          f&quot;{np.mean((pred(T,Xte)-yte)**2):9.4f}&quot;)
+print(&quot;  Irreducible noise = 0.09. Training MSE goes to 0; test MSE bottoms out&quot;)
+print(&quot;  around depth 8 and then rises. Lecture 7&#x27;s U-curve, with depth as capacity.&quot;)
+
+# ============ 2. the impurity criteria, on the classic 400/400 example ========
+def gini(p): return 2*p*(1-p)
+def ent(p):
+    p = np.clip(p, 1e-12, 1-1e-12); return -(p*np.log2(p) + (1-p)*np.log2(1-p))
+def mis(p):  return np.minimum(p, 1-p)
+
+print()
+print(&quot;--- 2. WHY MISCLASSIFICATION ERROR CANNOT CHOOSE A SPLIT ---&quot;)
+print(&quot;  parent: 400 of class 1, 400 of class 0   (impurity at p = 0.5)&quot;)
+for name, (a, b, c, e) in ((&quot;split A&quot;, (300, 100, 100, 300)),
+                           (&quot;split B&quot;, (200,   0, 200, 400))):
+    nl, nr = a+b, c+e
+    row = f&quot;  {name}  left {a}/{nl}, right {c}/{nr}   &quot;
+    for f, lab in ((mis, &quot;misclass&quot;), (gini, &quot;Gini&quot;), (ent, &quot;entropy&quot;)):
+        g = f(0.5) - (nl/800)*f(a/nl) - (nr/800)*f(c/nr)
+        row += f&quot;{lab} {g:.4f}   &quot;
+    print(row)
+print(&quot;  Identical misclassification gain, although split B produces a PURE leaf.&quot;)
+print(&quot;  Gini and entropy both prefer B. Strict concavity is doing that work.&quot;)
+
+# ==== 3. bagging: verify  Var(average) = rho*sigma^2 + (1-rho)*sigma^2/B ======
+# The correlation rho comes from the SHARED TRAINING SET, not from the bootstrap.
+# Two trees inside one forest are conditionally independent given the data, so
+# you cannot see rho at all without several independent training sets.
+print()
+print(&quot;--- 3. THE CORRELATED-AVERAGE VARIANCE FORMULA, VERIFIED ---&quot;)
+D = 10
+def g_true(X): return 2.0*np.sign(X[:,0]) + np.sin(3*X[:,1]) + 0.8*X[:,2]**2 + 0.7*X[:,3]
+Xq  = np.random.default_rng(77).uniform(-2, 2, (250, D))
+yq  = g_true(Xq) + np.random.default_rng(78).normal(0, 0.4, 250)
+R, B = 10, 10
+
+def forest_study(mtry):
+    Fb = np.zeros((R, B, len(Xq))); rgd = np.random.default_rng(0)
+    for r in range(R):                                   # R independent training sets
+        Xa = rgd.uniform(-2, 2, (200, D)); ya = g_true(Xa) + rgd.normal(0, 0.4, 200)
+        for b in range(B):                               # B bootstrap trees on each
+            idx = rgd.integers(0, 200, 200)
+            Fb[r, b] = pred(grow(Xa[idx], ya[idx], 6, 3, mtry, rgd), Xq)
+    s2 = float(Fb.reshape(R*B, -1).var(0, ddof=1).mean())
+    def paircorr(i, j):                                  # rho, from DISTINCT tree pairs
+        a = Fb[:, i, :] - Fb[:, i, :].mean(0)
+        b = Fb[:, j, :] - Fb[:, j, :].mean(0)
+        return ((a*b).mean(0)/np.sqrt((a*a).mean(0)*(b*b).mean(0) + 1e-30)).mean()
+    rho = float(np.mean([paircorr(i, j) for i in range(4) for j in range(4) if i &lt; j]))
+    return s2, rho, Fb
+
+study = {m: forest_study(m) for m in (None, 5, 2)}
+s2, rho, Fb = study[None]
+print(f&quot;  sigma^2 (variance of ONE tree&#x27;s prediction)            = {s2:.4f}&quot;)
+print(f&quot;  rho     (correlation of two trees in the same forest)  = {rho:.4f}&quot;)
+print(&quot;     B    formula rho*s2 + (1-rho)*s2/B      measured variance&quot;)
+for Bs in (1, 2, 4, 8, 10):
+    print(f&quot;  {Bs:4d}              {rho*s2 + (1-rho)*s2/Bs:8.4f}                {float(Fb[:, :Bs, :].mean(1).var(0, ddof=1).mean()):8.4f}&quot;)
+print(&quot;  TWO estimated numbers predict the whole curve. That is the derivation working.&quot;)
+print(f&quot;  Floor as B -&gt; infinity: rho*sigma^2 = {rho*s2:.4f}. At B=10 the variance is&quot;)
+print(f&quot;  {rho*s2 + (1-rho)*s2/10:.4f}, still {100*(rho*s2+(1-rho)*s2/10)/(rho*s2)-100:.0f}% ABOVE the floor, so here&quot;)
+print(f&quot;  more trees do still help. They stop helping past B = (1-rho)/(0.1*rho) = &quot;
+      f&quot;{int(np.ceil((1-rho)/(0.1*rho)))}, which is where the 1/B term drops to a tenth of the floor.&quot;)
+
+print()
+print(&quot;--- 4. FEATURE SUBSAMPLING LOWERS rho -- AND RAISES sigma^2 ---&quot;)
+print(&quot;  mtry   sigma^2     rho    floor rho*s2   bias^2   forest MSE (B=10)&quot;)
+for m in (None, 5, 2):
+    s2m, rhom, Fm = study[m]
+    bias2 = float(((Fm.reshape(R*B, -1).mean(0) - g_true(Xq))**2).mean())
+    print(f&quot;  {str(m):4s}   {s2m:7.3f}  {rhom:6.3f}   {rhom*s2m:10.4f}   {bias2:6.3f}&quot;
+          f&quot;   {float(np.mean((Fm.mean(1)-yq)**2)):10.3f}&quot;)
+print(&quot;  rho falls exactly as predicted -- that is the random-forest mechanism, measured.&quot;)
+print(&quot;  But on THIS problem only 4 of 10 features matter, so restricting the choice&quot;)
+print(&quot;  often excludes all of them: sigma^2 and bias^2 both rise, and mtry = d wins.&quot;)
+print(&quot;  m is a hyperparameter with an interior optimum, not a free improvement.&quot;)
+
+# ============ 5. bagging attacks variance; boosting attacks bias =============
+print()
+print(&quot;--- 5. BAGGING REDUCES VARIANCE; BOOSTING REDUCES BIAS ---&quot;)
+stump = grow(Xtr, ytr, 1, 5)
+print(f&quot;  one depth-1 stump                      test MSE {np.mean((pred(stump,Xte)-yte)**2):.4f}&quot;)
+rgs = np.random.default_rng(1); Pb = np.zeros(len(Xte))
+for b in range(200):
+    idx = rgs.integers(0, 400, 400); Pb += pred(grow(Xtr[idx], ytr[idx], 1, 5), Xte)
+print(f&quot;  200 BAGGED stumps                      test MSE {np.mean((Pb/200-yte)**2):.4f}&quot;)
+for dep in (1, 2):
+    F = np.full(400, ytr.mean()); Fv = np.full(len(Xte), ytr.mean())
+    for m in range(200):
+        T = grow(Xtr, ytr - F, dep, 5)                  # -gradient of squared loss = residual
+        F += 0.3*pred(T, Xtr); Fv += 0.3*pred(T, Xte)
+    print(f&quot;  200 BOOSTED depth-{dep} trees (nu=0.3)     test MSE {np.mean((Fv-yte)**2):.4f}&quot;)
+print(&quot;  Averaging models that share a bias cannot remove it: bagging stumps barely helps.&quot;)
+print(&quot;  Boosting attacks the bias directly. Note depth-1 boosting is an ADDITIVE model&quot;)
+print(&quot;  and cannot represent the x0*x1 interaction -- depth 2 buys exactly that.&quot;)
+
+# ==================== 6. the learning rate / rounds trade-off ===============
+print()
+print(&quot;--- 6. LEARNING RATE vs NUMBER OF ROUNDS (test MSE) ---&quot;)
+print(&quot;   nu      M=20      M=60      M=200&quot;)
+for nu in (1.0, 0.3, 0.1):
+    F = np.full(400, ytr.mean()); Fv = np.full(len(Xte), ytr.mean()); snap = {}
+    for m in range(1, 201):
+        T = grow(Xtr, ytr - F, 3, 5); F += nu*pred(T, Xtr); Fv += nu*pred(T, Xte)
+        if m in (20, 60, 200): snap[m] = np.mean((Fv - yte)**2)
+    print(f&quot;  {nu:4.2f}   {snap[20]:8.4f}  {snap[60]:8.4f}  {snap[200]:8.4f}&quot;)
+print(&quot;  nu=1 lands somewhere mediocre in 20 rounds and never improves: each step&quot;)
+print(&quot;  overshoots. Small nu is slower per round and better in the end -- Lecture 3&#x27;s&quot;)
+print(&quot;  step-size lesson, in function space.&quot;)
+
+# ==================== 7. the Newton leaf value, verified ====================
+print()
+print(&quot;--- 7. THE SECOND-ORDER LEAF VALUE  w* = -G/(H + lambda) ---&quot;)
+res = ytr - ytr.mean()
+T   = grow(Xtr, res, 3, 5)
+leaf_id = np.zeros(400, int); nxt = [0]
+def tag(nd, ii):
+    if nd.j &lt; 0:
+        leaf_id[ii] = nxt[0]; nxt[0] += 1; return
+    m = Xtr[ii, nd.j] &lt;= nd.t; tag(nd.lo, ii[m]); tag(nd.hi, ii[~m])
+tag(T, np.arange(400))
+K = leaf_id.max() + 1
+for lam in (0.0, 5.0, 50.0):
+    w_star, shrunk = [], []
+    for k in range(K):
+        mk = leaf_id == k
+        G = float((-res[mk]).sum())      # dL/dF for L = 0.5(y-F)^2 at F=0 is -res
+        H = float(mk.sum())              # d2L/dF2 = 1 per point
+        w_star.append(-G/(H + lam))
+        shrunk.append(res[mk].mean() * mk.sum()/(mk.sum() + lam))
+    w_star, shrunk = np.array(w_star), np.array(shrunk)
+    print(f&quot;  lambda={lam:5.1f}   max |w* - (shrunken mean residual)| = &quot;
+          f&quot;{np.abs(w_star - shrunk).max():.2e}    mean |w*| = {np.abs(w_star).mean():.4f}&quot;)
+print(&quot;  At lambda=0 the Newton value IS the mean residual, so second-order boosting&quot;)
+print(&quot;  reduces to first-order boosting exactly, as the derivation requires.&quot;)
+print(&quot;  Raising lambda shrinks SMALL leaves hardest (H_j is the leaf&#x27;s point count) --&quot;)
+print(&quot;  which is what you want, since small leaves are the least trustworthy.&quot;)
+print()
+print(f&quot;total run time {time.time() - _t0:.1f} s&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s8"><span class="secnum">8</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>A node contains 60 points of class A and 40 of class B. A candidate split sends
+  (40 A, 10 B) left and (20 A, 30 B) right.</p>
+  <ol><li>Compute the Gini gain, the entropy gain, and the misclassification gain.</li>
+  <li>A second candidate sends (50 A, 20 B) left and (10 A, 20 B) right. Which split does each criterion
+  prefer?</li>
+  <li>Verify the identity \(\bar p = \frac{n_L}{n}p_L + \frac{n_R}{n}p_R\) for both splits.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex91',this)">Show solution</button></div><div class="rev-body" id="ex91"><p><strong>Split 1.</strong> Parent \(p=0.6\) (class A). Left \(n_L=50,\ p_L=0.8\); right
+  \(n_R=50,\ p_R=0.4\).</p>
+  <p>Gini: parent \(2(0.6)(0.4)=0.48\); left \(2(0.8)(0.2)=0.32\); right \(2(0.4)(0.6)=0.48\).
+  Gain \(=0.48-0.5(0.32)-0.5(0.48)=0.48-0.40=\mathbf{0.08}\).</p>
+  <p>Entropy: parent \(H(0.6)=0.9710\); left \(H(0.8)=0.7219\); right \(H(0.4)=0.9710\).
+  Gain \(=0.9710-0.5(0.7219)-0.5(0.9710)=\mathbf{0.1245}\).</p>
+  <p>Misclassification: parent \(0.4\); left \(0.2\); right \(0.4\).
+  Gain \(=0.4-0.5(0.2)-0.5(0.4)=\mathbf{0.10}\).</p>
+  <p><strong>Split 2.</strong> Left \(n_L=70,\ p_L=50/70=0.7143\); right \(n_R=30,\ p_R=1/3\).</p>
+  <p>Gini: left \(2(0.7143)(0.2857)=0.4082\); right \(2(0.3333)(0.6667)=0.4444\).
+  Gain \(=0.48-0.7(0.4082)-0.3(0.4444)=0.48-0.4190=\mathbf{0.0610}\).</p>
+  <p>Entropy: \(H(0.7143)=0.8631\), \(H(1/3)=0.9183\).
+  Gain \(=0.9710-0.7(0.8631)-0.3(0.9183)=0.9710-0.8797=\mathbf{0.0913}\).</p>
+  <p>Misclassification: left \(0.2857\), right \(1/3\).
+  Gain \(=0.4-0.7(0.2857)-0.3(0.3333)=0.4-0.3=\mathbf{0.10}\).</p>
+  <p><strong>2.</strong> Gini and entropy both prefer split 1 (0.0800 &gt; 0.0610; 0.1245 &gt; 0.0913).
+  Misclassification scores them <em>identically</em> at 0.10 — both children keep A as the majority in every
+  case, so we are on the linear piece of \(\min(p,1-p)\) and the chord lies on the curve. Third example of the
+  same failure.</p>
+  <p><strong>3.</strong> Split 1: \(0.5(0.8)+0.5(0.4)=0.6\) ✓. Split 2:
+  \(0.7(0.7143)+0.3(0.3333)=0.5+0.1=0.6\) ✓. The identity is just "the counts add".</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that a bootstrap sample of size \(n\) drawn with replacement from \(n\) items omits any
+  particular item with probability \((1-1/n)^n\), and find the limit. Then:</p>
+  <ol><li>What fraction of the training set does one tree actually see, for large \(n\)?</li>
+  <li>How many of \(B=500\) trees is a given row out-of-bag for, on average?</li>
+  <li>Explain why OOB error is slightly <em>pessimistic</em> compared with the full forest's test error.</li>
+  <li>At \(n=10\), how far is \((1-1/n)^n\) from the limit? Does OOB still work at small \(n\)?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex92',this)">Show solution</button></div><div class="rev-body" id="ex92"><p><strong>Proof.</strong> Each of the \(n\) independent draws picks item \(i\) with probability
+  \(1/n\), so misses it with probability \(1-1/n\). The draws are independent, so all \(n\) miss it with
+  probability \((1-1/n)^n\). Taking logs:
+  \(n\log(1-1/n) = n\big(-\tfrac1n-\tfrac{1}{2n^2}-O(n^{-3})\big) = -1-\tfrac{1}{2n}+O(n^{-2}) \to -1\),
+  so the probability \(\to e^{-1}=0.3679\). ∎</p>
+  <p><strong>1.</strong> About \(1-0.368=63.2\%\) of the rows appear at least once (some several times, since
+  the sample still has \(n\) elements).</p>
+  <p><strong>2.</strong> \(500\times0.368\approx 184\) trees. That is a substantial ensemble, which is why the
+  OOB estimate is usable rather than merely suggestive.</p>
+  <p><strong>3.</strong> Because the OOB prediction for a row averages only those ~184 trees, not all 500. By
+  the variance formula, an ensemble of \(B'=184\) has variance
+  \(\rho\sigma^2+\frac{1-\rho}{184}\sigma^2\) versus \(\rho\sigma^2+\frac{1-\rho}{500}\sigma^2\) — strictly
+  larger, so slightly higher expected error. With \(\rho\) of order 0.1 and \(B\) in the hundreds both terms
+  are dominated by \(\rho\sigma^2\) and the gap is negligible; at \(B=20\) it is not.</p>
+  <p><strong>4.</strong> \((1-1/10)^{10}=0.9^{10}=0.3487\) versus \(0.3679\) — about 5% low, matching the
+  \(-\frac{1}{2n}\) correction term. So each row is OOB for ~35% of the trees. The estimator still works; the
+  real problem at small \(n\) is that averaging errors over few rows is noisy, which is a sample-size issue,
+  not a bootstrap issue.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Suppose all \(B\) trees in a forest are <em>identical</em> (\(\rho=1\)).</p>
+  <ol><li>What does the variance formula give? Verify it directly without the formula.</li>
+  <li>Now suppose \(\rho&lt;0\) is somehow achievable. What is the smallest possible variance, and what
+  constraint on \(\rho\) makes the formula sensible?</li>
+  <li>A colleague proposes de-correlating trees by giving each one a completely different random 10% subset
+  of the training rows (no overlap between trees). Using the formula, say what happens to \(\rho\), to
+  \(\sigma^2\), and whether this is a good idea.</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex93',this)">Show solution</button></div><div class="rev-body" id="ex93"><p><strong>1.</strong> \(\rho\sigma^2+\frac{1-\rho}{B}\sigma^2 = \sigma^2+0=\sigma^2\). Directly: if
+  every \(f_b\) is the same random variable \(f\), then \(\frac1B\sum_b f_b = f\), whose variance is
+  \(\sigma^2\). Averaging identical things does nothing — which is exactly the failure mode in the quiz.</p>
+  <p><strong>2.</strong> Variance \(\ge 0\) forces \(\rho\sigma^2+\frac{1-\rho}{B}\sigma^2\ge0\), i.e.
+  \(\rho\ge-\frac{1}{B-1}\). At that boundary the variance is exactly zero. This is not an artefact: \(B\)
+  exchangeable variables cannot all be strongly negatively correlated, because their correlation matrix must
+  stay positive semi-definite, and \(-\frac{1}{B-1}\) is precisely where its smallest eigenvalue hits zero.
+  In practice \(\rho>0\) always for bagged trees — they share data.</p>
+  <p><strong>3.</strong> \(\rho\) falls a great deal (disjoint data means the only shared information is the
+  underlying distribution). But each tree now trains on \(n/10\) rows, so its variance \(\sigma^2\) rises
+  sharply <em>and</em> its bias rises too — a tree on 10% of the data is much worse. Total error is
+  \(\text{bias}^2 + \rho\sigma^2 + \frac{1-\rho}{B}\sigma^2\), and the bias term is untouched by averaging.
+  So: usually a bad idea, and it is the same trade-off as \(m\) in a random forest, pushed to an extreme. The
+  code block measures exactly this trade-off for \(m\) and finds the corner solution \(m=d\) on that problem
+  — which is why you tune it rather than trusting a default.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p>Derive gradient boosting for <strong>logistic loss</strong>
+  \(L(y,F)=\log\!\big(1+e^{-yF}\big)\) with \(y\in\{-1,+1\}\) and \(F\) the log-odds.</p>
+  <ol><li>Compute \(g_i=\partial L/\partial F\) and \(h_i=\partial^2 L/\partial F^2\).</li>
+  <li>Write the Newton leaf value \(w_j^\star\) and interpret \(H_j\).</li>
+  <li>What is \(F_0\)?</li>
+  <li>Show that a point the ensemble already classifies confidently and correctly contributes almost nothing
+  to either \(G_j\) or \(H_j\), and say what that means computationally.</li>
+  <li>Implement it and check that the training logistic loss decreases monotonically for small \(\nu\).</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex94',this)">Show solution</button></div><div class="rev-body" id="ex94"><p><strong>1.</strong> Write \(u=-yF\), so \(L=\log(1+e^{u})\) and
+  \(\frac{\partial L}{\partial u}=\frac{e^u}{1+e^u}=\sigma(u)\). By the chain rule
+  \(\frac{\partial u}{\partial F}=-y\), so</p>
+  \[ g = -y\,\sigma(-yF) = \frac{-y}{1+e^{yF}}. \]
+  <p>For the second derivative, using \(\sigma'=\sigma(1-\sigma)\) and another factor of \(-y\), with
+  \(y^2=1\):</p>
+  \[ h = y^2\,\sigma(-yF)\big(1-\sigma(-yF)\big) = \sigma(yF)\big(1-\sigma(yF)\big) = p(1-p), \quad p=\sigma(F). \]
+  <p>Note \(h\) does not depend on \(y\) — only on how confident the current model is.</p>
+  <p><strong>2.</strong> \(w_j^\star = -\dfrac{\sum_{i\in R_j} g_i}{\sum_{i\in R_j} h_i + \lambda}
+  = \dfrac{\sum_{i\in R_j} y_i\,\sigma(-y_iF_i)}{\sum_{i\in R_j} p_i(1-p_i)+\lambda}\).</p>
+  <p>The numerator is a sum of signed "how wrong are we" terms; the denominator is the total curvature. Since
+  \(p(1-p)\le\tfrac14\), \(H_j\) is an <em>effective sample size</em> that counts uncertain points fully and
+  confident points barely at all. That is exactly what XGBoost's <code>min_child_weight</code> constrains:
+  not the number of points in a leaf, but the amount of usable information.</p>
+  <p><strong>3.</strong> \(F_0=\argmin_c\sum_i\log(1+e^{-y_ic})\). Differentiating and setting to zero gives
+  \(\sum_i y_i\sigma(-y_ic)=0\), whose solution is \(F_0=\log\frac{n_+}{n_-}\) — the log-odds of the base
+  rate, the same intercept-only fit as in Lecture 5.</p>
+  <p><strong>4.</strong> Confident and correct means \(y_iF_i \gg 0\). Then
+  \(|g_i|=\sigma(-y_iF_i)\approx e^{-y_iF_i}\to0\) and \(h_i=p(1-p)\to0\), both exponentially fast. So such a
+  point contributes essentially nothing to any leaf's \(G\) or \(H\) and cannot influence the next tree.
+  Computationally, that is the licence to <em>ignore</em> it: it justifies gradient-based one-sided sampling
+  (LightGBM's GOSS), which keeps the large-gradient points and subsamples the rest. It is also the precise
+  sense in which boosting "focuses on hard examples" — a consequence of the derivative, not a design
+  choice.</p>
+  <p><strong>5.</strong> Reuse <code>grow</code> and <code>pred</code>: at each round compute
+  <code>g = -y/(1+np.exp(y*F))</code> and <code>h = p*(1-p)</code>, fit a tree to <code>-g/h</code> weighted
+  by <code>h</code> (or simply to <code>-g</code> for the first-order version), recompute the leaf values as
+  \(-G_j/(H_j+\lambda)\), and update \(F \mathrel{+}= \nu\,h_m\). Track
+  <code>np.log1p(np.exp(-y*F)).mean()</code>: it decreases monotonically for \(\nu\) small. For \(\nu=1\) it
+  need not — the Taylor expansion is only local, exactly as in Lecture 3.</p></div></div></div>
+<div class="box note"><span class="lbl">Where this goes next</span><p>Trees get nonlinearity by <em>partitioning</em> the
+input space. The final lecture of Phase B gets it the other way round: keep a single linear boundary, but
+move to a space where the data is linearly separable — and do it without ever computing the coordinates in
+that space. That is the kernel trick, and it needs the inner products of Phase A Lecture 8 and the
+constrained optimisation of Lecture 12.</p></div>
+<div class="pagenav"><a href="10-naive-bayes.html" class="pv"><span class="dir">Previous</span><span class="nm">10 · Naive Bayes and the Generative–Discriminative Divide</span></a><a href="12-svm-duality-kernels.html" class="nx"><span class="dir">Next</span><span class="nm">12 · Support Vector Machines: Margins, Duality, and Kernels</span></a></div>
+</div>
+<script>initDone('11-trees-forests-boosting');</script>
+</body>
+</html>

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase B — Classical Machine Learning</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+
+
+.hero{padding:66px 0 30px}
+.hero .kick{font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:16px}
+.hero h1{font-size:3rem; line-height:1.08; margin:0 0 18px; letter-spacing:-.03em}
+.hero p{font-size:1.16rem; color:var(--ink2); max-width:660px}
+.statrow{display:flex; gap:12px; flex-wrap:wrap; margin:30px 0 8px; font-family:var(--sans)}
+.stat{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:13px 18px; flex:1; min-width:130px}
+.stat .v{font-size:1.6rem; font-weight:650; letter-spacing:-.02em; line-height:1.1}
+.stat .k{font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink3); margin-top:5px; font-weight:650}
+.pbar{height:7px; background:var(--line); border-radius:5px; overflow:hidden; margin:20px 0 6px}
+.pbar i{display:block; height:100%; background:var(--accent); width:0; transition:width .4s}
+.howto{border:1px solid var(--line); border-left:3px solid var(--c3); background:var(--panel);
+  border-radius:0 12px 12px 0; padding:18px 22px; margin:34px 0}
+.howto h4{margin:0 0 10px; font-family:var(--sans); font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c3); font-weight:750}
+.howto ol{margin:0; padding-left:20px}
+.prevphase{border:1px solid var(--line); border-left:3px solid var(--c5); background:var(--panel);
+  border-radius:0 12px 12px 0; padding:16px 22px; margin:26px 0; font-size:.98rem}
+.prevphase h4{margin:0 0 9px; font-family:var(--sans); font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c5); font-weight:750}
+.prevphase code{font-size:.82em}
+.partblk{margin:44px 0 0}
+.parttag{font-family:var(--sans); font-size:11.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); padding-bottom:9px; margin-bottom:16px; border-bottom:1px solid var(--line)}
+.lcard{display:flex; gap:18px; align-items:flex-start; text-decoration:none; color:inherit;
+  border:1px solid var(--line); background:var(--panel); border-radius:13px; padding:18px 20px; margin:11px 0; transition:.16s}
+.lcard:hover{border-color:var(--accent); transform:translateY(-1px); box-shadow:0 3px 14px rgba(0,0,0,.055)}
+.lcard .lnum{font-family:var(--sans); font-size:1.45rem; font-weight:700; color:var(--line2);
+  line-height:1; padding-top:3px; font-variant-numeric:tabular-nums; min-width:34px}
+.lcard.done .lnum{color:var(--ok)}
+.lcard .lt{font-size:1.13rem; font-weight:650; letter-spacing:-.01em; margin-bottom:6px}
+.lcard .ld{font-size:.94rem; color:var(--ink2); line-height:1.55}
+.lcard .lo{margin:11px 0 0; padding-left:19px; font-family:var(--sans); font-size:12.4px; color:var(--ink3)}
+.lcard .lo li{margin:3px 0; line-height:1.45}
+.lcard .ltick{margin-left:auto; color:var(--ok); font-size:19px; opacity:0; padding-top:2px}
+.lcard.done .ltick{opacity:1}
+.rblk{border:1px solid var(--line); border-radius:13px; padding:18px 22px; margin:13px 0; background:var(--panel)}
+.rblk.later{opacity:.66}
+.rhead{display:flex; align-items:baseline; gap:12px; font-family:var(--sans); margin-bottom:11px; flex-wrap:wrap}
+.rcode{font-size:11px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; color:var(--accent)}
+.rname{font-size:1.06rem; font-weight:650; letter-spacing:-.01em}
+.rstate{margin-left:auto; font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 10px}
+.rlist{margin:0; padding-left:20px; font-size:.95rem; color:var(--ink2); columns:2; column-gap:34px}
+@media(max-width:700px){.rlist{columns:1} .hero h1{font-size:2.2rem}}
+.rlist li{margin:5px 0; break-inside:avoid; line-height:1.5}
+.notyet{border:1px solid var(--line); border-left:3px solid var(--bad); background:var(--panel);
+  border-radius:0 12px 12px 0; padding:18px 22px; margin:26px 0}
+.notyet h4{margin:0 0 10px; font-family:var(--sans); font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--bad); font-weight:750}
+.deptbl{width:100%; border-collapse:collapse; font-family:var(--sans); font-size:13.5px; margin:20px 0}
+.deptbl th,.deptbl td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+.deptbl th{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:750}
+.deptbl td:first-child{white-space:nowrap; font-weight:650}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" onclick="resetProgress()">Reset progress</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+
+<div class="wrap">
+<header class="hero">
+  <div class="kick">Phase B of a four-phase course</div>
+  <h1>Classical<br>Machine Learning</h1>
+  <p>Twelve interactive lectures that build the algorithms — linear and logistic regression,
+  regularisation, PCA, mixtures, trees, boosting, kernels — from the mathematics you already have.
+  Nothing here is presented as a recipe. Every model is derived, every loss is traced back to an
+  assumption, and every implementation is written in NumPy before a library is allowed near it.</p>
+</header>
+
+<div class="statrow">
+  <div class="stat"><div class="v">12</div><div class="k">Lectures</div></div>
+  <div class="stat"><div class="v" id="s-done">0</div><div class="k">Completed</div></div>
+  <div class="stat"><div class="v">5</div><div class="k">Parts</div></div>
+  <div class="stat"><div class="v">B</div><div class="k">Of four phases</div></div>
+</div>
+<div class="pbar"><i id="pfill"></i></div>
+<div class="small" id="ptext" style="font-family:var(--sans)">Not started.</div>
+
+<div class="prevphase">
+  <h4>Prerequisite — Phase A</h4>
+  <p style="margin:0 0 8px">This phase assumes the mathematics from Phase A and refers back to it
+  constantly by lecture number. If the two folders sit side by side, this link works:
+  <a href="../ML-Foundations-PhaseA/index.html">→ Phase A · The Mathematics Behind Machine Learning</a>.</p>
+  <p style="margin:0">The dependency map below says which Phase A lecture each Phase B lecture leans on
+  hardest. If a derivation here loses you, that is where to go back to.</p>
+</div>
+
+<table class="deptbl">
+<tr><th>Phase B lecture</th><th>Leans hardest on</th></tr>
+<tr><td>01 Learning problem</td><td>A13 expectation and the empirical mean</td></tr>
+<tr><td>02 Linear regression</td><td>A10 normal equations, A8 projection</td></tr>
+<tr><td>03 Gradient descent</td><td>A6 Taylor, A11 eigenvalues and conditioning</td></tr>
+<tr><td>04 Maximum likelihood</td><td>A14 MLE, A2 logs and the argmax theorem</td></tr>
+<tr><td>05 Logistic regression</td><td>A5 chain rule and σ′, A12 gradients</td></tr>
+<tr><td>06 Regularisation</td><td>A14 MAP and priors, A11 spectrum shifting</td></tr>
+<tr><td>07 Bias–variance and evaluation</td><td>A13 variance, A14 base rates</td></tr>
+<tr><td>08 PCA</td><td>A11 spectral theorem and Rayleigh quotients</td></tr>
+<tr><td>09 k-means and mixtures</td><td>A14 likelihood, A7 convexity</td></tr>
+<tr><td>10 Naive Bayes</td><td>A14 Bayes' theorem and conditional independence</td></tr>
+<tr><td>11 Trees and boosting</td><td>A2 entropy, A4 gradients as residuals</td></tr>
+<tr><td>12 SVMs and kernels</td><td>A8 inner products, A12 constrained optimisation</td></tr>
+</table>
+
+<div class="howto">
+  <h4>How to use this phase</h4>
+  <ol>
+    <li><strong>Implement before you import.</strong> Every lecture builds the algorithm in NumPy
+    first. Only then does scikit-learn appear, and only to check the from-scratch version against it.</li>
+    <li><strong>Do not scroll past a derivation.</strong> Predict the next line before you click.</li>
+    <li><strong>Break the code.</strong> Change a hyperparameter until the method fails, then work out
+    which assumption you violated. That is the fastest way to learn what an algorithm actually needs.</li>
+    <li><strong>Attempt every exercise on paper</strong> before revealing the solution.</li>
+    <li><strong>Notice the repetition.</strong> Nearly every model here is: choose a hypothesis class,
+    choose a loss from a noise model, add a regulariser from a prior, minimise. Once you see that
+    pattern the field stops being a list of tricks.</li>
+  </ol>
+</div>
+
+<h2>Phase B · The lectures</h2>
+<div class="partblk"><div class="parttag">I — The Learning Problem</div><a class="lcard" href="01-the-learning-problem.html" data-slug="01-the-learning-problem"><div class="lnum">01</div><div class="lbody"><div class="lt">What Learning Actually Means</div><div class="ld">Before any algorithm: a precise statement of the problem all of them are trying to solve. Risk, empirical risk, hypothesis classes, and the single rule that separates real machine learning from fooling yourself.</div><ul class="lo"><li>State the supervised learning problem formally, and name every symbol</li><li>Distinguish true risk from empirical risk and explain why the gap exists</li><li>Explain what a hypothesis class is and why every model needs an inductive bias</li></ul></div><div class="ltick">✓</div></a></div><div class="partblk"><div class="parttag">II — Linear Models</div><a class="lcard" href="02-linear-regression.html" data-slug="02-linear-regression"><div class="lnum">02</div><div class="lbody"><div class="lt">Linear Regression, Properly</div><div class="ld">Phase A gave you the normal equations. This lecture turns them into a model you can actually use — basis functions, feature design, coefficient interpretation, residual diagnostics — and is honest about the four ways a linear fit lies to you.</div><ul class="lo"><li>Explain why 'linear' means linear in the <em>parameters</em>, not in the inputs</li><li>Build design matrices with polynomial, RBF and categorical features</li><li>Choose between the closed form and an iterative solver from \(n\) and \(d\)</li></ul></div><div class="ltick">✓</div></a><a class="lcard" href="03-gradient-descent.html" data-slug="03-gradient-descent"><div class="lnum">03</div><div class="lbody"><div class="lt">Gradient Descent That Actually Works</div><div class="ld">Every model from here on is fitted by gradient descent, so it is worth doing properly. Convergence rates from the condition number, why stochastic gradients have a noise floor, and where momentum and Adam come from — each derived, not quoted.</div><ul class="lo"><li>Derive the convergence rate \(\big(\tfrac{\kappa-1}{\kappa+1}\big)^t\) and say what limits it</li><li>Explain the SGD noise floor and why every schedule decays the learning rate</li><li>Derive momentum and explain the \(\kappa \to \sqrt{\kappa}\) improvement</li></ul></div><div class="ltick">✓</div></a><a class="lcard" href="04-losses-from-likelihoods.html" data-slug="04-losses-from-likelihoods"><div class="lnum">04</div><div class="lbody"><div class="lt">Where Loss Functions Come From</div><div class="ld">You do not choose a loss function. You choose a noise model, and the loss is whatever its negative log-likelihood turns out to be. One principle generates squared error, absolute error, cross-entropy and Poisson loss — and tells you exactly when each is the wrong choice.</div><ul class="lo"><li>Turn any noise model into a loss by writing down its negative log-likelihood</li><li>Derive squared, absolute, Huber, cross-entropy and Poisson losses this way</li><li>Recognise the exponential family and why every gradient looks like \(\mX^\top(\hat{\vy}-\vy)\)</li></ul></div><div class="ltick">✓</div></a><a class="lcard" href="05-logistic-regression.html" data-slug="05-logistic-regression"><div class="lnum">05</div><div class="lbody"><div class="lt">Logistic Regression and Softmax</div><div class="ld">The workhorse classifier, and the one whose mathematics you must own completely — because the output layer of every classification network is exactly this, and its pathologies are the ones you will meet in every training run.</div><ul class="lo"><li>Explain why fitting a linear model to \(\{0,1\}\) labels with squared error is the wrong thing</li><li>Derive the gradient \(\mX^\top(\hat{\vp}-\vy)\) and the Hessian \(\mX^\top\mathbf{S}\mX\)</li><li>Prove the loss is convex, and say what that buys you</li></ul></div><div class="ltick">✓</div></a><a class="lcard" href="06-regularisation.html" data-slug="06-regularisation"><div class="lnum">06</div><div class="lbody"><div class="lt">Regularisation: Ridge, LASSO, and Priors</div><div class="ld">We have reached for a penalty term three times already. Here is the proper treatment: every regulariser is a prior, ridge shrinks eigen-directions by a computable factor, and the corners of the L1 ball are precisely why LASSO produces zeros.</div><ul class="lo"><li>Derive ridge and LASSO as MAP estimates under Gaussian and Laplace priors</li><li>Show ridge shrinks the \(i\)-th eigen-direction by \(\lambda_i/(\lambda_i+\alpha)\)</li><li>Explain sparsity from the geometry of the \(\ell_1\) ball and from the subgradient</li></ul></div><div class="ltick">✓</div></a></div><div class="partblk"><div class="parttag">III — Evaluation</div><a class="lcard" href="07-bias-variance-evaluation.html" data-slug="07-bias-variance-evaluation"><div class="lnum">07</div><div class="lbody"><div class="lt">Bias, Variance, and Honest Evaluation</div><div class="ld">Why every model's error splits into three parts, why cross-validation is the right tool for choosing between them, and which of the metrics everyone reports are actively misleading.</div><ul class="lo"><li>Derive the bias–variance–noise decomposition term by term</li><li>Explain what \(k\)-fold cross-validation estimates and what it does not</li><li>Read a learning curve and say whether more data or more capacity is the fix</li></ul></div><div class="ltick">✓</div></a></div><div class="partblk"><div class="parttag">IV — Unsupervised Learning</div><a class="lcard" href="08-pca.html" data-slug="08-pca"><div class="lnum">08</div><div class="lbody"><div class="lt">Principal Component Analysis</div><div class="ld">Three completely different questions — which direction has most variance, which subspace loses least information, and what does the SVD of the data matrix say — all have the same answer. That coincidence is PCA, and it is the most useful thing the spectral theorem does.</div><ul class="lo"><li>Derive PCA as variance maximisation using the Rayleigh quotient</li><li>Derive it again as minimum reconstruction error, and prove the two agree</li><li>Connect both to the SVD of the centred data matrix</li></ul></div><div class="ltick">✓</div></a><a class="lcard" href="09-kmeans-and-mixtures.html" data-slug="09-kmeans-and-mixtures"><div class="lnum">09</div><div class="lbody"><div class="lt">k-means, Gaussian Mixtures, and EM</div><div class="ld">Clustering without labels. k-means is alternating minimisation of a squared-error objective; Gaussian mixtures are its probabilistic upgrade; and EM — the algorithm that fits them — is one of the most reused ideas in the subject.</div><ul class="lo"><li>State the k-means objective and prove Lloyd's algorithm never increases it</li><li>Explain why k-means finds local minima, and what k-means++ does about it</li><li>Write down a Gaussian mixture and see why direct likelihood maximisation is hard</li></ul></div><div class="ltick">✓</div></a></div><div class="partblk"><div class="parttag">V — Generative Models</div><a class="lcard" href="10-naive-bayes.html" data-slug="10-naive-bayes"><div class="lnum">10</div><div class="lbody"><div class="lt">Naive Bayes and the Generative–Discriminative Divide</div><div class="ld">Instead of modelling p(y|x) directly, model how the data was made and invert with Bayes' theorem. The 'naive' assumption is almost always false, the classifier is often excellent anyway, and understanding why teaches you more about learning than the algorithm itself.</div><ul class="lo"><li>Derive the generative decision rule from Bayes' theorem, and see why the evidence term drops out</li><li>Count the parameters the full joint needs, and what conditional independence buys</li><li>Derive the MLE for the class prior and the class-conditionals, constraint included</li></ul></div><div class="ltick">✓</div></a></div><div class="partblk"><div class="parttag">VI — Nonlinear Methods</div><a class="lcard" href="11-trees-forests-boosting.html" data-slug="11-trees-forests-boosting"><div class="lnum">11</div><div class="lbody"><div class="lt">Decision Trees, Random Forests, and Gradient Boosting</div><div class="ld">Leave the hyperplane behind. A tree carves the input space into boxes; a forest averages many de-correlated trees; boosting fits each new tree to what the ensemble still gets wrong. Two of these are still the best thing to run on tabular data.</div><ul class="lo"><li>Derive the optimal leaf value for a fixed partition, and see why finding the best tree is intractable</li><li>Derive why misclassification error fails as a splitting criterion and Gini and entropy do not</li><li>Derive \(\Var\!\left(\bar f\right)=\rho\sigma^2+\frac{1-\rho}{B}\sigma^2\) and read random forests off it</li></ul></div><div class="ltick">✓</div></a><a class="lcard" href="12-svm-duality-kernels.html" data-slug="12-svm-duality-kernels"><div class="lnum">12</div><div class="lbody"><div class="lt">Support Vector Machines: Margins, Duality, and Kernels</div><div class="ld">Keep the linear boundary; change the space it lives in. Getting there requires the maximum-margin principle, Lagrangian duality, and the observation that the dual touches the data only through inner products — which is the whole kernel trick in one sentence.</div><ul class="lo"><li>Derive the distance from a point to a hyperplane, and turn 'maximise the margin' into a convex QP</li><li>Derive the soft-margin problem and show it is hinge loss plus \(L_2\) regularisation</li><li>Derive the Lagrangian dual, the representer form \(\vw=\sum_i\alpha_i y_i\vx_i\), and read the KKT conditions</li></ul></div><div class="ltick">✓</div></a></div>
+
+<h2>What comes after</h2>
+<p>Phase B gives you the algorithms. Phase C asks the uncomfortable question of why any of them
+should be expected to work on data they have not seen, and Phase D scales the whole apparatus up.</p>
+<div class="rblk next"><div class="rhead"><span class="rcode">Phase C</span><span class="rname">Statistical Learning Theory</span><span class="rstate">up next</span></div><ul class="rlist"><li>Empirical risk minimisation and what generalisation actually means</li><li>Concentration inequalities: Markov, Chebyshev, Hoeffding, Bernstein</li><li>PAC learning and sample complexity</li><li>VC dimension, shattering, and the fundamental theorem</li><li>Rademacher complexity; margin-based bounds</li><li>Regularisation theory; stability; the bias-variance tradeoff made rigorous</li></ul></div><div class="rblk later"><div class="rhead"><span class="rcode">Phase D</span><span class="rname">Deep Learning</span><span class="rstate">after C</span></div><ul class="rlist"><li>Perceptrons, and precisely what a linear model cannot do</li><li>Computational graphs and reverse-mode automatic differentiation</li><li>Backpropagation derived from the multivariable chain rule</li><li>A network from scratch in NumPy, then rebuilt in PyTorch</li><li>Initialisation, normalisation, and why depth is hard to train</li><li>Optimisers: SGD, momentum, RMSProp, Adam — and their failure modes</li><li>Convolutional networks; weight sharing as an inductive bias</li><li>Sequence models, attention, and the transformer</li><li>Generative models: VAEs, normalising flows, diffusion</li><li>Reading, reproducing and critiquing research papers</li></ul></div>
+
+<div class="notyet">
+  <h4>What you should still NOT study yet</h4>
+  <ul>
+    <li><strong>Transformers and LLM internals.</strong> Still Phase D. You now have most of the
+    mathematics, but attention is a design built on top of backpropagation, and you have not derived
+    backpropagation yet.</li>
+    <li><strong>Deep learning frameworks.</strong> PyTorch enters in Phase D, after you have written a
+    network's backward pass by hand. Reaching for <code>nn.Module</code> now would let you skip the one
+    thing worth learning.</li>
+    <li><strong>AutoML, feature-engineering libraries, hyperparameter search tools.</strong> These
+    automate judgement you have not yet developed. Build the judgement first.</li>
+    <li><strong>Measure-theoretic probability and heavy proof machinery.</strong> Still after Phase C.</li>
+    <li><strong>Reading state-of-the-art papers cover to cover.</strong> Reading the <em>classics</em>
+    referenced in these lectures is worthwhile and encouraged. Chasing this month's arXiv is not, yet.</li>
+  </ul>
+</div>
+
+<hr>
+<p class="small">Your progress is stored locally in this browser only, under a separate key from Phase A.
+Interactive plots and derivations work offline; typeset mathematics and the in-page Python runner need an
+internet connection the first time a page loads.</p>
+</div>
+
+<script>
+var SLUGS=["01-the-learning-problem", "02-linear-regression", "03-gradient-descent", "04-losses-from-likelihoods", "05-logistic-regression", "06-regularisation", "07-bias-variance-evaluation", "08-pca", "09-kmeans-and-mixtures", "10-naive-bayes", "11-trees-forests-boosting", "12-svm-duality-kernels"];
+function refresh(){
+  var s={}; try{s=JSON.parse(localStorage.getItem("mlcB-done")||"{}")}catch(e){}
+  var n=0;
+  SLUGS.forEach(function(sl){
+    var el=document.querySelector('.lcard[data-slug="'+sl+'"]');
+    if(s[sl]){n++; if(el)el.classList.add("done");} else if(el)el.classList.remove("done");
+  });
+  document.getElementById("s-done").textContent=n;
+  document.getElementById("pfill").style.width=(100*n/SLUGS.length)+"%";
+  var t=document.getElementById("ptext");
+  if(n===0)t.textContent="Not started. Begin with Lecture 01.";
+  else if(n===SLUGS.length)t.textContent="Phase B complete. On to Phase C.";
+  else t.textContent=n+" of "+SLUGS.length+" complete — next up is Lecture "+
+       (SLUGS.map(function(x,i){return s[x]?null:i;}).filter(function(x){return x!==null;})[0]+1)+".";
+}
+function resetProgress(){try{localStorage.removeItem("mlcB-done")}catch(e){}; refresh();}
+refresh();
+</script>
+</body>
+</html>

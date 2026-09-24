@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>13. Random Variables, Expectation, and Variance — ML Foundations</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlc-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlc-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">ML Foundations</a>
+  <span style="color:var(--ink3)">Lecture 13 of 14</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('13-random-variables-expectation')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part V — Probability and Statistics · Lecture 13</div>
+  <h1>Random Variables, Expectation, and Variance</h1>
+  <p class="dek">Every loss you minimise is an expectation you cannot compute, estimated from a sample. Understanding what that sentence means — and how wrong the estimate can be — is the difference between running experiments and understanding them.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>State the probability axioms and define a random variable properly</li><li>Prove linearity of expectation, and use it without assuming independence</li><li>Compute variance and covariance, and distinguish independent from uncorrelated</li><li>Prove Markov's and Chebyshev's inequalities and use them to bound errors</li><li>Show that a mini-batch gradient is unbiased with variance \(\propto 1/B\)</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Lectures 1–2: functions, logs</li><li>Lecture 8: vectors and dot products (for covariance matrices)</li><li>Basic counting; comfort with sums and integrals as 'weighted totals'</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>Why probability, in one equation</h2>
+<p>What we actually want to minimise is the <strong>true risk</strong> — the average loss over the
+whole data-generating distribution \(\mathcal{D}\):</p>
+<p>\[R(\vt) = \E_{(\vx,y)\sim\mathcal{D}}\big[\ell\big(f_{\vt}(\vx),\,y\big)\big].\]</p>
+<p>We cannot compute it. \(\mathcal{D}\) is unknown — it is the process that generates houses, or
+photographs, or sentences. All we have is a finite sample. So we minimise the <strong>empirical risk</strong>
+instead:</p>
+<p>\[\hat R(\vt) = \frac1n\sum_{i=1}^{n}\ell\big(f_{\vt}(\vx_i),y_i\big).\]</p>
+<p>Three questions follow immediately, and all of them are probability questions:</p>
+<ol><li>Is \(\hat R\) close to \(R\)? (Concentration — this lecture, and all of Phase C.)</li><li>Does minimising \(\hat R\) minimise \(R\)? (Generalisation — Phase C.)</li><li>If we use a random subset of the sum, do we still descend? (Stochastic gradients — this lecture.)</li></ol>
+<h2 id="s2"><span class="secnum">2</span>The axioms</h2>
+<div class="box defn"><span class="lbl">Definition — probability space</span><p>A <strong>probability space</strong> is a triple
+\((\Omega,\mathcal{F},P)\):</p>
+<ul>
+<li>\(\Omega\), the <strong>sample space</strong> — the set of all possible outcomes.</li>
+<li>\(\mathcal{F}\), a collection of subsets of \(\Omega\) called <strong>events</strong>.</li>
+<li>\(P:\mathcal{F}\to[0,1]\), a <strong>probability measure</strong>, satisfying Kolmogorov's axioms:</li>
+</ul>
+<ol>
+<li>\(P(A)\ge0\) for every event \(A\);</li>
+<li>\(P(\Omega)=1\);</li>
+<li>if \(A_1,A_2,\dots\) are pairwise disjoint then \(P\!\left(\bigcup_i A_i\right)=\sum_i P(A_i)\)
+(countable additivity).</li>
+</ol></div>
+<p>Everything else is a consequence. \(P(A^c)=1-P(A)\), because \(A\) and \(A^c\) are disjoint and
+their union is \(\Omega\). \(P(\emptyset)=0\). \(P(A\cup B)=P(A)+P(B)-P(A\cap B)\), the overlap subtracted once
+because it was counted twice. Three axioms, an entire subject.</p>
+<div class="box note"><span class="lbl">On measure theory</span><p>Why is \(\mathcal{F}\) a "collection of subsets" rather than
+<em>all</em> subsets? Because for continuous \(\Omega\) it is impossible to assign a consistent probability to
+every subset — there are non-measurable sets. Handling this properly is measure theory, and it is
+<strong>genuinely deferred</strong>: it changes nothing about the calculations in Phases A and B, and it belongs
+after Phase C when you need it for stochastic processes and rigorous concentration arguments. Ask and we will
+do it, but not yet.</p></div>
+<h2 id="s3"><span class="secnum">3</span>Random variables</h2>
+<div class="box defn"><span class="lbl">Definition — random variable</span><p>A <strong>random variable</strong> is a function
+\(X:\Omega\to\RR\). It is <em>not</em> a variable and it is <em>not</em> random — it is a deterministic function
+that assigns a number to each outcome. The randomness lives in which \(\omega\) occurs.</p>
+<ul>
+<li><strong>Discrete:</strong> \(X\) takes countably many values, described by a <strong>probability mass
+function</strong> \(p(x)=P(X=x)\), with \(p(x)\ge0\) and \(\sum_x p(x)=1\).</li>
+<li><strong>Continuous:</strong> described by a <strong>probability density function</strong> \(f(x)\ge0\) with
+\(\int_{-\infty}^{\infty}f(x)\,dx=1\), and \(P(a\le X\le b)=\int_a^b f(x)\,dx\).</li>
+</ul></div>
+<div class="box warn"><span class="lbl">Common trap</span><p>A density is <strong>not</strong> a probability. \(f(x)\) can exceed 1 — a uniform
+distribution on \([0,0.1]\) has \(f=10\) throughout. Only the <em>area</em> under it is a probability, which is
+why \(P(X=c)=0\) for any single point of a continuous distribution: the area over a point of zero width is zero.
+This is why continuous likelihoods can exceed 1 and log-likelihoods can be positive, which surprises people the
+first time a model reports a "probability" of 4.7.</p></div>
+<div class="fig"><div class="fig-head">Distribution explorer — shape, mean, variance<span class="tag">Interactive</span></div><canvas id="f13dist" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>density / mass</span><span><i style="background:var(--c2)"></i>mean μ</span><span><i style="background:var(--c3)"></i>μ ± σ</span></div><div class="fig-read" id="f13dist-read"></div><div class="ctrls"><div class="ctrl"><label>0 = Gaussian · 1 = Uniform · 2 = Exponential · 3 = Bernoulli · 4 = Binomial</label><input type="range" min="0" max="4" step="1" value="0" data-fmt="0" oninput="figSlide('f13dist','which',this)"><output>0</output></div><div class="ctrl"><label>parameter 1  (μ / a / rate / p / p)</label><input type="range" min="0.05" max="4" step="0.05" value="1" data-fmt="2" oninput="figSlide('f13dist','a',this)"><output>1.00</output></div><div class="ctrl"><label>parameter 2  (σ / b / — / — / n)</label><input type="range" min="0.1" max="6" step="0.1" value="1" data-fmt="2" oninput="figSlide('f13dist','b',this)"><output>1.00</output></div></div><div class="fig-cap">Shaded region is μ ± σ. For the Gaussian it holds about 68% of the mass, always. For the exponential it does not — that distribution is skewed, and its mean is not its typical value. That gap between 'mean' and 'typical' is behind a great deal of confusion about model performance metrics.</div></div><script>makeFig("f13dist",function(vp,p,F){
+vp.pads(48,16,14,30);
+var k=Math.round(p.which), a=p.a, b=p.b;
+var mu,sd,disc=false,pts=null,f=null,xr;
+if(k===0){ mu=a-2; sd=Math.max(0.15,b);
+  f=function(x){return Math.exp(-0.5*Math.pow((x-mu)/sd,2))/(sd*Math.sqrt(6.2832));};
+  xr=[mu-4*sd,mu+4*sd]; }
+else if(k===1){ var lo=-a, hi=a+b; mu=(lo+hi)/2; sd=(hi-lo)/Math.sqrt(12);
+  f=function(x){return (x>=lo&&x<=hi)?1/(hi-lo):0;}; xr=[lo-1,hi+1]; }
+else if(k===2){ var lam=Math.max(0.1,a); mu=1/lam; sd=1/lam;
+  f=function(x){return x>=0?lam*Math.exp(-lam*x):0;}; xr=[-0.5,Math.min(20,6/lam)]; }
+else if(k===3){ disc=true; var pr=Math.min(0.99,Math.max(0.01,a/4));
+  mu=pr; sd=Math.sqrt(pr*(1-pr)); pts=[[0,1-pr],[1,pr]]; xr=[-0.6,1.6]; }
+else { disc=true; var pr=Math.min(0.99,Math.max(0.01,a/4)), n=Math.max(1,Math.round(b*4));
+  mu=n*pr; sd=Math.sqrt(n*pr*(1-pr)); pts=[];
+  function lg(m){var s=0;for(var i=2;i<=m;i++)s+=Math.log(i);return s;}
+  for(var i=0;i<=n;i++){ var lp=lg(n)-lg(i)-lg(n-i)+i*Math.log(pr)+(n-i)*Math.log(1-pr);
+    pts.push([i,Math.exp(lp)]); }
+  xr=[-0.8,n+0.8]; }
+var ymax=0;
+if(disc){ for(var i=0;i<pts.length;i++) ymax=Math.max(ymax,pts[i][1]); }
+else { for(var i=0;i<=200;i++){ var x=xr[0]+(xr[1]-xr[0])*i/200; ymax=Math.max(ymax,f(x)); } }
+vp.frame(xr[0],xr[1],-ymax*0.10,ymax*1.20);
+// shade mu +- sd
+var cc=vp.ctx; cc.save(); cc.globalAlpha=0.14; cc.fillStyle=vp.css('--c3');
+cc.fillRect(vp.X(Math.max(xr[0],mu-sd)),vp.pad.t,
+  vp.X(Math.min(xr[1],mu+sd))-vp.X(Math.max(xr[0],mu-sd)),vp.ph); cc.restore();
+vp.axes({stepx: (xr[1]-xr[0])>12?4:1});
+if(disc){
+  for(var i=0;i<pts.length;i++){
+    var x=pts[i][0], h=pts[i][1];
+    cc.save(); cc.strokeStyle=vp.css('--c1'); cc.lineWidth=Math.max(3,Math.min(16,vp.pw/(pts.length*2.2)));
+    cc.beginPath(); cc.moveTo(vp.X(x),vp.Y(0)); cc.lineTo(vp.X(x),vp.Y(h)); cc.stroke(); cc.restore();
+    vp.dot(x,h,'--c1',4);
+  }
+}else{
+  cc.save(); cc.globalAlpha=0.16; cc.fillStyle=vp.css('--c1'); cc.beginPath();
+  cc.moveTo(vp.X(xr[0]),vp.Y(0));
+  for(var i=0;i<=300;i++){var x=xr[0]+(xr[1]-xr[0])*i/300; cc.lineTo(vp.X(x),vp.Y(f(x)));}
+  cc.lineTo(vp.X(xr[1]),vp.Y(0)); cc.closePath(); cc.fill(); cc.restore();
+  vp.curve(f,'--c1',{w:2.8});
+}
+vp.seg(mu,-ymax*0.1,mu,ymax*1.2,'--c2',{w:2,dash:[5,4]});
+vp.label(mu,ymax*1.2,'μ = '+mu.toFixed(3),'--c2',{halo:true,bold:true,dx:6,dy:12});
+var names=['Gaussian','Uniform','Exponential','Bernoulli','Binomial'];
+figRead('f13dist',names[k]+':   mean μ = <b>'+mu.toFixed(4)+'</b>,   variance σ² = <b>'+(sd*sd).toFixed(4)
+ +'</b>,   sd σ = <b>'+sd.toFixed(4)+'</b>   |   μ ± σ = ['+(mu-sd).toFixed(3)+', '+(mu+sd).toFixed(3)+']');
+},[{"name": "which", "label": "0 = Gaussian \u00b7 1 = Uniform \u00b7 2 = Exponential \u00b7 3 = Bernoulli \u00b7 4 = Binomial", "min": 0, "max": 4, "step": 1, "value": 0, "dp": 0}, {"name": "a", "label": "parameter 1  (\u03bc / a / rate / p / p)", "min": 0.05, "max": 4, "step": 0.05, "value": 1, "dp": 2}, {"name": "b", "label": "parameter 2  (\u03c3 / b / \u2014 / \u2014 / n)", "min": 0.1, "max": 6, "step": 0.1, "value": 1, "dp": 2}]);window["FIG_f13dist"].run();</script>
+<h2 id="s4"><span class="secnum">4</span>Expectation</h2>
+<div class="box defn"><span class="lbl">Definition — expectation</span><p>\[ \E[X] = \sum_x x\,p(x) \quad\text{(discrete)},
+ \qquad \E[X] = \int_{-\infty}^{\infty} x f(x)\,dx \quad\text{(continuous)}. \]
+<p>It is the probability-weighted average value, and physically it is the <em>centre of mass</em> of the
+distribution.</p>
+<p><strong>LOTUS</strong> (the law of the unconscious statistician): for any function \(g\),</p>
+\[ \E[g(X)] = \sum_x g(x)\,p(x) \quad\text{— you do not need the distribution of } g(X).\]</p></div>
+<div class="deriv" id="d113"><div class="deriv-head"><span class="t">Linearity of expectation — the most useful theorem in probability</span><span class="ct">0 / 5</span></div><div class="dstep">\[\E[aX+b] = \sum_x (ax+b)p(x)\]<div class="why"><b>Apply LOTUS</b> with \(g(x)=ax+b\). No assumptions yet.</div></div><div class="dstep">\[= a\sum_x x\,p(x) + b\sum_x p(x) = a\,\E[X] + b\]<div class="why"><b>Split and simplify.</b> The first sum is \(\E[X]\) by definition; the second is \(\sum_x p(x)=1\) by the axioms.</div></div><div class="dstep">\[\E[X+Y] = \sum_{x}\sum_{y}(x+y)\,p(x,y)\]<div class="why"><b>Two variables.</b> Now we sum over the <em>joint</em> distribution \(p(x,y)=P(X=x,Y=y)\), because \(X\) and \(Y\) may be dependent in any way at all.</div></div><div class="dstep">\[= \sum_x x\sum_y p(x,y) \;+\; \sum_y y\sum_x p(x,y) = \sum_x x\,p_X(x) + \sum_y y\,p_Y(y)\]<div class="why"><b>Split and marginalise.</b> Summing the joint over one variable gives the marginal of the other: \(\sum_y p(x,y)=p_X(x)\). This step used only the axioms.</div></div><div class="dstep">\[\boxed{\;\E[X+Y] = \E[X]+\E[Y]\;} \qquad\textbf{no independence required}\]<div class="why"><b>The theorem.</b> Read the boxed caveat twice. \(X\) and \(Y\) may be perfectly correlated, anti-correlated, or one may be a function of the other — expectation still adds. This is what makes expectation so much friendlier than variance, which does <em>not</em> add in general. Nearly every slick argument in probability is linearity of expectation applied to a cleverly chosen decomposition. ∎</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d113')">Next step</button><button class="btn ghost" onclick="dall('d113')">Show all</button><button class="btn ghost" onclick="dreset('d113')">Reset</button></div></div>
+<h2 id="s5"><span class="secnum">5</span>Variance and covariance</h2>
+<div class="box defn"><span class="lbl">Definition — variance, covariance, correlation</span><p>\[
+\Var(X) = \E\big[(X-\E[X])^2\big], \qquad
+\Cov(X,Y) = \E\big[(X-\E X)(Y-\E Y)\big], \qquad
+\rho_{XY} = \frac{\Cov(X,Y)}{\sqrt{\Var X\,\Var Y}}. \]
+<p>The standard deviation is \(\sigma_X=\sqrt{\Var(X)}\), which has the same units as \(X\) — the reason it is
+reported rather than the variance.</p></p></div>
+<div class="deriv" id="d114"><div class="deriv-head"><span class="t">The four identities you will use constantly</span><span class="ct">0 / 4</span></div><div class="dstep">\[\Var(X) = \E[X^2] - \big(\E[X]\big)^2\]<div class="why"><b>The computational form.</b> Expand: \(\E[(X-\mu)^2]=\E[X^2-2\mu X+\mu^2] = \E[X^2]-2\mu\E[X]+\mu^2 = \E[X^2]-\mu^2\), using linearity and \(\E[X]=\mu\). Cheaper to compute, and it makes the inequality \(\E[X^2]\ge(\E X)^2\) obvious — variance is non-negative.</div></div><div class="dstep">\[\Var(aX+b) = a^2\Var(X)\]<div class="why"><b>Scaling and shifting.</b> Shifting by \(b\) moves the mean by \(b\) too, so the deviations \(X-\E X\) are unchanged — <em>variance ignores location</em>. Scaling by \(a\) scales the deviations by \(a\) and hence the squared deviations by \(a^2\). Note the square: doubling a variable quadruples its variance.</div></div><div class="dstep">\[\Var(X+Y) = \Var(X) + \Var(Y) + 2\Cov(X,Y)\]<div class="why"><b>Variance does NOT simply add.</b> Expand \(\E[((X-\mu_X)+(Y-\mu_Y))^2]\) and you get the two squares plus twice the cross term, which is the covariance by definition. Compare \((a+b)^2=a^2+b^2+2ab\) — the algebra is identical, which is not a coincidence: variance is a squared length and covariance is an inner product.</div></div><div class="dstep">\[X \perp\!\!\!\perp Y \;\Longrightarrow\; \Cov(X,Y)=0 \;\Longrightarrow\; \Var(X+Y)=\Var(X)+\Var(Y)\]<div class="why"><b>Independence kills the cross term.</b> If \(X\) and \(Y\) are independent then \(\E[XY]=\E[X]\E[Y]\), so \(\Cov=\E[XY]-\E X\E Y = 0\). <em>The converse is false</em> — see the quiz. Independence is much stronger than zero correlation.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d114')">Next step</button><button class="btn ghost" onclick="dall('d114')">Show all</button><button class="btn ghost" onclick="dreset('d114')">Reset</button></div></div>
+<div class="quiz" id="q115"><div class="qlbl">Check yourself</div><div class="qq">Let \(X\) be uniform on \(\{-1,0,1\}\) and let \(Y=X^2\). Are they independent? Are they
+uncorrelated?</div><button class="qopt" data-ok="1" onclick="pick('q115',0,true)">Uncorrelated but <em>not</em> independent — \(\Cov(X,Y)=0\) even though \(Y\) is a deterministic function of \(X\).</button><button class="qopt" data-ok="0" onclick="pick('q115',1,false)">Independent, because \(\Cov(X,Y)=0\).</button><button class="qopt" data-ok="0" onclick="pick('q115',2,false)">Correlated, because \(Y\) is completely determined by \(X\).</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct, and this example is worth remembering.<br><br>
+    <strong>Uncorrelated:</strong> \(\E[X]=\frac{-1+0+1}{3}=0\), and
+    \(\E[XY]=\E[X^3]=\frac{-1+0+1}{3}=0\). So \(\Cov(X,Y)=\E[XY]-\E X\E Y = 0-0=0\).<br><br>
+    <strong>Not independent:</strong> \(P(Y=0)=\tfrac13\), but \(P(Y=0\mid X=1)=0\). Knowing \(X\) tells you
+    \(Y\) <em>exactly</em>. They could hardly be more dependent.<br><br>
+    <strong>Why it happens:</strong> covariance only detects <em>linear</em> association. The relationship here
+    is a perfect parabola, symmetric about zero, so the positive and negative contributions cancel exactly.<br><br>
+    <strong>Why it matters in ML:</strong> a correlation heatmap showing zero does not license the conclusion
+    "these features are unrelated". PCA, which uses only the covariance matrix, is blind to exactly this kind of
+    structure — which is why nonlinear methods (kernel PCA, autoencoders, t-SNE) exist.</div><div class="qwhy" data-i="1"><b>Not quite.</b> Zero covariance does not imply independence. Independence requires
+    \(P(X=x,Y=y)=P(X=x)P(Y=y)\) for <em>every</em> pair, which fails badly here: \(P(X=1,Y=0)=0\) while
+    \(P(X=1)P(Y=0)=\tfrac13\cdot\tfrac13=\tfrac19\). The implication runs one way only:
+    independent ⟹ uncorrelated.<br><br>
+    (There is one important exception: for <em>jointly Gaussian</em> variables, zero correlation <em>does</em>
+    imply independence. That special case is so heavily used that people forget it is special.)</div><div class="qwhy" data-i="2"><b>Not quite.</b> Determinism and correlation are different things. Compute it: \(\E[XY]=\E[X^3]=0\) and
+    \(\E[X]\E[Y]=0\cdot\tfrac23=0\), so the covariance is exactly zero. The dependence is real but purely
+    nonlinear, and covariance cannot see it.</div></div>
+<h2 id="s6"><span class="secnum">6</span>Concentration: how far can a sample mean stray?</h2>
+<p>The empirical risk is a sample mean. So the question "is \(\hat R\) close to \(R\)?" is the
+question "how close is a sample mean to the true mean?". Two inequalities answer it with no assumptions beyond
+finite moments.</p>
+<div class="deriv" id="d116"><div class="deriv-head"><span class="t">Markov's inequality, then Chebyshev's</span><span class="ct">0 / 4</span></div><div class="dstep">\[X \ge 0, \quad a>0: \qquad \E[X] = \int_0^\infty x f(x)\,dx \;\ge\; \int_a^\infty x f(x)\,dx\]<div class="why"><b>Throw away part of the integral.</b> The integrand \(xf(x)\) is non-negative because \(X\ge0\), so discarding \([0,a)\) can only decrease the total.</div></div><div class="dstep">\[\ge \int_a^\infty a\,f(x)\,dx = a\int_a^\infty f(x)\,dx = a\,P(X\ge a)\]<div class="why"><b>Bound the integrand below.</b> On the region \([a,\infty)\) we have \(x\ge a\), so replace \(x\) by \(a\) and pull it out. The remaining integral is exactly \(P(X\ge a)\).</div></div><div class="dstep">\[\boxed{\;P(X\ge a) \le \frac{\E[X]}{a}\;} \qquad\textbf{(Markov)}\]<div class="why"><b>Rearrange.</b> Two crude steps and we have a universal bound: a non-negative random variable cannot often be much larger than its mean. For instance, at most 10% of a population can earn ten times the average income. No distributional assumptions whatsoever. ∎</div></div><div class="dstep">\[P\big(|X-\mu|\ge k\big) = P\big((X-\mu)^2 \ge k^2\big) \le \frac{\E[(X-\mu)^2]}{k^2} = \frac{\sigma^2}{k^2}\]<div class="why"><b>Chebyshev, in one line.</b> Apply Markov to the non-negative variable \((X-\mu)^2\) with threshold \(k^2\). The first equality holds because squaring is monotone on non-negatives, so the two events are literally the same event. ∎ <br>Setting \(k=t\sigma\) gives the memorable form \(P(|X-\mu|\ge t\sigma)\le 1/t^2\): at most 25% of any distribution lies more than two standard deviations from the mean, at most 11% beyond three.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d116')">Next step</button><button class="btn ghost" onclick="dall('d116')">Show all</button><button class="btn ghost" onclick="dreset('d116')">Reset</button></div></div>
+<div class="box thm"><span class="lbl">Theorem — weak law of large numbers</span><p>Let \(X_1,\dots,X_n\) be independent with
+mean \(\mu\) and variance \(\sigma^2\), and \(\bar X_n=\frac1n\sum_i X_i\). Then for any \(\epsilon>0\),</p>
+\[ P\big(|\bar X_n-\mu|\ge\epsilon\big) \le \frac{\sigma^2}{n\epsilon^2} \;\xrightarrow[n\to\infty]{}\; 0. \]
+<p><strong>Proof.</strong> By linearity, \(\E[\bar X_n]=\frac1n\sum_i\E[X_i]=\mu\) — the sample mean is
+<em>unbiased</em>. By independence and the scaling rule,</p>
+\[ \Var(\bar X_n) = \frac{1}{n^2}\sum_{i=1}^n \Var(X_i) = \frac{n\sigma^2}{n^2} = \frac{\sigma^2}{n}. \]
+<p>Apply Chebyshev to \(\bar X_n\) with \(k=\epsilon\). ∎</p>
+<p>Note where each hypothesis was used: linearity needed nothing, but the variance step needed independence to
+kill the covariance terms.</p></div>
+<p>The \(\sigma^2/n\) is the single most important formula in applied statistics. Error shrinks
+like \(\sigma/\sqrt n\), so <strong>quadrupling your data halves your error</strong> — an expensive exchange
+rate, and the reason benchmark differences of 0.2% on a 1000-example test set are noise.</p>
+<div class="box thm"><span class="lbl">Theorem — central limit theorem</span><p>Under the same conditions,</p>
+\[ \frac{\bar X_n - \mu}{\sigma/\sqrt{n}} \;\xrightarrow{\;d\;}\; \mathcal{N}(0,1) \quad\text{as } n\to\infty. \]
+<p>Whatever the shape of the original distribution — skewed, discrete, bimodal — the sample mean becomes
+Gaussian. This is why the Gaussian is everywhere, and why confidence intervals are \(\pm 1.96\,\sigma/\sqrt n\).
+The proof needs characteristic functions and is <strong>deferred</strong>; the figure below is the empirical
+demonstration.</p></div>
+<div class="fig"><div class="fig-head">Law of large numbers and the central limit theorem, simulated<span class="tag">Interactive</span></div><canvas id="f13clt" data-h="440"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>histogram of sample means</span><span><i style="background:var(--c5)"></i>Gaussian with matched μ, σ/√n</span><span><i style="background:var(--c2)"></i>true mean μ</span></div><div class="fig-read" id="f13clt-read"></div><div class="ctrls"><div class="ctrl"><label>source: 0 = coin flip · 1 = uniform · 2 = exponential · 3 = heavy-tailed</label><input type="range" min="0" max="3" step="1" value="0" data-fmt="0" oninput="figSlide('f13clt','which',this)"><output>0</output></div><div class="ctrl"><label>log₂ of sample size n</label><input type="range" min="0" max="10" step="1" value="0" data-fmt="0" oninput="figSlide('f13clt','ln',this)"><output>0</output></div></div><div class="fig-cap">Each bar counts how often a sample mean of n draws landed in that bin, over 4000 repetitions. At n = 1 you see the source distribution itself. Raise n and two things happen at once: the histogram NARROWS like 1/√n (law of large numbers) and its SHAPE becomes Gaussian (central limit theorem) no matter how un-Gaussian the source was. The heavy-tailed source converges much more slowly — a warning that the CLT is asymptotic and n = 30 is not a magic number.</div></div><script>makeFig("f13clt",function(vp,p,F){
+vp.pads(48,16,14,30);
+var k=Math.round(p.which), n=Math.pow(2,Math.round(p.ln));
+var seed=20240817;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function draw1(){
+  if(k===0) return rnd()<0.5?0:1;
+  if(k===1) return rnd();
+  if(k===2){ var u=Math.max(1e-12,rnd()); return -Math.log(u); }
+  var u=Math.max(1e-12,rnd()); return Math.pow(u,-1/2.5)-1;   // Pareto-ish, finite mean & var
+}
+var mu,sd;
+if(k===0){mu=0.5; sd=0.5;}
+else if(k===1){mu=0.5; sd=Math.sqrt(1/12);}
+else if(k===2){mu=1; sd=1;}
+else {var al=2.5; mu=1/(al-1); sd=Math.sqrt(al/((al-1)*(al-1)*(al-2)));}
+var R=4000, means=[];
+for(var r=0;r<R;r++){ var s=0; for(var i=0;i<n;i++) s+=draw1(); means.push(s/n); }
+var se=sd/Math.sqrt(n);
+var lo=mu-4.5*se, hi=mu+4.5*se;
+if(k===3){ lo=mu-3*se; hi=mu+6*se; }
+var B=46, bins=new Array(B).fill(0), inrange=0;
+for(var i=0;i<R;i++){ var b=Math.floor((means[i]-lo)/(hi-lo)*B);
+  if(b>=0&&b<B){bins[b]++; inrange++;} }
+var bw=(hi-lo)/B;
+var dens=bins.map(function(c){return c/(R*bw);});
+var ymax=Math.max.apply(null,dens);
+var gmax=1/(se*Math.sqrt(6.2832));
+ymax=Math.max(ymax,gmax)*1.15;
+vp.frame(lo,hi,-ymax*0.06,ymax);
+vp.axes({});
+var cc=vp.ctx;
+for(var i=0;i<B;i++){
+  if(dens[i]<=0) continue;
+  var x0=lo+i*bw, x1=x0+bw;
+  cc.save(); cc.globalAlpha=0.55; cc.fillStyle=vp.css('--c1');
+  cc.fillRect(vp.X(x0),vp.Y(dens[i]),Math.max(1,vp.X(x1)-vp.X(x0)-1),vp.Y(0)-vp.Y(dens[i]));
+  cc.restore();
+}
+vp.curve(function(x){return Math.exp(-0.5*Math.pow((x-mu)/se,2))/(se*Math.sqrt(6.2832));},'--c5',{w:2.8});
+vp.seg(mu,-ymax*0.06,mu,ymax,'--c2',{w:2,dash:[5,4]});
+// empirical stats
+var m=0; for(var i=0;i<R;i++)m+=means[i]; m/=R;
+var v=0; for(var i=0;i<R;i++)v+=(means[i]-m)*(means[i]-m); v/=R;
+var names=['coin flip (Bernoulli 0.5)','uniform on [0,1]','exponential (rate 1)','heavy-tailed Pareto(2.5)'];
+figRead('f13clt',names[k]+',  n = <b>'+n+'</b>,  4000 repetitions'
+ +'<br>predicted:  mean = '+mu.toFixed(4)+',  standard error σ/√n = <b>'+se.toFixed(4)+'</b>'
+ +'<br>observed:   mean = <b>'+m.toFixed(4)+'</b>,  sd of the sample means = <b>'+Math.sqrt(v).toFixed(4)+'</b>'
+ +'   |   Chebyshev says P(|X̄ − μ| ≥ 2σ/√n) ≤ 25%; the Gaussian says ≈ 4.6%');
+},[{"name": "which", "label": "source: 0 = coin flip \u00b7 1 = uniform \u00b7 2 = exponential \u00b7 3 = heavy-tailed", "min": 0, "max": 3, "step": 1, "value": 0, "dp": 0}, {"name": "ln", "label": "log\u2082 of sample size n", "min": 0, "max": 10, "step": 1, "value": 0, "dp": 0}]);window["FIG_f13clt"].run();</script>
+<h2 id="s7"><span class="secnum">7</span>Mini-batch gradients: unbiased, and noisy in a way you can control</h2>
+<p>Now the result that makes modern deep learning possible. The full gradient over \(n\) examples
+costs \(O(n)\) per step, which is prohibitive. Instead we sample a batch \(\mathcal{B}\) of size \(B\) uniformly
+at random and use</p>
+<p>\[\vg_{\mathcal{B}} = \frac{1}{B}\sum_{i\in\mathcal{B}}\grad_{\vt}\,\ell_i(\vt).\]</p>
+<div class="deriv" id="d117"><div class="deriv-head"><span class="t">The mini-batch gradient is unbiased, with variance σ²/B</span><span class="ct">0 / 4</span></div><div class="dstep">\[\vg_{\text{full}} = \frac1n\sum_{i=1}^{n}\grad\ell_i, \qquad \vg_{\mathcal{B}} = \frac{1}{B}\sum_{i\in\mathcal{B}}\grad\ell_i\]<div class="why"><b>Set up.</b> Sampling \(B\) indices uniformly at random, with replacement (which makes the algebra clean; without replacement the variance is slightly smaller by a finite-population correction).</div></div><div class="dstep">\[\E[\vg_{\mathcal{B}}] = \frac1B\sum_{j=1}^{B}\E\big[\grad\ell_{I_j}\big] = \frac1B \cdot B \cdot \left(\frac1n\sum_{i=1}^n \grad\ell_i\right) = \vg_{\text{full}}\]<div class="why"><b>Unbiased.</b> Each sampled index \(I_j\) is uniform on \(\{1,\dots,n\}\), so \(\E[\grad\ell_{I_j}] = \sum_i \frac1n\grad\ell_i = \vg_{\text{full}}\). Linearity of expectation does the rest — and note we needed <em>no</em> independence between the terms of the loss, only uniform sampling. <strong>On average, the mini-batch gradient points exactly where the full gradient points.</strong></div></div><div class="dstep">\[\Var(\vg_{\mathcal{B}}) = \frac{1}{B^2}\sum_{j=1}^{B}\Var\big(\grad\ell_{I_j}\big) = \frac{\sigma^2}{B}, \qquad \sigma^2 := \frac1n\sum_i\|\grad\ell_i - \vg_{\text{full}}\|^2\]<div class="why"><b>Variance.</b> The \(B\) draws are independent, so variances add and the \(1/B^2\) prefactor leaves \(\sigma^2/B\). This is the law of large numbers again, applied to gradients instead of scalars.</div></div><div class="dstep">\[\text{noise scale} = \frac{\sigma}{\sqrt{B}}\]<div class="why"><b>The practical consequence.</b> To halve the gradient noise you must <em>quadruple</em> the batch size, at four times the compute cost per step. That poor exchange rate is exactly why small batches are used in practice: the extra steps you can afford are worth more than the noise reduction. It is also why the 'linear scaling rule' (double the batch, double the learning rate) works to first order — you can afford a bigger step when the direction is more reliable.</div></div><div class="deriv-foot"><button class="btn nextb" onclick="dstep('d117')">Next step</button><button class="btn ghost" onclick="dall('d117')">Show all</button><button class="btn ghost" onclick="dreset('d117')">Reset</button></div></div>
+<div class="box ml"><span class="lbl">Where this shows up in ML</span><p>Gradient noise is not purely a cost. There is good evidence that it acts as an implicit
+regulariser: it lets the iterate escape sharp minima and saddle plateaus, and there is a persistent empirical
+finding that very large batches generalise worse unless the learning rate and schedule are adjusted. The
+mechanism is still debated, and this is an active research area rather than settled theory — I flag it as such
+rather than as a fact.</p></div>
+<div class="pyb" id="py118" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+
+# ---------- linearity of expectation, even for dependent variables ----------
+N = 100_000
+X = rng.normal(0, 1, N)
+Y = X**2                                # about as dependent as it gets
+print(&quot;E[X]        =&quot;, X.mean().round(4))
+print(&quot;E[Y]        =&quot;, Y.mean().round(4))
+print(&quot;E[X + Y]    =&quot;, (X + Y).mean().round(4), &quot; vs E[X]+E[Y] =&quot;, (X.mean()+Y.mean()).round(4))
+print(&quot;  -&gt; linearity holds despite total dependence&quot;)
+print()
+print(&quot;Var(X)      =&quot;, X.var().round(4))
+print(&quot;Var(Y)      =&quot;, Y.var().round(4))
+print(&quot;Var(X + Y)  =&quot;, (X+Y).var().round(4),
+      &quot; vs Var(X)+Var(Y) =&quot;, (X.var()+Y.var()).round(4))
+print(&quot;  -&gt; variance does NOT add; the gap is 2*Cov =&quot;,
+      (2*np.cov(X, Y)[0,1]).round(4))
+print()
+
+# ---------- uncorrelated but dependent ----------
+Z = rng.choice([-1., 0., 1.], size=N)
+W = Z**2
+print(&quot;Cov(Z, Z^2)  =&quot;, np.cov(Z, W)[0,1].round(6), &quot; (uncorrelated)&quot;)
+print(&quot;P(W=0)       =&quot;, (W == 0).mean().round(4))
+print(&quot;P(W=0|Z=1)   =&quot;, (W[Z == 1] == 0).mean().round(4), &quot; -&gt; clearly dependent&quot;)
+print()
+
+# ---------- law of large numbers ----------
+print(&quot;--- sigma / sqrt(n) ---&quot;)
+sigma = 2.5
+for n in [10, 100, 1000, 10_000]:
+    means = rng.normal(5.0, sigma, size=(2000, n)).mean(axis=1)
+    print(f&quot;n={n:7d}  sd of sample means = {means.std():.5f}&quot;
+          f&quot;   predicted sigma/sqrt(n) = {sigma/np.sqrt(n):.5f}&quot;)
+print()
+
+# ---------- Chebyshev is loose but always valid ----------
+print(&quot;--- CHEBYSHEV vs REALITY ---&quot;)
+for t in [1, 2, 3, 4]:
+    g = rng.normal(0, 1, 200_000)
+    emp_gauss = (np.abs(g) &gt;= t).mean()
+    e = rng.exponential(1.0, 200_000); e = (e - 1.0)     # mean 0, sd 1
+    emp_exp = (np.abs(e) &gt;= t).mean()
+    print(f&quot;t={t}:  Chebyshev bound 1/t^2 = {1/t**2:.4f}&quot;
+          f&quot;   Gaussian {emp_gauss:.4f}   Exponential {emp_exp:.4f}&quot;)
+print(&quot;The bound is never violated, and it is loose -- that is the price of&quot;)
+print(&quot;assuming nothing at all about the distribution.&quot;)
+print()
+
+# ---------- mini-batch gradients ----------
+print(&quot;--- MINI-BATCH GRADIENT: UNBIASED, VARIANCE ~ 1/B ---&quot;)
+n, d = 4096, 10
+Xd = rng.normal(size=(n, d)); w = rng.normal(size=d)
+yd = Xd @ w + rng.normal(size=n)*2.0
+w0 = np.zeros(d)
+
+per_example = 2 * Xd * (Xd @ w0 - yd)[:, None]     # gradient of each loss term
+g_full = per_example.mean(axis=0)
+
+print(&quot;full gradient (first 3 coords):&quot;, g_full[:3].round(5))
+for B in [1, 4, 16, 64, 256, 1024]:
+    trials = 1500
+    idx = rng.integers(0, n, size=(trials, B))
+    gb = per_example[idx].mean(axis=1)             # (trials, d)
+    bias = np.linalg.norm(gb.mean(axis=0) - g_full)
+    noise = np.sqrt(np.mean(np.sum((gb - g_full)**2, axis=1)))
+    print(f&quot;B={B:5d}  ||E[g_B] - g_full|| = {bias:.5f}&quot;
+          f&quot;   RMS noise = {noise:7.4f}   noise*sqrt(B) = {noise*np.sqrt(B):7.4f}&quot;)
+print()
+print(&quot;Bias stays at noise level (unbiased), and noise*sqrt(B) is constant,&quot;)
+print(&quot;confirming noise ~ sigma/sqrt(B) exactly as derived.&quot;)
+"><div class="pyb-head"><span class="t">Verifying everything numerically</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py118')">Run</button><button class="btn ghost" onclick="resetPy('py118')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+
+# ---------- linearity of expectation, even for dependent variables ----------
+N = 100_000
+X = rng.normal(0, 1, N)
+Y = X**2                                # about as dependent as it gets
+print(&quot;E[X]        =&quot;, X.mean().round(4))
+print(&quot;E[Y]        =&quot;, Y.mean().round(4))
+print(&quot;E[X + Y]    =&quot;, (X + Y).mean().round(4), &quot; vs E[X]+E[Y] =&quot;, (X.mean()+Y.mean()).round(4))
+print(&quot;  -&gt; linearity holds despite total dependence&quot;)
+print()
+print(&quot;Var(X)      =&quot;, X.var().round(4))
+print(&quot;Var(Y)      =&quot;, Y.var().round(4))
+print(&quot;Var(X + Y)  =&quot;, (X+Y).var().round(4),
+      &quot; vs Var(X)+Var(Y) =&quot;, (X.var()+Y.var()).round(4))
+print(&quot;  -&gt; variance does NOT add; the gap is 2*Cov =&quot;,
+      (2*np.cov(X, Y)[0,1]).round(4))
+print()
+
+# ---------- uncorrelated but dependent ----------
+Z = rng.choice([-1., 0., 1.], size=N)
+W = Z**2
+print(&quot;Cov(Z, Z^2)  =&quot;, np.cov(Z, W)[0,1].round(6), &quot; (uncorrelated)&quot;)
+print(&quot;P(W=0)       =&quot;, (W == 0).mean().round(4))
+print(&quot;P(W=0|Z=1)   =&quot;, (W[Z == 1] == 0).mean().round(4), &quot; -&gt; clearly dependent&quot;)
+print()
+
+# ---------- law of large numbers ----------
+print(&quot;--- sigma / sqrt(n) ---&quot;)
+sigma = 2.5
+for n in [10, 100, 1000, 10_000]:
+    means = rng.normal(5.0, sigma, size=(2000, n)).mean(axis=1)
+    print(f&quot;n={n:7d}  sd of sample means = {means.std():.5f}&quot;
+          f&quot;   predicted sigma/sqrt(n) = {sigma/np.sqrt(n):.5f}&quot;)
+print()
+
+# ---------- Chebyshev is loose but always valid ----------
+print(&quot;--- CHEBYSHEV vs REALITY ---&quot;)
+for t in [1, 2, 3, 4]:
+    g = rng.normal(0, 1, 200_000)
+    emp_gauss = (np.abs(g) &gt;= t).mean()
+    e = rng.exponential(1.0, 200_000); e = (e - 1.0)     # mean 0, sd 1
+    emp_exp = (np.abs(e) &gt;= t).mean()
+    print(f&quot;t={t}:  Chebyshev bound 1/t^2 = {1/t**2:.4f}&quot;
+          f&quot;   Gaussian {emp_gauss:.4f}   Exponential {emp_exp:.4f}&quot;)
+print(&quot;The bound is never violated, and it is loose -- that is the price of&quot;)
+print(&quot;assuming nothing at all about the distribution.&quot;)
+print()
+
+# ---------- mini-batch gradients ----------
+print(&quot;--- MINI-BATCH GRADIENT: UNBIASED, VARIANCE ~ 1/B ---&quot;)
+n, d = 4096, 10
+Xd = rng.normal(size=(n, d)); w = rng.normal(size=d)
+yd = Xd @ w + rng.normal(size=n)*2.0
+w0 = np.zeros(d)
+
+per_example = 2 * Xd * (Xd @ w0 - yd)[:, None]     # gradient of each loss term
+g_full = per_example.mean(axis=0)
+
+print(&quot;full gradient (first 3 coords):&quot;, g_full[:3].round(5))
+for B in [1, 4, 16, 64, 256, 1024]:
+    trials = 1500
+    idx = rng.integers(0, n, size=(trials, B))
+    gb = per_example[idx].mean(axis=1)             # (trials, d)
+    bias = np.linalg.norm(gb.mean(axis=0) - g_full)
+    noise = np.sqrt(np.mean(np.sum((gb - g_full)**2, axis=1)))
+    print(f&quot;B={B:5d}  ||E[g_B] - g_full|| = {bias:.5f}&quot;
+          f&quot;   RMS noise = {noise:7.4f}   noise*sqrt(B) = {noise*np.sqrt(B):7.4f}&quot;)
+print()
+print(&quot;Bias stays at noise level (unbiased), and noise*sqrt(B) is constant,&quot;)
+print(&quot;confirming noise ~ sigma/sqrt(B) exactly as derived.&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s8"><span class="secnum">8</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>A fair six-sided die is rolled. Let \(X\) be the value shown.</p>
+  <ol><li>Compute \(\E[X]\) and \(\Var(X)\).</li>
+  <li>Let \(Y=2X+3\). Compute \(\E[Y]\) and \(\Var(Y)\) two ways: from the rules, and directly from the
+  distribution of \(Y\).</li>
+  <li>Two independent dice, \(S=X_1+X_2\). Compute \(\E[S]\) and \(\Var(S)\).</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex119',this)">Show solution</button></div><div class="rev-body" id="ex119"><p><strong>1.</strong> \(\E[X]=\frac{1+2+\cdots+6}{6}=\frac{21}{6}=3.5\).<br>
+  \(\E[X^2]=\frac{1+4+9+16+25+36}{6}=\frac{91}{6}\approx15.1667\).<br>
+  \(\Var(X)=\frac{91}{6}-3.5^2 = 15.1667-12.25 = \frac{35}{12}\approx 2.9167\).</p>
+
+  <p><strong>2.</strong> By the rules: \(\E[Y]=2(3.5)+3=10\), \(\Var(Y)=2^2\cdot\frac{35}{12}=\frac{35}{3}
+  \approx11.667\).<br>
+  Directly: \(Y\) is uniform on \(\{5,7,9,11,13,15\}\), mean \(\frac{60}{6}=10\) ✓. And
+  \(\E[Y^2]=\frac{25+49+81+121+169+225}{6}=\frac{670}{6}\approx111.667\), so
+  \(\Var(Y)=111.667-100=11.667\) ✓.</p>
+
+  <p><strong>3.</strong> \(\E[S]=3.5+3.5=7\) by linearity (which would hold even for loaded or correlated dice).
+  \(\Var(S)=\frac{35}{12}+\frac{35}{12}=\frac{35}{6}\approx5.833\) — this one <em>does</em> require independence.
+  <br>Note \(\sigma_S=\sqrt{5.833}\approx2.415\), while \(\sigma_X\approx1.708\). The sum's spread grew by a
+  factor of \(\sqrt2\), not 2: independent noise adds in quadrature. That is the same \(\sqrt n\) that governs
+  everything in this lecture.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Prove that among all constants \(c\), the value minimising \(\E[(X-c)^2]\) is \(c=\E[X]\).</p>
+  <p>Then explain what this says about (a) why the mean is the "right" summary for squared-error problems, and
+  (b) what a model trained with squared error is actually predicting when the target is noisy.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex120',this)">Show solution</button></div><div class="rev-body" id="ex120"><p>Define \(g(c)=\E[(X-c)^2]\). Expand using linearity:</p>
+  \[g(c) = \E[X^2] - 2c\,\E[X] + c^2.\]
+  <p>This is a quadratic in \(c\) with positive leading coefficient, so Lecture 7's machinery applies directly:</p>
+  \[g'(c) = -2\E[X]+2c = 0 \;\Longrightarrow\; c=\E[X], \qquad g''(c)=2>0,\]
+  <p>so it is the unique global minimum, and the minimum value is
+  \(g(\E[X]) = \E[X^2]-(\E X)^2 = \Var(X)\). ∎</p>
+  <p>A neat corollary: the best constant predictor has squared error exactly equal to the variance. Variance
+  <em>is</em> the irreducible error of the best constant model.</p>
+
+  <p><strong>(a)</strong> Whenever your loss is squared error, the optimal single number to output is the mean.
+  (Contrast: the optimal constant under <em>absolute</em> error is the <em>median</em>, and under 0–1 loss it is
+  the <em>mode</em>. The loss function chooses the summary statistic, not your intuition.)</p>
+
+  <p><strong>(b)</strong> This is the important one. Extend the argument conditionally: for each \(\vx\), the
+  best prediction under squared error is \(\E[Y\mid \mX=\vx]\). So a model trained with MSE is estimating the
+  <strong>conditional mean</strong> of the target, not a typical or plausible value of it.</p>
+  <p>Consequences you will actually meet: an MSE-trained image model produces blurry outputs, because the
+  average of all plausible completions is blurry. An MSE-trained forecaster underestimates volatility. If you
+  want a plausible sample rather than an average, you need a different objective — which is precisely the
+  motivation for GANs, diffusion models, and likelihood-based generative models.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>The <strong>sample variance</strong> is often defined with \(n-1\) in the denominator:</p>
+  \[ s^2 = \frac{1}{n-1}\sum_{i=1}^n (X_i-\bar X)^2. \]
+  <p>Prove that \(\E[s^2]=\sigma^2\), and that using \(n\) instead would give \(\frac{n-1}{n}\sigma^2\) — biased
+  low. Explain intuitively where the lost degree of freedom goes.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex121',this)">Show solution</button></div><div class="rev-body" id="ex121"><p>Write \(T=\sum_i (X_i-\bar X)^2\). The trick is to insert and remove \(\mu\):</p>
+  \[X_i-\bar X = (X_i-\mu)-(\bar X-\mu).\]
+  <p>Square and sum, writing \(D_i = X_i-\mu\) and \(\bar D = \bar X - \mu\):</p>
+  \[T = \sum_i D_i^2 - 2\bar D\sum_i D_i + n\bar D^2 = \sum_i D_i^2 - 2\bar D(n\bar D) + n\bar D^2
+   = \sum_i D_i^2 - n\bar D^2,\]
+  <p>using \(\sum_i D_i = n\bar D\). Now take expectations, using \(\E[D_i^2]=\sigma^2\) and
+  \(\E[\bar D^2]=\Var(\bar X)=\sigma^2/n\):</p>
+  \[\E[T] = n\sigma^2 - n\cdot\frac{\sigma^2}{n} = (n-1)\sigma^2.\]
+  <p>So \(\E\!\left[\frac{T}{n-1}\right]=\sigma^2\) ✓, while \(\E\!\left[\frac{T}{n}\right]
+  =\frac{n-1}{n}\sigma^2&lt;\sigma^2\). ∎</p>
+
+  <p><strong>Where the degree of freedom goes.</strong> The deviations are measured from \(\bar X\), which was
+  <em>computed from the same data</em> and is therefore pulled towards the sample. By the previous exercise,
+  \(\bar X\) is the constant that <em>minimises</em> \(\sum(X_i-c)^2\), so \(\sum(X_i-\bar X)^2 \le
+  \sum(X_i-\mu)^2\) always — the sum of squared deviations about the sample mean is systematically too small.
+  Dividing by \(n-1\) corrects exactly for that.</p>
+  <p>The residuals also satisfy one linear constraint, \(\sum_i(X_i-\bar X)=0\): given any \(n-1\) of them the
+  last is determined. Only \(n-1\) are free, hence the name.</p>
+  <p><strong>Relevance.</strong> The same phenomenon is why <em>training error underestimates test error</em>:
+  the parameters were fitted to the very data you are evaluating on. Least squares with \(d\) parameters has
+  \(n-d\) residual degrees of freedom, and the unbiased noise estimate is \(\frac{\|\vr\|^2}{n-d}\), not
+  \(\frac{\|\vr\|^2}{n}\). Overfitting is this bias taken to an extreme.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding + analysis.</strong> Investigate how gradient noise interacts with the learning rate.</p>
+  <ol>
+  <li>Set up linear regression on \(n=4096\) points with noisy targets. Compute the exact optimum with
+  <code>lstsq</code>.</li>
+  <li>Run SGD with batch sizes \(B\in\{1,8,64,512,4096\}\), each for the same number of <em>epochs</em>, with a
+  fixed learning rate. Record the final distance to the optimum.</li>
+  <li>Repeat with the <em>linear scaling rule</em>: \(\eta \propto B\). What changes?</li>
+  <li>With \(B=1\) and constant \(\eta\), does SGD converge to the optimum, or to a distribution around it?
+  Measure the stationary variance and see how it scales with \(\eta\).</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex122',this)">Show solution</button></div><div class="rev-body" id="ex122"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(0)
+n, d = 4096, 10
+X = rng.normal(size=(n, d)); w_true = rng.normal(size=d)
+y = X @ w_true + 2.0*rng.normal(size=n)
+w_star = np.linalg.lstsq(X, y, rcond=None)[0]
+
+def sgd(B, eta, epochs=30, seed=1):
+    r = np.random.default_rng(seed); w = np.zeros(d)
+    for _ in range(epochs):
+        perm = r.permutation(n)
+        for s in range(0, n, B):
+            idx = perm[s:s+B]
+            g = 2 * X[idx].T @ (X[idx] @ w - y[idx]) / len(idx)
+            w = w - eta*g
+            if not np.isfinite(w).all(): return None
+    return w
+
+print("--- fixed eta ---")
+for B in (1, 8, 64, 512, 4096):
+    w = sgd(B, 0.002)
+    print(f"B={B:5d}  dist to optimum = "
+          f"{'DIVERGED' if w is None else f'{np.linalg.norm(w-w_star):.5f}'}")
+
+print("\\n--- linear scaling rule: eta proportional to B ---")
+for B in (1, 8, 64, 512, 4096):
+    w = sgd(B, 0.002*B/8)
+    print(f"B={B:5d}  eta={0.002*B/8:.5f}  dist = "
+          f"{'DIVERGED' if w is None else f'{np.linalg.norm(w-w_star):.5f}'}")
+
+print("\\n--- stationary noise floor at B=1 ---")
+for eta in (0.0002, 0.0005, 0.001, 0.002):
+    w = sgd(1, eta, epochs=60)
+    if w is None: print(f"eta={eta}: DIVERGED"); continue
+    tail = []
+    r = np.random.default_rng(7)
+    for _ in range(4000):                     # keep stepping, record the wander
+        i = r.integers(0, n)
+        g = 2 * X[i] * (X[i] @ w - y[i])
+        w = w - eta*g; tail.append(w.copy())
+    tail = np.array(tail)
+    print(f"eta={eta:.4f}  mean dist {np.linalg.norm(tail.mean(0)-w_star):.5f}"
+          f"   stationary sd {np.sqrt(tail.var(0).sum()):.5f}")</code></pre>
+
+  <p><strong>2.</strong> With a fixed \(\eta\), larger batches get <em>closer</em> to the optimum for the same
+  number of epochs — the steps are less noisy — but they take far fewer steps, so per unit of compute the small
+  batches usually make more progress early. Full batch (\(B=4096\)) with a small \(\eta\) barely moves in 30
+  epochs, because 30 epochs is only 30 steps.</p>
+
+  <p><strong>3.</strong> Under linear scaling the large-batch runs improve dramatically and the final distances
+  become comparable across \(B\) — until \(\eta\) approaches \(2/\lambda_{\max}\) of the Hessian
+  \(2\mX^\top\mX/n\) (Lecture 11), at which point the largest-batch run diverges. That is precisely the
+  documented failure of the linear scaling rule at very large batch: eventually stability, not noise, becomes
+  the binding constraint.</p>
+
+  <p><strong>4.</strong> With constant \(\eta\), SGD does <strong>not</strong> converge to a point. It reaches a
+  stationary distribution around \(\vw^\star\): the mean of the iterates sits at the optimum (unbiased, as
+  proved above) but the spread does not shrink. Measured, the stationary standard deviation scales roughly as
+  \(\sqrt\eta\), which is what the Ornstein–Uhlenbeck approximation predicts — the noise injected per step is
+  \(O(\eta^2\sigma^2)\) and the restoring force is \(O(\eta\lambda)\), giving a stationary variance of order
+  \(\eta\sigma^2/\lambda\).</p>
+  <p><strong>Consequence:</strong> constant-learning-rate SGD has a noise floor. To actually converge you must
+  decay \(\eta\) — which is why every training recipe has a schedule, and why the Robbins–Monro conditions
+  \(\sum\eta_t=\infty\), \(\sum\eta_t^2&lt;\infty\) are the classical requirement for almost-sure convergence.
+  The characteristic loss curve that plateaus and then drops sharply when the learning rate is cut is exactly
+  this noise floor being lowered.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> the final lecture of Phase A. Conditional probability and Bayes'
+theorem, the distributions you will meet constantly, and maximum likelihood — which will let us finally derive
+squared error, cross-entropy, and ridge regression from a single principle.</p>
+<div class="pagenav"><a href="12-gradients-jacobians-hessians.html" class="pv"><span class="dir">Previous</span><span class="nm">12 · Gradients, Jacobians, and Hessians</span></a><a href="14-bayes-and-maximum-likelihood.html" class="nx"><span class="dir">Next</span><span class="nm">14 · Bayes, Distributions, and Maximum Likelihood</span></a></div>
+</div>
+<script>initDone('13-random-variables-expectation');</script>
+</body>
+</html>

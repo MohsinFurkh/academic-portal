@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2. Linear Regression, Properly — ML Phase B</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1c1917; --ink2:#44403c; --ink3:#78716c;
+  --line:#e7e2d9; --line2:#d6cfc2;
+  --accent:#1d4ed8; --accent-soft:#eff4ff;
+  --c1:#2563eb; --c2:#d97706; --c3:#059669; --c4:#db2777; --c5:#7c3aed; --c6:#0891b2;
+  --ok:#047857; --ok-bg:#ecfdf5; --bad:#b91c1c; --bad-bg:#fef2f2;
+  --warn:#92400e; --warn-bg:#fffbeb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:820px;
+}
+html[data-theme="dark"]{
+  --bg:#12110f; --panel:#1b1a17; --ink:#f0ede6; --ink2:#c9c4b8; --ink3:#928c7e;
+  --line:#2e2c27; --line2:#403d35;
+  --accent:#7ba3ff; --accent-soft:#1a2340;
+  --c1:#7ba3ff; --c2:#fbbf24; --c3:#34d399; --c4:#f472b6; --c5:#a78bfa; --c6:#22d3ee;
+  --ok:#34d399; --ok-bg:#0d2a20; --bad:#f87171; --bad-bg:#2c1414;
+  --warn:#fbbf24; --warn-bg:#2a2113;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); font-size:18px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px 140px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(150%) blur(12px); border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:var(--maxw); margin:0 auto; padding:9px 22px;
+  display:flex; align-items:center; gap:14px; font-family:var(--sans); font-size:13px}
+.topbar a{color:var(--ink2); text-decoration:none}
+.topbar a:hover{color:var(--accent)}
+.tb-home{font-weight:650; color:var(--ink) !important; letter-spacing:-.01em}
+.tb-spacer{flex:1}
+.tb-btn{border:1px solid var(--line2); background:var(--panel); color:var(--ink2);
+  border-radius:7px; padding:4px 10px; cursor:pointer; font:inherit; font-size:12.5px}
+.tb-btn:hover{border-color:var(--accent); color:var(--accent)}
+#progbar{position:fixed; top:0; left:0; height:2px; background:var(--accent); width:0; z-index:60; transition:width .15s}
+
+/* ---------- header ---------- */
+.lechead{padding:52px 0 8px; border-bottom:1px solid var(--line); margin-bottom:34px}
+.eyebrow{font-family:var(--sans); font-size:12px; font-weight:650; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:12px}
+h1{font-size:2.35rem; line-height:1.16; margin:0 0 14px; letter-spacing:-.022em; font-weight:600}
+.dek{font-size:1.12rem; color:var(--ink2); margin:0 0 26px; line-height:1.6}
+.meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:0 0 30px;
+  font-family:var(--sans); font-size:13.5px}
+@media(max-width:640px){.meta-grid{grid-template-columns:1fr}}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.meta-box h4{margin:0 0 8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); font-weight:700}
+.meta-box ul{margin:0; padding-left:17px; color:var(--ink2)}
+.meta-box li{margin:3px 0; line-height:1.45}
+
+/* ---------- prose ---------- */
+h2{font-size:1.55rem; margin:56px 0 14px; letter-spacing:-.015em; font-weight:600; scroll-margin-top:60px}
+h2 .secnum{color:var(--ink3); font-family:var(--sans); font-size:.72em; font-weight:600; margin-right:.5em}
+h3{font-size:1.16rem; margin:34px 0 10px; font-weight:650; letter-spacing:-.008em}
+p{margin:0 0 17px}
+a{color:var(--accent)}
+ul,ol{margin:0 0 17px; padding-left:26px}
+li{margin:6px 0}
+strong{font-weight:650}
+em{font-style:italic}
+code{font-family:var(--mono); font-size:.86em; background:var(--accent-soft);
+  padding:1.5px 5px; border-radius:4px; color:var(--ink)}
+hr{border:0; border-top:1px solid var(--line); margin:44px 0}
+.small{font-size:.9rem; color:var(--ink3)}
+
+/* ---------- callouts ---------- */
+.box{border:1px solid var(--line); border-left:3px solid var(--ink3); background:var(--panel);
+  border-radius:0 11px 11px 0; padding:16px 20px; margin:26px 0}
+.box .lbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:7px}
+.box p:last-child{margin-bottom:0}
+.box.intuition{border-left-color:var(--c6)} .box.intuition .lbl{color:var(--c6)}
+.box.defn{border-left-color:var(--c1)} .box.defn .lbl{color:var(--c1)}
+.box.thm{border-left-color:var(--c5)} .box.thm .lbl{color:var(--c5)}
+.box.warn{border-left-color:var(--warn); background:var(--warn-bg)} .box.warn .lbl{color:var(--warn)}
+.box.ml{border-left-color:var(--c3)} .box.ml .lbl{color:var(--c3)}
+.box.eng{border-left-color:var(--c2)} .box.eng .lbl{color:var(--c2)}
+
+/* ---------- derivation ---------- */
+.deriv{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.deriv-head{padding:13px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:12px; font-family:var(--sans)}
+.deriv-head .t{font-weight:650; font-size:14px; flex:1}
+.deriv-head .ct{font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums}
+.dstep{padding:16px 20px; border-bottom:1px solid var(--line); display:none}
+.dstep.on{display:block; animation:fade .28s ease}
+@keyframes fade{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.dstep .why{font-family:var(--sans); font-size:13px; color:var(--ink3); margin-top:9px; line-height:1.55}
+.dstep .why b{color:var(--ink2); font-weight:650}
+.deriv-foot{padding:12px 20px; display:flex; gap:9px; align-items:center}
+.btn{font-family:var(--sans); font-size:13px; font-weight:600; border-radius:8px; cursor:pointer;
+  padding:7px 15px; border:1px solid var(--accent); background:var(--accent); color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4; cursor:default; filter:none}
+.btn.ghost{background:transparent; color:var(--ink2); border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--accent); color:var(--accent); filter:none}
+
+/* ---------- quiz ---------- */
+.quiz{border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:20px 22px; margin:30px 0}
+.quiz .qlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c4); margin-bottom:9px}
+.quiz .qq{margin-bottom:15px}
+.qopt{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:transparent;
+  color:var(--ink); border-radius:9px; padding:11px 15px; margin:8px 0; cursor:pointer;
+  font-family:var(--serif); font-size:16.5px; line-height:1.5; transition:.14s}
+.qopt:hover:not(.done){border-color:var(--accent); background:var(--accent-soft)}
+.qopt.right{border-color:var(--ok); background:var(--ok-bg)}
+.qopt.wrong{border-color:var(--bad); background:var(--bad-bg)}
+.qopt.done{cursor:default}
+.qwhy{display:none; margin:9px 2px 2px; padding:11px 14px; border-radius:9px;
+  font-family:var(--sans); font-size:13.5px; line-height:1.6}
+.qwhy.on{display:block}
+.qwhy.right{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok)}
+.qwhy.wrong{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad)}
+.qwhy b{font-weight:750}
+
+/* ---------- socratic / reveal ---------- */
+.rev{border:1px dashed var(--line2); border-radius:12px; padding:17px 20px; margin:26px 0; background:var(--panel)}
+.rev .rlbl{font-family:var(--sans); font-size:10.5px; font-weight:750; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--c2); margin-bottom:8px}
+.rev-body{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.rev-body.on{display:block; animation:fade .28s ease}
+
+/* ---------- interactive figure ---------- */
+.fig{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:32px 0; overflow:hidden}
+.fig-head{padding:12px 18px; border-bottom:1px solid var(--line); font-family:var(--sans);
+  font-size:13px; font-weight:650}
+.fig-head .tag{float:right; font-weight:600; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--c6)}
+.fig canvas{display:block; width:100%; height:auto; touch-action:none}
+.ctrls{padding:13px 18px 15px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px}
+.ctrl{display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center; margin:7px 0}
+.ctrl label{color:var(--ink2)}
+.ctrl output{font-family:var(--mono); font-size:12.5px; color:var(--accent);
+  min-width:62px; text-align:right; font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent); height:20px}
+.ctrl-check{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--ink2)}
+.fig-cap{padding:0 18px 15px; font-family:var(--sans); font-size:12.8px; color:var(--ink3); line-height:1.6}
+.fig-read{padding:9px 18px; font-family:var(--mono); font-size:12.5px; color:var(--ink2);
+  border-top:1px solid var(--line); background:var(--accent-soft); line-height:1.7}
+.legend{padding:9px 18px 0; font-family:var(--sans); font-size:12.5px; display:flex; flex-wrap:wrap; gap:16px}
+.legend i{display:inline-block; width:15px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+
+/* ---------- python ---------- */
+.pyb{border:1px solid var(--line); border-radius:13px; background:var(--panel); margin:30px 0; overflow:hidden}
+.pyb-head{padding:11px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center;
+  gap:11px; font-family:var(--sans); font-size:12.5px}
+.pyb-head .t{font-weight:650; flex:1}
+.pyb textarea{width:100%; border:0; background:transparent; color:var(--ink); font-family:var(--mono);
+  font-size:13px; line-height:1.62; padding:15px 17px; resize:vertical; display:block; outline:none;
+  tab-size:4; white-space:pre; overflow-x:auto}
+.pyout{border-top:1px solid var(--line); padding:13px 17px; font-family:var(--mono); font-size:12.6px;
+  white-space:pre-wrap; color:var(--ink2); display:none; line-height:1.6; max-height:420px; overflow:auto}
+.pyout.on{display:block}
+.pyout.err{color:var(--bad); background:var(--bad-bg)}
+.pill{font-family:var(--sans); font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink3); border:1px solid var(--line2); border-radius:20px; padding:2px 9px}
+
+/* ---------- exercises ---------- */
+.exlist{counter-reset:ex}
+.ex{border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:17px 20px; margin:15px 0}
+.ex .exn{counter-increment:ex; font-family:var(--sans); font-size:11px; font-weight:750;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--c5); margin-bottom:8px}
+.ex .exn::before{content:"Exercise " counter(ex)}
+.ex .stars{color:var(--c2); letter-spacing:2px; margin-left:8px}
+
+/* ---------- nav ---------- */
+.pagenav{display:flex; gap:14px; margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-family:var(--sans); font-size:14px}
+.pagenav a{flex:1; text-decoration:none; border:1px solid var(--line); border-radius:12px;
+  padding:15px 18px; background:var(--panel); transition:.15s}
+.pagenav a:hover{border-color:var(--accent); transform:translateY(-1px)}
+.pagenav .dir{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink3); margin-bottom:5px; font-weight:700}
+.pagenav .nm{color:var(--ink); font-weight:600; line-height:1.35}
+.pagenav .nx{text-align:right}
+mjx-container{overflow-x:auto; overflow-y:hidden; max-width:100%}
+mjx-container[display="true"]{margin:22px 0 !important}
+</style>
+
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],
+       processEscapes:true, tags:'none',
+       macros:{RR:'{\\mathbb{R}}', NN:'{\\mathbb{N}}', ZZ:'{\\mathbb{Z}}',
+               E:'{\\mathbb{E}}', Var:'{\\operatorname{Var}}', Cov:'{\\operatorname{Cov}}',
+               tr:'{\\operatorname{tr}}', rank:'{\\operatorname{rank}}',
+               argmin:'{\\operatorname*{arg\\,min}}', argmax:'{\\operatorname*{arg\\,max}}',
+               vx:'{\\mathbf{x}}', vy:'{\\mathbf{y}}', vw:'{\\mathbf{w}}', vv:'{\\mathbf{v}}',
+               vu:'{\\mathbf{u}}', vb:'{\\mathbf{b}}', vz:'{\\mathbf{z}}', vt:'{\\boldsymbol{\\theta}}',
+               vp:'{\\mathbf{p}}', vr:'{\\mathbf{r}}', vq:'{\\mathbf{q}}', vf:'{\\mathbf{f}}', vk:'{\\mathbf{k}}', vc:'{\\mathbf{c}}', vd:'{\\mathbf{d}}', va:'{\\mathbf{a}}', ve:'{\\mathbf{e}}',
+               vs:'{\\mathbf{s}}', vg:'{\\mathbf{g}}', vh:'{\\mathbf{h}}', vm:'{\\boldsymbol{\\mu}}',
+               vzero:'{\\mathbf{0}}', valpha:'{\\boldsymbol{\\alpha}}', vxi:'{\\boldsymbol{\\xi}}', vphi:'{\\boldsymbol{\\phi}}', vbeta:'{\\boldsymbol{\\beta}}', grad:'{\\nabla}', mA:'{\\mathbf{A}}', mX:'{\\mathbf{X}}',
+               mB:'{\\mathbf{B}}', mC:'{\\mathbf{C}}', mD:'{\\mathbf{D}}', mL:'{\\mathbf{L}}',
+               mM:'{\\mathbf{M}}', mP:'{\\mathbf{P}}', mQ:'{\\mathbf{Q}}', mR:'{\\mathbf{R}}',
+               mU:'{\\mathbf{U}}', mZ:'{\\mathbf{Z}}', mT:'{\\mathbf{T}}', mK:'{\\mathbf{K}}', mE:'{\\mathbf{E}}', mV:'{\\mathbf{V}}', mW:'{\\mathbf{W}}', mY:'{\\mathbf{Y}}',
+               mI:'{\\mathbf{I}}', mH:'{\\mathbf{H}}', mJ:'{\\mathbf{J}}', mS:'{\\boldsymbol{\\Sigma}}'}},
+  svg:{fontCache:'global'},
+  options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},
+  startup:{ready:function(){MathJax.startup.defaultReady();}}
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg-full.min.js"
+  onerror="var s=document.createElement('script');s.async=true;s.src='mathjax-tex-svg.js';document.head.appendChild(s);"></script>
+
+<script>
+/* ============ theme ============ */
+(function(){
+  var t="light"; try{t=localStorage.getItem("mlc-theme")||"light"}catch(e){}
+  document.documentElement.setAttribute("data-theme",t);
+})();
+function toggleTheme(){
+  var d=document.documentElement, n=d.getAttribute("data-theme")==="dark"?"light":"dark";
+  d.setAttribute("data-theme",n); try{localStorage.setItem("mlc-theme",n)}catch(e){}
+  if(window.__redrawAll)window.__redrawAll();
+}
+/* ============ progress ============ */
+function markDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}"); s[slug]=1;
+      localStorage.setItem("mlcB-done",JSON.stringify(s));}catch(e){}
+  var b=document.getElementById("donebtn");
+  if(b){b.textContent="✓ Completed"; b.disabled=true;}
+}
+function initDone(slug){
+  try{var s=JSON.parse(localStorage.getItem("mlcB-done")||"{}");
+      if(s[slug]){var b=document.getElementById("donebtn"); if(b){b.textContent="✓ Completed"; b.disabled=true;}}}catch(e){}
+}
+window.addEventListener("scroll",function(){
+  var h=document.body.scrollHeight-window.innerHeight;
+  var p=document.getElementById("progbar");
+  if(p&&h>0)p.style.width=(100*window.scrollY/h)+"%";
+});
+/* ============ mathjax queue (serialised: concurrent typesets corrupt text nodes) ============ */
+var _mjq=Promise.resolve();
+function mj(el){
+  if(!(window.MathJax&&MathJax.typesetPromise))return;
+  _mjq=_mjq.then(function(){return MathJax.typesetPromise([el]);}).catch(function(e){});
+}
+/* ============ derivations ============ */
+function dstep(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  var n=0; for(var i=0;i<steps.length;i++) if(steps[i].classList.contains("on")) n++;
+  if(n<steps.length){steps[n].classList.add("on"); n++;}
+  d.querySelector(".ct").textContent=n+" / "+steps.length;
+  d.querySelector(".nextb").disabled = (n>=steps.length);
+  mj(d);
+}
+function dall(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.add("on");
+  d.querySelector(".ct").textContent=steps.length+" / "+steps.length;
+  d.querySelector(".nextb").disabled=true;
+  mj(d);
+}
+function dreset(id){
+  var d=document.getElementById(id), steps=d.querySelectorAll(".dstep");
+  for(var i=0;i<steps.length;i++)steps[i].classList.remove("on");
+  d.querySelector(".ct").textContent="0 / "+steps.length;
+  d.querySelector(".nextb").disabled=false;
+}
+/* ============ reveal ============ */
+function rev(id,btn){
+  var b=document.getElementById(id); b.classList.toggle("on");
+  btn.textContent=b.classList.contains("on")?"Hide":btn.dataset.show;
+  mj(b);
+}
+/* ============ quiz ============ */
+function pick(qid,i,ok){
+  var q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done="1";
+  var opts=q.querySelectorAll(".qopt");
+  for(var k=0;k<opts.length;k++){opts[k].classList.add("done");}
+  opts[i].classList.add(ok?"right":"wrong");
+  if(!ok){for(var k=0;k<opts.length;k++) if(opts[k].dataset.ok==="1") opts[k].classList.add("right");}
+  var w=q.querySelector('.qwhy[data-i="'+i+'"]');
+  w.classList.add("on"); w.classList.add(ok?"right":"wrong");
+  mj(q);
+}
+/* ============ plotting ============ */
+var FIGS=[];
+function Viewport(cv,xmin,xmax,ymin,ymax,pad){
+  this.cv=cv; this.ctx=cv.getContext("2d");
+  this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
+  this.pad=pad||{l:44,r:16,t:14,b:32};
+}
+Viewport.prototype.css=function(n){
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+};
+Viewport.prototype.resize=function(){
+  var dpr=window.devicePixelRatio||1, w=this.cv.clientWidth, h=this.cv.dataset.h?+this.cv.dataset.h:340;
+  this.cv.width=w*dpr; this.cv.height=h*dpr; this.cv.style.height=h+"px";
+  this.ctx.setTransform(dpr,0,0,dpr,0,0); this.W=w; this.H=h;
+  this.pw=w-this.pad.l-this.pad.r; this.ph=h-this.pad.t-this.pad.b;
+};
+Viewport.prototype.X=function(x){return this.pad.l+(x-this.xmin)/(this.xmax-this.xmin)*this.pw;};
+Viewport.prototype.Y=function(y){return this.pad.t+(1-(y-this.ymin)/(this.ymax-this.ymin))*this.ph;};
+Viewport.prototype.invX=function(px){return this.xmin+(px-this.pad.l)/this.pw*(this.xmax-this.xmin);};
+Viewport.prototype.invY=function(py){return this.ymin+(1-(py-this.pad.t)/this.ph)*(this.ymax-this.ymin);};
+Viewport.prototype.clear=function(){this.ctx.clearRect(0,0,this.W,this.H);};
+Viewport.prototype.frame=function(a,b,c,d){this.xmin=a;this.xmax=b;this.ymin=c;this.ymax=d;this.clear();return this;};
+/* equal aspect ratio: centre (cx,cy), half-width hw; y-range derived from pixel aspect */
+Viewport.prototype.frameEq=function(cx,cy,hw){
+  var hh=hw*this.ph/this.pw;
+  this.xmin=cx-hw;this.xmax=cx+hw;this.ymin=cy-hh;this.ymax=cy+hh;this.clear();return this;
+};
+Viewport.prototype.pads=function(l,r,t,b){
+  this.pad={l:l,r:r,t:t,b:b}; this.resize(); return this;
+};
+Viewport.prototype.nice=function(range){
+  var raw=range/6, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  var m = f<1.5?1 : f<3?2 : f<7?5 : 10; return m*p;
+};
+Viewport.prototype.axes=function(o){
+  o=o||{}; var c=this.ctx, L=this.css("--line"), L2=this.css("--line2"), T=this.css("--ink3");
+  var sx=o.stepx||this.nice(this.xmax-this.xmin), sy=o.stepy||this.nice(this.ymax-this.ymin);
+  c.save(); c.lineWidth=1; c.font="11px "+ "-apple-system,Segoe UI,Roboto,sans-serif";
+  c.strokeStyle=L;
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    var px=Math.round(this.X(x))+.5;
+    c.beginPath(); c.moveTo(px,this.pad.t); c.lineTo(px,this.pad.t+this.ph); c.stroke();
+  }
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    var py=Math.round(this.Y(y))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,py); c.lineTo(this.pad.l+this.pw,py); c.stroke();
+  }
+  c.strokeStyle=L2; c.lineWidth=1.4;
+  if(this.ymin<=0&&this.ymax>=0){var y0=Math.round(this.Y(0))+.5;
+    c.beginPath(); c.moveTo(this.pad.l,y0); c.lineTo(this.pad.l+this.pw,y0); c.stroke();}
+  if(this.xmin<=0&&this.xmax>=0){var x0=Math.round(this.X(0))+.5;
+    c.beginPath(); c.moveTo(x0,this.pad.t); c.lineTo(x0,this.pad.t+this.ph); c.stroke();}
+  c.fillStyle=T; c.textAlign="center"; c.textBaseline="top";
+  for(var x=Math.ceil(this.xmin/sx)*sx; x<=this.xmax+1e-9; x+=sx){
+    if(Math.abs(x)<1e-9&&this.ymin<=0&&this.ymax>=0)continue;
+    c.fillText(fmt(x),this.X(x),this.pad.t+this.ph+6);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(var y=Math.ceil(this.ymin/sy)*sy; y<=this.ymax+1e-9; y+=sy){
+    if(Math.abs(y)<1e-9&&this.xmin<=0&&this.xmax>=0)continue;
+    c.fillText(fmt(y),this.pad.l-7,this.Y(y));
+  }
+  c.restore();
+};
+function fmt(v){
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(v)>=1000||Math.abs(v)<0.01)return v.toExponential(0);
+  return (Math.round(v*1000)/1000).toString();
+}
+Viewport.prototype.curve=function(f,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||2.4;
+  if(o.dash)c.setLineDash(o.dash);
+  c.lineJoin="round"; c.beginPath();
+  var N=o.N||600, started=false;
+  for(var i=0;i<=N;i++){
+    var x=this.xmin+(this.xmax-this.xmin)*i/N, y=f(x);
+    if(!isFinite(y)){started=false; continue;}
+    var py=this.Y(y);
+    if(py<this.pad.t-3000||py>this.pad.t+this.ph+3000){started=false; continue;}
+    if(!started){c.moveTo(this.X(x),py); started=true;} else c.lineTo(this.X(x),py);
+  }
+  c.stroke(); c.restore();
+};
+Viewport.prototype.dot=function(x,y,color,r){
+  var c=this.ctx; c.save(); c.fillStyle=this.css(color)||color;
+  c.beginPath(); c.arc(this.X(x),this.Y(y),r||5,0,6.2832); c.fill();
+  c.strokeStyle=this.css("--panel"); c.lineWidth=1.6; c.stroke(); c.restore();
+};
+Viewport.prototype.seg=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx; c.save(); c.strokeStyle=this.css(color)||color;
+  c.lineWidth=o.w||1.6; if(o.dash)c.setLineDash(o.dash);
+  c.beginPath(); c.moveTo(this.X(x1),this.Y(y1)); c.lineTo(this.X(x2),this.Y(y2)); c.stroke(); c.restore();
+};
+Viewport.prototype.arrow=function(x1,y1,x2,y2,color,o){
+  o=o||{}; var c=this.ctx, X1=this.X(x1),Y1=this.Y(y1),X2=this.X(x2),Y2=this.Y(y2);
+  var a=Math.atan2(Y2-Y1,X2-X1), hl=o.head||10;
+  c.save(); c.strokeStyle=this.css(color)||color; c.fillStyle=this.css(color)||color;
+  c.lineWidth=o.w||2.4; c.lineCap="round";
+  c.beginPath(); c.moveTo(X1,Y1); c.lineTo(X2-Math.cos(a)*hl*.6,Y2-Math.sin(a)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(X2,Y2);
+  c.lineTo(X2-hl*Math.cos(a-0.42),Y2-hl*Math.sin(a-0.42));
+  c.lineTo(X2-hl*Math.cos(a+0.42),Y2-hl*Math.sin(a+0.42));
+  c.closePath(); c.fill(); c.restore();
+};
+Viewport.prototype.label=function(x,y,txt,color,o){
+  o=o||{}; var c=this.ctx; c.save();
+  c.fillStyle=this.css(color)||color;
+  c.font=(o.bold?"600 ":"")+(o.size||12.5)+"px -apple-system,Segoe UI,Roboto,sans-serif";
+  c.textAlign=o.align||"left"; c.textBaseline=o.base||"bottom";
+  if(o.halo){c.strokeStyle=this.css("--panel"); c.lineWidth=3.4; c.strokeText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0));}
+  c.fillText(txt,this.X(x)+(o.dx||0),this.Y(y)+(o.dy||0)); c.restore();
+};
+Viewport.prototype.shade=function(f,g,color,alpha){
+  var c=this.ctx; c.save(); c.globalAlpha=alpha||0.16; c.fillStyle=this.css(color)||color;
+  c.beginPath(); var N=300,i,x;
+  for(i=0;i<=N;i++){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=f(x); if(!isFinite(y))y=this.ymin; if(i===0)c.moveTo(this.X(x),this.Y(y)); else c.lineTo(this.X(x),this.Y(y));}
+  for(i=N;i>=0;i--){x=this.xmin+(this.xmax-this.xmin)*i/N;
+    var y=g(x); if(!isFinite(y))y=this.ymin; c.lineTo(this.X(x),this.Y(y));}
+  c.closePath(); c.fill(); c.restore();
+};
+/* marching-squares contour lines for f(x,y) */
+Viewport.prototype.contour=function(f,levels,color,o){
+  o=o||{}; var c=this.ctx, N=o.N||90;
+  var gx=[],gy=[],gv=[];
+  for(var i=0;i<=N;i++){
+    gx.push(this.xmin+(this.xmax-this.xmin)*i/N);
+    gy.push(this.ymin+(this.ymax-this.ymin)*i/N);
+  }
+  for(var j=0;j<=N;j++){ var row=[];
+    for(var i=0;i<=N;i++) row.push(f(gx[i],gy[j]));
+    gv.push(row); }
+  c.save(); c.strokeStyle=this.css(color)||color; c.lineWidth=o.w||1.4;
+  if(o.alpha!==undefined)c.globalAlpha=o.alpha;
+  var self=this;
+  function ip(x1,y1,v1,x2,y2,v2,L){ var t=(L-v1)/(v2-v1);
+    return [x1+t*(x2-x1), y1+t*(y2-y1)]; }
+  for(var k=0;k<levels.length;k++){
+    var L=levels[k];
+    c.beginPath();
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0=gx[i],x1=gx[i+1],y0=gy[j],y1=gy[j+1];
+      var v00=gv[j][i], v10=gv[j][i+1], v11=gv[j+1][i+1], v01=gv[j+1][i];
+      if(!isFinite(v00)||!isFinite(v10)||!isFinite(v11)||!isFinite(v01))continue;
+      var idx=(v00>L?1:0)|(v10>L?2:0)|(v11>L?4:0)|(v01>L?8:0);
+      if(idx===0||idx===15)continue;
+      var e=[];
+      if((v00>L)!==(v10>L)) e.push(ip(x0,y0,v00,x1,y0,v10,L));
+      if((v10>L)!==(v11>L)) e.push(ip(x1,y0,v10,x1,y1,v11,L));
+      if((v11>L)!==(v01>L)) e.push(ip(x1,y1,v11,x0,y1,v01,L));
+      if((v01>L)!==(v00>L)) e.push(ip(x0,y1,v01,x0,y0,v00,L));
+      for(var m=0;m+1<e.length;m+=2){
+        c.moveTo(self.X(e[m][0]),self.Y(e[m][1]));
+        c.lineTo(self.X(e[m+1][0]),self.Y(e[m+1][1]));
+      }
+    }
+    c.stroke();
+  }
+  c.restore();
+};
+function makeFig(id,draw,params){
+  var cv=document.getElementById(id);
+  var f={cv:cv,draw:draw,p:{}};
+  (params||[]).forEach(function(pr){f.p[pr.name]=pr.value;});
+  f.run=function(){
+    var vp=new Viewport(cv,0,1,0,1); vp.resize();
+    f.draw(vp,f.p,f);
+  };
+  f.set=function(k,v){f.p[k]=v; f.run();};
+  FIGS.push(f); window["FIG_"+id]=f;
+  return f;
+}
+function figSlide(id,name,el){
+  var f=window["FIG_"+id]; var v=parseFloat(el.value);
+  el.parentNode.querySelector("output").textContent=(el.dataset.fmt? (+v).toFixed(+el.dataset.fmt) : v);
+  f.set(name,v);
+}
+function figCheck(id,name,el){ window["FIG_"+id].set(name,el.checked?1:0); }
+function figRead(id,html){var e=document.getElementById(id+"-read"); if(e)e.innerHTML=html;}
+window.__redrawAll=function(){FIGS.forEach(function(f){f.run();});};
+window.addEventListener("resize",function(){window.__redrawAll();});
+/* ============ pyodide ============ */
+var _pyo=null,_pyoLoading=null;
+function loadPyo(status){
+  if(_pyo)return Promise.resolve(_pyo);
+  if(_pyoLoading)return _pyoLoading;
+  status("Loading Python + NumPy (first run only, ~10s)...");
+  _pyoLoading=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+    s.onload=function(){
+      loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"}).then(function(py){
+        status("Loading NumPy...");
+        return py.loadPackage(["numpy"]).then(function(){_pyo=py; res(py);});
+      }).catch(rej);
+    };
+    s.onerror=function(){rej(new Error("Could not load Pyodide - check your internet connection."));};
+    document.head.appendChild(s);
+  });
+  return _pyoLoading;
+}
+function runPy(id){
+  var box=document.getElementById(id);
+  var ta=box.querySelector("textarea"), out=box.querySelector(".pyout"),
+      btn=box.querySelector(".runb");
+  out.classList.add("on"); out.classList.remove("err");
+  var st=function(m){out.textContent=m;};
+  btn.disabled=true;
+  loadPyo(st).then(function(py){
+    out.textContent="";
+    py.runPython("import sys,io\n_b=io.StringIO()\nsys.stdout=_b\nsys.stderr=_b");
+    var err=null;
+    try{ py.runPython(ta.value); }catch(e){ err=e; }
+    var txt=py.runPython("sys.stdout=sys.__stdout__\nsys.stderr=sys.__stderr__\n_b.getvalue()");
+    if(err){ out.classList.add("err"); out.textContent=txt+"\n"+String(err.message||err); }
+    else { out.textContent=txt||"(ran with no printed output)"; }
+    btn.disabled=false;
+  }).catch(function(e){
+    out.classList.add("err"); out.textContent=String(e.message||e); btn.disabled=false;
+  });
+}
+function resetPy(id){
+  var box=document.getElementById(id);
+  box.querySelector("textarea").value=box.dataset.orig;
+  box.querySelector(".pyout").classList.remove("on");
+}
+</script>
+</head>
+<body>
+<div id="progbar"></div>
+<div class="topbar"><div class="topbar-in">
+  <a href="index.html" class="tb-home">Classical ML</a>
+  <span style="color:var(--ink3)">Phase B · Lecture 2 of 12</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn" id="donebtn" onclick="markDone('02-linear-regression')">Mark complete</button>
+  <button class="tb-btn" onclick="toggleTheme()">Theme</button>
+</div></div>
+<div class="wrap">
+<header class="lechead">
+  <div class="eyebrow">Part II — Linear Models · Lecture 2</div>
+  <h1>Linear Regression, Properly</h1>
+  <p class="dek">Phase A gave you the normal equations. This lecture turns them into a model you can actually use — basis functions, feature design, coefficient interpretation, residual diagnostics — and is honest about the four ways a linear fit lies to you.</p>
+</header>
+<div class="meta-grid"><div class="meta-box"><h4>By the end you can</h4><ul><li>Explain why 'linear' means linear in the <em>parameters</em>, not in the inputs</li><li>Build design matrices with polynomial, RBF and categorical features</li><li>Choose between the closed form and an iterative solver from \(n\) and \(d\)</li><li>Interpret coefficients correctly — and know when interpretation is meaningless</li><li>Read a residual plot and diagnose the assumption it violates</li></ul></div><div class="meta-box"><h4>Assumed</h4><ul><li>Phase A, Lecture 10: normal equations, projection, the pseudoinverse</li><li>Phase A, Lecture 11: conditioning, why lstsq beats inv</li><li>Phase B, Lecture 1: train/test discipline</li></ul></div></div>
+<h2 id="s1"><span class="secnum">1</span>What we already have</h2>
+<p>Phase A Lecture 10 derived, twice, the solution to</p>
+<p>\[\hat{\vw} = \argmin_{\vw}\ \|\mX\vw-\vy\|^2 \qquad\Longrightarrow\qquad \mX^\top\mX\,\hat{\vw} = \mX^\top\vy,\]</p>
+<p>geometrically as the projection of \(\vy\) onto the column space of \(\mX\), and by calculus as
+the unique minimiser of a strictly convex quadratic. Nothing about that derivation is repeated here. What we do
+now is make it a <em>model</em>: decide what goes into \(\mX\), what the numbers coming out mean, and how to
+tell when the whole thing is inappropriate.</p>
+<h2 id="s2"><span class="secnum">2</span>Linear in the parameters, not in the inputs</h2>
+<p>The single most common misconception about linear regression is that it can only fit straight
+lines. It cannot fit anything <em>but</em> a straight line <strong>in \(\vw\)</strong> — and that is a
+completely different restriction.</p>
+<div class="box defn"><span class="lbl">Definition — basis functions</span><p>Choose functions
+\(\phi_1,\dots,\phi_m:\mathcal{X}\to\RR\) and model</p>
+\[ f(\vx) = \sum_{j=1}^{m} w_j\,\phi_j(\vx) = \vw^\top\boldsymbol\phi(\vx). \]
+<p>The \(\phi_j\) are <strong>basis functions</strong> or <strong>features</strong>. They may be arbitrarily
+nonlinear in \(\vx\). Build the design matrix \(\mX_{ij}=\phi_j(\vx_i)\) and everything from Phase A Lecture 10
+applies unchanged, because the objective is still quadratic in \(\vw\).</p></div>
+<p>So a "linear" model can fit a sine wave, a step function, or a 12th-degree polynomial. What it
+cannot do is learn the basis — you choose \(\boldsymbol\phi\) up front, and that choice <em>is</em> the
+inductive bias. (Learning the basis is precisely what a neural network does, and it is the one structural
+difference between a linear model and a deep one.)</p>
+<div class="fig"><div class="fig-head">The same algorithm, four different bases<span class="tag">Interactive</span></div><canvas id="b2basis" data-h="460"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>true function</span><span><i style="background:var(--c5)"></i>fit</span><span><i style="background:var(--c2)"></i>training data</span><span><i style="background:var(--c3)"></i>individual basis functions</span></div><div class="fig-read" id="b2basis-read"></div><div class="ctrls"><div class="ctrl"><label>0 = raw linear · 1 = polynomial · 2 = Gaussian RBF · 3 = step / piecewise</label><input type="range" min="0" max="3" step="1" value="0" data-fmt="0" oninput="figSlide('b2basis','which',this)"><output>0</output></div><div class="ctrl"><label>number of basis functions</label><input type="range" min="2" max="16" step="1" value="6" data-fmt="0" oninput="figSlide('b2basis','m',this)"><output>6</output></div><div class="ctrl"><label>noise σ</label><input type="range" min="0" max="0.6" step="0.02" value="0.18" data-fmt="2" oninput="figSlide('b2basis','noise',this)"><output>0.18</output></div><div class="ctrl-check"><input type="checkbox" id="b2basis-showb" checked onchange="figCheck('b2basis','showb',this)"><label for="b2basis-showb">show the individual basis functions</label></div></div><div class="fig-cap">Every one of these is ordinary least squares — the same normal equations, the same code path. The only thing that changes is which columns go into X. Watch the faint green curves at the bottom: those are the basis functions themselves, and the fit is a weighted sum of them. The RBF basis is local (each bump only affects its own neighbourhood) while the polynomial basis is global (changing one coefficient moves the curve everywhere), which is exactly why polynomials misbehave at the edges.</div></div><script>makeFig("b2basis",function(vp,p,F){
+vp.pads(48,16,14,30);
+var kind=Math.round(p.which), m=Math.round(p.m), sg=p.noise;
+var seed=777001;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var truth=function(x){ return Math.sin(3*x)*Math.exp(-0.15*x*x) + 0.25*x; };
+var N=45, xs=[], ys=[];
+for(var i=0;i<N;i++){ var x=-3+6*i/(N-1); xs.push(x); ys.push(truth(x)+sg*gauss()); }
+// basis
+var centres=[]; for(var j=0;j<m;j++) centres.push(-3+6*(j+0.5)/m);
+var wid=6/m*0.85;
+function phi(x){
+  var v=[1];
+  if(kind===0){ v.push(x); }
+  else if(kind===1){ var pw=x; for(var j=1;j<m;j++){ v.push(pw); pw*=x; } }
+  else if(kind===2){ for(var j=0;j<m;j++) v.push(Math.exp(-Math.pow((x-centres[j])/wid,2))); }
+  else { for(var j=0;j<m;j++) v.push(x>centres[j]?1:0); }
+  return v;
+}
+var M=phi(0).length;
+// normal equations with tiny ridge
+var A=[],b=[];
+for(var r=0;r<M;r++){ A.push(new Array(M).fill(0)); b.push(0); }
+for(var i=0;i<N;i++){ var f=phi(xs[i]);
+  for(var r=0;r<M;r++){ b[r]+=f[r]*ys[i]; for(var c2=0;c2<M;c2++) A[r][c2]+=f[r]*f[c2]; } }
+for(var r=0;r<M;r++) A[r][r]+=1e-7;
+for(var c2=0;c2<M;c2++){
+  var piv=c2; for(var r=c2+1;r<M;r++) if(Math.abs(A[r][c2])>Math.abs(A[piv][c2])) piv=r;
+  var t=A[c2];A[c2]=A[piv];A[piv]=t; var tb=b[c2];b[c2]=b[piv];b[piv]=tb;
+  if(Math.abs(A[c2][c2])<1e-13) continue;
+  for(var r=0;r<M;r++){ if(r===c2)continue; var f2=A[r][c2]/A[c2][c2];
+    for(var k=c2;k<M;k++) A[r][k]-=f2*A[c2][k]; b[r]-=f2*b[c2]; }
+}
+var w=[]; for(var r=0;r<M;r++) w.push(Math.abs(A[r][r])<1e-13?0:b[r]/A[r][r]);
+function pred(x){ var f=phi(x), s=0; for(var j=0;j<M;j++) s+=w[j]*f[j]; return s; }
+vp.frame(-3.4,3.4,-2.4,2.4);
+vp.axes({stepx:1,stepy:1});
+if(p.showb && kind>=2){
+  var cc=vp.ctx; cc.save(); cc.globalAlpha=0.45;
+  for(var j=1;j<M;j++){
+    (function(jj){ vp.curve(function(x){ return -2.1 + 0.55*phi(x)[jj]; },'--c3',{w:1.3}); })(j);
+  }
+  cc.restore();
+}
+vp.curve(truth,'--c1',{w:2.3,dash:[6,4]});
+vp.curve(function(x){var v=pred(x); return (v>-30&&v<30)?v:NaN;},'--c5',{w:2.8});
+for(var i=0;i<N;i++) vp.dot(xs[i],ys[i],'--c2',3.8);
+var sse=0; for(var i=0;i<N;i++){ var r2=pred(xs[i])-ys[i]; sse+=r2*r2; }
+var names=['raw linear (1, x)','polynomial (1, x, x², …)','Gaussian RBF bumps','step functions'];
+figRead('b2basis',names[kind]+'  →  <b>'+M+'</b> columns in X'
+ +'   |   training MSE = <b>'+(sse/N).toFixed(5)+'</b>'
+ +'<br><span style="color:var(--ink3)">All four use the identical solver. Only the columns of X differ — that is the whole idea.</span>');
+},[{"name": "which", "label": "0 = raw linear \u00b7 1 = polynomial \u00b7 2 = Gaussian RBF \u00b7 3 = step / piecewise", "min": 0, "max": 3, "step": 1, "value": 0, "dp": 0}, {"name": "m", "label": "number of basis functions", "min": 2, "max": 16, "step": 1, "value": 6, "dp": 0}, {"name": "noise", "label": "noise \u03c3", "min": 0, "max": 0.6, "step": 0.02, "value": 0.18, "dp": 2}, {"name": "showb", "label": "show the individual basis functions", "type": "check", "value": 1}]);window["FIG_b2basis"].run();</script>
+<h2 id="s3"><span class="secnum">3</span>Designing the features</h2>
+<p>Four constructions cover most of what you will need.</p>
+<ul><li><strong>Polynomials.</strong> \(1, x, x^2, \dots\). Cheap and familiar, but the columns become
+  desperately collinear (\(x^7\) and \(x^9\) are nearly proportional over a bounded interval), so the design
+  matrix is ill-conditioned — Phase A Lecture 10's \(2.8\times10^6\) condition number. They also extrapolate
+  disastrously. Use orthogonal polynomials (Legendre, Chebyshev) if you must go past degree 4.</li><li><strong>Gaussian radial basis functions.</strong>
+  \(\phi_j(x)=\exp(-\|x-c_j\|^2/2s^2)\), centred on a grid or on data points. <em>Local</em>: each coefficient
+  affects one region, so a bad fit in one place cannot corrupt another. Two hyperparameters — the number of
+  centres and the width \(s\) — and the width matters more than the count.</li><li><strong>Categorical features.</strong> A category with \(K\) levels becomes \(K-1\) indicator columns,
+  not \(K\). Including all \(K\) plus an intercept makes the columns sum to the intercept column, giving exact
+  collinearity and a singular \(\mX^\top\mX\) — the <em>dummy variable trap</em>. The omitted level becomes the
+  baseline that all other coefficients are measured against.</li><li><strong>Interactions.</strong> Adding \(x_1x_2\) lets the effect of one feature depend on another. Note
+  that this is the only way a linear model can express "it depends" — without an explicit interaction term, the
+  model is additive by construction, and no amount of data will teach it otherwise.</li></ul>
+<div class="quiz" id="q7"><div class="qlbl">Check yourself</div><div class="qq">You one-hot encode a colour feature with levels {red, green, blue} into three columns and also keep an
+intercept. What happens?</div><button class="qopt" data-ok="1" onclick="pick('q7',0,true)">\(\mX^\top\mX\) becomes singular, because the three colour columns sum to the intercept column.</button><button class="qopt" data-ok="0" onclick="pick('q7',1,false)">Nothing — one-hot encoding is standard practice.</button><button class="qopt" data-ok="0" onclick="pick('q7',2,false)">The model will predict colour instead of the target.</button><div class="qwhy" data-i="0"><b>Correct.</b> Correct. Every row has exactly one colour, so \(\text{red}+\text{green}+\text{blue}=1=\)
+    intercept for every row. That is an exact linear dependence among the columns, so \(\rank(\mX)&lt;d\) and
+    \(\mX^\top\mX\) is singular (Phase A Lecture 9).<br><br>
+    Consequences, all the same fact: <code>inv</code> fails or returns garbage; the coefficients are not
+    identifiable (you can add \(c\) to the intercept and subtract \(c\) from all three colour coefficients with
+    no change to any prediction); and interpreting any individual coefficient is meaningless.<br><br>
+    <em>Predictions are still fine</em> — the projection onto the column space is unique regardless. And note
+    that <strong>ridge fixes this silently</strong>, which is why practitioners who always regularise rarely
+    meet the trap. That is worth knowing, because it also means ridge is quietly making an arbitrary choice
+    among the equivalent parameterisations for you: it picks the minimum-norm one.</div><div class="qwhy" data-i="1"><b>Not quite.</b> One-hot encoding <em>is</em> standard, but with \(K-1\) columns when an intercept is present
+    (<code>drop_first=True</code> in pandas, <code>drop='first'</code> in scikit-learn's
+    <code>OneHotEncoder</code>). With all \(K\) and an intercept, the design is rank-deficient. Try it: build
+    the matrix and print <code>np.linalg.matrix_rank</code>.</div><div class="qwhy" data-i="2"><b>Not quite.</b> Encoding a feature does not change what the model predicts — \(y\) is still the target. The issue
+    is purely a rank deficiency in the design matrix, which affects the <em>uniqueness of the coefficients</em>,
+    not what is being predicted.</div></div>
+<h2 id="s4"><span class="secnum">4</span>Closed form or iterate?</h2>
+<p>Both solve the same problem. The choice is about cost and conditioning.</p>
+<p>\[\begin{array}{lll}
+\textbf{method} & \textbf{cost} & \textbf{use when} \\[3pt]
+\text{normal equations, } (\mX^\top\mX)^{-1}\mX^\top\vy & O(nd^2 + d^3) & \text{never — see below} \\[2pt]
+\texttt{np.linalg.solve} \text{ on } \mX^\top\mX & O(nd^2 + d^3) & d \text{ small, } \mX \text{ well conditioned} \\[2pt]
+\text{QR or SVD (} \texttt{lstsq} \text{)} & O(nd^2) & \textbf{the default} \\[2pt]
+\text{gradient descent} & O(nd) \text{ per step} & d \text{ large, or } n \text{ too large for memory} \\[2pt]
+\text{SGD} & O(Bd) \text{ per step} & n \text{ enormous, or streaming}
+\end{array}\]</p>
+<div class="box eng"><span class="lbl">Practical engineering note</span><p>The rule from Phase A Lecture 10 stands: <strong>never form
+\((\mX^\top\mX)^{-1}\) explicitly</strong>. Forming \(\mX^\top\mX\) squares the condition number, so a design
+matrix with \(\kappa=10^{8}\) — very ordinary for polynomial features — produces a Gram matrix with
+\(\kappa=10^{16}\), which is all of float64's precision. <code>lstsq</code> works on \(\mX\) directly via the
+SVD and never builds that product. The extra cost is a small constant factor; the accuracy difference can be
+total.</p></div>
+<p>The crossover to iterative methods is roughly at \(d\sim10^4\): above that, \(O(d^3)\) becomes
+unaffordable and \(O(nd)\) per gradient step wins. It also wins whenever \(\mX\) does not fit in memory, which
+is the usual situation at scale. Lecture 03 is about doing that well.</p>
+<h2 id="s5"><span class="secnum">5</span>Reading the coefficients</h2>
+<p>A fitted \(\hat w_j\) says: <em>holding every other feature fixed, a one-unit increase in
+feature \(j\) is associated with a \(\hat w_j\) change in the prediction.</em> Every clause of that sentence is
+load-bearing.</p>
+<ul><li><strong>"One-unit"</strong> — so coefficients are in units of \(y\) per unit of \(x_j\), and comparing
+  \(\hat w_1=0.3\) against \(\hat w_2=45\) is meaningless unless the features share a scale. Standardise
+  (subtract mean, divide by standard deviation, fit on the training split only) and the coefficients become
+  comparable: change per standard deviation.</li><li><strong>"Holding every other feature fixed"</strong> — which may be physically impossible. If your
+  features are <code>age</code> and <code>years_of_experience</code>, no intervention increases one while
+  holding the other fixed, and the coefficient describes a comparison that never occurs.</li><li><strong>"Associated with"</strong> — not "causes". Regression coefficients are conditional
+  associations in the observed data. Adding or removing a feature can flip the sign of another's coefficient
+  (Simpson's paradox), and no amount of fit quality converts association into causation.</li><li><strong>Collinearity destroys interpretation entirely.</strong> When features are near-dependent the
+  coefficients have enormous variance and can be wildly wrong individually while predicting perfectly in
+  combination — you saw exactly this in Phase A Lecture 10's ridge figure.</li></ul>
+<div class="fig"><div class="fig-head">Coefficient instability under collinearity<span class="tag">Interactive</span></div><canvas id="b2coef" data-h="420"></canvas><div class="legend"><span><i style="background:var(--c1)"></i>ŵ₁ across 60 resamples</span><span><i style="background:var(--c5)"></i>ŵ₂ across 60 resamples</span><span><i style="background:var(--c3)"></i>true values</span></div><div class="fig-read" id="b2coef-read"></div><div class="ctrls"><div class="ctrl"><label>correlation between the two features</label><input type="range" min="0" max="0.999" step="0.001" value="0" data-fmt="3" oninput="figSlide('b2coef','corr',this)"><output>0.000</output></div><div class="ctrl"><label>sample size n</label><input type="range" min="20" max="400" step="10" value="60" data-fmt="0" oninput="figSlide('b2coef','n',this)"><output>60</output></div></div><div class="fig-cap">Sixty independent datasets are drawn from the same world, and the fitted coefficients are plotted for each. The true values are always (1.5, 0.5). With uncorrelated features the estimates cluster tightly. Push the correlation to 0.99 and they scatter across a huge range — often with the wrong SIGN — while the model's predictions stay perfectly good throughout. This is the difference between a model that predicts well and a model you can interpret.</div></div><script>makeFig("b2coef",function(vp,p,F){
+vp.pads(50,16,14,32);
+var rho=p.corr, n=Math.round(p.n), R=60;
+var seed=5150;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var w1=[],w2=[];
+for(var r=0;r<R;r++){
+  var S11=0,S12=0,S22=0,b1=0,b2=0;
+  for(var i=0;i<n;i++){
+    var a=gauss(), bq=rho*a+Math.sqrt(1-rho*rho)*gauss();
+    var y=1.5*a+0.5*bq+0.5*gauss();
+    S11+=a*a; S12+=a*bq; S22+=bq*bq; b1+=a*y; b2+=bq*y;
+  }
+  var det=S11*S22-S12*S12;
+  if(Math.abs(det)<1e-10){ w1.push(NaN); w2.push(NaN); continue; }
+  w1.push((S22*b1-S12*b2)/det); w2.push((S11*b2-S12*b1)/det);
+}
+var all=w1.concat(w2).filter(isFinite);
+var lo=Math.min.apply(null,all), hi=Math.max.apply(null,all);
+lo=Math.min(lo,-0.5); hi=Math.max(hi,2.0);
+var pad=(hi-lo)*0.08;
+vp.frame(-1,R, lo-pad, hi+pad);
+vp.axes({stepx:10});
+vp.seg(-1,1.5,R,1.5,'--c3',{w:1.8,dash:[5,4]});
+vp.seg(-1,0.5,R,0.5,'--c3',{w:1.8,dash:[5,4]});
+vp.seg(-1,0,R,0,'--ink3',{w:1.2,dash:[2,5]});
+vp.label(-0.9,1.5,'true w₁ = 1.5','--c3',{halo:true,dy:-6});
+vp.label(-0.9,0.5,'true w₂ = 0.5','--c3',{halo:true,dy:-6});
+for(var r=0;r<R;r++){
+  if(isFinite(w1[r])) vp.dot(r,w1[r],'--c1',3.6);
+  if(isFinite(w2[r])) vp.dot(r,w2[r],'--c5',3.6);
+}
+function stats(a){ var v=a.filter(isFinite), m=0; for(var i=0;i<v.length;i++)m+=v[i]; m/=v.length;
+  var s=0; for(var i=0;i<v.length;i++)s+=(v[i]-m)*(v[i]-m); return [m,Math.sqrt(s/v.length)]; }
+var s1=stats(w1), s2=stats(w2);
+var flips=0; for(var r=0;r<R;r++) if(isFinite(w2[r])&&w2[r]<0) flips++;
+figRead('b2coef','correlation = '+rho.toFixed(3)+',  n = '+n+',  '+R+' resamples'
+ +'<br>ŵ₁: mean <b>'+s1[0].toFixed(3)+'</b> (true 1.5), sd <b>'+s1[1].toFixed(3)+'</b>'
+ +' &nbsp;|&nbsp; ŵ₂: mean <b>'+s2[0].toFixed(3)+'</b> (true 0.5), sd <b>'+s2[1].toFixed(3)+'</b>'
+ +'<br>fits where ŵ₂ came out <b>negative</b> (wrong sign): <b style="color:'+(flips>0?'var(--bad)':'var(--ok)')+'">'
+ +flips+' / '+R+'</b>'
+ +'   <span style="color:var(--ink3)">— the estimates stay unbiased on average; it is the variance that explodes.</span>');
+},[{"name": "corr", "label": "correlation between the two features", "min": 0, "max": 0.999, "step": 0.001, "value": 0, "dp": 3}, {"name": "n", "label": "sample size n", "min": 20, "max": 400, "step": 10, "value": 60, "dp": 0}]);window["FIG_b2coef"].run();</script>
+<h2 id="s6"><span class="secnum">6</span>Residual diagnostics: letting the model tell you what is wrong</h2>
+<p>Least squares is the MLE under four assumptions (Phase A Lecture 14, and Lecture 04 here):
+the mean is linear in the features, the noise has constant variance, the noise is independent across
+observations, and — for inference, though not for the point estimate — the noise is Gaussian. Each assumption
+leaves a distinct fingerprint in the residuals \(\vr = \vy - \mX\hat{\vw}\) when it fails.</p>
+<div class="fig"><div class="fig-head">Four residual plots, four different diagnoses<span class="tag">Interactive</span></div><canvas id="b2resid" data-h="440"></canvas><div class="legend"><span><i style="background:var(--c2)"></i>residuals</span><span><i style="background:var(--c3)"></i>zero line</span><span><i style="background:var(--c1)"></i>the fit vs the data</span></div><div class="fig-read" id="b2resid-read"></div><div class="ctrls"><div class="ctrl"><label>0 = healthy · 1 = missing curvature · 2 = heteroscedastic · 3 = outliers</label><input type="range" min="0" max="3" step="1" value="0" data-fmt="0" oninput="figSlide('b2resid','which',this)"><output>0</output></div></div><div class="fig-cap">Top: the data and the fitted line. Bottom: residuals against the fitted value. A healthy residual plot is a STRUCTURELESS BAND — no curve, no funnel, no isolated points. Any visible pattern is variance the model failed to explain, and each pattern names its own fix.</div></div><script>makeFig("b2resid",function(vp,p,F){
+var c=vp.ctx,W=vp.W,H=vp.H; c.clearRect(0,0,W,H);
+var k=Math.round(p.which);
+var seed=31337;
+function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function gauss(){ var u=Math.max(1e-9,rnd()),v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+var n=70, xs=[], ys=[];
+for(var i=0;i<n;i++){
+  var x=0.2+5.6*i/(n-1); xs.push(x);
+  if(k===0) ys.push(1+0.9*x+0.45*gauss());
+  else if(k===1) ys.push(1+0.9*x+0.32*(x-3)*(x-3)+0.30*gauss());
+  else if(k===2) ys.push(1+0.9*x+(0.06+0.28*x)*gauss());
+  else { var out=(i%17===3)?4.5*(rnd()<0.5?-1:1):0; ys.push(1+0.9*x+0.35*gauss()+out); }
+}
+// OLS with intercept
+var Sx=0,Sy=0,Sxx=0,Sxy=0;
+for(var i=0;i<n;i++){Sx+=xs[i];Sy+=ys[i];Sxx+=xs[i]*xs[i];Sxy+=xs[i]*ys[i];}
+var b1=(n*Sxy-Sx*Sy)/(n*Sxx-Sx*Sx), b0=(Sy-b1*Sx)/n;
+function fit(x){return b0+b1*x;}
+var top=Math.floor(H*0.52);
+function mk(y0,hh,xmin,xmax,ymin,ymax){
+  var s=new Viewport(vp.cv,0,1,0,1); s.ctx=c; s.W=W; s.H=H;
+  s.pad={l:48,r:16,t:y0+10,b:H-(y0+hh)+24};
+  s.pw=W-64; s.ph=hh-34; s.xmin=xmin;s.xmax=xmax;s.ymin=ymin;s.ymax=ymax; return s;
+}
+var ylo=Math.min.apply(null,ys)-0.6, yhi=Math.max.apply(null,ys)+0.6;
+var A=mk(0,top,0,6,ylo,yhi);
+A.axes({stepx:1});
+A.curve(fit,'--c1',{w:2.4});
+for(var i=0;i<n;i++) A.dot(xs[i],ys[i],'--c2',3.6);
+A.label(0.1,yhi,'data and the fitted line','--ink3',{halo:true,bold:true,dy:13});
+c.save(); c.strokeStyle=vp.css('--line'); c.lineWidth=1;
+c.beginPath(); c.moveTo(0,top+.5); c.lineTo(W,top+.5); c.stroke(); c.restore();
+var res=[]; for(var i=0;i<n;i++) res.push(ys[i]-fit(xs[i]));
+var rl=Math.min.apply(null,res), rh=Math.max.apply(null,res);
+var rm=Math.max(Math.abs(rl),Math.abs(rh))*1.15;
+var flo=fit(0), fhi=fit(6);
+var B=mk(top,H-top,flo,fhi,-rm,rm);
+B.axes({stepx:1});
+B.seg(flo,0,fhi,0,'--c3',{w:2,dash:[5,4]});
+for(var i=0;i<n;i++) B.dot(fit(xs[i]),res[i],'--c2',3.6);
+B.label(flo+0.1,rm,'residuals vs fitted value','--ink3',{halo:true,bold:true,dy:13});
+var diag=[
+ ['<b style="color:var(--ok)">HEALTHY</b>','structureless band around zero, constant width, no isolated points. Nothing to fix.'],
+ ['<b style="color:var(--bad)">CURVATURE</b>','the residuals form a smile. The mean is not linear in x — add a quadratic term, a spline, or switch basis. The model is systematically wrong in a way more data will NOT fix.'],
+ ['<b style="color:var(--bad)">HETEROSCEDASTICITY</b>','a funnel: spread grows with the fitted value. Constant-variance assumption violated. Fix by modelling log(y), or using weighted least squares with weights 1/σᵢ².'],
+ ['<b style="color:var(--bad)">OUTLIERS</b>','a few points far from the band. Squared error weights them quadratically, so they drag the whole line. Fix with Huber loss, least absolute deviations, or by investigating whether they are data errors.']
+][k];
+var ss=0,sy2=0,my=Sy/n; for(var i=0;i<n;i++){ss+=res[i]*res[i]; sy2+=(ys[i]-my)*(ys[i]-my);}
+figRead('b2resid',diag[0]+' — '+diag[1]
+ +'<br>R² = <b>'+(1-ss/sy2).toFixed(4)+'</b>   residual sd = <b>'+Math.sqrt(ss/(n-2)).toFixed(4)+'</b>'
+ +(k===1?'   <span style="color:var(--c2)">note R² is still high — R² does not detect the wrong functional form</span>':''));
+},[{"name": "which", "label": "0 = healthy \u00b7 1 = missing curvature \u00b7 2 = heteroscedastic \u00b7 3 = outliers", "min": 0, "max": 3, "step": 1, "value": 0, "dp": 0}]);window["FIG_b2resid"].run();</script>
+<div class="box warn"><span class="lbl">Common trap</span><p>Note the last line of the "curvature" case. \(R^2\) stays respectable while the model is
+<em>systematically</em> wrong. Three things worth knowing about \(R^2 = 1 - \frac{\|\vr\|^2}{\|\vy-\bar
+y\|^2}\):</p>
+<ul>
+<li>It never decreases when you add a feature, <em>even a column of pure noise</em>, because the column space
+grew and the projection can only get closer. Adjusted \(R^2\) penalises this; cross-validated \(R^2\) is
+better still.</li>
+<li>It is not comparable across datasets. \(R^2=0.3\) may be outstanding for individual human behaviour and
+appalling for a physical measurement, because the denominator is the variance of <em>that</em> \(y\).</li>
+<li>It says nothing about whether the functional form is right, as the figure shows. Look at the residuals.</li>
+</ul></div>
+<div class="pyb" id="py8" data-orig="import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=4, suppress=True)
+
+# ================= 1. a design matrix with mixed feature types =================
+n = 300
+area   = rng.uniform(40, 220, n)                       # continuous
+beds   = rng.integers(1, 6, n).astype(float)           # count
+region = rng.integers(0, 3, n)                         # categorical, 3 levels
+
+# truth: price depends on area, beds, region, and an area x beds interaction
+price = (25 + 1.8*area + 12*beds + 0.02*area*beds
+         + np.array([0., 35., -18.])[region]
+         + 15*rng.normal(size=n))
+
+def design(area, beds, region, interaction=True):
+    cols = [np.ones(len(area)), area, beds]
+    # K-1 dummies: region 0 is the baseline
+    cols += [(region == k).astype(float) for k in (1, 2)]
+    if interaction:
+        cols.append(area * beds)
+    return np.column_stack(cols)
+
+names = [&quot;intercept&quot;, &quot;area&quot;, &quot;beds&quot;, &quot;region=1&quot;, &quot;region=2&quot;, &quot;area x beds&quot;]
+X = design(area, beds, region)
+print(&quot;X shape:&quot;, X.shape, &quot;  rank:&quot;, np.linalg.matrix_rank(X))
+
+# the dummy variable trap, demonstrated
+X_trap = np.column_stack([X[:, :3]] + [(region == k).astype(float) for k in (0, 1, 2)])
+print(&quot;with all 3 dummies + intercept -&gt; shape&quot;, X_trap.shape,
+      &quot; rank&quot;, np.linalg.matrix_rank(X_trap), &quot; &lt;- rank deficient&quot;)
+
+# ================= 2. split, then fit =================
+perm = rng.permutation(n); tr, te = perm[:220], perm[220:]
+w, *_ = np.linalg.lstsq(X[tr], price[tr], rcond=None)
+
+print()
+for nm, wi in zip(names, w):
+    print(f&quot;  {nm:14s} {wi:9.4f}&quot;)
+print()
+print(&quot;true values:    intercept 25, area 1.8, beds 12, region1 35, region2 -18, interaction 0.02&quot;)
+
+# ================= 3. standardise to compare importances =================
+Xs = X[:, 1:].copy()
+mu, sd = Xs[tr].mean(0), Xs[tr].std(0)
+Z = np.column_stack([np.ones(n), (Xs - mu)/sd])
+wz, *_ = np.linalg.lstsq(Z[tr], price[tr], rcond=None)
+print()
+print(&quot;standardised coefficients (change in price per SD of the feature):&quot;)
+order = np.argsort(-np.abs(wz[1:]))
+for j in order:
+    print(f&quot;  {names[j+1]:14s} {wz[j+1]:9.3f}&quot;)
+print(&quot;  -&gt; now they are comparable; the raw ones were not&quot;)
+
+# ================= 4. diagnostics =================
+res = price[tr] - X[tr] @ w
+ss_res = float(res @ res)
+ss_tot = float(((price[tr] - price[tr].mean())**2).sum())
+p_ = X.shape[1]
+r2 = 1 - ss_res/ss_tot
+r2_adj = 1 - (1-r2)*(len(tr)-1)/(len(tr)-p_)
+print()
+print(f&quot;R^2        {r2:.4f}&quot;)
+print(f&quot;adj R^2    {r2_adj:.4f}&quot;)
+print(f&quot;residual sd {np.sqrt(ss_res/(len(tr)-p_)):.3f}   (true noise sd was 15)&quot;)
+print(f&quot;test MSE   {np.mean((price[te] - X[te] @ w)**2):.3f}&quot;)
+
+# R^2 always rises with junk features
+Xj = np.column_stack([X[tr], rng.normal(size=(len(tr), 40))])
+wj, *_ = np.linalg.lstsq(Xj, price[tr], rcond=None)
+r2j = 1 - float(((price[tr]-Xj@wj)**2).sum())/ss_tot
+print()
+print(f&quot;R^2 after adding 40 columns of PURE NOISE: {r2j:.4f}  (was {r2:.4f})&quot;)
+print(&quot;It went UP. R^2 can never go down when you add features. Never select on it.&quot;)
+
+# ================= 5. standard errors, so coefficients come with error bars ====
+sigma2 = ss_res/(len(tr)-p_)
+cov = sigma2 * np.linalg.inv(X[tr].T @ X[tr])
+se = np.sqrt(np.diag(cov))
+print()
+print(&quot;coefficient   estimate      se      t      95% interval&quot;)
+for nm, wi, s in zip(names, w, se):
+    print(f&quot;  {nm:12s} {wi:9.4f} {s:8.4f} {wi/s:7.2f}   [{wi-1.96*s:8.3f}, {wi+1.96*s:8.3f}]&quot;)
+print()
+print(&quot;A coefficient whose interval straddles zero has not been distinguished from zero.&quot;)
+
+# ================= 6. never use inv() when it matters =========================
+Xp = np.vander(np.linspace(-1, 1, 60), 14, increasing=True)
+yp = np.sin(3*np.linspace(-1, 1, 60)) + 0.01*rng.normal(size=60)
+w_inv = np.linalg.inv(Xp.T@Xp) @ Xp.T @ yp
+w_lst, *_ = np.linalg.lstsq(Xp, yp, rcond=None)
+print(f&quot;cond(X)     {np.linalg.cond(Xp):.3e}&quot;)
+print(f&quot;cond(X^T X) {np.linalg.cond(Xp.T@Xp):.3e}   &lt;- squared&quot;)
+print(f&quot;residual via inv()   {np.linalg.norm(Xp@w_inv - yp):.3e}&quot;)
+print(f&quot;residual via lstsq() {np.linalg.norm(Xp@w_lst - yp):.3e}&quot;)
+"><div class="pyb-head"><span class="t">Linear regression end to end, from scratch and checked</span><span class="pill">Python · NumPy</span><button class="btn runb" onclick="runPy('py8')">Run</button><button class="btn ghost" onclick="resetPy('py8')">Reset</button></div><textarea spellcheck="false" rows="34">import numpy as np
+rng = np.random.default_rng(0)
+np.set_printoptions(precision=4, suppress=True)
+
+# ================= 1. a design matrix with mixed feature types =================
+n = 300
+area   = rng.uniform(40, 220, n)                       # continuous
+beds   = rng.integers(1, 6, n).astype(float)           # count
+region = rng.integers(0, 3, n)                         # categorical, 3 levels
+
+# truth: price depends on area, beds, region, and an area x beds interaction
+price = (25 + 1.8*area + 12*beds + 0.02*area*beds
+         + np.array([0., 35., -18.])[region]
+         + 15*rng.normal(size=n))
+
+def design(area, beds, region, interaction=True):
+    cols = [np.ones(len(area)), area, beds]
+    # K-1 dummies: region 0 is the baseline
+    cols += [(region == k).astype(float) for k in (1, 2)]
+    if interaction:
+        cols.append(area * beds)
+    return np.column_stack(cols)
+
+names = [&quot;intercept&quot;, &quot;area&quot;, &quot;beds&quot;, &quot;region=1&quot;, &quot;region=2&quot;, &quot;area x beds&quot;]
+X = design(area, beds, region)
+print(&quot;X shape:&quot;, X.shape, &quot;  rank:&quot;, np.linalg.matrix_rank(X))
+
+# the dummy variable trap, demonstrated
+X_trap = np.column_stack([X[:, :3]] + [(region == k).astype(float) for k in (0, 1, 2)])
+print(&quot;with all 3 dummies + intercept -&gt; shape&quot;, X_trap.shape,
+      &quot; rank&quot;, np.linalg.matrix_rank(X_trap), &quot; &lt;- rank deficient&quot;)
+
+# ================= 2. split, then fit =================
+perm = rng.permutation(n); tr, te = perm[:220], perm[220:]
+w, *_ = np.linalg.lstsq(X[tr], price[tr], rcond=None)
+
+print()
+for nm, wi in zip(names, w):
+    print(f&quot;  {nm:14s} {wi:9.4f}&quot;)
+print()
+print(&quot;true values:    intercept 25, area 1.8, beds 12, region1 35, region2 -18, interaction 0.02&quot;)
+
+# ================= 3. standardise to compare importances =================
+Xs = X[:, 1:].copy()
+mu, sd = Xs[tr].mean(0), Xs[tr].std(0)
+Z = np.column_stack([np.ones(n), (Xs - mu)/sd])
+wz, *_ = np.linalg.lstsq(Z[tr], price[tr], rcond=None)
+print()
+print(&quot;standardised coefficients (change in price per SD of the feature):&quot;)
+order = np.argsort(-np.abs(wz[1:]))
+for j in order:
+    print(f&quot;  {names[j+1]:14s} {wz[j+1]:9.3f}&quot;)
+print(&quot;  -&gt; now they are comparable; the raw ones were not&quot;)
+
+# ================= 4. diagnostics =================
+res = price[tr] - X[tr] @ w
+ss_res = float(res @ res)
+ss_tot = float(((price[tr] - price[tr].mean())**2).sum())
+p_ = X.shape[1]
+r2 = 1 - ss_res/ss_tot
+r2_adj = 1 - (1-r2)*(len(tr)-1)/(len(tr)-p_)
+print()
+print(f&quot;R^2        {r2:.4f}&quot;)
+print(f&quot;adj R^2    {r2_adj:.4f}&quot;)
+print(f&quot;residual sd {np.sqrt(ss_res/(len(tr)-p_)):.3f}   (true noise sd was 15)&quot;)
+print(f&quot;test MSE   {np.mean((price[te] - X[te] @ w)**2):.3f}&quot;)
+
+# R^2 always rises with junk features
+Xj = np.column_stack([X[tr], rng.normal(size=(len(tr), 40))])
+wj, *_ = np.linalg.lstsq(Xj, price[tr], rcond=None)
+r2j = 1 - float(((price[tr]-Xj@wj)**2).sum())/ss_tot
+print()
+print(f&quot;R^2 after adding 40 columns of PURE NOISE: {r2j:.4f}  (was {r2:.4f})&quot;)
+print(&quot;It went UP. R^2 can never go down when you add features. Never select on it.&quot;)
+
+# ================= 5. standard errors, so coefficients come with error bars ====
+sigma2 = ss_res/(len(tr)-p_)
+cov = sigma2 * np.linalg.inv(X[tr].T @ X[tr])
+se = np.sqrt(np.diag(cov))
+print()
+print(&quot;coefficient   estimate      se      t      95% interval&quot;)
+for nm, wi, s in zip(names, w, se):
+    print(f&quot;  {nm:12s} {wi:9.4f} {s:8.4f} {wi/s:7.2f}   [{wi-1.96*s:8.3f}, {wi+1.96*s:8.3f}]&quot;)
+print()
+print(&quot;A coefficient whose interval straddles zero has not been distinguished from zero.&quot;)
+
+# ================= 6. never use inv() when it matters =========================
+Xp = np.vander(np.linspace(-1, 1, 60), 14, increasing=True)
+yp = np.sin(3*np.linspace(-1, 1, 60)) + 0.01*rng.normal(size=60)
+w_inv = np.linalg.inv(Xp.T@Xp) @ Xp.T @ yp
+w_lst, *_ = np.linalg.lstsq(Xp, yp, rcond=None)
+print(f&quot;cond(X)     {np.linalg.cond(Xp):.3e}&quot;)
+print(f&quot;cond(X^T X) {np.linalg.cond(Xp.T@Xp):.3e}   &lt;- squared&quot;)
+print(f&quot;residual via inv()   {np.linalg.norm(Xp@w_inv - yp):.3e}&quot;)
+print(f&quot;residual via lstsq() {np.linalg.norm(Xp@w_lst - yp):.3e}&quot;)
+</textarea><div class="pyout"></div></div>
+<h2 id="s7"><span class="secnum">7</span>Exercises</h2>
+<div class="exlist"><div class="ex"><div class="exn"><span class="stars">★</span></div><p>You fit \(\text{price} = w_0 + w_1\cdot\text{area}_{m^2} + w_2\cdot\text{bedrooms}\) and obtain
+  \(\hat w_1 = 1800\), \(\hat w_2 = 12000\), with price in pounds.</p>
+  <ol><li>State in words what each coefficient means, with units.</li>
+  <li>Is bedrooms "more important" than area? Justify your answer.</li>
+  <li>You refit with area in square feet instead. What happens to \(\hat w_1\)? To \(R^2\)? To predictions?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex9',this)">Show solution</button></div><div class="rev-body" id="ex9"><p><strong>1.</strong> \(\hat w_1 = 1800\) £/m²: holding bedroom count fixed, one additional square
+  metre is associated with £1800 more. \(\hat w_2 = 12000\) £/bedroom: holding area fixed, one additional
+  bedroom is associated with £12 000 more. Note that second one is already suspicious — adding a bedroom while
+  holding total area constant means <em>subdividing</em> the space, which is a different intervention from what
+  most people picture.</p>
+
+  <p><strong>2.</strong> You cannot tell from these numbers. They are in different units, so their magnitudes
+  are not comparable — 12000 &gt; 1800 says nothing. The comparable quantity is the change per <em>standard
+  deviation</em>: \(\hat w_j \times \text{sd}(x_j)\). If area has sd 50 m² and bedrooms has sd 1.1, then area
+  contributes \(1800\times50 = £90{,}000\) per sd and bedrooms \(12000\times1.1 = £13{,}200\) per sd — area
+  matters roughly seven times more. Standardising the features before fitting produces these numbers
+  directly.</p>
+
+  <p><strong>3.</strong> One square foot is \(0.0929\) m², so \(\hat w_1^{\text{new}} = 1800\times0.0929 =
+  167.2\) £/ft². <strong>\(R^2\), residuals, fitted values and predictions are all completely
+  unchanged</strong>, because rescaling a column is an invertible linear change of basis that leaves the column
+  <em>space</em> — and therefore the projection — identical (Phase A Lecture 9).</p>
+  <p>This is worth internalising: OLS is <em>equivariant</em> to rescaling features. Ridge and LASSO are
+  <strong>not</strong>, because the penalty \(\|\vw\|^2\) depends on the units. That is precisely why
+  standardisation is mandatory before regularising and merely convenient before plain OLS.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Show that if \(\mX\) contains a column of ones (an intercept), then the least-squares residuals
+  satisfy \(\sum_i r_i = 0\), and hence the fitted line passes through \((\bar{\vx}, \bar y)\).</p>
+  <p>Then show \(R^2 = \operatorname{corr}(\vy,\hat{\vy})^2\) for a model with an intercept, and explain why
+  that identity makes \(R^2\) blind to a systematic bias in the predictions.</p><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex10',this)">Show solution</button></div><div class="rev-body" id="ex10"><p><strong>Residuals sum to zero.</strong> The normal equations are \(\mX^\top\vr = \vzero\), i.e.
+  the residual is orthogonal to every column. Applying this to the column of ones \(\mathbf{1}\):</p>
+  \[\mathbf{1}^\top\vr = \sum_i r_i = 0. \qquad\blacksquare\]
+  <p>Dividing by \(n\): \(\bar y - \overline{\hat y} = 0\), so the mean fitted value equals the mean observed
+  value, and by linearity \(\hat y(\bar{\vx}) = \bar{\vx}^\top\hat{\vw} = \bar y\). ∎</p>
+  <p>Note this holds <em>only</em> because of the intercept column. Drop it and residuals need not sum to zero
+  — and \(R^2\) can then go negative.</p>
+
+  <p><strong>\(R^2 = \operatorname{corr}(\vy,\hat{\vy})^2\).</strong> Write \(\tilde{\vy}=\vy-\bar y\mathbf{1}\)
+  and \(\tilde{\hat{\vy}}=\hat{\vy}-\bar y\mathbf{1}\) (legitimate since the means agree). Since
+  \(\vr\perp\mathcal{C}(\mX)\) and \(\hat{\vy}\in\mathcal{C}(\mX)\), Pythagoras gives
+  \(\|\tilde{\vy}\|^2 = \|\tilde{\hat{\vy}}\|^2 + \|\vr\|^2\). Also
+  \(\tilde{\vy}^\top\tilde{\hat{\vy}} = (\tilde{\hat{\vy}}+\vr)^\top\tilde{\hat{\vy}} =
+  \|\tilde{\hat{\vy}}\|^2\), using \(\vr^\top\hat{\vy}=0\). Therefore</p>
+  \[\operatorname{corr}(\vy,\hat{\vy})^2 = \frac{(\tilde{\vy}^\top\tilde{\hat{\vy}})^2}
+    {\|\tilde{\vy}\|^2\|\tilde{\hat{\vy}}\|^2} = \frac{\|\tilde{\hat{\vy}}\|^4}{\|\tilde{\vy}\|^2\|\tilde{\hat{\vy}}\|^2}
+   = \frac{\|\tilde{\hat{\vy}}\|^2}{\|\tilde{\vy}\|^2} = 1-\frac{\|\vr\|^2}{\|\tilde{\vy}\|^2} = R^2. \qquad\blacksquare\]
+
+  <p><strong>Why this makes \(R^2\) blind to bias.</strong> Correlation is invariant to affine transformation
+  of either argument: \(\operatorname{corr}(\vy, a\hat{\vy}+b) = \operatorname{corr}(\vy,\hat{\vy})\) for any
+  \(a>0\). So a model that predicts <em>half</em> the true value plus a constant offset has the same correlation
+  — and, on a fresh dataset where the intercept identity no longer holds, can report a high correlation-squared
+  while every prediction is badly miscalibrated.</p>
+  <p>The practical warning: on <em>training</em> data with an intercept the two definitions of \(R^2\) coincide,
+  so nothing goes wrong. On <em>test</em> data they diverge, and reporting
+  \(\operatorname{corr}(y_{\text{test}},\hat y_{\text{test}})^2\) — which many people do, sometimes without
+  realising — hides systematic over- or under-prediction. Report test MSE or the proper
+  \(1-\text{SS}_{\text{res}}/\text{SS}_{\text{tot}}\) computed with the <em>training</em> mean, and plot
+  predicted against actual with a \(y=x\) line.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★</span></div><p>Fit a Gaussian RBF model \(f(x)=\sum_{j=1}^{m}w_j\exp(-(x-c_j)^2/2s^2)\).</p>
+  <ol><li>Which matters more for the fit, \(m\) or \(s\)? Design an experiment to find out.</li>
+  <li>What happens when \(s\) is much smaller than the spacing between centres? Much larger?</li>
+  <li>Why does this basis behave better than polynomials outside the range of the data?</li></ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex11',this)">Show solution</button></div><div class="rev-body" id="ex11"><p><strong>1.</strong> Grid over \(m\in\{5,10,20,40\}\) and \(s\in\{0.05,0.2,0.5,2\}\) with centres on
+  an even grid, evaluating held-out MSE for each cell. You will find test error varies by <em>orders of
+  magnitude</em> across \(s\) and comparatively little across \(m\) once \(m\) is large enough to tile the
+  range. <strong>The width dominates.</strong></p>
+  <p>The reason is that \(s\) controls the <em>effective</em> capacity — how smooth the achievable functions
+  are — while \(m\) mostly controls resolution. Adding more narrow bumps than the data can support just
+  produces near-duplicate columns, which regularisation handles. Adding a wrong width cannot be fixed by
+  anything downstream.</p>
+
+  <p><strong>2.</strong> <em>\(s\) much smaller than the spacing:</em> the bumps do not overlap, so between
+  centres every basis function is essentially zero and the fit collapses to zero there — a row of spikes on a
+  flat floor. The columns of \(\mX\) become nearly orthogonal and the model interpolates each centre
+  independently, i.e. it memorises. <em>\(s\) much larger than the range:</em> every bump is nearly constant
+  across the data, so all columns are nearly identical, \(\mX^\top\mX\) is horribly ill-conditioned, and the
+  model can only express something close to a constant. Underfitting, plus numerical trouble.</p>
+  <p>A reasonable default is \(s\) equal to one to two times the centre spacing, then tuned by
+  cross-validation.</p>
+
+  <p><strong>3.</strong> Because the basis is <strong>local and bounded</strong>. Outside the range of the
+  centres, every \(\phi_j(x)\to0\), so \(f(x)\to0\) — the model returns to its baseline and says, in effect,
+  "no information here". A polynomial basis is <em>global and unbounded</em>: \(x^{12}\) grows without limit, so
+  the coefficients fitted to interior data produce enormous extrapolated values, as you saw in Phase A Lecture
+  14's capstone (a fit reaching \(9\times10^4\) on data of magnitude 2).</p>
+  <p>The general principle: <strong>a model extrapolates according to the shape of its basis, not according to
+  the data</strong>. Reverting to zero is at least a predictable failure. This is also why Gaussian-process
+  regression — the Bayesian relative of RBF models — reverts to the prior mean with growing uncertainty away
+  from the data, which is exactly the honest behaviour you want.</p></div></div><div class="ex"><div class="exn"><span class="stars">★★★</span></div><p><strong>Coding.</strong> Build a complete regression study on a dataset with a nonlinear truth and
+  a categorical feature.</p>
+  <ol>
+  <li>Generate \(n=500\) points where \(y = 3\sin(x_1) + 0.5x_2^2 + \text{group effect} + \epsilon\), with
+  \(x_1,x_2\) continuous and one 4-level categorical.</li>
+  <li>Fit four models: raw linear, plus quadratic terms, plus RBF features on \(x_1\), plus interactions. Report
+  train and test MSE for each.</li>
+  <li>For the best model, produce the residual-vs-fitted plot values and check for the four pathologies.</li>
+  <li>Introduce the dummy-variable trap deliberately and show what happens to <code>lstsq</code>,
+  <code>solve</code>, and the coefficients.</li>
+  </ol><div style="margin-top:11px"><button class="btn ghost" data-show="Show solution" onclick="rev('ex12',this)">Show solution</button></div><div class="rev-body" id="ex12"><pre style="overflow-x:auto"><code>import numpy as np
+rng = np.random.default_rng(1)
+n = 500
+x1 = rng.uniform(-3, 3, n); x2 = rng.uniform(-2, 2, n)
+g  = rng.integers(0, 4, n)
+geff = np.array([0., 2.5, -1.5, 4.0])[g]
+y  = 3*np.sin(x1) + 0.5*x2**2 + geff + 0.6*rng.normal(size=n)
+
+def dummies(g, K=4): return np.column_stack([(g==k).astype(float) for k in range(1,K)])
+def rbf(x, cs, s): return np.column_stack([np.exp(-(x-c)**2/(2*s*s)) for c in cs])
+cs = np.linspace(-3, 3, 12); s = 0.55
+
+models = {
+ "linear":        lambda: np.column_stack([np.ones(n), x1, x2, dummies(g)]),
+ "+ quadratic":   lambda: np.column_stack([np.ones(n), x1, x2, x1**2, x2**2, dummies(g)]),
+ "+ RBF on x1":   lambda: np.column_stack([np.ones(n), rbf(x1,cs,s), x2, x2**2, dummies(g)]),
+ "+ interaction": lambda: np.column_stack([np.ones(n), rbf(x1,cs,s), x2, x2**2,
+                                           dummies(g), (x1*x2)[:,None]]),
+}
+perm = rng.permutation(n); tr, te = perm[:375], perm[375:]
+best = None
+for name, build in models.items():
+    X = build()
+    w, *_ = np.linalg.lstsq(X[tr], y[tr], rcond=None)
+    a = np.mean((X[tr]@w - y[tr])**2); b = np.mean((X[te]@w - y[te])**2)
+    print(f"{name:15s} cols {X.shape[1]:3d}  train {a:.4f}  test {b:.4f}")
+    if best is None or b &lt; best[0]: best = (b, name, X, w)
+
+_, name, X, w = best
+r = y[tr] - X[tr]@w; f = X[tr]@w
+print(f"\\nbest: {name}")
+print(f"  residual mean      {r.mean():.2e}   (should be ~0 with an intercept)")
+print(f"  corr(|r|, fitted)  {np.corrcoef(np.abs(r), f)[0,1]:+.4f}   (funnel test)")
+lo, hi = f &lt; np.median(f), f &gt;= np.median(f)
+print(f"  mean r low/high    {r[lo].mean():+.4f} / {r[hi].mean():+.4f}  (curvature test)")
+print(f"  residuals &gt; 3 sd   {(np.abs(r) &gt; 3*r.std()).sum()} of {len(r)}  (outlier test)")
+
+Xg = np.column_stack([np.ones(n), x1, x2] + [(g==k).astype(float) for k in range(4)])
+print(f"\\nall 4 dummies + intercept: shape {Xg.shape}, rank {np.linalg.matrix_rank(Xg)}")
+wl, *_ = np.linalg.lstsq(Xg[tr], y[tr], rcond=None)
+print("lstsq  ->", np.round(wl, 3), f"  ||w|| {np.linalg.norm(wl):.3f}")
+try:
+    ws = np.linalg.solve(Xg[tr].T@Xg[tr], Xg[tr].T@y[tr])
+    print("solve  ->", np.round(ws, 3), f"  ||w|| {np.linalg.norm(ws):.3e}")
+except np.linalg.LinAlgError as e:
+    print("solve  -> LinAlgError:", e)</code></pre>
+
+  <p><strong>2.</strong> Typical test MSE: linear ≈ 5.0, + quadratic ≈ 4.6, + RBF ≈ 0.40, + interaction ≈ 0.40.
+  The jump happens at the RBF step, because \(\sin(x_1)\) is the dominant nonlinearity and no polynomial of
+  degree 2 can capture it. The interaction term adds nothing — correctly, since the truth is additive. Note
+  that its <em>training</em> MSE is slightly lower (an extra column always helps training error) while test MSE
+  is flat: that is the smallest possible instance of overfitting, and exactly why you compare on test.</p>
+
+  <p><strong>3.</strong> The best model should show residual mean at machine zero, \(\operatorname{corr}(|r|,
+  \hat y)\) near zero (no funnel), similar residual means in the low and high halves of the fitted range (no
+  curvature), and roughly \(0.3\%\) of points beyond 3 sd, as a Gaussian predicts. Any of those failing points
+  at the corresponding pathology in the figure above.</p>
+
+  <p><strong>4.</strong> With all four dummies plus an intercept, \(\rank = 5\) but there are 6 columns.
+  <code>lstsq</code> succeeds — it uses the SVD and silently returns the <em>minimum-norm</em> solution among
+  the infinitely many, which is a perfectly reasonable but arbitrary choice. <code>solve</code> either raises
+  <code>LinAlgError</code> or returns coefficients of magnitude \(10^{13}\) or more, built entirely from
+  round-off.</p>
+  <p>The important observation: <strong>the predictions are identical in both cases</strong>. Only the
+  coefficients are broken. If you are predicting, you may never notice; if you are interpreting, you will report
+  nonsense. That is the difference between a model that works and a model you understand, and it is worth
+  checking <code>matrix_rank</code> whenever you intend to read coefficients.</p></div></div></div>
+<hr>
+<p><strong>Next:</strong> the closed form runs out at around \(d\sim10^4\). Lecture 03 replaces it
+with gradient descent done properly — convergence rates from the condition number, stochastic gradients,
+momentum, and Adam — which is the optimiser every model from here on will use.</p>
+<div class="pagenav"><a href="01-the-learning-problem.html" class="pv"><span class="dir">Previous</span><span class="nm">1 · What Learning Actually Means</span></a><a href="03-gradient-descent.html" class="nx"><span class="dir">Next</span><span class="nm">3 · Gradient Descent That Actually Works</span></a></div>
+</div>
+<script>initDone('02-linear-regression');</script>
+</body>
+</html>
