@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</title>
+    <meta name="description"
+        content="Unit VI Part 2 for Research Methodology in Computer Science (CSEG3060): patent databases and prior-art searching — InPASS, Espacenet, PATENTSCOPE, Google Patents and USPTO — classification codes, patent families, legal status, and reading a patent document.">
+    <style>
+        /* ============================================================
+           CSEG3060 · Unit VI · Part 2 — Patent Information and Databases
+           Self-contained deck. No external assets.
+           Keys: → / Space next · ← prev · O overview · N notes · F fullscreen · P print
+           ============================================================ */
+
+        :root {
+            --ink: #13262E;
+            --ink-2: #12303A;
+            --muted: #5C6B70;
+            --bg: #F6F4EF;
+            --card: #FFFDF8;
+            --card-2: #F3EFE6;
+            --line: #DDD6C8;
+            --rust: #B5452A;
+            --rust-2: #D9603F;
+            --peach: #F2A384;
+            --teal: #1F6F66;
+            --mint: #86D3C7;
+            --gold: #D4A017;
+            --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --display: "Space Grotesk", "Inter", -apple-system, "Segoe UI", sans-serif;
+            --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            height: 100%; margin: 0; background: #0d1a20;
+            font-family: var(--sans); color: var(--ink);
+            -webkit-font-smoothing: antialiased; overflow: hidden;
+        }
+
+        #stage-wrap { position: fixed; inset: 0 0 40px 0; overflow: hidden; }
+
+        #stage {
+            width: 1280px; height: 720px; position: absolute; left: 50%; top: 50%;
+            transform-origin: center center; background: var(--bg);
+            box-shadow: 0 18px 60px rgba(0, 0, 0, .45); overflow: hidden;
+        }
+
+        .slide {
+            position: absolute; inset: 0; padding: 48px 64px 64px;
+            display: none; flex-direction: column; background: var(--bg);
+            font-size: 17px; line-height: 1.45;
+        }
+
+        .slide.active { display: flex; animation: fade .25s ease both; }
+
+        @keyframes fade {
+            from { opacity: 0; transform: translateY(8px) }
+            to { opacity: 1; transform: none }
+        }
+
+        .slide.dark { background: var(--ink-2); color: var(--card-2); }
+
+        .kicker {
+            font-family: var(--display); font-size: 13px; font-weight: 700;
+            letter-spacing: .18em; text-transform: uppercase; color: var(--rust); margin: 0 0 10px;
+        }
+
+        .slide.dark .kicker { color: var(--peach); }
+
+        h1 { font-family: var(--display); font-size: 54px; line-height: 1.05; letter-spacing: -.02em; margin: 0 0 18px; font-weight: 700; }
+        h2 { font-family: var(--display); font-size: 33px; line-height: 1.15; letter-spacing: -.015em; margin: 0 0 20px; font-weight: 700; }
+        h3 { font-family: var(--display); font-size: 18px; margin: 0 0 6px; font-weight: 700; letter-spacing: -.01em; }
+        p { margin: 0 0 10px; }
+
+        .lead { font-size: 20px; color: var(--muted); line-height: 1.4; }
+        .slide.dark .lead { color: var(--mint); }
+        .small { font-size: 15px; }
+        .fine { font-size: 13px; color: var(--muted); }
+        .slide.dark .fine { color: #9fb3b6; }
+
+        .body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+
+        footer {
+            position: absolute; left: 64px; right: 64px; bottom: 22px; display: flex; align-items: center;
+            gap: 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px;
+        }
+
+        footer .num { margin-left: auto; font-family: var(--mono); font-weight: 600; }
+
+        .grid { display: grid; gap: 14px; }
+        .g2 { grid-template-columns: 1fr 1fr; }
+        .g3 { grid-template-columns: repeat(3, 1fr); }
+        .g4 { grid-template-columns: repeat(4, 1fr); }
+        .g5 { grid-template-columns: repeat(5, 1fr); }
+        .fill { flex: 1; min-height: 0; }
+
+        .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+        .card.tint { background: var(--card-2); }
+        .card.dark { background: var(--ink-2); color: var(--card-2); border-color: #244450; }
+        .card.dark h3 { color: var(--mint); }
+        .card.rust { border-color: var(--rust); }
+        .card.teal { border-color: var(--teal); }
+        .card.gold { border-color: var(--gold); }
+
+        .rule { background: var(--ink); color: var(--card-2); border-radius: 12px; padding: 12px 18px; font-size: 16px; }
+        .rule b { color: var(--mint); }
+
+        .badge {
+            display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px;
+            padding: 0 9px; border-radius: 10px; background: var(--rust); color: #fff;
+            font-family: var(--display); font-weight: 700; font-size: 16px;
+        }
+
+        .badge.teal { background: var(--teal); }
+        .badge.ink { background: var(--ink); }
+        .badge.gold { background: var(--gold); color: var(--ink); }
+
+        .goal { display: flex; gap: 14px; align-items: flex-start; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+        .goal:last-child { border-bottom: 0; }
+
+        ul, ol { margin: 0; padding-left: 18px; }
+        li { margin-bottom: 5px; }
+        li::marker { color: var(--rust); font-weight: 700; }
+        .card.dark li::marker { color: var(--mint); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 15px; }
+
+        th {
+            text-align: left; font-family: var(--display); font-size: 12px; letter-spacing: .1em;
+            text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--line); padding: 8px 10px;
+        }
+
+        td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+        tbody tr:last-child td { border-bottom: 0; }
+        tbody tr:nth-child(even) { background: rgba(221, 214, 200, .28); }
+
+        .ok { color: var(--teal); font-weight: 700; }
+        .no { color: var(--rust); font-weight: 700; }
+        .chip { display: inline-block; background: var(--card-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; }
+
+        code, .mono { font-family: var(--mono); font-size: 14px; background: var(--card-2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; display: inline-block; }
+        .codeline { font-family: var(--mono); font-size: 14px; background: var(--ink); color: var(--mint); border-radius: 8px; padding: 7px 12px; display: block; }
+
+        .ipc { display: flex; gap: 4px; align-items: flex-end; font-family: var(--mono); }
+        .ipc div { text-align: center; }
+        .ipc .c { font-size: 26px; font-weight: 700; color: var(--ink); background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+        .ipc .l { font-size: 11px; color: var(--rust); font-family: var(--sans); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-top: 5px; }
+
+        .bar {
+            position: fixed; left: 0; right: 0; bottom: 0; height: 40px; display: flex; align-items: center;
+            gap: 8px; padding: 0 14px; background: rgba(10, 22, 27, .92); color: #cfe0e2; font-size: 12px; z-index: 50;
+        }
+
+        .bar button {
+            font: inherit; font-weight: 600; color: #cfe0e2; background: transparent;
+            border: 1px solid #2c4a54; border-radius: 8px; padding: 4px 11px; cursor: pointer;
+        }
+
+        .bar button:hover { border-color: var(--mint); color: var(--mint); }
+        .bar .now { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .75; }
+        .bar .count { font-family: var(--mono); }
+
+        .progress { position: fixed; left: 0; bottom: 40px; height: 3px; background: var(--rust-2); z-index: 51; transition: width .2s; }
+
+        .panel { position: fixed; inset: 0 0 40px 0; background: #0d1a20; color: #dce9ea; z-index: 60; overflow: auto; padding: 28px 34px; display: none; }
+        .panel.open { display: block; }
+        .panel h2 { font-size: 24px; color: #fff; margin-bottom: 16px; }
+
+        .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 10px; }
+
+        .ov-item {
+            text-align: left; font: inherit; font-size: 13px; background: #16282f; border: 1px solid #27454e;
+            border-radius: 10px; padding: 10px 12px; color: #dce9ea; cursor: pointer;
+        }
+
+        .ov-item:hover { border-color: var(--mint); color: var(--mint); }
+        .ov-item b { display: block; font-family: var(--mono); color: var(--peach); font-size: 12px; margin-bottom: 3px; }
+
+        #notes {
+            position: fixed; right: 0; bottom: 40px; width: 360px; max-height: 46vh; overflow: auto;
+            background: #16282f; color: #dce9ea; border-left: 1px solid #27454e; border-top: 1px solid #27454e;
+            padding: 16px 18px; font-size: 14px; z-index: 55; display: none;
+        }
+
+        #notes.open { display: block; }
+        #notes h3 { color: var(--peach); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+
+        @media print {
+            @page { size: 1280px 720px; margin: 0; }
+            html, body { overflow: visible; background: #fff; }
+            .bar, .progress, .panel, #notes { display: none !important; }
+            #stage-wrap { position: static; }
+            #stage { width: 1280px; height: auto; box-shadow: none; position: static; transform: none !important; }
+            .slide { display: flex !important; position: relative; height: 720px; page-break-after: always; animation: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="stage-wrap">
+        <div id="stage">
+
+            <!-- ============ 1 ============ -->
+            <section class="slide dark" data-title="Title">
+                <p class="kicker" style="color:var(--mint)">CSEG3060 · Research Methodology in Computer Science</p>
+                <p class="kicker">Unit VI · Part 2 · Hands-on lab</p>
+                <h1 style="font-size:56px; color:#F3EFE6">Patent Information and Databases</h1>
+                <p class="lead" style="max-width:840px">InPASS, Espacenet, PATENTSCOPE, Google Patents, USPTO — and a
+                    <b style="color:var(--peach)">prior-art search on your own project idea</b>.</p>
+                <div style="margin-top:auto">
+                    <p class="fine" style="color:#C9D6D4; margin:0">Dr. Mohsin Furkh Dar · School of Computer Science,
+                        UPES</p>
+                    <p class="fine" style="color:#7d9498; margin:6px 0 0">Bring a laptop · → / Space next · ← back ·
+                        <b>O</b> overview · <b>N</b> notes · <b>F</b> full screen</p>
+                </div>
+            </section>
+
+            <!-- ============ 2 ============ -->
+            <section class="slide" data-title="Session goals">
+                <p class="kicker">Session goals</p>
+                <h2>By the end of this session, you can…</h2>
+                <div class="body">
+                    <div class="card fill">
+                        <div class="goal"><span class="badge">01</span>
+                            <p style="margin:0">Choose the right <b>database</b> for a question, and know its blind
+                                spots</p>
+                        </div>
+                        <div class="goal"><span class="badge">02</span>
+                            <p style="margin:0">Read a <b>classification code</b> and search by it</p>
+                        </div>
+                        <div class="goal"><span class="badge">03</span>
+                            <p style="margin:0">Read a patent document: <b>front page, claims, family, legal status</b></p>
+                        </div>
+                        <div class="goal"><span class="badge">04</span>
+                            <p style="margin:0">Run a structured <b>prior-art search</b> and keep a defensible log</p>
+                        </div>
+                        <div class="goal"><span class="badge">05</span>
+                            <p style="margin:0">Use patent data for <b>landscaping</b> — who is working on what, where</p>
+                        </div>
+                    </div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">2</span></footer>
+            </section>
+
+            <!-- ============ 3 ============ -->
+            <section class="slide" data-title="Why patents are a literature">
+                <p class="kicker">Why search patents at all</p>
+                <h2>The largest technical literature nobody in your lab reads</h2>
+                <div class="body">
+                    <div class="grid g4 fill">
+                        <div class="card">
+                            <h3>To check novelty</h3>
+                            <p class="small" style="margin:8px 0 0">Before filing — and before spending a year on
+                                something already claimed. This is the Unit V Part 2 use.</p>
+                        </div>
+                        <div class="card">
+                            <h3>To avoid infringing</h3>
+                            <p class="small" style="margin:8px 0 0">A <b>freedom-to-operate</b> question: can we sell
+                                this product in this country without a licence? Different search, different standard.</p>
+                        </div>
+                        <div class="card">
+                            <h3>To read the state of the art</h3>
+                            <p class="small" style="margin:8px 0 0">Much engineering detail appears <b>only</b> in
+                                patents — never in a paper. Applications publish at 18 months, often ahead of the
+                                literature.</p>
+                        </div>
+                        <div class="card">
+                            <h3>To see the landscape</h3>
+                            <p class="small" style="margin:8px 0 0">Who files in your field, in which countries, with
+                                what trend. Useful for a proposal's motivation and for choosing a licensee.</p>
+                        </div>
+                    </div>
+                    <div class="rule">A granted patent whose term has expired, or which was never filed in India, is
+                        <b>free to use here</b> — and its specification is a complete, enabling technical disclosure.
+                        Lapsed patents are an underused engineering resource.</div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">3</span></footer>
+            </section>
+
+            <!-- ============ 4 ============ -->
+            <section class="slide" data-title="The databases">
+                <p class="kicker">Tools</p>
+                <h2>Which database, and what each is good for</h2>
+                <div class="body">
+                    <div class="card fill">
+                        <table style="font-size:14px">
+                            <thead>
+                                <tr><th style="width:170px">Database</th><th style="width:130px">Run by</th><th>Best for</th><th style="width:26%">Watch out for</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><b>InPASS</b></td><td>Indian Patent Office</td><td>Indian applications and grants; application status; the authoritative Indian record</td><td>Interface is unforgiving; coverage is India only</td></tr>
+                                <tr><td><b>Espacenet</b></td><td>European Patent Office</td><td>Worldwide coverage, excellent classification search, patent families, citations</td><td>Machine translations vary in quality</td></tr>
+                                <tr><td><b>PATENTSCOPE</b></td><td>WIPO</td><td>Published PCT applications plus many national collections; cross-lingual search</td><td>PCT publications are applications, not grants</td></tr>
+                                <tr><td><b>Google Patents</b></td><td>Google</td><td>Fast full-text search, readable layout, links to non-patent literature</td><td>Convenience tool — verify anything important elsewhere</td></tr>
+                                <tr><td><b>Patent Public Search</b></td><td>USPTO</td><td>Authoritative US record, prosecution history</td><td>US only</td></tr>
+                                <tr><td><b>Commercial tools</b></td><td>Vendors</td><td>Analytics, landscaping, legal status across jurisdictions</td><td>Subscription; check what your library provides</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="rule">Search <b>at least two</b> — one Indian, one international — exactly as Unit III
+                        Part 1 required one computing and one biomedical database. Single-source searching is how
+                        students miss the closest document.</div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">4</span></footer>
+            </section>
+
+            <!-- ============ 5 ============ -->
+            <section class="slide" data-title="Classification">
+                <p class="kicker">The key skill</p>
+                <h2>Classification beats keywords, because patents avoid your words</h2>
+                <div class="body">
+                    <div class="card">
+                        <div class="ipc" style="justify-content:center; margin:4px 0 10px">
+                            <div><div class="c">G</div><div class="l">Section</div></div>
+                            <div><div class="c">06</div><div class="l">Class</div></div>
+                            <div><div class="c">T</div><div class="l">Subclass</div></div>
+                            <div><div class="c">7/00</div><div class="l">Group</div></div>
+                        </div>
+                        <p class="small center" style="margin:0; text-align:center">An <b>IPC</b> code names a
+                            technical area, assigned by examiners. <b>CPC</b> is a finer-grained scheme used by the EPO
+                            and USPTO. Both are hierarchical.</p>
+                    </div>
+                    <div class="grid g2 fill">
+                        <div class="card teal">
+                            <h3>How to use it in practice</h3>
+                            <ol class="small" style="margin-top:8px">
+                                <li>Find <b>one</b> clearly relevant patent by keyword.</li>
+                                <li>Open it and read its <b>classification codes</b>.</li>
+                                <li>Search <b>by that code</b>, with a couple of keywords to narrow.</li>
+                                <li>Repeat with any new codes you meet.</li>
+                            </ol>
+                            <p class="fine" style="margin:8px 0 0">This is citation chaining from Unit III, performed on
+                                a taxonomy instead of a reference list.</p>
+                        </div>
+                        <div class="card gold">
+                            <h3>Why keywords alone fail</h3>
+                            <p class="small" style="margin:8px 0">Patent attorneys write to be broad, not to be found.
+                                Your “MRI scan” is their “image data set”; your “neural network” is their “trained
+                                computational model”; your “missing sequence” is their “incomplete input modality”.</p>
+                            <p class="small" style="margin:0">Build a <b>synonym list per feature</b> before you search
+                                — and include the generic, abstracted phrasing a drafter would choose.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">5</span></footer>
+            </section>
+
+            <!-- ============ 6 ============ -->
+            <section class="slide" data-title="Reading a patent">
+                <p class="kicker">Reading</p>
+                <h2>How to read a patent in ten minutes</h2>
+                <div class="body">
+                    <div class="card fill">
+                        <table>
+                            <thead>
+                                <tr><th style="width:190px">Where to look</th><th>What it tells you</th><th style="width:26%">Time</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><b>Front page</b></td><td>Title, abstract, applicant, inventors, filing and priority dates, classification codes, cited documents</td><td>1 minute</td></tr>
+                                <tr><td><b>Kind code</b> (A1, B1…)</td><td>Whether this is a <b>published application</b> or a <b>granted patent</b> — a crucial distinction</td><td>10 seconds</td></tr>
+                                <tr><td><b>Claim 1</b></td><td>The actual scope. Read it twice, listing each feature separately</td><td>3 minutes</td></tr>
+                                <tr><td><b>Figures</b></td><td>The architecture, faster than the prose</td><td>2 minutes</td></tr>
+                                <tr><td><b>Background</b></td><td>The problem as the applicant framed it — often a neat summary of the field</td><td>2 minutes</td></tr>
+                                <tr><td><b>Family</b></td><td>Where else it was filed — tells you which markets they care about</td><td>1 minute</td></tr>
+                                <tr><td><b>Legal status</b></td><td>Granted, refused, withdrawn, <b>lapsed for non-payment</b>? A lapsed patent stops nobody</td><td>1 minute</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="rule"><b>Never judge a patent from its title or abstract.</b> Both are written broadly;
+                        only the claims bind, and only in the countries where the patent is in force.</div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">6</span></footer>
+            </section>
+
+            <!-- ============ 7 ============ -->
+            <section class="slide" data-title="Families and legal status">
+                <p class="kicker">Two concepts that prevent expensive mistakes</p>
+                <h2>Patent families and legal status</h2>
+                <div class="body">
+                    <div class="grid g2">
+                        <div class="card">
+                            <h3>Family</h3>
+                            <p class="small" style="margin:8px 0">All the applications and patents worldwide that share
+                                a priority — the Indian filing, the PCT application, the European, US and Japanese
+                                members.</p>
+                            <p class="small" style="margin:0"><b>Why it matters:</b> one invention can appear as eight
+                                documents. Counting them as eight pieces of prior art is a classic student error — and
+                                the family view tells you instantly which markets the applicant chose to pay for.</p>
+                        </div>
+                        <div class="card gold">
+                            <h3>Legal status</h3>
+                            <p class="small" style="margin:8px 0">A document's status changes over time: pending,
+                                granted, refused, withdrawn, opposed, revoked, <b>lapsed</b> for unpaid renewals, or
+                                expired at the end of its term.</p>
+                            <p class="small" style="margin:0"><b>Why it matters:</b> for <b>novelty</b>, status is
+                                irrelevant — a published application is prior art even if it was later refused. For
+                                <b>freedom to operate</b>, status is everything — only a patent in force in that country
+                                can stop you.</p>
+                        </div>
+                    </div>
+                    <div class="card teal fill" style="display:flex; align-items:center">
+                        <p class="small" style="margin:0"><b>Keep the two questions apart.</b> “Can I patent this?” is
+                            answered by <b>everything ever published, anywhere</b>. “Can I sell this in India?” is
+                            answered by <b>patents currently in force in India</b>, read claim by claim. Students
+                            routinely run one search and answer both questions with it.</p>
+                    </div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">7</span></footer>
+            </section>
+
+            <!-- ============ 8 ============ -->
+            <section class="slide" data-title="A worked search">
+                <p class="kicker">Worked example</p>
+                <h2>Searching the running example, step by step</h2>
+                <div class="body">
+                    <div class="card fill">
+                        <div class="grid" style="grid-template-columns:1.1fr 1fr; gap:10px; align-items:center">
+                            <code class="codeline">1 · Features: volumetric segmentation · missing input modality ·
+                                trained model selection · memory budget</code>
+                            <p class="fine" style="margin:0">Start from the claim you drafted, one feature per line.</p>
+
+                            <code class="codeline">2 · Synonyms: "image data set" · "modality" · "incomplete input" ·
+                                "sub-model" · "resource constraint"</code>
+                            <p class="fine" style="margin:0">Write the drafter's vocabulary, not yours.</p>
+
+                            <code class="codeline">3 · Google Patents: segmentation AND ("missing modality" OR
+                                "incomplete modalities") AND MRI</code>
+                            <p class="fine" style="margin:0">A fast first pass, to find one relevant document.</p>
+
+                            <code class="codeline">4 · Open the best hit → note its <b>CPC codes</b> → search Espacenet
+                                by code + "modality"</code>
+                            <p class="fine" style="margin:0">This is the step that finds what keywords missed.</p>
+
+                            <code class="codeline">5 · InPASS: same concepts, restricted to India → check what is
+                                actually in force here</code>
+                            <p class="fine" style="margin:0">Novelty is worldwide; freedom to operate is national.</p>
+
+                            <code class="codeline">6 · Record each query: database · date · query string · hits ·
+                                relevant</code>
+                            <p class="fine" style="margin:0">The search log from Unit III, unchanged.</p>
+                        </div>
+                    </div>
+                    <div class="rule">Stop at <b>saturation</b> — when new queries keep returning documents you already
+                        have. Then build the <b>feature × document matrix</b> from Unit V Part 2 and decide.</div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">8</span></footer>
+            </section>
+
+            <!-- ============ 9 ============ -->
+            <section class="slide" data-title="Landscaping">
+                <p class="kicker">Beyond novelty</p>
+                <h2>Patent landscaping: reading a field from its filings</h2>
+                <div class="body">
+                    <div class="grid g3">
+                        <div class="card">
+                            <h3>Who</h3>
+                            <p class="small" style="margin:8px 0 0">Top applicants in your classification code. Imaging
+                                vendors? Start-ups? Universities? This tells you who a licensee might be — and who might
+                                sue you.</p>
+                        </div>
+                        <div class="card">
+                            <h3>Where</h3>
+                            <p class="small" style="margin:8px 0 0">Which countries the families cover. A field where
+                                nobody files in India is a field where you may be free to operate here.</p>
+                        </div>
+                        <div class="card">
+                            <h3>When</h3>
+                            <p class="small" style="margin:8px 0 0">Filings per year in the code. Rising sharply means
+                                a crowded, fast-moving area; flat and old means either mature or abandoned.</p>
+                        </div>
+                    </div>
+                    <div class="card gold fill" style="display:flex; align-items:center">
+                        <div>
+                            <h3>Three cautions before you put a chart in a proposal</h3>
+                            <p class="small" style="margin:8px 0 0"><b>1 · An 18-month blind spot.</b> Applications
+                                publish at 18 months, so the last year and a half of any curve is incomplete and will
+                                rise later. <b>2 · Counting families, not documents.</b> Otherwise a single invention
+                                inflates the count. <b>3 · Filing is not innovating.</b> A rising count may reflect a
+                                company's filing policy, not the field's progress — the same construct-validity
+                                question you met in Unit II.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">9</span></footer>
+            </section>
+
+            <!-- ============ 10 ============ -->
+            <section class="slide" data-title="LAB · 30 minutes">
+                <p class="kicker">Lab · 30 minutes · laptops open</p>
+                <h2>Prior-art search on your own project idea</h2>
+                <div class="body">
+                    <div class="grid g2 fill">
+                        <div class="card rust">
+                            <h3>Do this (20 min)</h3>
+                            <ol class="small" style="margin-top:8px">
+                                <li>Write your invention in one sentence; list <b>four technical features</b>.</li>
+                                <li>Write <b>three synonyms</b> for each feature, in drafters' language.</li>
+                                <li>Search <b>Google Patents</b>; find one relevant document; record its
+                                    <b>classification codes</b>.</li>
+                                <li>Search <b>Espacenet by classification</b>; find two more.</li>
+                                <li>Search <b>InPASS</b> for the Indian position; note what is in force.</li>
+                                <li>For your best hit: record kind code, <b>claim 1's features</b>, family size and
+                                    legal status.</li>
+                                <li>Fill the <b>feature × document matrix</b>.</li>
+                            </ol>
+                        </div>
+                        <div class="card teal">
+                            <h3>Then answer, in writing (10 min)</h3>
+                            <ul class="small" style="margin-top:8px">
+                                <li>Does any <b>single document</b> contain all four of your features?</li>
+                                <li>Do any <b>two together</b> — and would a skilled person have combined them?</li>
+                                <li>Which of your features is <b>not shown anywhere</b>? That is your candidate
+                                    contribution.</li>
+                                <li>Is the closest document <b>in force in India</b>?</li>
+                                <li>On this evidence: <b>file, narrow, or publish instead</b>?</li>
+                            </ul>
+                            <p class="fine" style="margin:8px 0 0">Submit the search log and the matrix. This is the
+                                assessed artefact for the prior-art lab, and it is also exactly what an IP cell asks for
+                                at an invention disclosure.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">10</span></footer>
+            </section>
+
+            <!-- ============ 11 ============ -->
+            <section class="slide" data-title="Key takeaways">
+                <p class="kicker">Key takeaways</p>
+                <h2>Five habits of a competent patent searcher</h2>
+                <div class="body">
+                    <div class="card fill">
+                        <div class="goal"><span class="badge ink">1</span>
+                            <p style="margin:0">Search <b>at least two databases</b> — one Indian, one international —
+                                and know each one's blind spot.</p>
+                        </div>
+                        <div class="goal"><span class="badge ink">2</span>
+                            <p style="margin:0"><b>Classification beats keywords.</b> Find one document, take its codes,
+                                search by code.</p>
+                        </div>
+                        <div class="goal"><span class="badge ink">3</span>
+                            <p style="margin:0">Read the <b>claims and the kind code</b>, never the title. A published
+                                application is not a granted patent.</p>
+                        </div>
+                        <div class="goal"><span class="badge ink">4</span>
+                            <p style="margin:0"><b>Novelty is worldwide and status-blind; freedom to operate is
+                                    national and status-dependent.</b> Two questions, two searches.</p>
+                        </div>
+                        <div class="goal"><span class="badge ink">5</span>
+                            <p style="margin:0">Keep a <b>search log</b> and a <b>feature matrix</b>. A negative result
+                                is diligence, never proof.</p>
+                        </div>
+                    </div>
+                    <div class="rule"><b>Next · Part 3:</b> New developments in IPR — administration of the patent
+                        system and IPR in computer software</div>
+                    <p class="fine" style="margin:0">Database features and interfaces change; verify against the current
+                        site. A student search is not a professional freedom-to-operate opinion.</p>
+                </div>
+                <footer><span>CSEG3060 · Unit VI · Part 2 — Patent Information and Databases</span><span class="num">11</span></footer>
+            </section>
+
+        </div>
+    </div>
+
+    <div class="progress" id="bar" style="width:0"></div>
+    <div class="bar">
+        <button onclick="go(-1)">←</button>
+        <button onclick="go(1)">→</button>
+        <span class="count" id="count">1 / 11</span>
+        <span class="now" id="now"></span>
+        <button onclick="toggleNotes()">Notes (N)</button>
+        <button onclick="toggleOverview()">Slides (O)</button>
+        <button onclick="goFull()">Full screen (F)</button>
+        <button onclick="window.print()">Print</button>
+    </div>
+
+    <div class="panel" id="overview">
+        <h2>Slides — click to jump <span class="fine" style="float:right; color:#8fa7ab">Esc to close</span></h2>
+        <div class="ov-grid" id="ov-list"></div>
+    </div>
+
+    <div id="notes">
+        <h3>Speaker notes</h3>
+        <div id="notes-body"></div>
+    </div>
+
+    <script>
+        const NOTES = {
+            1: "This is the hands-on session of Unit VI and matches the delivery plan's prior-art search lab. Ask students to bring laptops and their Unit V claim.",
+            3: "The lapsed-patent point often surprises students: expired and unfiled patents are a free, enabling engineering literature.",
+            4: "Demonstrate InPASS live if the network allows — its interface is the one students struggle with most, and five minutes of demonstration saves the whole lab.",
+            5: "The synonym exercise is the highest-value five minutes in the session. Ask the class to translate their own project title into drafters' language.",
+            6: "Kind codes are worth a minute: A-series documents are usually applications, B-series granted patents, though the convention varies by office.",
+            7: "Separate the two questions explicitly and repeat it: novelty is status-blind, freedom to operate is not.",
+            8: "Run this worked search live against the projector, one line at a time, writing the hit counts on the board as in Unit III Part 1.",
+            9: "The 18-month blind spot is the caution students most often violate when they put a filings-per-year chart in a proposal.",
+            10: "Circulate during the lab. The commonest failure is searching only in the student's own vocabulary; the fix is to send them back to step 2."
+        };
+
+        const slides = [...document.querySelectorAll('.slide')];
+        const stage = document.getElementById('stage');
+        let cur = 0;
+
+        function fitStage() {
+            const pad = 20, barH = 40;
+            const w = window.innerWidth - pad * 2;
+            const h = window.innerHeight - barH - pad * 2;
+            const k = Math.min(w / 1280, h / 720);
+            stage.style.transform = 'translate(-50%,-50%) scale(' + k + ')';
+        }
+        window.addEventListener('resize', fitStage);
+
+        function show(i) {
+            cur = Math.max(0, Math.min(slides.length - 1, i));
+            slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+            document.getElementById('count').textContent = (cur + 1) + ' / ' + slides.length;
+            document.getElementById('now').textContent = slides[cur].dataset.title || '';
+            document.getElementById('bar').style.width = ((cur + 1) / slides.length * 100) + '%';
+            const n = NOTES[cur + 1];
+            document.getElementById('notes-body').innerHTML = n
+                ? '<p style="margin:0">' + n + '</p>'
+                : '<p style="margin:0; opacity:.6">No notes for this slide.</p>';
+            location.hash = 's' + (cur + 1);
+        }
+        function go(d) { show(cur + d); }
+        function toggleOverview() { document.getElementById('overview').classList.toggle('open'); }
+        function toggleNotes() { document.getElementById('notes').classList.toggle('open'); }
+        function goFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') { document.getElementById('overview').classList.remove('open'); return; }
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') show(0);
+            else if (e.key === 'End') show(slides.length - 1);
+            else if (e.key.toLowerCase() === 'o') toggleOverview();
+            else if (e.key.toLowerCase() === 'n') toggleNotes();
+            else if (e.key.toLowerCase() === 'f') goFull();
+            else if (e.key.toLowerCase() === 'p') window.print();
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 60) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
+        const ov = document.getElementById('ov-list');
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.className = 'ov-item';
+            b.innerHTML = '<b>' + String(i + 1).padStart(2, '0') + '</b>' + (s.dataset.title || '');
+            b.onclick = () => { show(i); toggleOverview(); };
+            ov.appendChild(b);
+        });
+
+        fitStage();
+        const h0 = parseInt((location.hash || '').replace('#s', ''), 10);
+        show(Number.isFinite(h0) && h0 > 0 ? h0 - 1 : 0);
+    </script>
+</body>
+
+</html>
