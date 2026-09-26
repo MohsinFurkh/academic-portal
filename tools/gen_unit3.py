@@ -13,6 +13,7 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "rm"))
 sys.path.insert(0, os.path.join(HERE, "unit3"))
 ROOT = os.path.join(os.path.dirname(HERE), "Research Methodology", "Unit III")
 
