@@ -9,7 +9,7 @@ import {
   starterToHtml, answerStats, authorshipWords, mergeCounts, authorshipShares, validSplit,
   checkLink, validMobile, validSap, validEmail, emailDomainOk, toMillis, effectiveDeadline,
   fmtCountdown, fmtDate, fmtMinutes, escapeHtml, joinCode, JOIN_CODE_RE, uid8, memberColour,
-  totalMarks, sanitizeHtml, countWords, safeId, slug,
+  totalMarks, sanitizeHtml, countWords, safeId, slug, ownTopicAllowed,
   MAX_LINKS, LOCK_STALE_MS, LOCK_HEARTBEAT_MS, LOCK_IDLE_RELEASE_MS, DECLARATION_GRACE_HOURS,
 } from "./common.js";
 import { createEditor, renderMath } from "./editor.js";
@@ -75,6 +75,7 @@ let lastWriteFailed = false;
 let built = false;
 let closedReason = "";           // "", "submitted", "deadline", "closed"
 let myDecl = null;
+let board = null;                // topic board: { taken: { topicId: { sid, gname } } }
 
 // ===========================================================================
 // Boot and accounts
@@ -185,6 +186,7 @@ function bindStatic() {
   $("declStmt").addEventListener("input", paintDeclWords);
   $("sections").addEventListener("click", onSectionClick);
   $("groupCard").addEventListener("click", onGroupClick);
+  $("topicCard").addEventListener("click", onTopicClick);
   $("linkList").addEventListener("click", onLinkListClick);
   window.addEventListener("hashchange", route);
   window.addEventListener("beforeunload", (e) => {
@@ -393,7 +395,7 @@ async function openAssignment(id) {
   myName = profile.name;
   $("wsBanner").innerHTML = banner("info", "Loading the assignment…");
   $("sections").innerHTML = "";
-  ["groupCard", "linksCard", "contribCard", "declCard", "gradeCard"].forEach((c) => $(c).classList.add("hidden"));
+  ["groupCard", "topicCard", "linksCard", "contribCard", "declCard", "gradeCard"].forEach((c) => $(c).classList.add("hidden"));
   $("submitCard").classList.add("hidden");
   setHeaderButtons(false);
 
@@ -564,6 +566,15 @@ function enterSubmission(id) {
       "or your account link was reset. Reload the page, and ask your instructor if it persists.");
     Object.values(editors).forEach((ed) => ed.setEditable(false));
   }));
+
+  // Which topics are still free — live, so a group sees a topic disappear the
+  // moment another group claims it.
+  if (hasTopics()) {
+    unsubs.push(onSnapshot(doc(db, "assignTopicBoards", aid), (s) => {
+      board = s.exists() ? s.data() : { taken: {} };
+      if (sub) paintTopic();
+    }, (err) => console.warn("topic board", err)));
+  }
 }
 
 // ===========================================================================
@@ -577,12 +588,14 @@ function onSubChanged() {
     editors = {};
     ["linksCard", "contribCard", "declCard"].forEach((c) => $(c).classList.add("hidden"));
     $("submitCard").classList.add("hidden");
+    $("topicCard").classList.add("hidden");
     setHeaderButtons(false);
     paintForming();
     return;
   }
   if (!built) buildWorkspace();
   paintGroupCard();
+  paintTopic();
   updateClosed();
   syncSections();
   paintLinks();
@@ -690,6 +703,10 @@ function paintLockbar(qid) {
     el.innerHTML = `<span class="who">🔒 Read only — ${closedReason === "submitted" ? "submitted" : "closed"}.</span>`;
     return;
   }
+  if (needsTopic()) {
+    el.innerHTML = `<span class="who other">Choose ${sub.kind === "group" ? "your group’s" : "your"} topic above before you start writing.</span>`;
+    return;
+  }
   const L = lockOf(qid);
   const solo = sub.kind !== "group";
   if (held[qid]) {
@@ -725,6 +742,10 @@ function onSectionClick(e) {
 let acquiring = {};
 async function tryEdit(qid, force = false) {
   if (held[qid] || acquiring[qid] || closedReason || !sub) return;
+  if (needsTopic()) {
+    $("topicCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    return toast("Choose a topic first — writing opens once your topic is chosen.", "warn");
+  }
   acquiring[qid] = true;
   try {
     await runTransaction(db, async (tx) => {
@@ -1077,7 +1098,7 @@ function paintBannerState() {
 }
 
 function setHeaderButtons(on) {
-  const canSubmit = on && !closedReason && sub && (sub.kind !== "group" || sub.confirmed);
+  const canSubmit = on && !closedReason && sub && (sub.kind !== "group" || sub.confirmed) && !needsTopic();
   ["submitBtn", "submitBtn2"].forEach((id) => { $(id).disabled = !canSubmit; });
   ["backupBtn", "backupBtn2"].forEach((id) => { $(id).disabled = !on; });
 }
@@ -1341,6 +1362,136 @@ async function confirmGroup() {
   } catch (e) {
     console.error(e);
     msg($("gMsg"), "Could not confirm the group: " + escapeHtml(e.message));
+  }
+}
+
+// ===========================================================================
+// Topic — first come, first served
+// ===========================================================================
+function hasTopics() {
+  return !!(A && (A.topics || []).length);
+}
+function needsTopic() {
+  return hasTopics() && !!sub && !sub.topic;
+}
+
+function paintTopic() {
+  const card = $("topicCard");
+  if (!hasTopics() || !sub) { card.classList.add("hidden"); return; }
+  card.classList.remove("hidden");
+  const who = sub.kind === "group" ? "your group" : "you";
+
+  if (sub.topic) {
+    const t = sub.topic;
+    card.innerHTML = `
+      <h2>Topic</h2>
+      <p style="margin:6px 0;font-size:1.05rem"><b>${escapeHtml(t.title)}</b>
+        ${t.custom ? `<span class="pill warnpill" style="vertical-align:2px">own topic</span>` : ""}</p>
+      ${t.desc ? `<p class="brief" style="margin:0 0 6px">${escapeHtml(t.desc)}</p>` : ""}
+      <p class="fine">Chosen by ${escapeHtml(t.byName || t.by || "your instructor")}${t.at ? ` on ${fmtDate(toMillis(t.at))}` : ""}.
+        Only your instructor can change it.</p>`;
+    setHeaderButtons(!!built);
+    return;
+  }
+
+  const taken = (board && board.taken) || {};
+  const free = A.topics.filter((t) => !taken[t.id]);
+  const ownOk = ownTopicAllowed(A.ownTopic || "whenFull", A.topics, taken);
+  const open = !closedReason;
+  const rows = A.topics.map((t) => {
+    const tk = taken[t.id];
+    return `<li class="topic-row ${tk ? "taken" : ""}">
+      <div><b>${escapeHtml(t.title)}</b>${t.desc ? `<div class="fine" style="margin:2px 0 0">${escapeHtml(t.desc)}</div>` : ""}</div>
+      <div class="topic-side">${tk
+      ? `<span class="pill muted">Taken — ${escapeHtml(tk.gname || "another group")}</span>`
+      : (open ? `<button class="btn sm" data-act="pick" data-id="${escapeHtml(t.id)}">Choose</button>`
+        : `<span class="pill muted">Free</span>`)}</div>
+    </li>`;
+  }).join("");
+
+  card.innerHTML = `
+    <h2>Choose ${who === "you" ? "your" : "your group’s"} topic</h2>
+    <p class="sub"><b>First come, first served.</b> The first ${sub.kind === "group" ? "group" : "student"} to choose a
+      topic gets it, and it disappears for everyone else. The choice is final — only your instructor
+      can change it. ${sub.kind === "group" ? "Any member can choose for the group, so agree on it first. " : ""}
+      Writing opens once ${who === "you" ? "you have" : "your group has"} a topic.
+      <b>${free.length} of ${A.topics.length}</b> topics are still free.</p>
+    <ul class="topic-list">${rows}</ul>
+    <div id="topicMsg"></div>
+    ${open && ownOk ? `
+      <div class="own-topic">
+        <h3 style="margin:0 0 4px;font-size:1rem">${free.length ? "Or propose your own topic" : "Every listed topic has been taken — propose your own"}</h3>
+        <p class="fine" style="margin:0 0 6px">Your instructor sees it straight away and may ask you to change it.</p>
+        <label for="ownTitle">Topic / research question</label>
+        <input type="text" id="ownTitle" maxlength="200" placeholder="e.g. Does code review with LLM assistance reduce defect density in student projects?" />
+        <label for="ownDesc">Why this topic, and what you plan to study (at least 30 words)</label>
+        <textarea id="ownDesc" rows="3" maxlength="2000" style="font-family:inherit"></textarea>
+        <button class="btn secondary" data-act="own" style="margin-top:10px">Propose this topic</button>
+      </div>`
+      : (open && !free.length
+        ? `<div class="notice warn">Every topic has been taken. Ask your instructor for a topic.</div>` : "")}`;
+  setHeaderButtons(!!built);
+}
+
+async function onTopicClick(e) {
+  const b = e.target.closest("button[data-act]");
+  if (!b) return;
+  b.disabled = true;
+  try {
+    if (b.dataset.act === "pick") await pickTopic(b.dataset.id);
+    else if (b.dataset.act === "own") await proposeTopic();
+  } finally {
+    b.disabled = false;
+  }
+}
+
+async function pickTopic(id) {
+  const t = (A.topics || []).find((x) => x.id === id);
+  if (!t || sub.topic) return;
+  if (board?.taken?.[id]) return msg($("topicMsg"), "Another group has just taken that topic. Choose another.", "warn");
+  if (!(await ask("Choose this topic?",
+    `<b>${escapeHtml(t.title)}</b><br><br>This is final for ${sub.kind === "group" ? "your whole group" : "you"} — only your instructor can change it.`,
+    "Choose topic"))) return;
+  try {
+    // One batch: the board gains this topic and our submission records it.
+    // If another group got there first, the board already has the topic and
+    // the rules refuse the whole batch.
+    const b = writeBatch(db);
+    b.update(doc(db, "assignTopicBoards", aid), {
+      [`taken.${id}`]: { sid, gname: groupLabel(), at: serverTimestamp() },
+      last: { topicId: id, sid },
+    });
+    b.update(subRef, {
+      topic: { id, title: t.title, desc: t.desc || "", custom: false, by: sap, byName: myName, at: serverTimestamp() },
+      actor: sap,
+    });
+    await b.commit();
+    toast("Topic chosen. You can start writing.", "ok");
+  } catch (e) {
+    console.warn("topic claim refused", e);
+    msg($("topicMsg"), board?.taken?.[id] || e.code === "permission-denied"
+      ? "Another group took that topic a moment before you. Choose another one."
+      : "Could not choose the topic — check your connection and try again.", "warn");
+  }
+}
+
+async function proposeTopic() {
+  const title = ($("ownTitle").value || "").trim().replace(/\s+/g, " ");
+  const desc = ($("ownDesc").value || "").trim();
+  if (title.length < 10) return msg($("topicMsg"), "Write your topic as a full research question or title (at least 10 characters).");
+  if (countWords(desc) < 30) return msg($("topicMsg"), "Describe the topic in at least 30 words.");
+  if (!(await ask("Propose this topic?",
+    `<b>${escapeHtml(title)}</b><br><br>This becomes ${sub.kind === "group" ? "your group’s" : "your"} topic straight away. Only your instructor can change it.`,
+    "Propose topic"))) return;
+  try {
+    await updateDoc(subRef, {
+      topic: { id: "own", title: title.slice(0, 200), desc: desc.slice(0, 2000), custom: true, by: sap, byName: myName, at: serverTimestamp() },
+      actor: sap,
+    });
+    toast("Topic recorded. You can start writing.", "ok");
+  } catch (e) {
+    console.warn("own topic refused", e);
+    msg($("topicMsg"), "The server did not accept an own topic yet — some listed topics may still be free.", "warn");
   }
 }
 
@@ -1657,6 +1808,7 @@ table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:5px 8px}.meta
 <h1>${escapeHtml(A.title)}</h1>
 <p class="meta">${sub.kind === "group" ? `${escapeHtml(groupLabel())}: ${sub.members.map((m) => `${escapeHtml(sub.memberNames?.[m] || "")} (${escapeHtml(m)})`).join(", ")}`
       : `${escapeHtml(myName)} (${escapeHtml(sap)})`}<br>
+${sub.topic ? `Topic: <b>${escapeHtml(sub.topic.title)}</b>${sub.topic.custom ? " (own topic)" : ""}<br>` : ""}
 Status: ${escapeHtml(sub.status)} · copy taken ${new Date().toLocaleString()}<br>
 <i>This is a personal copy. It is not a submission — your work is submitted from the assignment page.</i></p>
 ${body}
@@ -1703,7 +1855,7 @@ async function teardownWorkspace() {
   guard?.detach();
   guard = null;
   A = null; aid = null; sub = null; sid = null; subRef = null; claimRef = null;
-  editors = {}; applied = {}; held = {}; built = false; closedReason = ""; myDecl = null;
+  editors = {}; applied = {}; held = {}; built = false; closedReason = ""; myDecl = null; board = null;
   pending = { typed: 0, active: 0, pastes: 0, bulk: 0 };
   document.body.classList.remove("working");
 }

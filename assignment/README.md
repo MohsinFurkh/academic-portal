@@ -57,6 +57,14 @@ In the dashboard, **Create an assignment**:
     Each student lands in their group the first time they open the assignment.
 - **Roster** — the SAP IDs allowed in (or tick *any student*), and the allowed email
   domains (exact match: `stu.upes.ac.in` does not admit `x.stu.upes.ac.in`).
+- **Topics (optional, first come first served)** — one topic per line, with an optional
+  description after `|` (or a `"topics"` list in the JSON). Each group sees every topic
+  marked *Available* or *Taken by (group name)*, live. The first group to choose a topic
+  gets it; any member can choose, the choice is final, and **writing opens only once the
+  group has a topic**. When a group may propose its **own topic**: only once every listed
+  topic is taken (default), at any time, or never. The rules enforce all of this: a topic
+  can be claimed once, so two groups clicking together cannot both get it. In the table,
+  **Manage** releases a topic or assigns a free one by hand.
 - **Template (optional)** — upload a file up to 4 MB (stored in Firestore in chunks,
   downloaded from the brief) **or** give a link to one. Each section can also carry
   **starter text** (`## Heading`, `- bullet`, plain lines) that appears in the editor
@@ -134,6 +142,7 @@ over. Different members can edit different sections at the same time.
 | `assignSubs/{sid}` | the submission: members, text, locks, links, counters | its members, faculty |
 | `assignSubs/{sid}/revs/{id}` | edit history | its members, faculty |
 | `assignDecls/{sid}__{sap}` | private declaration | that student, faculty |
+| `assignTopicBoards/{aid}` | which group holds which topic | any signed-in user |
 | `assignEvals/{sid}` | your full evaluation | faculty |
 | `assignGrades/{sid}__{sap}` | what one student sees after release | that student (after release), faculty |
 

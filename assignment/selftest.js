@@ -6,6 +6,7 @@ import {
   authorshipWords, mergeCounts, authorshipShares, validSplit, peerSummary, suggestedFactor,
   checkLink, validMobile, validSap, emailDomainOk, parseGroups, effectiveDeadline,
   fmtCountdown, toLocalInput, fromLocalInput, joinCode, JOIN_CODE_RE, totalMarks,
+  parseTopics, assignTopicIds, ownTopicAllowed,
 } from "./common.js";
 import { createGuard } from "./guard.js";
 
@@ -32,6 +33,25 @@ check("JSON sections are normalised with stable ids", () => {
 check("new section ids never reuse an old one", () => eq(nextSectionId(["q1", "q4", "q2"]), "q5"));
 check("starter text becomes headings, paragraphs and bullets", () =>
   eq(starterToHtml("## Intro\nText <b>\n- one\n- two"), "<h3>Intro</h3><p>Text &lt;b&gt;</p><ul><li>one</li><li>two</li></ul>"));
+
+// ---- Topics ----
+check("topics parse with an optional description", () =>
+  eq(parseTopics("Edge caching | Does it cut latency?\nDeepfakes — robust to compression?\nPlain title"),
+    [{ title: "Edge caching", desc: "Does it cut latency?" }, { title: "Deepfakes", desc: "robust to compression?" },
+      { title: "Plain title", desc: "" }]));
+check("JSON topics may be strings or objects", () =>
+  eq(normalizeAssignment({ topics: ["A", { title: "B", description: "d" }], questions: [] }).topics,
+    [{ id: "t1", title: "A", desc: "" }, { id: "t2", title: "B", desc: "d" }]));
+check("editing topics keeps the ids of unchanged titles", () =>
+  eq(assignTopicIds([{ title: "B", desc: "" }, { title: "New", desc: "" }, { title: "a", desc: "x" }],
+    [{ id: "t1", title: "A" }, { id: "t2", title: "B" }, { id: "t5", title: "C" }]).map((t) => t.id),
+  ["t2", "t6", "t1"]));
+check("own topic: only once every listed topic is taken (default)", () => {
+  const topics = [{ id: "t1" }, { id: "t2" }];
+  return !ownTopicAllowed("whenFull", topics, { t1: {} })
+    && ownTopicAllowed("whenFull", topics, { t1: {}, t2: {} })
+    && ownTopicAllowed("always", topics, {}) && !ownTopicAllowed("never", topics, { t1: {}, t2: {} });
+});
 
 // ---- Sanitiser ----
 check("scripts and handlers are stripped", () => {

@@ -8,6 +8,7 @@ import {
   authorshipWords, mergeCounts, authorshipShares, peerSummary, suggestedFactor, checkLink,
   parseRoster, parseDomains, parseGroups, toMillis, effectiveDeadline, fmtDate, fmtMinutes,
   toLocalInput, fromLocalInput, escapeHtml, slug, joinCode, memberColour,
+  parseTopics, topicsToText, assignTopicIds,
   MAX_SECTIONS, GROUP_MIN_LIMIT, GROUP_MAX_LIMIT, TEMPLATE_MAX_BYTES, TEMPLATE_CHUNK_CHARS,
 } from "./common.js";
 import { renderMath } from "./editor.js";
@@ -46,6 +47,7 @@ let editingHasSubs = false;
 // ---- Monitor state ----
 let monA = null;               // assignment being monitored
 let monKey = null;
+let monBoard = null;           // topic board: { taken: { topicId: { sid, gname } } }
 let rows = [];                 // submissions
 let claims = {};               // sap -> claim
 let decls = {};                // sid -> { sap: declaration }
@@ -97,7 +99,7 @@ onUser((user) => {
 function initApp() {
   $("jsonFile").addEventListener("change", onJsonFile);
   $("rosterFile").addEventListener("change", onRosterFile);
-  ["roster", "title", "groups", "gMin", "gMax", "domains"].forEach((id) =>
+  ["roster", "title", "groups", "gMin", "gMax", "domains", "topics"].forEach((id) =>
     $(id).addEventListener("input", refreshForm));
   ["rosterOpen", "gForm"].forEach((id) => $(id).addEventListener("change", refreshForm));
   document.querySelectorAll('input[name="mode"], input[name="tpl"]').forEach((el) =>
@@ -245,6 +247,11 @@ function refreshForm() {
     ? `${questions.length} section(s) · ${totalMarks(questions)} marks`
     : "No sections yet.";
 
+  const nTopics = parseTopics($("topics").value).length;
+  $("topicsInfo").innerHTML = nTopics
+    ? `<b>${nTopics}</b> topic(s). Each group must claim one before writing — first come, first served.`
+    : "Leave empty for no topic selection. With topics, each group (or student) must claim one before writing; a topic claimed by one group is gone for everyone else.";
+
   const roster = parseRoster($("roster").value);
   $("rosterInfo").innerHTML = $("rosterOpen").checked
     ? "<b>Roster check is off</b> — any student with an account may start."
@@ -284,7 +291,8 @@ function resetForm() {
   editingHasSubs = false;
   $("formTitle").textContent = "Create an assignment";
   $("editSelect").value = "";
-  ["title", "course", "instructions", "roster", "groups", "tplUrl", "tplLabel"].forEach((id) => { $(id).value = ""; });
+  ["title", "course", "instructions", "roster", "groups", "tplUrl", "tplLabel", "topics"].forEach((id) => { $(id).value = ""; });
+  $("ownTopic").value = "whenFull";
   $("jsonFile").value = "";
   $("tplFile").value = "";
   $("rosterOpen").checked = false;
@@ -341,6 +349,8 @@ async function loadForEdit(id) {
     $("roster").value = (k.roster || []).join("\n");
     $("rosterOpen").checked = !!k.rosterOpen;
     $("domains").value = (a.emailDomains || []).join(", ");
+    $("topics").value = topicsToText(a.topics);
+    $("ownTopic").value = a.ownTopic || "whenFull";
     setRadio("tpl", a.template?.kind || "none");
     $("tplUrl").value = a.template?.kind === "link" ? a.template.url : "";
     $("tplLabel").value = a.template?.kind === "link" ? (a.template.label || "") : "";
@@ -381,6 +391,10 @@ function onJsonFile(ev) {
       if (norm.title && !$("title").value.trim()) $("title").value = norm.title;
       if (norm.course && !$("course").value.trim()) $("course").value = norm.course;
       if (norm.instructions && !$("instructions").value.trim()) $("instructions").value = norm.instructions;
+      if (norm.topics.length && !$("topics").value.trim()) {
+        $("topics").value = topicsToText(norm.topics);
+        $("ownTopic").value = norm.ownTopic;
+      }
       msg($("createMsg"), `Loaded <b>${norm.questions.length}</b> section(s) worth <b>${totalMarks(norm.questions)}</b> marks. Check them below, then save.`, "ok");
     } catch (e) {
       msg($("createMsg"), "That file could not be read: " + escapeHtml(e.message));
@@ -442,6 +456,21 @@ async function saveAssignment() {
   }
 
   const aid = editingId || `${slug(title)}_${Date.now().toString(36)}`;
+
+  // Topics keep their ids across edits (matched by title), so a group that
+  // already claimed one keeps it. Removing a claimed topic is allowed, but the
+  // group keeps what it chose — say so before it happens.
+  const topics = assignTopicIds(parseTopics($("topics").value), editingA?.topics || []);
+  let boardSnap = null;
+  if (editingId) {
+    try { boardSnap = await getDoc(doc(db, "assignTopicBoards", aid)); } catch (e) { /* none yet */ }
+    const taken = boardSnap?.exists() ? (boardSnap.data().taken || {}) : {};
+    const gone = (editingA?.topics || []).filter((t) => taken[t.id] && !topics.some((x) => x.id === t.id));
+    if (gone.length && !window.confirm(
+      `${gone.length} topic(s) you removed are already claimed:\n\n${gone.map((t) => `• ${t.title} — ${taken[t.id].gname}`).join("\n")}\n\n` +
+      "Those groups keep their topic. Continue?")) return;
+  }
+
   $("saveBtn").disabled = true;
   msg($("createMsg"), "Saving…", "ok");
   try {
@@ -462,6 +491,9 @@ async function saveAssignment() {
       emailDomains: parseDomains($("domains").value),
       questions,
       template,
+      topics,
+      topicIds: topics.map((t) => t.id),       // what the rules check a claim against
+      ownTopic: $("ownTopic").value,
       updatedAt: serverTimestamp(),
     };
     if (!editingHasSubs) {
@@ -474,6 +506,12 @@ async function saveAssignment() {
     }
     if (!editingId) Object.assign(pub, { createdAt: serverTimestamp(), marksReleased: false });
     await setDoc(doc(db, "assignments", aid), pub, { merge: true });
+
+    // The board students claim topics on. Created once; never reset by an edit.
+    if (topics.length && !boardSnap?.exists()) {
+      const existing = await getDoc(doc(db, "assignTopicBoards", aid)).catch(() => null);
+      if (!existing?.exists()) await setDoc(doc(db, "assignTopicBoards", aid), { aid, taken: {}, last: null });
+    }
 
     if (fixedGroups.length) await createFixedGroups(aid, fixedGroups);
 
@@ -565,7 +603,7 @@ async function loadLists(selectId) {
 function startMonitor(aid) {
   monUnsubs.forEach((u) => u());
   monUnsubs = [];
-  monA = null; monKey = null; rows = []; claims = {}; decls = {}; evals = {};
+  monA = null; monKey = null; rows = []; claims = {}; decls = {}; evals = {}; monBoard = null;
   msg($("monitorMsg"), "");
   if (!aid) return;
 
@@ -596,6 +634,17 @@ function startMonitor(aid) {
     snap.docs.forEach((d) => { evals[d.id] = d.data(); });
     renderRows();
   });
+  monUnsubs.push(onSnapshot(doc(db, "assignTopicBoards", aid), (s) => {
+    monBoard = s.exists() ? s.data() : null;
+    renderRows();
+    if (manageId) paintManage();
+  }, () => { monBoard = null; }));
+}
+
+function topicLine(r) {
+  if (!(monA?.topics || []).length) return "";
+  if (!r.topic) return `<br><span class="pill flag" style="font-size:.72rem">no topic yet</span>`;
+  return `<br><span style="font-size:.8rem">📌 ${escapeHtml(r.topic.title)}</span>${r.topic.custom ? ` <span class="pill warnpill" style="font-size:.7rem">own</span>` : ""}`;
 }
 
 function subLabel(r) {
@@ -632,6 +681,9 @@ function renderRows() {
     `${(a.questions || []).length} section(s), ${totalMarks(a.questions)} marks · deadline <b>${fmtDate(toMillis(a.deadline))}</b> · ` +
     `${open ? `<span class="pill live">open</span>` : `<span class="pill muted">closed</span>`}` +
     `${a.marksReleased ? ` <span class="pill done">marks released</span>` : ""} · ` +
+    ((a.topics || []).length
+      ? `topics: <b>${Object.keys(monBoard?.taken || {}).filter((id) => (a.topicIds || []).includes(id)).length} of ${a.topics.length}</b> taken · `
+      : "") +
     `student link: <code>assignment/#a=${escapeHtml(a.id)}</code>`;
 
   const live = rows.filter((r) => r.members && r.members.length);
@@ -657,11 +709,11 @@ function renderRows() {
       `<button class="btn xs" data-act="eval" data-id="${r._id}">${st.key === "draft" || st.key === "forming" ? "View" : "Evaluate"}</button>`,
       `<button class="btn secondary xs" data-act="ext" data-id="${r._id}">Extend</button>`,
     ];
-    if (r.kind === "group") acts.push(`<button class="btn secondary xs" data-act="manage" data-id="${r._id}">Manage</button>`);
+    if (r.kind === "group" || (a.topics || []).length) acts.push(`<button class="btn secondary xs" data-act="manage" data-id="${r._id}">Manage</button>`);
     if (r.status === "submitted") acts.push(`<button class="btn secondary xs" data-act="reopen" data-id="${r._id}">Reopen</button>`);
     else if (st.key === "draft") acts.push(`<button class="btn danger xs" data-act="close" data-id="${r._id}">Mark submitted</button>`);
     return `<tr>
-      <td><b>${escapeHtml(subLabel(r))}</b>${r.kind === "group" ? `<br><span style="font-size:.82rem">${who}</span>` : `<br><span class="mono muted" style="font-size:.78rem">${escapeHtml(r.members[0])}</span>`}</td>
+      <td><b>${escapeHtml(subLabel(r))}</b>${topicLine(r)}${r.kind === "group" ? `<br><span style="font-size:.82rem">${who}</span>` : `<br><span class="mono muted" style="font-size:.78rem">${escapeHtml(r.members[0])}</span>`}</td>
       <td>${st.html}${ext}${r.status === "submitted" ? `<br><span class="muted" style="font-size:.75rem">${fmtDate(toMillis(r.submittedAt))}</span>` : ""}</td>
       <td class="right-align">${words}</td>
       <td>${bar}</td>
@@ -832,7 +884,30 @@ function paintManage() {
   msg($("manageMsg"), "");
   $("manageTitle").textContent = `Manage — ${subLabel(r)}`;
   const hasText = totalWordsOf(r) > 0;
-  $("manageBody").innerHTML = `
+  const taken = monBoard?.taken || {};
+  const freeTopics = (monA.topics || []).filter((t) => !taken[t.id]);
+  const topicHtml = (monA.topics || []).length ? `
+    <h3 style="margin:0 0 6px;font-size:1rem">Topic</h3>
+    ${r.topic
+      ? `<p style="margin:0 0 6px"><b>${escapeHtml(r.topic.title)}</b>${r.topic.custom ? ` <span class="pill warnpill">own topic</span>` : ""}
+          <span class="fine">— chosen by ${escapeHtml(r.topic.byName || r.topic.by || "")}</span></p>
+         ${r.topic.desc ? `<div class="stmt">${escapeHtml(r.topic.desc)}</div>` : ""}
+         <button class="btn secondary sm" data-act="release" style="margin-top:6px">Release topic</button>
+         <span class="fine">The group chooses again${r.topic.custom ? "" : "; the topic becomes free for others"}.</span>`
+      : `<p class="fine" style="margin:0 0 6px">No topic chosen yet.</p>`}
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+      <select id="mgTopic" style="width:auto;max-width:100%">
+        <option value="">Assign a free topic…</option>
+        ${freeTopics.map((t) => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.title)}</option>`).join("")}
+      </select>
+      <button class="btn secondary sm" data-act="assignTopic">Assign</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">` : "";
+  if (r.kind !== "group") {
+    $("manageBody").innerHTML = topicHtml || `<p class="fine">Nothing to manage for an individual submission.</p>`;
+    return;
+  }
+  $("manageBody").innerHTML = `${topicHtml}
     <label for="mgName">Group name</label>
     <div style="display:flex;gap:8px"><input type="text" id="mgName" value="${escapeHtml(r.gname || "")}" maxlength="60" />
       <button class="btn secondary sm" data-act="rename">Rename</button></div>
@@ -902,6 +977,31 @@ async function onManageAction(e) {
       await bt.commit();
     } else if (b.dataset.act === "confirm") {
       await updateDoc(ref, { confirmed: !r.confirmed, actor: "faculty" });
+    } else if (b.dataset.act === "release") {
+      if (!r.topic || !window.confirm(`Release “${r.topic.title}” from ${subLabel(r)}? They will have to choose again.`)) return;
+      const bt = writeBatch(db);
+      bt.update(ref, { topic: deleteField(), actor: "faculty" });
+      if (!r.topic.custom && monBoard?.taken?.[r.topic.id]?.sid === r._id) {
+        bt.update(doc(db, "assignTopicBoards", monA.id), { [`taken.${r.topic.id}`]: deleteField() });
+      }
+      await bt.commit();
+    } else if (b.dataset.act === "assignTopic") {
+      const id = $("mgTopic").value;
+      const t = (monA.topics || []).find((x) => x.id === id);
+      if (!t) return msg($("manageMsg"), "Choose a free topic from the list.");
+      if (r.topic && !window.confirm(`Replace “${r.topic.title}” with “${t.title}”?`)) return;
+      const bt = writeBatch(db);
+      if (r.topic && !r.topic.custom && monBoard?.taken?.[r.topic.id]?.sid === r._id) {
+        bt.update(doc(db, "assignTopicBoards", monA.id), { [`taken.${r.topic.id}`]: deleteField() });
+      }
+      bt.update(doc(db, "assignTopicBoards", monA.id), {
+        [`taken.${id}`]: { sid: r._id, gname: subLabel(r), at: serverTimestamp() },
+      });
+      bt.update(ref, {
+        topic: { id, title: t.title, desc: t.desc || "", custom: false, by: "faculty", byName: "your instructor", at: serverTimestamp() },
+        actor: "faculty",
+      });
+      await bt.commit();
     } else if (b.dataset.act === "delete") {
       if (!window.confirm("Delete this group? Its members become ungrouped.")) return;
       const bt = writeBatch(db);
@@ -910,6 +1010,9 @@ async function onManageAction(e) {
         if (c && c.groupId === r._id) bt.update(doc(db, "assignStudents", c._id), { groupId: null });
         bt.delete(doc(db, "assignGroupIndex", `${monA.id}__${x}`));
       });
+      if (r.topic && !r.topic.custom && monBoard?.taken?.[r.topic.id]?.sid === r._id) {
+        bt.update(doc(db, "assignTopicBoards", monA.id), { [`taken.${r.topic.id}`]: deleteField() });
+      }
       bt.delete(ref);
       await bt.commit();
       $("manageModal").classList.add("hidden");
@@ -976,6 +1079,7 @@ async function openEval(r) {
 
   $("evalTitle").textContent = `${subLabel(r)} — ${a.title}`;
   $("evalMeta").innerHTML =
+    (r.topic ? `📌 <b>${escapeHtml(r.topic.title)}</b>${r.topic.custom ? " (own topic)" : ""}<br>` : "") +
     `${st.html} · ${totalWordsOf(r)} words · ` +
     (r.status === "submitted"
       ? `submitted ${fmtDate(toMillis(r.submittedAt))} by ${escapeHtml(r.memberNames?.[r.submittedBy] || r.submittedBy || "")}`
@@ -1223,7 +1327,7 @@ async function saveEval() {
 // ===========================================================================
 function exportCsv() {
   if (!monA) return;
-  const header = ["Assignment", "Group", "SAP ID", "Name", "Email", "Status", "Submitted", "Words written",
+  const header = ["Assignment", "Group", "Topic", "SAP ID", "Name", "Email", "Status", "Submitted", "Words written",
     "Share %", "Keys typed", "Active min", "Sessions", "Blocked pastes", "Peer %", "Self %",
     "Group mark", "Individual mark", "Max"];
   const lines = [header.map(csv).join(",")];
@@ -1236,7 +1340,8 @@ function exportCsv() {
     r.members.forEach((m) => {
       const s = r.contrib?.[m] || {};
       lines.push([
-        monA.title, r.kind === "group" ? subLabel(r) : "", m, r.memberNames?.[m] || claims[m]?.name || "",
+        monA.title, r.kind === "group" ? subLabel(r) : "",
+        r.topic ? r.topic.title + (r.topic.custom ? " (own)" : "") : "", m, r.memberNames?.[m] || claims[m]?.name || "",
         claims[m]?.email || "", subState(r).key, r.submittedAt ? fmtDate(toMillis(r.submittedAt)) : "",
         counts[m] || 0, r.kind === "group" ? shares[m] : 100, s.typed || 0, Math.round((s.activeSec || 0) / 60),
         s.sessions || 0, s.pastes || 0, peers[m]?.peer ?? "", peers[m]?.self ?? "",
@@ -1275,6 +1380,7 @@ async function downloadReport() {
     const legend = r.members.map((m) => `<span style="margin-right:14px"><span style="display:inline-block;width:10px;height:10px;background:${memberColour(r.members, m)};border-radius:2px"></span>
       ${escapeHtml(r.memberNames?.[m] || m)} (${escapeHtml(m)}) — ${counts[m] || 0} words${r.kind === "group" ? `, ${shares[m]}%` : ""}${ev?.members?.[m] ? ` · mark ${ev.members[m].score}` : ""}</span>`).join("");
     return `<article><h2>${escapeHtml(subLabel(r))}</h2>
+      ${r.topic ? `<p class="meta">Topic: <b>${escapeHtml(r.topic.title)}</b>${r.topic.custom ? " (own topic)" : ""}</p>` : ""}
       <p class="meta">${subState(r).key} ${r.submittedAt ? "· submitted " + fmtDate(toMillis(r.submittedAt)) : ""}
         ${ev ? ` · <b>group mark ${ev.groupScore} / ${ev.maxScore}</b>` : ""}<br>${legend}</p>
       ${(r.links || []).length ? `<p class="meta">Files: ${r.links.map((l) => `<a href="${escapeHtml(checkLink(l.url).url || "")}">${escapeHtml(l.label || l.url)}</a>`).join(" · ")}</p>` : ""}

@@ -57,7 +57,81 @@ export function normalizeAssignment(raw) {
     course: String(src.course || ""),
     instructions: String(src.instructions || ""),
     questions,
+    topics: normalizeTopics(src.topics),
+    ownTopic: OWN_TOPIC_MODES.includes(src.ownTopic) ? src.ownTopic : "whenFull",
   };
+}
+
+// ---------------------------------------------------------------------------
+// Topics (first come, first served)
+// ---------------------------------------------------------------------------
+// An assignment may carry a list of topics. Each group (or student) claims one;
+// a topic claimed by one group is gone for everyone else. When a group may
+// propose a topic of its own instead:
+//   "whenFull" — only once every listed topic has been taken (the default)
+//   "always"   — at any time
+//   "never"    — never; the instructor assigns one by hand
+export const OWN_TOPIC_MODES = ["whenFull", "always", "never"];
+export const MAX_TOPICS = 40;
+
+// Accepts ["Title", …] or [{ title, description }, …]. Ids are given by
+// position here; the dashboard keeps existing ids when an assignment is edited.
+export function normalizeTopics(list) {
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, MAX_TOPICS).map((t, i) => {
+    const o = typeof t === "string" ? { title: t } : (t || {});
+    return {
+      id: o.id != null ? String(o.id) : `t${i + 1}`,
+      title: String(o.title || o.question || "").trim().slice(0, 200),
+      desc: String(o.desc || o.description || "").trim().slice(0, 1000),
+    };
+  }).filter((t) => t.title);
+}
+
+// The dashboard's topic box: one topic per line, an optional description after
+// " | " or " — ".
+//   Federated learning for medical images | Can it match centralised accuracy?
+export function parseTopics(text) {
+  return String(text || "").replace(/\r/g, "").split("\n")
+    .map((line) => line.trim()).filter(Boolean).slice(0, MAX_TOPICS)
+    .map((line) => {
+      const m = /^(.*?)\s+(?:\||—|--)\s+(.*)$/.exec(line);
+      return {
+        title: (m ? m[1] : line).trim().slice(0, 200),
+        desc: (m ? m[2] : "").trim().slice(0, 1000),
+      };
+    }).filter((t) => t.title);
+}
+
+export function topicsToText(topics) {
+  return (topics || []).map((t) => (t.desc ? `${t.title} | ${t.desc}` : t.title)).join("\n");
+}
+
+// Gives edited topics stable ids: a topic whose title is unchanged keeps its
+// old id (so a group that already claimed it keeps it); a new one gets the
+// next free id.
+export function assignTopicIds(parsed, existing) {
+  const byTitle = new Map((existing || []).map((t) => [t.title.trim().toLowerCase(), t.id]));
+  let max = 0;
+  (existing || []).forEach((t) => {
+    const m = /^t(\d+)$/.exec(t.id);
+    if (m) max = Math.max(max, Number(m[1]));
+  });
+  const used = new Set();
+  return parsed.map((t) => {
+    let id = byTitle.get(t.title.trim().toLowerCase());
+    if (!id || used.has(id)) id = `t${++max}`;
+    used.add(id);
+    return { id, title: t.title, desc: t.desc };
+  });
+}
+
+// May this group propose a topic of its own right now?
+export function ownTopicAllowed(mode, topics, taken) {
+  if (mode === "always") return true;
+  if (mode === "never") return false;
+  const ids = (topics || []).map((t) => t.id);
+  return ids.length > 0 && ids.every((id) => taken && taken[id]);
 }
 
 function numOr(v, dflt) {

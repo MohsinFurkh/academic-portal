@@ -236,6 +236,9 @@ service cloud.firestore {
     function subPath(sid) {
       return /databases/$(database)/documents/assignSubs/$(sid);
     }
+    function boardPath(aid) {
+      return /databases/$(database)/documents/assignTopicBoards/$(aid);
+    }
     // A student account: email/password sign-in, and not the faculty account.
     function isStudentAccount() {
       return request.auth != null
@@ -280,6 +283,36 @@ service cloud.firestore {
     match /assignTemplates/{aid}/chunks/{n} {
       allow read:  if request.auth != null;
       allow write: if isAdmin();
+    }
+
+    // Topic board: which topic each group has claimed, first come first
+    // served. One document per assignment, readable by every student so they
+    // can see what is still free:
+    //   taken: { topicId: { sid, gname, at } }
+    //   last:  { topicId, sid }   — the claim this write makes
+    // A student write may ADD exactly one topic that is not on the board yet,
+    // never change or remove one, and only in the same batch that records the
+    // topic on their own group's submission. Two groups clicking at once:
+    // the second write finds the key already present and is refused.
+    match /assignTopicBoards/{aid} {
+      allow read: if request.auth != null;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (isStudentAccount()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['taken', 'last'])
+            && request.resource.data.taken.diff(resource.data.taken).addedKeys().size() == 1
+            && request.resource.data.taken.diff(resource.data.taken).addedKeys()
+                 .hasOnly([request.resource.data.last.topicId])
+            && request.resource.data.taken.diff(resource.data.taken).changedKeys().size() == 0
+            && request.resource.data.taken.diff(resource.data.taken).removedKeys().size() == 0
+            && asgDoc(aid).get('topicIds', []).hasAny([request.resource.data.last.topicId])
+            && request.resource.data.taken[request.resource.data.last.topicId].sid
+                 == request.resource.data.last.sid
+            && get(subPath(request.resource.data.last.sid)).data.memberUids
+                 .hasAny([request.auth.uid])
+            && getAfter(subPath(request.resource.data.last.sid)).data.aid == aid
+            && getAfter(subPath(request.resource.data.last.sid)).data.topic.id
+                 == request.resource.data.last.topicId);
     }
 
     // Teacher-defined groups: {aid}__{sap} -> the group's id, so a student can
@@ -425,6 +458,9 @@ service cloud.firestore {
           && (request.resource.data.status == 'draft'
               || request.resource.data.submittedBy == actor())
           && beforeDeadline()
+          // An assignment with a topic list is written only once a topic is chosen.
+          && (asgDoc(resource.data.aid).get('topicIds', []).size() == 0
+              || resource.data.get('topic', null) != null)
           && changed().hasOnly(['answers', 'wordCounts', 'locks', 'links', 'contrib',
                                 'lastEditAt', 'lastEditBy', 'actor', 'status',
                                 'submittedAt', 'submittedBy', 'revCount'])
@@ -498,8 +534,40 @@ service cloud.firestore {
           && resource.data.members.size() == resource.data.memberUids.size();
       }
 
+      // Choosing the topic: once, by any member, before the deadline. A listed
+      // topic must be claimed on the board in the same batch; a topic of the
+      // group's own is allowed only when the assignment permits it — by
+      // default, once every listed topic has been taken.
+      function topicUpdate() {
+        return isStudentAccount() && isMember()
+          && resource.data.members.hasAny([actor()])
+          && ownsClaim(resource.data.aid, actor())
+          && resource.data.confirmed == true
+          && resource.data.status == 'draft'
+          && beforeDeadline()
+          && resource.data.get('topic', null) == null
+          && changed().hasOnly(['topic', 'actor'])
+          && request.resource.data.topic.keys().hasOnly(['id', 'title', 'desc', 'custom',
+                                                         'by', 'byName', 'at'])
+          && request.resource.data.topic.by == actor()
+          && request.resource.data.topic.title is string
+          && request.resource.data.topic.title.size() >= 5
+          && request.resource.data.topic.title.size() <= 200
+          && request.resource.data.topic.desc is string
+          && request.resource.data.topic.desc.size() <= 2000
+          && ((request.resource.data.topic.custom == false
+               && getAfter(boardPath(resource.data.aid)).data.taken[request.resource.data.topic.id].sid
+                    == sid)
+            || (request.resource.data.topic.custom == true
+               && request.resource.data.topic.id == 'own'
+               && (asgDoc(resource.data.aid).get('ownTopic', 'whenFull') == 'always'
+                   || (asgDoc(resource.data.aid).get('ownTopic', 'whenFull') == 'whenFull'
+                       && get(boardPath(resource.data.aid)).data.taken.size()
+                            >= asgDoc(resource.data.aid).get('topicIds', []).size()))));
+      }
+
       allow update: if isAdmin() || workUpdate() || joinUpdate()
-                    || attachUpdate() || leaveUpdate() || confirmUpdate();
+                    || attachUpdate() || leaveUpdate() || confirmUpdate() || topicUpdate();
       allow delete: if isAdmin();
 
       // Edit history: one immutable entry per editing session, with a
