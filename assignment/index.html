@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assignments — UPES</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="topbar">
+    <h1>Assignments &mdash; UPES</h1>
+    <span class="right" id="whoami"></span>
+  </div>
+
+  <!-- short-lived messages (saved, copied, lock taken, …) -->
+  <div id="toast" class="toast hidden"></div>
+
+  <div class="wrap" id="mainWrap">
+
+    <!-- Modules do not run from file://, but this plain script does. -->
+    <script>
+      if (location.protocol === "file:") {
+        document.write(
+          '<div class="notice err"><b>This page must be opened over http, not as a file.</b><br>' +
+          'Please use the link your instructor gave you — ' +
+          '<code>https://mohsinfurkh.github.io/academic-portal/assignment/</code></div>'
+        );
+      }
+    </script>
+
+    <div id="bootView" class="card"><p class="muted" style="margin:0">Connecting…</p></div>
+
+    <!-- ============ Sign in / create account ============ -->
+    <section id="authView" class="card auth-card hidden">
+      <h2>Student sign-in</h2>
+      <p class="sub">Assignments use a personal account, so you can work from any device
+        and your group can work together. It is separate from the quiz and class-test pages.</p>
+      <div class="tabs" role="tablist">
+        <button class="tab on" id="tabSignIn" role="tab">Sign in</button>
+        <button class="tab" id="tabRegister" role="tab">Create account</button>
+      </div>
+      <div id="authMsg"></div>
+
+      <div id="signInForm">
+        <label for="inEmail">College email</label>
+        <input type="email" id="inEmail" autocomplete="username" placeholder="you@stu.upes.ac.in" />
+        <label for="inPass">Password</label>
+        <input type="password" id="inPass" autocomplete="current-password" />
+        <button class="btn block" id="signInBtn" style="margin-top:16px">Sign in</button>
+        <p class="fine"><button class="linkbtn" id="forgotBtn">Forgot password?</button></p>
+      </div>
+
+      <div id="registerForm" class="hidden">
+        <label for="regName">Full name</label>
+        <input type="text" id="regName" autocomplete="name" placeholder="As on your university record" />
+        <div class="row">
+          <div class="col">
+            <label for="regSap">SAP ID</label>
+            <input type="text" id="regSap" inputmode="numeric" placeholder="e.g. 500098765" />
+          </div>
+          <div class="col">
+            <label for="regMobile">Mobile number</label>
+            <input type="text" id="regMobile" inputmode="tel" placeholder="10-digit number" />
+          </div>
+        </div>
+        <label for="regEmail">College email</label>
+        <input type="email" id="regEmail" autocomplete="username" placeholder="you@stu.upes.ac.in" />
+        <div class="row">
+          <div class="col">
+            <label for="regPass">Password</label>
+            <input type="password" id="regPass" autocomplete="new-password" placeholder="At least 8 characters" />
+          </div>
+          <div class="col">
+            <label for="regPass2">Repeat password</label>
+            <input type="password" id="regPass2" autocomplete="new-password" />
+          </div>
+        </div>
+        <p class="fine">Your SAP ID <b>cannot be changed</b> after the account is created, and it
+          can be linked to only one account per assignment. Check it carefully.</p>
+        <button class="btn block" id="registerBtn" style="margin-top:14px">Create account</button>
+      </div>
+    </section>
+
+    <!-- ============ Complete profile (account exists, profile missing) ============ -->
+    <section id="profileView" class="card auth-card hidden">
+      <h2>Complete your profile</h2>
+      <p class="sub">These details are recorded with every assignment you submit.</p>
+      <div id="profileMsg"></div>
+      <label for="pfName">Full name</label>
+      <input type="text" id="pfName" />
+      <div class="row">
+        <div class="col">
+          <label for="pfSap">SAP ID</label>
+          <input type="text" id="pfSap" inputmode="numeric" />
+        </div>
+        <div class="col">
+          <label for="pfMobile">Mobile number</label>
+          <input type="text" id="pfMobile" inputmode="tel" />
+        </div>
+      </div>
+      <button class="btn block" id="profileBtn" style="margin-top:16px">Save and continue</button>
+    </section>
+
+    <!-- ============ My assignments ============ -->
+    <section id="homeView" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+        <h2 style="margin:0 0 12px">My assignments</h2>
+        <button class="btn secondary sm" id="refreshBtn">Refresh</button>
+      </div>
+      <div id="homeMsg"></div>
+      <div id="asgList" class="asg-list"></div>
+    </section>
+
+    <!-- ============ Workspace ============ -->
+    <section id="workView" class="hidden">
+      <div class="ws-head">
+        <div>
+          <div class="ws-title" id="wsTitle"></div>
+          <div class="ws-sub" id="wsSub"></div>
+        </div>
+        <div class="ws-actions">
+          <span class="save-state" id="saveState"></span>
+          <span class="countdown" id="countdown" title="Time left before the deadline">--</span>
+          <button class="btn secondary sm" id="backupBtn" title="Download a copy of the work as it is now">Download</button>
+          <button class="btn danger sm" id="submitBtn">Submit</button>
+        </div>
+      </div>
+
+      <p style="margin:-6px 0 12px"><button class="linkbtn" id="backBtn">← All assignments</button></p>
+      <div id="wsBanner"></div>
+
+      <!-- The brief -->
+      <div class="card">
+        <h2 id="briefTitle"></h2>
+        <div class="kv" id="briefKv"></div>
+        <div id="briefInstr" class="brief" style="margin-top:10px"></div>
+        <div id="briefTemplate" style="margin-top:12px"></div>
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;font-weight:600;color:var(--primary)">How this works</summary>
+          <ol class="fine" style="font-size:.88rem;line-height:1.6;margin-top:8px">
+            <li>Everything you type is <b>saved automatically</b> and you can continue from any
+              device by signing in again.</li>
+            <li><b>Answers must be typed here.</b> Pasting or dropping text from outside this page
+              is blocked and every attempt is recorded. Cut, copy and paste still work
+              <b>inside</b> the assignment for your own text.</li>
+            <li>Images, code, data and other files go in your own <b>Google Drive, OneDrive,
+              Dropbox or GitHub</b>. Share them as <i>“anyone with the link can view”</i> and add
+              the link under <b>Supplementary files</b>. Nothing is uploaded here.</li>
+            <li>In a group, <b>one member edits a section at a time</b>. Click a section to start
+              editing it; your team-mates see your changes live and it is freed when you stop.</li>
+            <li>Your instructor sees <b>who wrote each paragraph</b>, each member’s typing and
+              editing history, and every member’s private contribution declaration.</li>
+            <li>At the deadline the assignment <b>closes automatically</b>. Whatever is saved at
+              that moment is what your instructor receives, even if nobody pressed Submit.</li>
+          </ol>
+        </details>
+      </div>
+
+      <!-- Group formation / members -->
+      <div class="card hidden" id="groupCard"></div>
+
+      <!-- Sections -->
+      <div id="sections"></div>
+
+      <!-- Supplementary links -->
+      <div class="card hidden" id="linksCard">
+        <h2>Supplementary files</h2>
+        <p class="sub">Put images, code, datasets or anything else in your own cloud drive and add
+          the link here. Set sharing to <b>anyone with the link can view</b> — your instructor
+          cannot request access. Accepted: Google Drive/Docs, OneDrive/SharePoint, Dropbox, Box,
+          GitHub/GitLab, Kaggle, Colab, Overleaf, YouTube and similar.</p>
+        <ul class="link-list" id="linkList"></ul>
+        <div class="link-add" id="linkAdd">
+          <div>
+            <label for="linkUrl">Link</label>
+            <input type="text" id="linkUrl" class="allow-paste" placeholder="https://drive.google.com/…" autocomplete="off" />
+          </div>
+          <div>
+            <label for="linkLabel">What is it?</label>
+            <input type="text" id="linkLabel" maxlength="80" placeholder="e.g. Circuit diagrams" />
+          </div>
+          <button class="btn secondary" id="linkAddBtn">Add link</button>
+        </div>
+        <label class="chk-line" id="linkShareWrap"><input type="checkbox" id="linkShared" />
+          I have set this link to “anyone with the link can view”.</label>
+      </div>
+
+      <!-- Contribution (group) -->
+      <div class="card hidden" id="contribCard">
+        <h2>Contribution</h2>
+        <p class="sub">Measured by this page, not typed by anyone. Visible to every member of the
+          group and to your instructor. <b>Words written</b> counts the words in the current text
+          under each member’s name — the member who last typed in a paragraph owns it.</p>
+        <div style="overflow-x:auto"><table class="contrib-table" id="contribTable"></table></div>
+      </div>
+
+      <!-- Declaration (group) -->
+      <div class="card hidden" id="declCard">
+        <h2>Your contribution declaration</h2>
+        <p class="sub">Private: only you and your instructor can see this — team-mates never
+          see how you rated them. Split 100% of the work between the members as you honestly
+          see it, and describe what <b>you</b> did. You can change it until
+          <b id="declUntil"></b>.</p>
+        <div id="declMsg"></div>
+        <div class="split-grid" id="splitGrid"></div>
+        <label for="declStmt">What I did</label>
+        <textarea id="declStmt" rows="4" maxlength="4000"
+          placeholder="e.g. I wrote the literature review (Section 2), designed the experiment in Section 3 with Rahul, and built the charts linked below."></textarea>
+        <div class="fine" id="declWords"></div>
+        <button class="btn secondary" id="declSaveBtn" style="margin-top:10px">Save declaration</button>
+      </div>
+
+      <!-- Marks (after release) -->
+      <div class="card hidden" id="gradeCard"></div>
+
+      <div class="card" id="submitCard">
+        <div class="progress-dots" id="dots"></div>
+        <button class="btn block" id="submitBtn2" style="margin-top:16px">Submit assignment</button>
+        <button class="btn secondary block" id="backupBtn2" style="margin-top:10px">Download a copy (backup)</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Submit confirmation (in-page, not window.confirm) -->
+  <div id="submitModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Submit this assignment?</h3>
+      <p class="sub" id="submitWho"></p>
+      <div id="submitWarn"></div>
+      <ul class="checklist" id="submitChecks"></ul>
+      <div class="modal-actions">
+        <button class="btn secondary" id="submitCancel">Not yet</button>
+        <button class="btn" id="submitGo" disabled>Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Faculty-style small dialog used for confirmations -->
+  <div id="askModal" class="modal hidden">
+    <div class="modal-box" style="max-width:520px">
+      <h3 id="askTitle"></h3>
+      <p id="askBody" style="margin:8px 0 0"></p>
+      <div class="modal-actions">
+        <button class="btn secondary" id="askNo">Cancel</button>
+        <button class="btn" id="askYes">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="student.js"></script>
+</body>
+
+</html>

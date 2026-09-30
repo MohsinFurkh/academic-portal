@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assignments — Faculty Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="topbar">
+    <h1>Assignments — Faculty Dashboard</h1>
+    <span class="right">
+      <span id="whoAdmin" class="muted" style="color:#dfe6ec;margin-right:12px"></span>
+      <a href="index.html" style="color:#fff">Student view →</a>
+    </span>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <div class="wrap wide">
+
+    <script>
+      if (location.protocol === "file:") {
+        document.write(
+          '<div class="notice err" style="max-width:640px;margin:40px auto">' +
+          '<b>Open this page over http, not as a file.</b><br>' +
+          'Browsers block JavaScript modules on <code>file://</code>, so every button on ' +
+          'this page is dead. Use the published address ' +
+          '<code>https://mohsinfurkh.github.io/academic-portal/assignment/admin.html</code>, ' +
+          'or run <code>python3 -m http.server 8123</code> in the project folder and open ' +
+          '<code>http://localhost:8123/assignment/admin.html</code>.</div>'
+        );
+      }
+    </script>
+
+    <!-- Sign in -->
+    <section id="gateView" class="card" style="max-width:440px;margin:40px auto">
+      <h2>Faculty Sign-in</h2>
+      <p class="sub">Same faculty account as the quiz and class-test dashboards. Access is
+        enforced by Firestore rules, not by this page.</p>
+      <div id="gateMsg"></div>
+      <label for="email">Email</label>
+      <input type="text" id="email" placeholder="you@example.com" autocomplete="username" />
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
+      <button class="btn block" id="gateBtn" style="margin-top:16px">Sign in</button>
+    </section>
+
+    <div id="app" class="hidden">
+
+      <!-- ================= Create / edit ================= -->
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <h2 style="margin:0" id="formTitle">Create an assignment</h2>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="editSelect" style="width:auto">
+              <option value="">Edit an existing assignment…</option>
+            </select>
+            <button class="btn secondary sm" id="newBtn">New assignment</button>
+          </div>
+        </div>
+        <p class="sub" style="margin-top:6px">Write the sections here, or load them from a JSON file.
+          Marking schemes are stored in a separate faculty-only document — students never receive them.</p>
+        <div id="createMsg"></div>
+
+        <label for="jsonFile">Sections JSON (optional — fills the form below)</label>
+        <input type="file" id="jsonFile" accept="application/json,.json" />
+        <div class="sub" style="margin:4px 0 0">
+          Format: <code>{ "title": "...", "course": "...", "instructions": "...", "questions":
+            [ { "question": "...", "marks": 10, "minWords": 300, "maxWords": 800, "guidance": "...",
+            "starter": "## Introduction\n...", "modelAnswer": "..." } ] }</code>
+        </div>
+
+        <label for="title">Title</label>
+        <input type="text" id="title" placeholder="e.g. CSEG3060 Assignment 1 — Literature survey" />
+        <label for="course">Course (optional)</label>
+        <input type="text" id="course" placeholder="e.g. Research Methodology for CS" />
+        <label for="instructions">Instructions / brief shown to students</label>
+        <textarea id="instructions" rows="4"
+          placeholder="What students must do, how it is assessed, referencing style, anything else."></textarea>
+
+        <div class="row">
+          <div class="col">
+            <label for="deadline">Deadline</label>
+            <input type="datetime-local" id="deadline" />
+            <div class="fine" id="deadlineHint">In your computer's time zone.</div>
+          </div>
+          <div class="col">
+            <label for="active">Status</label>
+            <select id="active">
+              <option value="true">Open (students can work)</option>
+              <option value="false">Closed</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="listed">Visible to students</label>
+            <select id="listed">
+              <option value="true">Listed</option>
+              <option value="false">Hidden</option>
+            </select>
+          </div>
+        </div>
+
+        <fieldset class="box" id="modeBox">
+          <legend>Individual or group</legend>
+          <div class="radio-row">
+            <label><input type="radio" name="mode" value="individual" checked /> Individual</label>
+            <label><input type="radio" name="mode" value="group" /> Group</label>
+          </div>
+          <div id="groupOpts" class="hidden">
+            <div class="row">
+              <div class="col">
+                <label for="gMin">Smallest group</label>
+                <input type="number" id="gMin" value="2" min="2" max="6" />
+              </div>
+              <div class="col">
+                <label for="gMax">Largest group</label>
+                <input type="number" id="gMax" value="4" min="2" max="6" />
+              </div>
+              <div class="col">
+                <label for="gForm">How groups are formed</label>
+                <select id="gForm">
+                  <option value="self">Students form their own (join codes)</option>
+                  <option value="fixed">I set the groups</option>
+                </select>
+              </div>
+            </div>
+            <div id="fixedBox" class="hidden">
+              <label for="groups">Groups — one per line, <code>Name: SAP, SAP, SAP</code></label>
+              <textarea id="groups" rows="5"
+                placeholder="Team Alpha: 500101 500102 500103&#10;Team Beta: 500104, 500105&#10;500106 500107 500108"></textarea>
+              <div class="fine" id="groupsInfo"></div>
+            </div>
+          </div>
+          <div class="fine" id="modeLock"></div>
+        </fieldset>
+
+        <fieldset class="box">
+          <legend>Who may take it</legend>
+          <label for="roster" style="margin-top:6px">Allowed SAP IDs (roster)</label>
+          <textarea id="roster" rows="3"
+            placeholder="Paste SAP IDs — separated by spaces, commas or new lines."></textarea>
+          <div class="fine" id="rosterInfo"></div>
+          <input type="file" id="rosterFile" accept=".txt,.csv,text/plain,text/csv" style="margin-top:6px" />
+          <label class="chk-line"><input type="checkbox" id="rosterOpen" /> Allow <b>any</b> student with an
+            account (no roster check)</label>
+          <label for="domains">Allowed email domains (exact match)</label>
+          <input type="text" id="domains" value="stu.upes.ac.in, ddn.upes.ac.in"
+            placeholder="leave blank to accept any email address" />
+        </fieldset>
+
+        <fieldset class="box">
+          <legend>Template (optional)</legend>
+          <div class="radio-row">
+            <label><input type="radio" name="tpl" value="none" checked /> None</label>
+            <label><input type="radio" name="tpl" value="file" /> Upload a file</label>
+            <label><input type="radio" name="tpl" value="link" /> Link to a file</label>
+          </div>
+          <div id="tplFileBox" class="hidden">
+            <input type="file" id="tplFile" />
+            <div class="fine" id="tplFileInfo">Word, PDF, LaTeX, slides, a zip — up to 4 MB. Students
+              download it from the brief.</div>
+          </div>
+          <div id="tplLinkBox" class="hidden">
+            <div class="row">
+              <div class="col" style="flex:2 1 300px">
+                <label for="tplUrl">Link (Google Drive, OneDrive, Overleaf, GitHub…)</label>
+                <input type="text" id="tplUrl" placeholder="https://…" />
+              </div>
+              <div class="col">
+                <label for="tplLabel">Label</label>
+                <input type="text" id="tplLabel" placeholder="e.g. IEEE report template" />
+              </div>
+            </div>
+          </div>
+          <div class="fine">Each section below can also carry <b>starter text</b> — headings or prompts
+            that appear in the students' editor before they type.</div>
+        </fieldset>
+
+        <h3 style="margin:22px 0 6px;font-size:1rem;color:var(--primary)">Sections</h3>
+        <div id="qbuild"></div>
+        <button class="btn secondary sm" id="addQBtn">+ Add section</button>
+        <span class="sub" id="qTotals" style="margin-left:12px"></span>
+
+        <button class="btn block" id="saveBtn" style="margin-top:18px">Save assignment</button>
+      </section>
+
+      <!-- ================= Monitor ================= -->
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <h2 style="margin:0">Submissions &amp; evaluation</h2>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="monitorSel" style="width:auto"></select>
+            <button class="btn secondary sm" id="toggleOpenBtn">Close</button>
+            <button class="btn secondary sm" id="releaseBtn">Release marks</button>
+            <button class="btn secondary sm" id="reportBtn">Download all</button>
+            <button class="btn secondary sm" id="exportBtn">Export CSV</button>
+          </div>
+        </div>
+        <p class="sub" id="monitorSub" style="margin-top:8px"></p>
+        <div id="monitorMsg"></div>
+
+        <div class="stat-grid" style="margin:14px 0">
+          <div class="stat"><div class="n" id="sRoster">0</div><div class="l">On roster</div></div>
+          <div class="stat"><div class="n" id="sLinked">0</div><div class="l">Signed in</div></div>
+          <div class="stat"><div class="n" id="sSubs">0</div><div class="l" id="sSubsL">Submissions</div></div>
+          <div class="stat"><div class="n" id="sDone">0</div><div class="l">Submitted</div></div>
+          <div class="stat"><div class="n" id="sClosed">0</div><div class="l">Closed at deadline</div></div>
+          <div class="stat"><div class="n" id="sGraded">0</div><div class="l">Evaluated</div></div>
+          <div class="stat"><div class="n" id="sAvg">–</div><div class="l">Average mark</div></div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Group / student</th>
+                <th>Status</th>
+                <th class="right-align">Words</th>
+                <th>Who wrote it</th>
+                <th>Last edit</th>
+                <th class="right-align">Decl.</th>
+                <th class="right-align">Links</th>
+                <th class="right-align">Mark</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="9" class="muted">Select an assignment.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <details style="margin-top:16px" id="rosterDetails">
+          <summary style="cursor:pointer;font-weight:600;color:var(--primary)">Students who have not
+            started, or are not in a group <span id="strayCount" class="pill muted"></span></summary>
+          <div style="overflow-x:auto;margin-top:8px"><table id="strayTable"></table></div>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <!-- ================= Evaluation ================= -->
+  <div id="evalModal" class="modal hidden">
+    <div class="modal-box wide">
+      <h3 id="evalTitle">Evaluate</h3>
+      <p class="sub" id="evalMeta"></p>
+      <div id="evalBody"></div>
+      <div class="score-bar">
+        <div class="tot">Group total: <span id="evalTotal">0</span> / <span id="evalMax">0</span></div>
+        <div style="display:flex;gap:10px">
+          <button type="button" class="btn secondary" id="evalCancel">Close</button>
+          <button type="button" class="btn" id="evalSave">Save marks</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Manage group ================= -->
+  <div id="manageModal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="manageTitle">Manage group</h3>
+      <div id="manageMsg"></div>
+      <div id="manageBody"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" id="manageClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Extension ================= -->
+  <div id="extModal" class="modal hidden">
+    <div class="modal-box" style="max-width:520px">
+      <h3 id="extTitle">Extend the deadline</h3>
+      <p class="sub" id="extSub"></p>
+      <label for="extUntil">New deadline for this submission only</label>
+      <input type="datetime-local" id="extUntil" />
+      <label class="chk-line" id="extReopenWrap"><input type="checkbox" id="extReopen" /> Also reopen it
+        for editing (it is currently submitted)</label>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" id="extClear">Remove extension</button>
+        <button type="button" class="btn secondary" id="extCancel">Cancel</button>
+        <button type="button" class="btn" id="extSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+
+</html>

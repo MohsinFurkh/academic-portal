@@ -206,5 +206,372 @@ service cloud.firestore {
         allow update, delete: if isAdmin();
       }
     }
+
+    // =====================================================================
+    // Assignments  —  assignment/
+    // =====================================================================
+    // Students here sign in with a real account (email + password) rather
+    // than an anonymous browser session: an assignment is worked on for days,
+    // from more than one device, and by more than one person.
+    //
+    // Identity chain, checked on every write:
+    //   account (uid) -> profile (SAP ID, fixed once set)
+    //                 -> claim  assignStudents/{aid}__{sap}  (one account per SAP ID)
+    //                 -> submission  assignSubs/{sid}  (members + their uids)
+    // Every student write carries `actor` = the writer's SAP ID, and the rules
+    // check that this account owns the claim on that SAP ID. So nobody can
+    // type, declare or submit under a team-mate's name.
+    //
+    // All timing uses request.time (the server's clock), never the device's.
+
+    function asgDoc(aid) {
+      return get(/databases/$(database)/documents/assignments/$(aid)).data;
+    }
+    function asgKeyDoc(aid) {
+      return get(/databases/$(database)/documents/assignmentKeys/$(aid)).data;
+    }
+    function claimPath(aid, sap) {
+      return /databases/$(database)/documents/assignStudents/$(aid + '__' + sap);
+    }
+    function subPath(sid) {
+      return /databases/$(database)/documents/assignSubs/$(sid);
+    }
+    // A student account: email/password sign-in, and not the faculty account.
+    function isStudentAccount() {
+      return request.auth != null
+             && request.auth.token.firebase.sign_in_provider == 'password'
+             && !isAdmin();
+    }
+    // This account holds the claim on SAP ID `sap` for assignment `aid`.
+    function ownsClaim(aid, sap) {
+      return sap is string
+             && exists(claimPath(aid, sap))
+             && get(claimPath(aid, sap)).data.uid == request.auth.uid;
+    }
+    // Open for new work: switched on, and before the deadline.
+    function asgAccepting(aid) {
+      return asgDoc(aid).active == true && request.time < asgDoc(aid).deadline;
+    }
+    function asgRosterOk(aid, sap) {
+      return exists(/databases/$(database)/documents/assignmentKeys/$(aid))
+             && (asgKeyDoc(aid).get('rosterOpen', false) == true
+                 || asgKeyDoc(aid).get('roster', []).hasAny([sap]));
+    }
+    // Exact match on the part after "@", as the page checks it.
+    function asgDomainOk(aid) {
+      return asgDoc(aid).get('emailDomains', []).size() == 0
+             || asgDoc(aid).get('emailDomains', [])
+                  .hasAny([request.auth.token.email.split('@')[1]]);
+    }
+
+    // Public: the brief, the sections, the deadline. No marking scheme.
+    match /assignments/{aid} {
+      allow read:  if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Roster + marking scheme. Faculty only.
+    match /assignmentKeys/{aid} {
+      allow read, write: if isAdmin();
+    }
+
+    // The faculty's template file, in base64 chunks (there is no Storage
+    // bucket). Readable by anyone signed in, like the brief itself.
+    match /assignTemplates/{aid}/chunks/{n} {
+      allow read:  if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Teacher-defined groups: {aid}__{sap} -> the group's id, so a student can
+    // find their group without being able to list everyone's. Knowing a group
+    // id grants nothing by itself (see assignSubs below).
+    match /assignGroupIndex/{id} {
+      allow get:         if request.auth != null;
+      allow list, write: if isAdmin();
+    }
+
+    // A student's profile. The SAP ID cannot be changed once set — only the
+    // faculty can correct it.
+    match /assignProfiles/{uid} {
+      function profileOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['name', 'sapId', 'mobile', 'email', 'createdAt', 'seenAt'])
+               && d.email == request.auth.token.email
+               && d.sapId is string && d.sapId.matches('^[A-Za-z0-9]{3,20}$')
+               && d.name is string && d.name.size() >= 2 && d.name.size() <= 80
+               && d.mobile is string && d.mobile.size() <= 15;
+      }
+      allow read:   if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow create: if isStudentAccount() && request.auth.uid == uid && profileOk();
+      allow update: if isAdmin()
+                    || (isStudentAccount() && request.auth.uid == uid && profileOk()
+                        && request.resource.data.sapId == resource.data.sapId);
+      allow delete: if isAdmin();
+    }
+
+    // Claim: binds one SAP ID to one account for one assignment. Create-only
+    // for the student; the faculty can delete it to let the student re-bind
+    // (a lost password, or someone who claimed an ID that is not theirs).
+    match /assignStudents/{cid} {
+      allow get: if isAdmin()
+                 || (request.auth != null && resource == null)
+                 || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow list: if isAdmin();
+
+      allow create: if isStudentAccount()
+        && request.resource.data.keys().hasOnly(['aid', 'sapId', 'uid', 'name', 'email',
+                                                 'mobile', 'groupId', 'createdAt'])
+        && cid == request.resource.data.aid + '__' + request.resource.data.sapId
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.groupId == null
+        && get(/databases/$(database)/documents/assignProfiles/$(request.auth.uid))
+             .data.sapId == request.resource.data.sapId
+        && asgAccepting(request.resource.data.aid)
+        && asgRosterOk(request.resource.data.aid, request.resource.data.sapId)
+        && asgDomainOk(request.resource.data.aid);
+
+      // The only thing a student changes on their claim is which group it
+      // points to — and only in the same batch that actually puts them into
+      // (or takes them out of) that group.
+      allow update: if isAdmin()
+        || (isStudentAccount()
+            && resource.data.uid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['groupId'])
+            && ((resource.data.groupId == null
+                 && request.resource.data.groupId is string
+                 && getAfter(subPath(request.resource.data.groupId)).data.aid == resource.data.aid
+                 && getAfter(subPath(request.resource.data.groupId)).data.members
+                      .hasAny([resource.data.sapId])
+                 && getAfter(subPath(request.resource.data.groupId)).data.memberUids
+                      .hasAny([request.auth.uid]))
+             || (resource.data.groupId != null
+                 && request.resource.data.groupId == null
+                 && !getAfter(subPath(resource.data.groupId)).data.members
+                      .hasAny([resource.data.sapId]))));
+      allow delete: if isAdmin();
+    }
+
+    // The submission: one per student (individual) or one per group.
+    match /assignSubs/{sid} {
+      function isMember() {
+        return request.auth != null && resource.data.memberUids.hasAny([request.auth.uid]);
+      }
+      function actor() {
+        return request.resource.data.actor;
+      }
+      function changed() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+      // Open for this submission: the assignment is switched on (closing it
+      // stops everyone at once, extensions included), and it is before the
+      // deadline or before an extension granted to this submission.
+      function beforeDeadline() {
+        return asgDoc(resource.data.aid).active == true
+               && (request.time < asgDoc(resource.data.aid).deadline
+                   || (resource.data.get('extensionUntil', null) != null
+                       && request.time < resource.data.extensionUntil));
+      }
+
+      // Members read their own submission. A group still forming may be read
+      // by whoever has its join code (the code IS the document id), so they
+      // can see who is in it before joining.
+      allow get: if isAdmin()
+                 || (request.auth != null && resource == null)
+                 || isMember()
+                 || (isStudentAccount() && resource.data.kind == 'group'
+                     && resource.data.confirmed == false);
+      allow list: if isAdmin();
+
+      // Starting: your own individual submission, or a new self-formed group
+      // with you as its leader — in the same batch that points your claim at it.
+      allow create: if isStudentAccount()
+        && request.resource.data.keys().hasOnly(['aid', 'kind', 'formation', 'gname', 'members',
+             'memberUids', 'memberNames', 'leader', 'confirmed', 'status', 'answers',
+             'wordCounts', 'locks', 'links', 'contrib', 'createdAt',
+             'lastEditAt', 'lastEditBy', 'actor', 'revCount'])
+        && request.resource.data.status == 'draft'
+        && request.resource.data.members == [actor()]
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.contrib is map
+        && request.resource.data.links is list
+        && asgAccepting(request.resource.data.aid)
+        && ownsClaim(request.resource.data.aid, actor())
+        && get(claimPath(request.resource.data.aid, actor())).data.groupId == null
+        && getAfter(claimPath(request.resource.data.aid, actor())).data.groupId == sid
+        && ((asgDoc(request.resource.data.aid).mode == 'individual'
+             && request.resource.data.kind == 'individual'
+             && request.resource.data.confirmed == true
+             && sid == request.resource.data.aid + '__' + actor())
+          || (asgDoc(request.resource.data.aid).mode == 'group'
+             && asgDoc(request.resource.data.aid).groupFormation == 'self'
+             && request.resource.data.kind == 'group'
+             && request.resource.data.formation == 'self'
+             && request.resource.data.confirmed == false
+             && request.resource.data.leader == actor()
+             && sid.matches(request.resource.data.aid + '__g_[a-hj-km-np-z2-9]{8}')));
+
+      // Writing: members only, in their own name, before the deadline (or the
+      // extension granted to this submission), while it is still a draft.
+      // Contribution statistics are per member, and each member can only
+      // touch their own.
+      function workUpdate() {
+        return isStudentAccount() && isMember()
+          && resource.data.members.hasAny([actor()])
+          && ownsClaim(resource.data.aid, actor())
+          && resource.data.confirmed == true
+          && resource.data.status == 'draft'
+          && request.resource.data.status in ['draft', 'submitted']
+          && (request.resource.data.status == 'draft'
+              || request.resource.data.submittedBy == actor())
+          && beforeDeadline()
+          && changed().hasOnly(['answers', 'wordCounts', 'locks', 'links', 'contrib',
+                                'lastEditAt', 'lastEditBy', 'actor', 'status',
+                                'submittedAt', 'submittedBy', 'revCount'])
+          && request.resource.data.contrib.diff(resource.data.contrib)
+               .affectedKeys().hasOnly([actor()])
+          && request.resource.data.links.size() <= 12;
+      }
+
+      // Joining a self-formed group that is still open, with its code.
+      function joinUpdate() {
+        return isStudentAccount()
+          && resource.data.kind == 'group'
+          && resource.data.confirmed == false
+          && !resource.data.memberUids.hasAny([request.auth.uid])
+          && asgAccepting(resource.data.aid)
+          && changed().hasOnly(['members', 'memberUids', 'memberNames', 'actor'])
+          && request.resource.data.members == resource.data.members.concat([actor()])
+          && request.resource.data.memberUids
+               == resource.data.memberUids.concat([request.auth.uid])
+          && request.resource.data.members.size() <= asgDoc(resource.data.aid).groupMax
+          && ownsClaim(resource.data.aid, actor())
+          && get(claimPath(resource.data.aid, actor())).data.groupId == null
+          && getAfter(claimPath(resource.data.aid, actor())).data.groupId == sid;
+      }
+
+      // Taking your place in a group that already lists your SAP ID: a
+      // teacher-defined group, or your own group after the faculty reset
+      // your account binding.
+      function attachUpdate() {
+        return isStudentAccount()
+          && resource.data.members.hasAny([actor()])
+          && !resource.data.memberUids.hasAny([request.auth.uid])
+          && changed().hasOnly(['memberUids', 'memberNames', 'actor'])
+          && request.resource.data.memberUids
+               == resource.data.memberUids.concat([request.auth.uid])
+          && ownsClaim(resource.data.aid, actor())
+          && getAfter(claimPath(resource.data.aid, actor())).data.groupId == sid;
+      }
+
+      // Leaving a self-formed group before it is confirmed. Only the leader
+      // can hand the leadership on, and only to someone still in the group.
+      function leaveUpdate() {
+        return isStudentAccount() && isMember()
+          && resource.data.kind == 'group'
+          && resource.data.formation == 'self'
+          && resource.data.confirmed == false
+          && resource.data.members.hasAny([actor()])
+          && ownsClaim(resource.data.aid, actor())
+          && changed().hasOnly(['members', 'memberUids', 'memberNames', 'leader', 'actor'])
+          && request.resource.data.members == resource.data.members.removeAll([actor()])
+          && request.resource.data.memberUids
+               == resource.data.memberUids.removeAll([request.auth.uid])
+          && (actor() == resource.data.leader
+              || request.resource.data.leader == resource.data.leader)
+          && (request.resource.data.members.size() == 0
+              || request.resource.data.members.hasAny([request.resource.data.leader]))
+          && getAfter(claimPath(resource.data.aid, actor())).data.groupId == null;
+      }
+
+      // The leader closes the group once it is big enough. After this nobody
+      // joins or leaves except through the faculty.
+      function confirmUpdate() {
+        return isStudentAccount() && isMember()
+          && resource.data.kind == 'group'
+          && resource.data.confirmed == false
+          && actor() == resource.data.leader
+          && ownsClaim(resource.data.aid, actor())
+          && changed().hasOnly(['confirmed', 'confirmedAt', 'actor'])
+          && request.resource.data.confirmed == true
+          && resource.data.members.size() >= asgDoc(resource.data.aid).groupMin
+          && resource.data.members.size() == resource.data.memberUids.size();
+      }
+
+      allow update: if isAdmin() || workUpdate() || joinUpdate()
+                    || attachUpdate() || leaveUpdate() || confirmUpdate();
+      allow delete: if isAdmin();
+
+      // Edit history: one immutable entry per editing session, with a
+      // snapshot of the section, written by the member in their own name and
+      // stamped with the server's time. This is the timeline the faculty reads
+      // to see who wrote what, and when.
+      match /revs/{rid} {
+        function parent() {
+          return get(subPath(sid)).data;
+        }
+        allow read: if isAdmin()
+                    || (request.auth != null && parent().memberUids.hasAny([request.auth.uid]));
+        allow create: if isStudentAccount()
+          && parent().memberUids.hasAny([request.auth.uid])
+          && parent().members.hasAny([request.resource.data.actor])
+          && parent().status == 'draft'
+          && ownsClaim(parent().aid, request.resource.data.actor)
+          && request.resource.data.keys().hasOnly(['actor', 'name', 'qid', 'kind', 'words',
+                                                   'wordsBefore', 'typed', 'html', 'at'])
+          && request.resource.data.at == request.time
+          && request.resource.data.html is string
+          && request.resource.data.html.size() <= 100000;
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // Peer assessment: each group member's split of the work (percent per
+    // member) and a statement of their own part. Its own document per member,
+    // readable only by its author and the faculty — a declaration team-mates
+    // could read would not be an honest one. Open until 72 hours after the
+    // deadline, so a group that submits at the last minute can still fill it in.
+    match /assignDecls/{did} {
+      function sub() {
+        return get(subPath(request.resource.data.sid)).data;
+      }
+      allow get: if isAdmin()
+                 || (request.auth != null && resource == null)
+                 || (isStudentAccount() && ownsClaim(resource.data.aid, resource.data.sapId));
+      allow list: if isAdmin();
+      allow create, update: if isStudentAccount()
+        && did == request.resource.data.sid + '__' + request.resource.data.sapId
+        && request.resource.data.keys().hasOnly(['aid', 'sid', 'sapId', 'split',
+                                                 'statement', 'at'])
+        && (resource == null || resource.data.sapId == request.resource.data.sapId)
+        && ownsClaim(request.resource.data.aid, request.resource.data.sapId)
+        && sub().aid == request.resource.data.aid
+        && sub().kind == 'group'
+        && sub().memberUids.hasAny([request.auth.uid])
+        && sub().members.hasAny([request.resource.data.sapId])
+        && request.resource.data.split is map
+        && request.resource.data.split.size() <= 6
+        && request.resource.data.statement is string
+        && request.resource.data.statement.size() <= 4000
+        && request.resource.data.at == request.time
+        && request.time < asgDoc(request.resource.data.aid).deadline
+                          + duration.value(72, 'h');
+      allow delete: if isAdmin();
+    }
+
+    // The faculty's full evaluation of a submission. Faculty only.
+    match /assignEvals/{sid} {
+      allow read, write: if isAdmin();
+    }
+
+    // What each student is shown once marks are released: one document per
+    // student, so team-mates never see each other's individual marks.
+    match /assignGrades/{gid} {
+      allow read: if isAdmin()
+                  || (isStudentAccount()
+                      && ownsClaim(resource.data.aid, resource.data.sapId)
+                      && asgDoc(resource.data.aid).get('marksReleased', false) == true);
+      allow write: if isAdmin();
+    }
   }
 }
