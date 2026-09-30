@@ -6,7 +6,7 @@ import {
   gradeQuestion, gradeAttempt, shuffle, safeId, fmtTime,
   seededShuffle, displayOptions, readingSeconds, extraMinutes, attemptMinutes,
 } from "./common.js";
-import { createProctor, VIOLATION_DEBOUNCE_MS } from "./proctor.js";
+import { createProctor, VIOLATION_DEBOUNCE_MS, GRACE_TAIL_MS } from "./proctor.js";
 
 const out = document.getElementById("results");
 let pass = 0, fail = 0;
@@ -195,6 +195,59 @@ group("Blocked shortcuts");
   check("Plain typing is NOT blocked", key("a") === false);
   check("Arrow keys are NOT blocked", key("ArrowDown") === false);
   check("Tab key is NOT blocked (keyboard navigation still works)", key("Tab") === false);
+}
+
+// --- grace windows --------------------------------------------------------
+group("Grace windows (Submit confirmation, backup download)");
+{
+  const make = () => {
+    let clock = 0;
+    const fired = { violations: 0, graced: [] };
+    const fake = {
+      listeners: {}, hidden: false, fullscreenElement: null,
+      addEventListener(k, fn) { (this.listeners[k] = this.listeners[k] || []).push(fn); },
+      removeEventListener() { },
+    };
+    const p = createProctor({
+      maxViolations: 3, doc: fake, win: fake, now: () => clock,
+      onViolation: () => { fired.violations += 1; },
+      onGrace: (k, r) => fired.graced.push([k, r]),
+    }).attach();
+    const focus = () => fake.listeners.focus.forEach((fn) => fn());
+    return { p, fired, focus, tick: (ms) => { clock += ms; } };
+  };
+
+  let t = make();
+  t.p.grace("submit confirmation", 60000);
+  t.p.report("window focus lost");
+  check("A graced focus loss costs no violation", t.p.count === 0 && t.fired.violations === 0);
+  check("…and is still reported with its reason", t.fired.graced[0]?.[1] === "submit confirmation");
+
+  t = make();
+  t.p.grace("submit confirmation", 60000);
+  t.focus();                                   // confirm() closed
+  t.tick(200);
+  t.p.report("left full screen");              // the browser's late event
+  check("A full-screen exit arriving just after focus returns is still graced", t.p.count === 0);
+
+  t = make();
+  t.p.grace("answer backup download", 60000);
+  t.focus();
+  t.tick(GRACE_TAIL_MS + 100);
+  t.p.report("tab/minimise");                  // a genuine departure, later
+  check("Grace ends shortly after focus comes back", t.p.count === 1 && !t.p.inGrace);
+
+  t = make();
+  t.p.grace("answer backup download", 25000);
+  t.tick(25001);
+  t.p.report("window focus lost");
+  check("Grace expires on its own", t.p.count === 1);
+
+  t = make();
+  t.p.grace("submit confirmation", 60000);
+  t.p.clearGrace();
+  t.p.report("tab/minimise");
+  check("clearGrace is immediate", t.p.count === 1);
 }
 
 // --- attach/detach lifecycle ---------------------------------------------

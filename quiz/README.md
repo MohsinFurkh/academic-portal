@@ -162,7 +162,7 @@ Two things to know:
     something to hand back as it is.
 
 If a student's submission failed (rare — they will show a red "Submission not confirmed"
-panel), they can download a JSON receipt with their answers. Grade it manually.
+panel), they can download an HTML answer sheet showing each question and the option(s) they picked. Grade it manually. Students can also download the same sheet as a backup at any time during the quiz; neither download counts as a violation.
 
 ---
 

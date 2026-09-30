@@ -15,8 +15,7 @@ function msg(el, text, kind = "err") {
   el.innerHTML = text ? `<div class="notice ${kind}">${text}</div>` : "";
 }
 
-let uploadedRaw = null;
-let uploadedQuestions = null;
+let qRows = [];             // question builder rows (DOM)
 let monitorUnsub = null;
 let currentRows = [];
 let started = false;
@@ -77,6 +76,11 @@ function initApp() {
   $("jsonFile").addEventListener("change", onFile);
   $("rosterFile").addEventListener("change", onRosterFile);
   $("roster").addEventListener("input", onRosterInput);
+  $("title").addEventListener("input", refreshSaveState);
+  $("addQBtn").addEventListener("click", () => {
+    addQuestionRow().querySelector(".f-q").focus();
+    refreshSaveState();
+  });
   $("saveQuizBtn").addEventListener("click", saveQuiz);
   $("monitorQuiz").addEventListener("change", startMonitor);
   $("exportBtn").addEventListener("click", exportCsv);
@@ -86,40 +90,185 @@ function initApp() {
   // Delegated: the rows are re-rendered on every snapshot, so per-button
   // listeners would be lost every few seconds.
   $("rows").addEventListener("click", onRowAction);
+  addQuestionRow();
+  refreshSaveState();
   loadQuizList();
   setInterval(() => renderRows(currentRows), 15000); // refresh "live" column
 }
 
-// ---- Upload questions ----
+// ---------------------------------------------------------------------------
+// Question builder — every question is shown here for checking before it is
+// saved, whether it was typed in or loaded from a JSON file.
+// ---------------------------------------------------------------------------
+const letter = (i) => String.fromCharCode(65 + i);
+
+function addQuestionRow(q) {
+  const row = document.createElement("div");
+  row.className = "qbuild-row";
+  row.innerHTML = `
+    <div class="qnum"></div>
+    <div class="qtext">
+      <label>Question</label>
+      <textarea class="f-q" rows="2" placeholder="e.g. In a 64K x 8 chip, each cell stores:">${escapeHtml(q?.question || "")}</textarea>
+      <label style="margin-top:8px">Options — tick the correct one(s)</label>
+      <div class="f-opts"></div>
+      <button type="button" class="btn secondary xs f-addopt">+ Option</button>
+      <label style="margin-top:8px">Explanation (faculty only — never sent to students)</label>
+      <textarea class="f-expl" rows="2" placeholder="Why the correct option is correct — used in the post-quiz walkthrough.">${escapeHtml(q?.explanation || "")}</textarea>
+    </div>
+    <div class="qside">
+      <label>Topic</label>
+      <input type="text" class="f-topic" value="${escapeHtml(q?.topic || "")}" placeholder="optional" />
+      <label class="chk" title="Students tick every option they think is correct, instead of one">
+        <input type="checkbox" class="f-multi" ${q?.multi ? "checked" : ""} /> select all that apply
+      </label>
+      <label class="chk" title="For options with a natural order: numbers, 'both of the above', scales">
+        <input type="checkbox" class="f-fixed" ${q && q.shuffleOptions === false ? "checked" : ""} /> keep option order
+      </label>
+      <div class="qmove">
+        <button type="button" class="btn secondary xs f-up" title="Move up">↑</button>
+        <button type="button" class="btn secondary xs f-down" title="Move down">↓</button>
+        <button type="button" class="btn secondary xs f-del">Remove</button>
+      </div>
+    </div>`;
+
+  const opts = q?.options?.length ? q.options : [{}, {}, {}, {}];
+  const correct = new Set((q?.correct || []).map(String));
+  opts.forEach((o) => addOptionRow(row, o.text || "", correct.has(String(o.key))));
+
+  row.querySelector(".f-addopt").addEventListener("click", () => {
+    addOptionRow(row, "", false).querySelector(".o-text").focus();
+    refreshSaveState();
+  });
+  row.querySelector(".f-del").addEventListener("click", () => {
+    const text = row.querySelector(".f-q").value.trim();
+    if (text && !window.confirm("Remove this question?")) return;
+    qRows = qRows.filter((r) => r !== row);
+    row.remove();
+    renumber();
+    refreshSaveState();
+  });
+  row.querySelector(".f-up").addEventListener("click", () => moveRow(row, -1));
+  row.querySelector(".f-down").addEventListener("click", () => moveRow(row, 1));
+  row.addEventListener("input", refreshSaveState);
+  row.addEventListener("change", refreshSaveState);
+
+  $("qbuild").appendChild(row);
+  qRows.push(row);
+  renumber();
+  return row;
+}
+
+function addOptionRow(row, text, isCorrect) {
+  const o = document.createElement("div");
+  o.className = "opt-row";
+  o.innerHTML = `
+    <input type="checkbox" class="o-ok" title="Correct answer" ${isCorrect ? "checked" : ""} />
+    <span class="o-key"></span>
+    <input type="text" class="o-text" value="${escapeHtml(text)}" placeholder="Option text" />
+    <button type="button" class="btn secondary xs o-del" title="Remove option">✕</button>`;
+  o.querySelector(".o-del").addEventListener("click", () => {
+    o.remove();
+    relabel(row);
+    refreshSaveState();
+  });
+  row.querySelector(".f-opts").appendChild(o);
+  relabel(row);
+  return o;
+}
+
+function relabel(row) {
+  row.querySelectorAll(".opt-row .o-key").forEach((el, i) => { el.textContent = letter(i); });
+}
+
+function moveRow(row, dir) {
+  const i = qRows.indexOf(row);
+  const j = i + dir;
+  if (j < 0 || j >= qRows.length) return;
+  [qRows[i], qRows[j]] = [qRows[j], qRows[i]];
+  qRows.forEach((r) => $("qbuild").appendChild(r));
+  renumber();
+  row.scrollIntoView({ block: "nearest" });
+}
+
+function renumber() {
+  qRows.forEach((r, i) => { r.querySelector(".qnum").textContent = `Q${i + 1}`; });
+}
+
+// Reads the builder into normalized questions (the shape normalizeQuestions
+// produces), plus a list of problems that would make the quiz unfair to grade.
+// Options are re-keyed A, B, C… by position, so a question loaded from any of
+// the supported JSON formats is saved in one consistent shape.
+function readBuilder() {
+  const questions = [];
+  const problems = [];
+  qRows.forEach((r, i) => {
+    const text = r.querySelector(".f-q").value.trim();
+    const opts = [...r.querySelectorAll(".opt-row")]
+      .map((o) => ({ text: o.querySelector(".o-text").value.trim(), ok: o.querySelector(".o-ok").checked }))
+      .filter((o) => o.text);
+    r.classList.remove("bad");
+    if (!text && !opts.length) return;              // an untouched blank row
+    const options = opts.map((o, k) => ({ key: letter(k), text: o.text }));
+    const correct = opts.map((o, k) => (o.ok ? letter(k) : null)).filter(Boolean);
+    const n = `Q${i + 1}`;
+    if (!text) problems.push(`${n} has no question text`);
+    if (options.length < 2) problems.push(`${n} needs at least two options`);
+    if (!correct.length) problems.push(`${n} has no correct option ticked`);
+    if (!text || options.length < 2 || !correct.length) r.classList.add("bad");
+    questions.push({
+      id: String(questions.length + 1),
+      question: text,
+      explanation: r.querySelector(".f-expl").value.trim(),
+      topic: r.querySelector(".f-topic").value.trim(),
+      multi: r.querySelector(".f-multi").checked || correct.length > 1,
+      shuffleOptions: !r.querySelector(".f-fixed").checked,
+      options,
+      correct,
+    });
+  });
+  return { questions, problems };
+}
+
+// ---- Questions JSON upload (fills the builder, for checking before saving) ----
 function onFile(ev) {
   const file = ev.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      uploadedRaw = JSON.parse(reader.result);
-      uploadedQuestions = normalizeQuestions(uploadedRaw);
-      if (!uploadedQuestions.length) throw new Error("No questions found in file");
+      const raw = JSON.parse(reader.result);
+      const questions = normalizeQuestions(raw);
+      if (!questions.length) throw new Error("no questions found in that file");
+      const hasWork = qRows.some((r) => r.querySelector(".f-q").value.trim());
+      if (hasWork && !window.confirm(
+        "Replace the questions currently in the form with the ones from this file?")) {
+        $("jsonFile").value = "";
+        return;
+      }
 
-      const missing = uploadedQuestions.filter((q) => !q.correct || !q.correct.length);
-      const meta = readMeta(uploadedRaw);
+      $("qbuild").innerHTML = "";
+      qRows = [];
+      questions.forEach((q) => addQuestionRow(q));
+
+      const meta = readMeta(raw);
       if (!$("title").value.trim()) {
         $("title").value = meta.assessment || meta.course || file.name.replace(/\.json$/i, "");
       }
-      $("jsonInfo").innerHTML =
-        `✅ <b>${uploadedQuestions.length}</b> questions loaded` +
+      if (meta.instructions && !$("instructions").value.trim()) {
+        $("instructions").value = meta.instructions;
+      }
+      const { problems } = readBuilder();
+      msg($("createMsg"),
+        `Loaded <b>${questions.length}</b> question(s)` +
         (meta.course ? ` · ${escapeHtml(meta.course)}` : "") +
-        (missing.length
-          ? `<br><span style="color:var(--bad)">⚠ ${missing.length} question(s) have no correct answer marked — they would score 0 for everyone.</span>`
-          : "");
-      refreshSaveState();
-      msg($("createMsg"), "");
+        `. Check them below, edit anything, then save.` +
+        (problems.length ? ` <b>${problems.length} problem(s) are highlighted.</b>` : ""),
+        problems.length ? "warn" : "ok");
     } catch (e) {
-      uploadedQuestions = null;
-      $("jsonInfo").textContent = "";
-      refreshSaveState();
-      msg($("createMsg"), "Could not read that file: " + e.message);
+      msg($("createMsg"), "Could not read that file: " + escapeHtml(e.message));
     }
+    refreshSaveState();
   };
   reader.readAsText(file);
 }
@@ -145,25 +294,33 @@ function onRosterInput() {
 }
 
 function refreshSaveState() {
-  const ok = !!uploadedQuestions && parseRoster($("roster").value).length > 0;
-  $("saveQuizBtn").disabled = !ok;
+  const { questions, problems } = readBuilder();
+  const hasRoster = parseRoster($("roster").value).length > 0;
+  $("qTotals").innerHTML = !questions.length
+    ? "No questions written yet."
+    : `${questions.length} question(s)` + (problems.length
+      ? ` · <span style="color:var(--bad)">⚠ ${escapeHtml(problems.slice(0, 3).join("; "))}` +
+        `${problems.length > 3 ? ` and ${problems.length - 3} more` : ""}</span>`
+      : " · ready");
+  $("saveQuizBtn").disabled = !(questions.length && !problems.length && hasRoster);
 }
 
 // ---- Save quiz (splits public questions from the answer key) ----
 async function saveQuiz() {
-  if (!uploadedQuestions) return;
+  const { questions, problems } = readBuilder();
+  if (!questions.length) return msg($("createMsg"), "Please write at least one question.");
+  if (problems.length) return msg($("createMsg"), "Fix the highlighted questions first.");
   const title = $("title").value.trim();
   if (!title) return msg($("createMsg"), "Please enter a quiz title.");
   const roster = parseRoster($("roster").value);
   if (!roster.length) return msg($("createMsg"), "Please add the allowed SAP IDs.");
 
-  const meta = readMeta(uploadedRaw);
   const quizId = slug(title) + "_" + Date.now().toString(36);
-  const { publicQuestions, correct, explanations } = splitKey(uploadedQuestions);
+  const { publicQuestions, correct, explanations } = splitKey(questions);
 
   const publicDoc = {
     title,
-    instructions: meta.instructions || "",
+    instructions: $("instructions").value.trim(),
     durationMinutes: Math.max(1, parseInt($("duration").value, 10) || 20),
     marksPerQuestion: parseFloat($("marks").value) || 1,
     negativeMarks: parseFloat($("negative").value) || 0,
@@ -188,9 +345,7 @@ async function saveQuiz() {
       `Quiz "<b>${escapeHtml(title)}</b>" saved with <b>${roster.length}</b> students on the roster and ` +
       `${publicDoc.active ? "<b>is now ACTIVE</b>" : "saved as a draft"}. ` +
       `The answer key is stored separately in <code>quizKeys/${quizId}</code>.`, "ok");
-    $("jsonFile").value = ""; $("jsonInfo").textContent = "";
-    uploadedRaw = uploadedQuestions = null;
-    refreshSaveState();
+    $("jsonFile").value = "";
     await loadQuizList(quizId);
   } catch (e) {
     console.error(e);

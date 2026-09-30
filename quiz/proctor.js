@@ -10,24 +10,34 @@
 //     .detach()          stop listening (call on submit)
 //     .report(kind)      register a violation manually / from a test
 //     .count             violations so far
+//     .grace(reason, ms) excuse a focus loss the PAGE is about to cause
+//     .clearGrace()      end that excuse early
 //
 // Debouncing matters: leaving a window fires visibilitychange AND blur, and
 // exiting full screen fires fullscreenchange too. One incident must count once.
 // ---------------------------------------------------------------------------
 
 export const VIOLATION_DEBOUNCE_MS = 1200;
+// The browser does not deliver a dialog's side effects in a tidy order: focus
+// can come back a moment BEFORE the matching "left full screen" event arrives.
+// Grace therefore lingers this long after focus returns, so the tail end of a
+// page-caused dialog is not mistaken for the student leaving.
+export const GRACE_TAIL_MS = 1500;
 
 export function createProctor(opts) {
   const {
     maxViolations = 3,
     onViolation = () => { },   // (count, kind, remaining)
     onLimit = () => { },       // (count, kind)  — fires once, at the limit
+    onGrace = () => { },       // (kind, reason) — focus loss the page itself caused
     doc: docRef = (typeof document !== "undefined" ? document : null),
     win = (typeof window !== "undefined" ? window : null),
     now = () => Date.now(),
   } = opts || {};
 
   let count = 0;
+  let graceUntil = 0;
+  let graceReason = "";
   let lastTs = -Infinity;
   let stopped = false;
   let limitReached = false;
@@ -55,8 +65,36 @@ export function createProctor(opts) {
     return blocked;
   }
 
+  // -------------------------------------------------------------------------
+  // Grace windows
+  // -------------------------------------------------------------------------
+  // The Submit confirmation box and a file download are browser chrome: they
+  // blur the page and can drop full screen exactly as alt-tabbing does. grace()
+  // is how the page says "I am about to cause that, because the student clicked
+  // a control I own". It is time-boxed, it ends GRACE_TAIL_MS after focus comes
+  // back, and every excused event is still reported through onGrace.
+  function grace(reason, ms = 25000) {
+    graceUntil = now() + ms;
+    graceReason = String(reason || "page dialog");
+    return api;
+  }
+
+  function clearGrace() {
+    graceUntil = 0;
+    graceReason = "";
+    return api;
+  }
+
+  function inGrace() {
+    return now() < graceUntil;
+  }
+
   function report(kind) {
     if (stopped || limitReached) return null;
+    if (inGrace()) {
+      onGrace(kind, graceReason);
+      return null;
+    }
     const ts = now();
     if (ts - lastTs < VIOLATION_DEBOUNCE_MS) return null;   // same incident
     lastTs = ts;
@@ -79,6 +117,11 @@ export function createProctor(opts) {
     on(docRef, "keydown", keyGuard, true);
     on(docRef, "visibilitychange", () => { if (docRef.hidden) report("tab/minimise"); });
     on(win, "blur", () => report("window focus lost"));
+    // Focus is back: the dialog is closed. Keep only a short tail for the
+    // events it set off that are still on their way.
+    on(win, "focus", () => {
+      if (inGrace()) graceUntil = Math.min(graceUntil, now() + GRACE_TAIL_MS);
+    });
     on(docRef, "fullscreenchange", () => {
       if (!docRef.fullscreenElement) report("left full screen");
     });
@@ -93,7 +136,8 @@ export function createProctor(opts) {
   }
 
   const api = {
-    attach, detach, report, keyGuard,
+    attach, detach, report, keyGuard, grace, clearGrace,
+    get inGrace() { return inGrace(); },
     get count() { return count; },
     get limitReached() { return limitReached; },
     set count(v) { count = v; },      // used when resuming an attempt

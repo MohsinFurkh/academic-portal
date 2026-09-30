@@ -64,7 +64,9 @@ async function init() {
   $("submitBtn2").addEventListener("click", () => confirmSubmit("manual"));
   $("resumeBtn").addEventListener("click", resumeFromViolation);
   $("retryBtn").addEventListener("click", () => doSubmit(lastSubmitReason, true));
-  $("downloadBtn").addEventListener("click", downloadReceipt);
+  $("downloadBtn").addEventListener("click", () => downloadReceipt(true));
+  $("backupBtn").addEventListener("click", downloadBackup);
+  $("backupBtn2").addEventListener("click", downloadBackup);
 
   if (!document.documentElement.requestFullscreen) {
     $("fsWarn").innerHTML =
@@ -484,6 +486,9 @@ function startHeartbeat() {
 // ---------------------------------------------------------------------------
 let proctor = null;
 let focusHandlers = [];
+// Set when a grace window absorbed a full-screen exit. Full screen can only be
+// re-entered from a user gesture, so the student is asked for one click.
+let needsFullscreen = false;
 
 function enableProctoring() {
   proctor = createProctor({
@@ -509,6 +514,9 @@ function enableProctoring() {
       );
       confirmSubmit("proctoring", true);
     },
+    // A focus loss the page caused (Submit confirmation, backup download).
+    // It costs nothing; the student is only asked to go back into full screen.
+    onGrace: () => { needsFullscreen = true; },
   });
   proctor.count = violations;   // resumed attempts keep their history
   proctor.attach();
@@ -516,7 +524,10 @@ function enableProctoring() {
   // Hide the paper the instant focus is lost, so a screenshot taken while
   // switching away captures nothing useful.
   addFocusHandler(window, "blur", () => document.body.classList.add("screen-hidden"));
-  addFocusHandler(window, "focus", () => { if (!paused) document.body.classList.remove("screen-hidden"); });
+  addFocusHandler(window, "focus", () => {
+    if (!paused) document.body.classList.remove("screen-hidden");
+    if (needsFullscreen) checkFullscreen();
+  });
   addFocusHandler(window, "beforeunload", beforeUnload);
 }
 
@@ -566,6 +577,18 @@ async function resumeFromViolation() {
   paused = false;
   $("proctorOverlay").classList.add("hidden");
   document.body.classList.remove("screen-hidden");
+}
+
+// After a dialog that dropped full screen, offer one click to go back in. This
+// is not a violation — but the quiz must not carry on outside full screen.
+function checkFullscreen() {
+  needsFullscreen = false;
+  if (finished || submitting || document.fullscreenElement) return;
+  showOverlay(
+    "Return to full screen",
+    "The dialog you just used closed full screen. This was <b>not</b> counted as a " +
+    "violation — click below to carry on with your quiz.",
+    true);
 }
 
 function addWatermark() {
@@ -635,17 +658,44 @@ let lastSubmitReason = "manual";
 function confirmSubmit(reason, auto = false) {
   if (submitting || finished) return;
   if (!auto) {
+    // window.confirm() is browser chrome: it blurs the page and can drop full
+    // screen. The student pressed our own Submit button, so grace it. The grace
+    // is NOT cleared when confirm() returns — the blur and full-screen exit are
+    // delivered after that; the proctor ends it shortly after focus is back.
+    proctor?.grace("submit confirmation", 60000);
     const unanswered = order.filter((qid) => (answers[qid] || []).length === 0).length;
     const note = unanswered ? `\n\nYou have ${unanswered} unanswered question(s).` : "";
-    if (!window.confirm(`Submit your quiz now? This cannot be undone.${note}`)) return;
+    if (!window.confirm(`Submit your quiz now? This cannot be undone.${note}`)) {
+      if (!document.fullscreenElement) needsFullscreen = true;
+      return;
+    }
   }
   doSubmit(reason);
+}
+
+// Backup copy during the quiz. Saving a file can open the browser's download
+// panel or a "Save as" window, both of which can take focus or full screen —
+// the student did what the page offered, so it is graced, not charged.
+function downloadBackup() {
+  if (submitting || finished) return;
+  proctor?.grace("answer backup download", 60000);
+  downloadReceipt(false);
+  // No dialog appeared (focus never left): close the grace now instead of
+  // leaving a minute of unmonitored time.
+  setTimeout(() => {
+    if (!document.hasFocus()) return;             // a Save window is open — focus ends it
+    proctor?.clearGrace();
+    if (!document.fullscreenElement) checkFullscreen();
+  }, 2000);
 }
 
 async function doSubmit(reason, isRetry = false) {
   if (submitting) return;
   submitting = true;
   lastSubmitReason = reason;
+  // The student is done: stop watching before the network round trip, so the
+  // full-screen exit and focus changes around submitting are never counted.
+  disableProctoring();
   clearInterval(timerHandle);
   clearInterval(heartbeatHandle);
   clearTimeout(saveTimer);
@@ -697,20 +747,56 @@ function receiptCode() {
   return h.toString(36).toUpperCase().slice(0, 8);
 }
 
-function downloadReceipt() {
+// A readable answer sheet: every question as the student saw it, with the
+// options they picked marked. Used by the rescue screen when the server never
+// confirmed the submit (failed = true), and during the quiz as a personal
+// backup (failed = false). The raw answers are embedded too, for the record.
+function downloadReceipt(failed = true) {
+  const s = window.__student || {};
+  const byId = Object.fromEntries((quiz?.questions || []).map((q) => [q.id, q]));
+  const body = order.map((qid, i) => {
+    const q = byId[qid];
+    if (!q) return "";
+    const picked = answers[qid] || [];
+    const opts = displayOptions(q, attemptId).map((o) => {
+      const on = picked.includes(o.key);
+      return `<li class="${on ? "on" : ""}">${on ? "&#9745;" : "&#9744;"}
+        <b>${escapeHtml(o.label)}.</b> ${escapeHtml(o.text)}
+        <small>(key ${escapeHtml(o.key)})</small></li>`;
+    }).join("");
+    return `<section><h3>Q${i + 1}. ${escapeHtml(q.question)}</h3>
+      <ul>${opts}</ul>${picked.length ? "" : "<p><i>Not answered</i></p>"}</section>`;
+  }).join("");
+
   const data = {
     attemptId, quizId: quiz?.id, quizTitle: quiz?.title,
-    name: window.__student?.name, sapId: window.__student?.sapId,
-    answers, order, violations,
+    name: s.name, sapId: s.sapId, answers, order, violations,
     localTime: new Date().toISOString(),
-    note: "Backup receipt — submission to the server was not confirmed.",
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const page = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Quiz answers — ${escapeHtml(s.sapId || "")}</title>
+<style>body{font-family:Segoe UI,system-ui,sans-serif;max-width:820px;margin:30px auto;padding:0 18px;line-height:1.5}
+h1{font-size:1.3rem}section{border-top:1px solid #ddd;padding-top:10px;margin-top:16px}
+h3{font-size:1rem}ul{list-style:none;padding:0}li{padding:5px 9px;border-radius:6px;margin:3px 0}
+li.on{background:#eaf4fb;border:1px solid #2e86c1}small{color:#888}</style></head><body>
+<h1>${escapeHtml(quiz?.title || "Quiz")} — answer sheet</h1>
+<p><b>${escapeHtml(s.name || "")}</b> · SAP ${escapeHtml(s.sapId || "")}<br>
+Saved locally at ${new Date().toLocaleString()} · receipt ${receiptCode()} ·
+${violations} violation(s)<br>
+<i>${failed
+    ? "Submission to the server was not confirmed. Email this file to your instructor."
+    : "Backup taken during the quiz. This is not a submission — the quiz is still submitted from the quiz page."}</i></p>
+${body}
+<script type="application/json" id="attempt">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>
+</body></html>`;
+
+  const blob = new Blob([page], { type: "text/html" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `quiz_receipt_${safeId(window.__student?.sapId || "student")}.json`;
+  a.download = `quiz_answers_${safeId(s.sapId || "student")}.html`;
   a.click();
-  URL.revokeObjectURL(a.href);
+  // Revoking in the same tick can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
 
 // ---- utils ----
