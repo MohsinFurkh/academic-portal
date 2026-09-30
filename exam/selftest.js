@@ -10,7 +10,7 @@ import {
   validMobile, validEmail, parseDomains, parseRoster, normalizeExam, totalMarks,
   readingSeconds, attemptMinutes, extraMinutes, safeId, fmtTime, escapeHtml,
 } from "./common.js";
-import { createProctor, VIOLATION_DEBOUNCE_MS } from "./proctor.js";
+import { createProctor, VIOLATION_DEBOUNCE_MS, GRACE_TAIL_MS } from "./proctor.js";
 import { createEditor } from "./editor.js";
 
 const results = [];
@@ -326,14 +326,24 @@ check("grace expires on its own", () => {
   return eq(fired.violations.length, 1);
 });
 
-check("grace ends the moment focus comes back", () => {
+check("grace ends shortly after focus comes back", () => {
   const { p, fired, fake, tick } = graceProctor();
   p.grace("diagram file chooser", 25000);
   fake.listeners.focus.forEach((fn) => fn());     // the chooser closed
-  tick(100);
+  tick(GRACE_TAIL_MS + 100);
   p.report("window focus lost");                  // a genuine departure, later
   return fired.violations.length === 1 && !p.inGrace
     ? true : `violations=${fired.violations.length} inGrace=${p.inGrace}`;
+});
+
+check("a full-screen exit arriving just after focus returns is still graced", () => {
+  const { p, fired, fake, tick } = graceProctor();
+  p.grace("submit confirmation", 60000);
+  fake.listeners.focus.forEach((fn) => fn());     // confirm() closed
+  tick(200);
+  p.report("left full screen");                   // the browser's late event
+  return fired.violations.length === 0 && fired.graced.length === 1
+    ? true : `violations=${fired.violations.length} graced=${fired.graced.length}`;
 });
 
 check("clearGrace is immediate", () => {

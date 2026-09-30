@@ -19,6 +19,11 @@
 // ---------------------------------------------------------------------------
 
 export const VIOLATION_DEBOUNCE_MS = 1200;
+// The browser does not deliver a dialog's side effects in a tidy order: focus
+// can come back a moment BEFORE the matching "left full screen" event arrives.
+// Grace therefore lingers this long after focus returns, so the tail end of a
+// page-caused dialog is not mistaken for the student leaving.
+export const GRACE_TAIL_MS = 1500;
 
 export function createProctor(opts) {
   const {
@@ -121,8 +126,8 @@ export function createProctor(opts) {
   // because the student clicked a control I own". It is deliberately narrow:
   //
   //   * only the page can open one, never the student directly;
-  //   * it is time-boxed, and it ENDS the moment focus comes back, so it is one
-  //     round trip to a dialog and not a window of free absence;
+  //   * it is time-boxed, and it ends GRACE_TAIL_MS after focus comes back, so
+  //     it is one round trip to a dialog and not a window of free absence;
   //   * the paper stays blurred while focus is away, exactly as before;
   //   * every suppressed event is still reported through onGrace and logged,
   //     so the instructor sees that it happened and why.
@@ -178,8 +183,11 @@ export function createProctor(opts) {
     on(docRef, "visibilitychange", () => { if (docRef.hidden) report("tab/minimise"); });
     on(win, "blur", () => report("window focus lost"));
     // Focus is back: the dialog is closed, so the grace has done its job and
-    // must not linger as unmonitored time.
-    on(win, "focus", () => { if (inGrace()) clearGrace(); });
+    // must not linger as unmonitored time — only a short tail for the events
+    // the dialog set off that are still on their way.
+    on(win, "focus", () => {
+      if (inGrace()) graceUntil = Math.min(graceUntil, now() + GRACE_TAIL_MS);
+    });
     on(docRef, "fullscreenchange", () => {
       if (!docRef.fullscreenElement) report("left full screen");
     });

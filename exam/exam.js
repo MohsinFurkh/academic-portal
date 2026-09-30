@@ -75,7 +75,9 @@ async function init() {
   $("submitBtn2").addEventListener("click", () => confirmSubmit("manual"));
   $("resumeBtn").addEventListener("click", resumeFromViolation);
   $("retryBtn").addEventListener("click", () => doSubmit(lastSubmitReason, true));
-  $("downloadBtn").addEventListener("click", downloadPaper);
+  $("downloadBtn").addEventListener("click", () => downloadPaper(true));
+  $("backupBtn").addEventListener("click", downloadBackup);
+  $("backupBtn2").addEventListener("click", downloadBackup);
 
   if (!document.documentElement.requestFullscreen) {
     $("fsWarn").innerHTML =
@@ -816,7 +818,9 @@ function confirmSubmit(reason, auto = false) {
     const blank = order.filter((qid) => (wordCounts[qid] || 0) === 0).length;
     const note = blank ? `\n\nYou have not written anything for ${blank} question(s).` : "";
     const ok = window.confirm(`Submit your answer paper now? This cannot be undone.${note}`);
-    proctor?.clearGrace();
+    // Do NOT clear the grace here: the dialog's blur and full-screen exit are
+    // delivered after confirm() returns. The proctor ends the grace shortly
+    // after focus comes back.
     if (!ok) {
       if (!document.fullscreenElement) needsFullscreen = true;
       return;
@@ -825,10 +829,30 @@ function confirmSubmit(reason, auto = false) {
   doSubmit(reason);
 }
 
+// Backup copy during the paper. Saving a file can open the browser's download
+// panel or a "Save as" window, both of which can take focus or full screen —
+// the student did what the page offered, so it is graced, not charged.
+function downloadBackup() {
+  if (submitting || finished) return;
+  collectAnswers();
+  proctor?.grace("answer backup download", 60000);
+  downloadPaper(false);
+  // No dialog appeared (focus never left): close the grace now instead of
+  // leaving a minute of unmonitored time.
+  setTimeout(() => {
+    if (!document.hasFocus()) return;             // a Save window is open — focus ends it
+    proctor?.clearGrace();
+    if (!document.fullscreenElement) checkFullscreen();
+  }, 2000);
+}
+
 async function doSubmit(reason, isRetry = false) {
   if (submitting) return;
   submitting = true;
   lastSubmitReason = reason;
+  // The student is done: stop watching before the network round trip, so the
+  // full-screen exit and focus changes around submitting are never counted.
+  disableProctoring();
   clearInterval(timerHandle);
   clearInterval(heartbeatHandle);
   clearTimeout(saveTimer);
@@ -889,7 +913,8 @@ function receiptCode() {
 
 // Rescue path: a self-contained copy of the paper, diagrams included, that the
 // student can email to the instructor if the server never accepted the submit.
-function downloadPaper() {
+// Also offered during the paper (failed = false) as a personal backup.
+function downloadPaper(failed = true) {
   const s = window.__student || {};
   const byId = Object.fromEntries((exam.questions || []).map((q) => [q.id, q]));
   const body = order.map((qid, i) => {
@@ -914,7 +939,9 @@ table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:5px 8px}</sty
 <p><b>${escapeHtml(s.name || "")}</b> · SAP ${escapeHtml(s.sapId || "")} ·
 ${escapeHtml(s.mobile || "")} · ${escapeHtml(s.email || "")}<br>
 Saved locally at ${new Date().toLocaleString()} · receipt ${receiptCode()}<br>
-<i>Submission to the server was not confirmed. Email this file to your instructor.</i></p>
+<i>${failed
+    ? "Submission to the server was not confirmed. Email this file to your instructor."
+    : "Backup taken during the test. This is not a submission — the paper is still submitted from the test page."}</i></p>
 ${body}</body></html>`;
 
   const blob = new Blob([page], { type: "text/html" });
@@ -922,5 +949,6 @@ ${body}</body></html>`;
   a.href = URL.createObjectURL(blob);
   a.download = `answer_paper_${safeId(s.sapId || "student")}.html`;
   a.click();
-  URL.revokeObjectURL(a.href);
+  // Revoking in the same tick can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
