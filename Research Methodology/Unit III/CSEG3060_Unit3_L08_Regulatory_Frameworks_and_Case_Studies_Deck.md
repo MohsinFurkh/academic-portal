@@ -6,7 +6,7 @@
 
 *Suggested pacing:* Slides 1–3 (7 min) · Slides 4–6 (12 min) · Slides 7–9 (14 min) · Slides 10–11 (12 min) · Slide 12 (6 min) · Slide 13 (5 min) · Slides 14–15 (4 min)
 
-> **Instructor note before use:** the UGC similarity tiers on Slide 10 and the UPES-specific thresholds, tools and workflow on Slides 9 and 12 are reproduced from the lecture notes. Because students are examined on exact percentages, verify both against the current gazette text of the UGC Regulations and the live UPES policy document before delivery, and correct the slides if the institution has revised them.
+> **Instructor note before use:** the UGC similarity levels on Slide 10 follow the UGC Regulations 2018. The UPES-specific thresholds, tools and workflow on Slides 9 and 12 are reproduced from the lecture notes; because students are examined on exact percentages, verify them against the live UPES policy document before delivery, and correct the slides if the institution has revised them.
 
 ---
 
@@ -180,19 +180,22 @@ Left: a decision tree — "Human participants? / Identifiable data? / Dual-use p
 **Slide Content**
 - **UGC definition (2018):** *"the practice of taking someone else's work or ideas and passing them off as one's own"* — encompassing **verbatim copying without attribution**, **close paraphrasing without acknowledgement**, **uncited use of methodologies, datasets or algorithms**, **self-plagiarism** (recycling one's own published work without disclosure) and **collusion** (coordinated submission of identical work).
 - **Note the third clause:** uncited use of *methodologies, datasets or algorithms* places CS artefacts squarely inside the regulation — a borrowed pipeline or dataset is regulated content, not just borrowed prose.
-- **Similarity tiers and minimum penalties as set out in the course notes:**
+- **Four similarity levels and their penalties (UGC Regulations 2018)**, computed after excluding quoted work with attribution, references and bibliography, and generic terms, standard symbols and equations:
 
-  | Similarity index | Category | Minimum penalty |
-  |---|---|---|
-  | Up to 10% (excluding quotes, bibliography, small matches) | Minor | Warning; no penalty where properly cited |
-  | 10–40% | Moderate | Denial of degree for students; withdrawal of paper for faculty |
-  | Above 40% | Major | Expulsion; blacklisting of authors |
+  | Level | Similarity index | Students — theses and dissertations | Faculty and researchers — publications |
+  |---|---|---|---|
+  | 0 | Up to 10% | No penalty | No penalty |
+  | 1 | Above 10% to 40% | Revised script within at most six months | Withdraw the manuscript |
+  | 2 | Above 40% to 60% | Debarred from resubmitting for one year | Withdraw; one increment denied; no new research students for two years |
+  | 3 | Above 60% | Registration cancelled | Withdraw; two increments denied; no new research students for three years |
+
+- **Repeat offences** attract the next higher level's penalty; a repeat at Level 3 means expulsion (students) or suspension/dismissal (faculty).
 
 - **Proposed revisions under discussion:** exclusion of generative-AI output from similarity detection · **mandatory declaration** of AI-assisted content generation · stricter thresholds for doctoral theses · explicit treatment of **code plagiarism** using MOSS or JPlag.
-- **Two structural points to retain:** the exclusions (quotes, bibliography, small matches) mean the *effective* index is what the regulation addresses; and thresholds are **floors for penalty**, so an institution may impose stricter limits than the UGC minimum but not laxer ones.
+- **Two structural points to retain:** the exclusions (attributed quotes, references and bibliography, generic terms and standard equations) mean the *effective* index is what the regulation addresses; and thresholds are **floors for penalty**, so an institution may impose stricter limits than the UGC minimum but not laxer ones.
 
 **Professor Speaker Notes**
-Before teaching the penalties, verify them against the gazette text of the Regulations, which set out graded levels with their own specified consequences and timelines — students are examined on exact figures, and a deck that diverges from the regulation will cost them marks. Emphasise the exclusions clause, because it connects directly to the effective-index skill taught in Lecture 5 and prevents panic over a raw percentage. Note that the generative-AI provisions are the live area and therefore the likely current-affairs examination item.
+The four levels and penalties on this slide follow the 2018 Regulations. Students are examined on the exact figures, so drill the boundaries (10, 40, 60) and the student penalties — revise within six months, one-year debarment, cancelled registration. Emphasise the exclusions clause, because it connects directly to the effective-index skill taught in Lecture 5 and prevents panic over a raw percentage. Note that the generative-AI provisions are the live area and therefore the likely current-affairs examination item.
 
 **Visual / Layout Recommendation**
 Upper half: the five-part definition as a scope diagram with *methodologies / datasets / algorithms* highlighted as the CS-relevant clause. Lower half: the tier table as a colour-coded gauge (green/amber/red), with the proposed revisions in a dashed-border "under revision" box beside it.
